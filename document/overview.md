@@ -19,6 +19,8 @@ SchemaForge là công cụ thiết kế database schema chạy trên web. Ngư�
 
 ## Tính năng
 
+Danh sách chi tiết kèm mã, mức ưu tiên và tiêu chí hoàn thành: [specs/2026-09-14-feature-list-design.md](specs/2026-09-14-feature-list-design.md).
+
 ### 1. Visual Schema Editor
 
 - Thêm, sửa, xóa bảng

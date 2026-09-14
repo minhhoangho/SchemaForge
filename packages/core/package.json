@@ -16,8 +16,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage"
   },
+  "dependencies": {
+    "zod": "catalog:"
+  },
   "devDependencies": {
     "@vitest/coverage-v8": "catalog:",
+    "fast-check": "^4.10.0",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"

@@ -60,19 +60,23 @@ Mức ưu tiên (đề xuất, có thể điều chỉnh):
 
 - [ ] Thêm, sửa, xóa cột trong một bảng.
 - [ ] Sửa được tên, kiểu dữ liệu, nullable, default, unique, primary key, auto-increment.
+- [ ] Chọn kiểu dữ liệu từ bộ kiểu chung, hoặc nhập kiểu custom cho kiểu riêng của database.
+- [ ] Khóa chính gồm được một hoặc nhiều cột.
 - [ ] Core báo lỗi khi hai cột trùng tên trong cùng một bảng.
 - [ ] Core báo lỗi với tổ hợp thuộc tính không hợp lệ, ví dụ auto-increment trên cột không phải kiểu số.
 
-Ghi chú: danh sách thuộc tính cột đầy đủ được chốt ở spec phần 2 (xem câu hỏi 4 và 5).
+Ghi chú: bộ kiểu dữ liệu, giá trị mặc định và danh sách thuộc tính cột được chốt ở [spec phần 2](2026-09-14-core-schema-model-design.md) (câu hỏi 4 và 5).
 
 ### ED-03. Quan hệ 1-1, 1-n, n-n
 
 - [ ] Tạo quan hệ giữa hai bảng trên canvas và chọn loại 1-1, 1-n hoặc n-n.
+- [ ] Quan hệ dùng được khóa ngoại nhiều cột, và chọn được hành động ON DELETE, ON UPDATE.
+- [ ] Chọn n-n tạo một bảng trung gian cùng hai quan hệ 1-n; undo một bước là bỏ cả ba. Bảng trung gian thêm được cột như bảng thường.
 - [ ] Canvas thể hiện loại của từng quan hệ.
 - [ ] Core báo lỗi khi cột khóa ngoại và cột được tham chiếu khác kiểu dữ liệu.
 - [ ] Xóa cột không để lại quan hệ trỏ tới cột không còn tồn tại.
 
-Ghi chú: cách lưu quan hệ n-n xem câu hỏi 6.
+Ghi chú: model chỉ có quan hệ 1-1 và 1-n; n-n được lưu thành bảng trung gian thật (câu hỏi 5 và 6). Chi tiết ở [spec phần 2](2026-09-14-core-schema-model-design.md).
 
 ### ED-04. Index
 
@@ -339,8 +343,9 @@ ST-02 và ST-04 không có trong danh sách của `overview.md` nhưng thuộc p
 
 - [ ] Schema vẫn còn sau khi tải lại trang hoặc đóng và mở lại trình duyệt.
 - [ ] Lưu và mở schema không cần tài khoản, không gọi server.
+- [ ] Lưu được nhiều schema trên trình duyệt; có màn hình danh sách để tạo, mở, đổi tên và xóa schema.
 
-Ghi chú: xem câu hỏi 11. Sau khi đăng nhập, bản trên trình duyệt chỉ làm cache cho bản cloud (xem ST-03).
+Ghi chú: khách lưu được nhiều schema (câu hỏi 11). Sau khi đăng nhập, bản trên trình duyệt chỉ làm cache cho bản cloud (xem ST-03).
 
 ### ST-02. Đăng ký, đăng nhập
 
@@ -430,14 +435,10 @@ Mỗi câu được trả lời trong spec của phần ở cột cuối. Khi c�
 
 | # | Câu hỏi | Tính năng | Chốt ở phần |
 |---|---|---|---|
-| 4 | Kiểu dữ liệu của cột là một bộ kiểu chung rồi ánh xạ sang từng dialect, hay theo dialect ngay từ đầu? | ED-02, CG-01 đến CG-05, IE-01 | 2 |
-| 5 | Model có hỗ trợ khóa chính và khóa ngoại nhiều cột, hành động ON DELETE và ON UPDATE không? | ED-02, ED-03 | 2 |
-| 6 | Quan hệ n-n được lưu thành bảng trung gian hay một loại quan hệ riêng? | ED-03, CG-01 đến CG-03 | 2 |
 | 7 | Khi đích sinh code không hỗ trợ một khái niệm (ví dụ enum trong SQL Server), generator xử lý thế nào? | CG-01 đến CG-10 | 6 |
 | 8 | "Mock API (REST)" sinh ra gì: code server mock, request handler hay file cấu hình? | CG-06 | 6 |
 | 9 | Seed data (CG-08) và dữ liệu mẫu do AI sinh (AI-06) khác nhau thế nào, có dùng chung định dạng output không? | CG-08, AI-06 | 5, 6 |
 | 10 | Import thay thế schema hiện tại hay gộp vào? | IE-01 đến IE-04 | 7 |
-| 11 | Khi chưa đăng nhập, trình duyệt lưu được một hay nhiều schema? | ST-01 | 3 |
 | 13 | Link private giới hạn người xem thế nào? Người mở link chia sẻ có sửa được schema không? | ST-05 | 8 |
 | 14 | "Lịch sử phiên bản cơ bản" gồm những gì: khi nào tạo phiên bản, có so sánh hai phiên bản không? | ST-06 | 8 |
 | 15 | Presentation mode hiển thị gì và khác chế độ xem thường ở điểm nào? | UX-02 | 9 |
@@ -451,5 +452,9 @@ Quyết định kỹ thuật và lý do nằm trong [architecture.md](../archite
 | 1 | Người dùng có cần xem trước và xác nhận thay đổi của AI trước khi áp dụng không? | Có. Người dùng xem diff trên canvas rồi chọn Chấp nhận hoặc Bỏ. | AI-01, AI-02, AI-03 |
 | 2 | Giới hạn sử dụng AI cho mỗi người dùng là bao nhiêu, tính theo request hay token? | Chỉ rate limit theo tần suất, chưa có quota theo ngày hay theo tháng. Con số cụ thể chốt ở spec phần 5. | AI-01 đến AI-06 |
 | 3 | Bản lưu local và bản lưu cloud đồng bộ với nhau thế nào? | Sau khi đăng nhập, bản cloud là bản chính, bản local làm cache. Lần đầu đăng nhập, người dùng được hỏi có đưa schema local lên cloud không. Xung đột được phát hiện theo revision, người dùng chọn giữ bản nào. | ST-01, ST-03 |
+| 4 | Kiểu dữ liệu của cột là một bộ kiểu chung rồi ánh xạ sang từng dialect, hay theo dialect ngay từ đầu? | Một bộ kiểu chung trong core; mỗi generator ánh xạ sang đích của mình (PostgreSQL, MySQL, SQL Server, Prisma, Drizzle, TypeScript, Zod…). Có kiểu custom cho kiểu riêng của từng database. Chi tiết ở [spec phần 2](2026-09-14-core-schema-model-design.md). | ED-02, CG-01 đến CG-05, IE-01 |
+| 5 | Model có hỗ trợ khóa chính và khóa ngoại nhiều cột, hành động ON DELETE và ON UPDATE không? | Có. Hỗ trợ đầy đủ khóa chính và khóa ngoại nhiều cột, cùng hành động ON DELETE và ON UPDATE (CASCADE, SET NULL, RESTRICT…). | ED-02, ED-03 |
+| 6 | Quan hệ n-n được lưu thành bảng trung gian hay một loại quan hệ riêng? | Bảng trung gian thật; model chỉ có quan hệ 1-1 và 1-n. Tạo quan hệ n-n trên canvas là một thao tác gộp, tạo bảng trung gian cùng hai quan hệ 1-n và undo trong một bước. Bảng trung gian thêm được cột. | ED-03, CG-01 đến CG-03 |
 | 10 (một phần) | Import SQL hỗ trợ những dialect nào? | PostgreSQL, MySQL, SQL Server. SchemaForge chưa hỗ trợ SQLite. | IE-01 |
+| 11 | Khi chưa đăng nhập, trình duyệt lưu được một hay nhiều schema? | Nhiều schema, kèm màn hình danh sách để tạo, mở, đổi tên và xóa schema. | ST-01 |
 | 12 | Đăng nhập bằng những phương thức nào? | Chỉ email và mật khẩu. Chưa xác minh email khi đăng ký và chưa có chức năng quên mật khẩu. | ST-02 |

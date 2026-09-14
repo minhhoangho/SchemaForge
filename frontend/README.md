@@ -1,6 +1,6 @@
 # frontend
 
-Web app for SchemaForge. Not scaffolded yet.
+Web app for SchemaForge.
 
 ## Responsibilities
 

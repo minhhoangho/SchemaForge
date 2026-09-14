@@ -1,6 +1,6 @@
 # backend
 
-API server for SchemaForge. Not scaffolded yet.
+API server for SchemaForge.
 
 ## Responsibilities
 

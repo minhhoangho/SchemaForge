@@ -10,7 +10,24 @@ Product overview, architecture, and roadmap live in `document/`, written in Viet
 
 ## Current status
 
-Pre-scaffold. `frontend/`, `backend/`, and `packages/core/` contain only a README describing their planned role. There is no `package.json` and no build, lint, or test command yet. Do not invent commands; update this file when scaffolding lands.
+Scaffold and tooling (roadmap part 1) are in place. `packages/core` exports only a placeholder (`PRODUCT_NAME`), `frontend/` has a placeholder page, and `backend/` validates its env but has no routes yet.
+
+## Commands
+
+Requires Node.js 24 (`.nvmrc`) and pnpm 12.4.1 (from `packageManager`, via corepack). Non-interactive shells on this machine default to Node 22, so run `source ~/.nvm/nvm.sh && nvm use` in the repo root first.
+
+| Command | What it does |
+|---|---|
+| `pnpm install` | Install dependencies for the whole workspace |
+| `pnpm dev` | Core in watch mode, frontend on port 3000, backend on port 3001 |
+| `pnpm build` | Build every package in dependency order |
+| `pnpm lint` | ESLint in every package |
+| `pnpm typecheck` | TypeScript in every package |
+| `pnpm test` | Vitest with coverage thresholds |
+| `pnpm format` | Format the repo with Prettier |
+| `pnpm format:check` | Check formatting (used in CI) |
+
+Run a script in one package: `pnpm --filter @schemaforge/core test`. Start the built backend: `pnpm --filter @schemaforge/backend start`.
 
 ## Repository layout
 

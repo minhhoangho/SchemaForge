@@ -1,6 +1,6 @@
 # @schemaforge/core
 
-Shared, framework-free TypeScript used by both `frontend/` and `backend/`. Not scaffolded yet.
+Shared, framework-free TypeScript used by both `frontend/` and `backend/`.
 
 ## Responsibilities
 

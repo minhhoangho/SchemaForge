@@ -118,6 +118,11 @@ Backend giới hạn tần suất gọi AI (rate limit, ví dụ X request/phút
 | Validation schema | Bất biến cấu trúc chặn operation; issue ngữ nghĩa chỉ báo; AI không được phát sinh issue mới | Editor chấp nhận trạng thái sửa dở, tham chiếu không bao giờ treo |
 | Kiểm tra hình dạng trong core | Zod, runtime dependency duy nhất của `packages/core` | AI SDK khai báo tool bằng Zod, nên hình dạng operation chỉ có một nguồn |
 | Property-based test | fast-check (dev dependency), seed cố định | Tìm lỗi ở tổ hợp xóa kèm theo và operation nghịch đảo |
+| Theme | Cookie `sf-theme` (`system`, `light`, `dark`), mặc định theo hệ thống; class `.dark` của shadcn/ui được đặt trước khi vẽ bằng một script tĩnh có nonce; không dùng `next-themes` | Không nháy sai theme và hợp với CSP; `next-themes` không được bảo trì từ 2025-05 và báo lỗi script tag với React 19.2 |
+| Ngôn ngữ | Cookie `sf-locale`; lần đầu chọn theo `Accept-Language`, không khớp thì `en`; locale không nằm trong URL | Server render đúng ngôn ngữ ngay lần đầu; đổi ngôn ngữ không mount lại editor nên không mất lịch sử undo |
+| Nhiều tab | Web Locks API, mỗi schema một khóa exclusive; tab thứ hai chờ tới khi tab đang giữ khóa nhả ra | Hai tab không ghi đè thay đổi của nhau; khóa tự nhả khi tab đóng hoặc crash |
+| CSP | Nonce theo từng request, sinh trong `proxy.ts`; `script-src` dùng nonce và `'strict-dynamic'`; `style-src` cho `'unsafe-inline'` | Chặn script bị chèn; mọi route đã render động nên nonce không tốn thêm; Radix, Sonner và React Flow chèn style lúc chạy |
+| Test frontend | Chỉ Vitest unit và component test (jsdom); không có test e2e trên trình duyệt ở phần 3 | Lựa chọn của dự án: test nhanh, không cần trình duyệt. Logic nằm trong hàm thuần, store và repository, nên test được trên jsdom với `fake-indexeddb`; phần cần trình duyệt thật (độ tương phản, CSP, hiệu năng) được kiểm tra tay |
 
 ## Chưa chốt
 

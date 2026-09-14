@@ -53,6 +53,7 @@ Mức ưu tiên (đề xuất, có thể điều chỉnh):
 ### ED-01. Thêm, sửa, xóa bảng
 
 - [ ] Tạo bảng mới trên canvas, đổi tên và xóa bảng.
+- [ ] Xóa các bảng và quan hệ đang chọn trên canvas bằng phím Delete hoặc Backspace; một lần undo khôi phục tất cả. Phím không có tác dụng khi đang gõ trong ô nhập liệu hoặc khi hộp thoại đang mở.
 - [ ] Core báo lỗi khi hai bảng trùng tên trong cùng một schema.
 - [ ] Xóa bảng không để lại quan hệ trỏ tới bảng không còn tồn tại.
 
@@ -69,7 +70,7 @@ Ghi chú: bộ kiểu dữ liệu, giá trị mặc định và danh sách thu�
 
 ### ED-03. Quan hệ 1-1, 1-n, n-n
 
-- [ ] Tạo quan hệ giữa hai bảng trên canvas và chọn loại 1-1, 1-n hoặc n-n.
+- [ ] Tạo quan hệ giữa hai bảng bằng cách kéo nối trên canvas, hoặc chỉ dùng bàn phím qua hộp thoại tạo quan hệ, và chọn loại 1-1, 1-n hoặc n-n.
 - [ ] Quan hệ dùng được khóa ngoại nhiều cột, và chọn được hành động ON DELETE, ON UPDATE.
 - [ ] Chọn n-n tạo một bảng trung gian cùng hai quan hệ 1-n; undo một bước là bỏ cả ba. Bảng trung gian thêm được cột như bảng thường.
 - [ ] Canvas thể hiện loại của từng quan hệ.
@@ -95,6 +96,8 @@ Ghi chú: model chỉ có quan hệ 1-1 và 1-n; n-n được lưu thành bảng
 
 - [ ] Thêm, sửa, xóa comment của bảng và cột.
 - [ ] Comment xuất hiện trong output của generator ở những đích hỗ trợ comment.
+
+Ghi chú: phần 3 làm giao diện comment; tiêu chí về output của generator được kiểm tra ở phần 6.
 
 ### ED-07. Nhóm bảng (subject area)
 
@@ -136,6 +139,8 @@ Ghi chú: làm từ phần 3 vì thêm sau sẽ phải sửa lại toàn bộ gi
 
 - [ ] Undo, redo mọi thay đổi schema, kể cả thay đổi do AI và import tạo ra.
 - [ ] Undo, redo dựa trên operation của core, không dựa trên bản sao toàn bộ schema.
+
+Ghi chú: phần 3 kiểm tra undo, redo cho thay đổi từ canvas, panel và hộp thoại; thay đổi do AI và import được kiểm tra ở phần 5 và phần 7.
 
 ## 2. AI Schema Assistant
 
@@ -407,6 +412,8 @@ Ghi chú: phạm vi chưa rõ, xem câu hỏi 15.
 - [ ] Có phím tắt cho các thao tác thường dùng trên canvas.
 - [ ] Xem được danh sách phím tắt ngay trong ứng dụng.
 - [ ] Phím tắt không kích hoạt khi người dùng đang gõ trong ô nhập liệu.
+
+Ghi chú: undo, redo (ED-13) và phím Delete, Backspace để xóa phần tử đang chọn trên canvas (ED-01) làm từ phần 3; các phím tắt còn lại và danh sách phím tắt làm ở phần 9.
 
 ### UX-04. Giao diện tiếng Việt và tiếng Anh
 

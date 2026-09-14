@@ -68,17 +68,17 @@ Phiên bản trong spec được kiểm tra ngày 2026-09-14: package npm bằng
 | next | 16.3.5 | |
 | react, react-dom | 19.3.0 | `@types/react`, `@types/react-dom` 19.3.0 |
 | @nestjs/core, @nestjs/common, @nestjs/platform-express, @nestjs/testing | 12.0.1 | `@nestjs/cli` 12.0.0, `@nestjs/config` 12.0.0 |
+| reflect-metadata, rxjs | 0.2.2, 7.8.2 | Peer dependency bắt buộc của NestJS 12 |
 | turbo | 2.10.12 | |
-| vitest, @vitest/coverage-v8 | 5.0.0 | Vitest 5 khai báo `vite` là peer dependency, nên cài `vite` 8.3.0 |
-| unplugin-swc, @swc/core | 1.6.0, 1.16.2 | Chỉ dùng cho test backend |
-| @vitejs/plugin-react, jsdom, @testing-library/react | 6.1.1, 30.0.1, 16.3.3 | `@testing-library/dom` 10.4.2 |
+| vitest, @vitest/coverage-v8 | 5.0.0 | Vitest 5 khai báo `vite` là peer dependency, nên cài `vite` 8.3.0. Test backend không cần `unplugin-swc` (xem mục [Rủi ro](#rủi-ro-cần-kiểm-tra-khi-triển-khai)) |
+| @vitejs/plugin-react, jsdom, @testing-library/react | 6.1.1, 30.0.1, 16.3.3 | `@testing-library/dom` 10.4.1; bản 10.4.2 lúc scaffold chưa đủ 24 giờ (`minimumReleaseAge` của pnpm) |
 | eslint | 10.10.0 | |
 | typescript-eslint | 8.70.0 | |
 | eslint-plugin-react-hooks, @next/eslint-plugin-next | 7.1.1, 16.3.5 | |
 | eslint-plugin-import-x, eslint-import-resolver-typescript | 4.17.1, 4.4.5 | |
 | @eslint-community/eslint-plugin-eslint-comments, @vitest/eslint-plugin | 4.8.1, 1.6.27 | |
 | prettier, eslint-config-prettier | 3.9.6, 10.1.8 | |
-| zod | 4.6.5 | |
+| zod | 4.6.4 | Bản 4.6.5 lúc scaffold chưa đủ 24 giờ (`minimumReleaseAge` của pnpm) |
 | @types/node | 24.13.4 | Theo major của Node.js |
 | tailwindcss | 4.3.3 | Chỉ ghi nhận, cài ở phần 3 |
 
@@ -103,7 +103,7 @@ Mỗi package thêm:
 
 | Package | Option |
 |---|---|
-| `packages/core` | `module` và `moduleResolution` là `nodenext`; `lib: ["ES2023"]`, không có DOM; `types: []`, không có `@types/node`. Dùng `window`, `document` hay `process` trong core là lỗi type |
+| `packages/core` | `module` và `moduleResolution` là `nodenext`; `lib: ["ES2023"]`, không có DOM; `types: []`, không có `@types/node`. Dùng `window`, `document` trong core là lỗi type; `process` và timer bị lint và build bắt |
 | `backend/` | `module` và `moduleResolution` là `nodenext`; `types: ["node"]`; `experimentalDecorators`, `emitDecoratorMetadata` |
 | `frontend/` | Các option Next.js yêu cầu: `module: esnext`, `moduleResolution: bundler`, `jsx`, `lib` có DOM, `noEmit`, plugin `next` |
 
@@ -174,7 +174,7 @@ Script trong từng package:
 |---|---|---|---|---|
 | `packages/core` | node | `src/**/*.test.ts` | 90% | `src/**/*.ts` |
 | `frontend/` | jsdom, `@vitejs/plugin-react`, React Testing Library | `src/**/*.test.{ts,tsx}` | 80% | File logic: `src/lib/**`, hook `use-*.ts`. Phần 3 thêm glob cho store |
-| `backend/` | node, `unplugin-swc` | `src/**/*.spec.ts` | 80% | `*.service.ts`, `*.guard.ts`, `*.interceptor.ts`, `*.pipe.ts`, `*.filter.ts`, `*.repository.ts`, `src/config/**` |
+| `backend/` | node | `src/**/*.spec.ts` | 80% | `*.service.ts`, `*.guard.ts`, `*.interceptor.ts`, `*.pipe.ts`, `*.filter.ts`, `*.repository.ts`, `src/config/**` |
 
 - Test import `describe`, `it`, `expect` từ `vitest`; không bật `globals`.
 - Ngưỡng có hiệu lực từ phần 1. Khi xuất hiện loại file logic mới, phần đó thêm glob trong cùng thay đổi.
@@ -294,7 +294,7 @@ pnpm store được cache qua `setup-node`, kết quả task qua cache của Tur
 
 ## Rủi ro cần kiểm tra khi triển khai
 
-- **`unplugin-swc` trên Vite 8.** Vitest 5 chạy trên Vite 8, còn template ESM của NestJS 12 chạy Vitest không có `unplugin-swc`. Spec giữ `unplugin-swc` theo `architecture.md`. Plan phải xác nhận test có dependency injection của Nest chạy đúng. Nếu plugin tỏ ra thừa, đề xuất bỏ trong một thay đổi riêng và cập nhật `architecture.md`.
+- **`unplugin-swc` trên Vite 8.** Đã giải quyết bằng cách bỏ plugin. Khi lập plan, test có dependency injection của Nest pass mà không cần `unplugin-swc`, và fail khi bỏ `emitDecoratorMetadata`: Vite 8 tự đọc `experimentalDecorators` và `emitDecoratorMetadata` từ tsconfig, giống template ESM của NestJS 12. Backend không khai báo `unplugin-swc` và `@swc/core`; `architecture.md` đã cập nhật. Plan xác nhận lại trên Node 24.
 - **`consistent-type-imports` với `emitDecoratorMetadata`.** Class được inject qua constructor phải là import giá trị. Plan phải xác nhận lint không tự sửa các import này thành `import type`.
 
 ## Tiêu chí hoàn thành

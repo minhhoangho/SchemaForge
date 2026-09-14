@@ -115,6 +115,18 @@ Task 8 chạy lại mọi thứ trên Node 24 và là kết quả cuối cùng.
    - `zod@4.6.5` phát hành lúc 2026-09-13 23:25 UTC, `@testing-library/dom@10.4.2` lúc 2026-09-13 18:08 UTC. Cài trước khoảng 2026-09-14 23:30 UTC thì pnpm thêm khối này; spec chỉ liệt kê `packages`, `catalog` và `allowBuilds`.
    - Đề xuất: chạy Task 2 sau thời điểm đó. Nếu phải chạy sớm hơn, giữ khối pnpm đã ghi (nếu thiếu, CI có thể từ chối lockfile) và xóa nó trong một commit `build:` riêng khi đã đủ 24 giờ.
 
+## Quyết định của user (2026-09-14)
+
+Nội dung các task bên dưới chưa được sửa theo các quyết định này. Chỗ nào task khác với mục này thì làm theo mục này.
+
+- **Vấn đề 2:** bỏ `unplugin-swc` từ đầu.
+  - Task 2 không khai báo `unplugin-swc` và `@swc/core`; `allowBuilds` chỉ còn `unrs-resolver`.
+  - Task 6: `vitest.config.ts` không có `plugins`. Phần "Rủi ro 1" chỉ cần xác nhận test DI pass khi không có plugin, và fail khi bỏ `emitDecoratorMetadata`.
+- **Vấn đề 3:** giữ script `typecheck` như spec, sửa câu trong spec.
+- **Vấn đề 4:** nâng mọi rule `@next/next/*` lên `error` như plan.
+- **Vấn đề 5:** đặt `agentRules: false` trong `frontend/next.config.ts`.
+- **Vấn đề 6:** dùng `zod` `^4.6.4` và `@testing-library/dom` `^10.4.1`, là bản đã phát hành quá 24 giờ, nên pnpm không thêm `minimumReleaseAgeExclude`.
+
 ## Task 1: Kiểm tra toolchain
 
 **Mục tiêu:** xác nhận máy dùng Node.js 24 từ 24.15.0 và chạy được pnpm 12.4.1, trước khi tạo file nào.

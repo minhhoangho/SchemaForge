@@ -83,7 +83,7 @@ Backend giới hạn tần suất gọi AI (rate limit, ví dụ X request/phút
 | Ngôn ngữ tài liệu | `CLAUDE.md` và code: tiếng Anh. `document/`: tiếng Việt | — |
 | Ngôn ngữ giao diện | Tiếng Việt và tiếng Anh, qua i18n | — |
 | UI kit, styling | Tailwind CSS + shadcn/ui | Component nằm trong repo nên tùy biến được hoàn toàn; dark mode dùng CSS variables |
-| Test runner | Vitest cho mọi package; NestJS chạy trên Vitest qua `unplugin-swc` | Cả monorepo dùng một runner và một kiểu API mock |
+| Test runner | Vitest cho mọi package; NestJS chạy trên Vitest không cần plugin | Cả monorepo dùng một runner và một kiểu API mock; Vite 8 tự đọc `experimentalDecorators` và `emitDecoratorMetadata` từ tsconfig nên không cần `unplugin-swc` |
 | i18n | i18next + react-i18next | Hệ sinh thái lớn; backend cũng dùng được nếu cần dịch thông báo lỗi |
 | Định dạng schema model | JSON phẳng theo ID, có trường `version` để migrate | Bảng, cột, quan hệ, index, enum là các map theo ID ở cấp gốc, nên đổi tên không làm hỏng tham chiếu; operation, diff và lịch sử phiên bản đơn giản |
 | Thư viện canvas | React Flow (`@xyflow/react`) | Node là React component nên dùng được UI kit; có sẵn zoom, pan, minimap và điểm nối |

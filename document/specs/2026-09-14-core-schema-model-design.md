@@ -29,10 +29,10 @@ Spec này không bàn lại các điểm sau (nguồn: `architecture.md`, `.clau
 | 6 | Index, enum, subject area, ghi chú | Index có tên, mảng cột, `isUnique`. Enum là mảng chuỗi. Bảng thuộc tối đa một subject area qua `table.subjectAreaId`. Ghi chú gồm text và vị trí |
 | 7 | Tên | Văn bản tự do có ràng buộc tối thiểu, tối đa 63 byte UTF-8. So trùng không phân biệt hoa thường. Bảng và enum chung một không gian tên |
 | 8 | Validation | Hai tầng: bất biến cấu trúc (luôn đúng, operation vi phạm bị từ chối) và issue ngữ nghĩa (được báo, không chặn lưu). AI và template dùng chế độ chặt: không được sinh thêm issue |
-| 9 | Operations | Thêm, sửa, xóa từng loại phần tử, di chuyển phần tử, `batch`. Xóa kéo theo phần phụ thuộc, trừ enum đang dùng. `applyOperation` trả về operation nghịch đảo. n-n là hàm dựng ra một `batch`. Cấu trúc lịch sử undo/redo thuần nằm trong core |
+| 9 | Operations | Thêm, sửa, xóa từng loại phần tử, di chuyển phần tử, `batch` lồng tối đa `MAX_BATCH_DEPTH` cấp. Xóa kéo theo phần phụ thuộc, trừ enum đang dùng. `applyOperation` trả về operation nghịch đảo (nghịch đảo của `batch` là `batch` phẳng), và trả đúng tham chiếu schema cũ khi không đổi gì. n-n và quan hệ kèm cột khóa ngoại là hàm dựng ra một `batch`. Cấu trúc lịch sử undo/redo thuần, kể cả gộp mục cuối, nằm trong core |
 | 10 | Id | Chuỗi có tiền tố theo loại (`tbl_`, `col_`…) cộng token từ bộ sinh id được truyền vào |
-| 11 | Version, dữ liệu vào | `version` là số nguyên; migration tuần tự từng bước. Mọi JSON không tin cậy đi qua `parseSchemaDocument`. Dùng Zod để kiểm tra hình dạng |
-| 12 | Public API | Một entry point chính; test factory tách riêng |
+| 11 | Version, dữ liệu vào | `version` là số nguyên; migration tuần tự từng bước. Mọi JSON không tin cậy đi qua `parseSchemaDocument`. Dùng Zod để kiểm tra hình dạng; consumer dưới CSP chặt bật `jitless` |
+| 12 | Public API | Một entry point chính; entry point `@schemaforge/core/testing` cho factory và fixture |
 | 13 | Test | Factory, test theo operation và theo rule, property test apply rồi nghịch đảo bằng fast-check, coverage tối thiểu 90% |
 
 ## 1. Cấu trúc tài liệu schema
@@ -177,7 +177,7 @@ type ColumnType =
 
 ### Ánh xạ tham khảo
 
-Bảng này chứng minh bộ kiểu biểu diễn được trên cả ba dialect. Ánh xạ đầy đủ, kể cả Prisma, Drizzle, TypeScript, Zod, OpenAPI, được chốt ở phần 6.
+Bảng này chứng minh bộ kiểu biểu diễn được trên cả ba dialect. Ánh xạ đầy đủ, kể cả Prisma, Drizzle, TypeScript, Zod, OpenAPI, được chốt ở phần 6 ([2026-09-14-code-generators-design.md](2026-09-14-code-generators-design.md)).
 
 | Kiểu chung | PostgreSQL | MySQL | SQL Server |
 |---|---|---|---|
@@ -188,13 +188,15 @@ Bảng này chứng minh bộ kiểu biểu diễn được trên cả ba dialec
 | `char(n)` / `varchar(n)` | `char(n)` / `varchar(n)` | `CHAR(n)` / `VARCHAR(n)` | `nchar(n)` / `nvarchar(n)` |
 | `text` | `text` | `LONGTEXT` | `nvarchar(max)` |
 | `uuid` | `uuid` | `CHAR(36)` | `uniqueidentifier` |
-| `date` / `time` | `date` / `time` | `DATE` / `TIME` | `date` / `time` |
-| `timestamp` | `timestamp` | `DATETIME` | `datetime2` |
-| `timestamptz` | `timestamptz` | `TIMESTAMP` | `datetimeoffset` |
+| `date` / `time` | `date` / `time` | `DATE` / `TIME(6)` | `date` / `time` |
+| `timestamp` | `timestamp` | `DATETIME(6)` | `datetime2` |
+| `timestamptz` | `timestamptz` | `TIMESTAMP(6)` | `datetimeoffset` |
 | `json` | `jsonb` | `JSON` | `nvarchar(max)` |
 | `binary` | `bytea` | `LONGBLOB` | `varbinary(max)` |
 | `enum` | `CREATE TYPE … AS ENUM` | `ENUM(…)` trên cột | `nvarchar` + `CHECK` (câu hỏi 7) |
 | `custom` | ghi nguyên văn | ghi nguyên văn | ghi nguyên văn |
+
+MySQL dùng độ chính xác phân số giây 6 cho `TIME`, `DATETIME`, `TIMESTAMP`: mặc định là 0 và sẽ cắt mất phần giây lẻ mà literal mặc định cho phép.
 
 ### Giá trị mặc định
 
@@ -212,7 +214,7 @@ type ColumnDefault =
   | Kiểu cột | Literal hợp lệ |
   |---|---|
   | `smallint`, `integer`, `bigint` | số nguyên thập phân, nằm trong phạm vi của kiểu (kiểm tra bằng `BigInt`) |
-  | `decimal(p, s)` | số thập phân, tối đa `p` chữ số, tối đa `s` chữ số sau dấu chấm |
+  | `decimal(p, s)` | số thập phân, phần nguyên tối đa `p − s` chữ số (không kể số 0 ở đầu), phần sau dấu chấm tối đa `s` chữ số |
   | `real`, `double` | số thập phân, cho phép số mũ |
   | `boolean` | `true` hoặc `false` |
   | `char(n)`, `varchar(n)` | chuỗi bất kỳ dài tối đa `n` ký tự |
@@ -224,8 +226,10 @@ type ColumnDefault =
   | `enum` | một giá trị có trong enum |
   | `binary` | không hỗ trợ literal |
 
+  Phần nguyên của `decimal(p, s)` giới hạn ở `p − s` chữ số vì giá trị lớn nhất của `decimal(3, 2)` là `9.99`: cả ba dialect từ chối `10.0` dù nó chỉ có 3 chữ số. Khi `scale > precision` (đã có issue `column-type-invalid-scale`), literal chỉ được kiểm tra dạng số, không kiểm tra số chữ số.
+
 - **Biểu thức** là tập đóng, có cấu trúc, không phải SQL thô:
-  - `currentTimestamp` cho `timestamp`, `timestamptz` (PostgreSQL `now()`, MySQL `CURRENT_TIMESTAMP`, SQL Server `sysdatetimeoffset()`, Prisma `now()`).
+  - `currentTimestamp` cho `timestamp`, `timestamptz` (PostgreSQL `now()`, MySQL `CURRENT_TIMESTAMP(6)` khớp độ chính xác của cột, SQL Server `sysdatetime()` cho cột `datetime2` và `sysdatetimeoffset()` cho cột `datetimeoffset`, Prisma `now()`). SQL Server không dùng `sysdatetimeoffset()` cho `datetime2` vì chuyển ngầm sang `datetime2` làm mất độ lệch múi giờ.
   - `generateUuid` cho `uuid` (PostgreSQL `gen_random_uuid()`, MySQL `(UUID())`, SQL Server `newid()`, Prisma `uuid()`).
 - Literal không đúng dạng của kiểu là issue `column-default-invalid`. Biểu thức dùng sai kiểu, hoặc literal trên cột `binary`, là issue `column-default-incompatible`. Đây là issue ngữ nghĩa: đổi kiểu cột có thể tạm thời làm giá trị mặc định cũ không còn hợp lệ.
 - Thêm biểu thức mới sau này chỉ là thêm một `kind` vào union; tài liệu cũ vẫn hợp lệ.
@@ -266,6 +270,7 @@ type Table = {
 
 - Cột trong khóa chính không được nullable.
 - Auto-increment chỉ trên `smallint`, `integer`, `bigint`; không nullable; không có giá trị mặc định; phải thuộc khóa chính hoặc unique (MySQL bắt buộc cột auto-increment có index); mỗi bảng tối đa một cột auto-increment (MySQL và SQL Server chỉ cho một).
+- Với auto-increment, thuộc khóa chính là nằm ở bất kỳ vị trí nào trong khóa chính, kể cả khóa nhiều cột. Unique dùng chung định nghĩa ở mục 5 cho tập chỉ gồm cột đó: tập bằng tập cột khóa chính, hoặc cột có `isUnique`, hoặc tập bằng tập cột của một index unique.
 
 **Lý do chọn mảng trên bảng:** thứ tự khóa chính được giữ khi import SQL rồi sinh lại, và quan hệ tham chiếu khóa chính nhiều cột có một danh sách rõ ràng để so khớp.
 
@@ -422,7 +427,7 @@ type OperationError = {
 ```
 
 - Không có thông báo, không có tham số hiển thị: frontend dịch `code` qua i18n và lấy tên phần tử theo `path`.
-- Issue về trùng tên được báo trên mọi phần tử trong nhóm trùng, không ưu tiên phần tử nào.
+- Issue về trùng tên được báo trên mọi phần tử trong nhóm trùng, không ưu tiên phần tử nào. Bảng và enum chung một nhóm: bảng `User` trùng enum `user` thì bảng nhận `table-name-duplicate`, enum nhận `enum-name-duplicate`, nên người dùng thấy lỗi dù đang sửa phần tử nào.
 - `validateSchema` trả issue theo thứ tự xác định (theo `path`, rồi theo `code`).
 - Mọi issue đều là lỗi, không có mức cảnh báo. Gợi ý thiết kế (bảng thiếu khóa chính, thiếu index) thuộc AI-05; giới hạn riêng của đích thuộc diagnostic của generator.
 
@@ -442,7 +447,7 @@ Dùng chung cho `parseSchemaDocument` (đường dẫn trong tài liệu) và `a
 | `column-ownership-mismatch` | `table.columnIds` không khớp đúng tập cột có `tableId` là bảng đó | IE-04 |
 | `enum-in-use` | Xóa enum mà vẫn còn cột dùng | ED-05 |
 | `insert-position-out-of-range` | Vị trí chèn hoặc di chuyển cột nằm ngoài danh sách | — |
-| `primary-key-missing` | `buildManyToMany` được gọi với bảng không có khóa chính. Chỉ có ở hàm dựng, không có ở parse | ED-03 |
+| `primary-key-missing` | `buildManyToMany` hoặc `buildRelation` được gọi với bảng không có khóa chính (`buildRelation` chỉ xét bảng được tham chiếu). Chỉ có ở hàm dựng, không có ở parse | ED-03 |
 
 ### Danh mục mã issue ngữ nghĩa
 
@@ -451,7 +456,7 @@ Dùng chung cho `parseSchemaDocument` (đường dẫn trong tài liệu) và `a
 | `name-empty` | `…/name`, `enums/<id>/values/<i>` | Tên rỗng (kể cả tên schema) | — |
 | `name-invalid` | như trên | Có khoảng trắng đầu hoặc cuối, hoặc ký tự điều khiển | — |
 | `name-too-long` | như trên | Quá 63 byte UTF-8 | — |
-| `table-name-duplicate` | `tables/<id>/name` | Trùng tên bảng khác | ED-01 |
+| `table-name-duplicate` | `tables/<id>/name` | Trùng tên bảng khác hoặc tên enum | ED-01 |
 | `enum-name-duplicate` | `enums/<id>/name` | Trùng tên enum khác hoặc tên bảng | ED-05 |
 | `column-name-duplicate` | `columns/<id>/name` | Trùng tên cột khác trong cùng bảng | ED-02 |
 | `index-name-duplicate` | `indexes/<id>/name` | Trùng tên index khác trong schema | ED-04 |
@@ -466,7 +471,7 @@ Dùng chung cho `parseSchemaDocument` (đường dẫn trong tài liệu) và `a
 | `column-auto-increment-invalid-type` | `columns/<id>/isAutoIncrement` | Auto-increment trên cột không phải `smallint`, `integer`, `bigint` | ED-02 |
 | `column-auto-increment-nullable` | `columns/<id>/isAutoIncrement` | Auto-increment trên cột nullable | ED-02 |
 | `column-auto-increment-with-default` | `columns/<id>/isAutoIncrement` | Auto-increment kèm giá trị mặc định | ED-02 |
-| `column-auto-increment-not-key` | `columns/<id>/isAutoIncrement` | Cột auto-increment không thuộc khóa chính và không unique | ED-02 |
+| `column-auto-increment-not-key` | `columns/<id>/isAutoIncrement` | Cột auto-increment không thuộc khóa chính và không unique (định nghĩa ở mục 4) | ED-02 |
 | `table-multiple-auto-increment` | `tables/<id>/columnIds` | Bảng có hơn một cột auto-increment | ED-02 |
 | `relation-column-type-mismatch` | `relations/<id>/columnPairs/<i>` | Hai cột trong cặp khác kiểu | ED-03 |
 | `relation-target-not-unique` | `relations/<id>/columnPairs` | Cột được tham chiếu không phải khóa chính hoặc unique | ED-03 |
@@ -540,8 +545,10 @@ type Operation =
 - **`updateX` với `changes`** chỉ đổi các trường được truyền. Không có operation riêng cho từng trường, để danh mục gọn và một lần sửa nhiều trường trong form là một operation.
 - **`updateEnum.values`** thay cả mảng giá trị. Thêm, đổi tên, xóa, sắp lại giá trị đều là một kiểu operation. Giá trị mặc định của cột trỏ tới giá trị bị đổi tên hoặc bị xóa sẽ thành issue `column-default-invalid`.
 - **`moveElements`** nhận cả bảng và ghi chú (phân biệt bằng tiền tố id), nên kéo nhiều phần tử và auto-layout là một operation.
-- **`batch`** áp lần lượt các operation con lên kết quả của bước trước. Một bước lỗi thì cả batch lỗi, `path` của lỗi bắt đầu bằng `['operations', i]`, schema ban đầu giữ nguyên. Dùng cho thao tác gộp trên canvas, cho một lượt AI và cho kết quả import. Batch được lồng nhau; `parseOperation` giới hạn độ sâu lồng bằng một hằng số (nghịch đảo của batch không làm tăng độ sâu quá 2).
+- **`batch`** áp lần lượt các operation con lên kết quả của bước trước. Một bước lỗi thì cả batch lỗi, `path` của lỗi bắt đầu bằng `['operations', i]`, schema ban đầu giữ nguyên. Dùng cho thao tác gộp trên canvas, cho một lượt AI và cho kết quả import. Batch được lồng nhau; về ngữ nghĩa, `batch` lồng trong `batch` tương đương dãy bước được trải phẳng.
+- **Độ sâu lồng `batch`** tối đa là `MAX_BATCH_DEPTH = 8`. Operation không phải `batch` có độ sâu 0; `batch` có độ sâu bằng 1 cộng độ sâu lớn nhất của các bước, `batch` rỗng có độ sâu 1. `parseOperation` kiểm tra độ sâu **trước** khi kiểm tra hình dạng, bằng vòng lặp không đệ quy: kiểm tra hình dạng đệ quy theo độ sâu, nên input lồng rất sâu sẽ làm tràn ngăn xếp thay vì trả lỗi. Vượt giới hạn trả `invalid-shape` tại đường dẫn của `batch` vượt quá. `applyOperation` dùng cùng giới hạn. Mức 8 dư cho mọi tổ hợp đang biết: sâu nhất là một lượt AI hay kết quả import, tức `batch` chứa `batch` của hàm dựng, có độ sâu 2.
 - Operation không làm thay đổi gì (ví dụ đổi tên thành chính tên cũ) vẫn thành công; frontend quyết định có ghi vào lịch sử không.
+- **Hợp đồng tham chiếu khi không đổi gì:** khi operation không làm thay đổi gì (mọi giá trị trong `changes` bằng giá trị hiện tại, danh sách hoặc vị trí mới bằng giá trị cũ, `batch` rỗng hoặc mọi bước đều không đổi gì), `applyOperation` trả về **đúng tham chiếu** `schema` đầu vào, vẫn kèm nghịch đảo. Frontend nhận biết bằng cách so `schema` trả về với `schema` đầu vào bằng `===`, chi phí O(1). Chiều ngược lại không được bảo đảm: một `batch` thêm rồi xóa cùng phần tử trả tham chiếu mới dù bằng nhau theo cấu trúc. Operation thêm và xóa luôn thay đổi schema.
 - Kết quả dùng lại các object không đổi của schema cũ (structural sharing), để frontend so sánh theo tham chiếu khi render.
 
 **Phương án bị loại:** operation riêng cho từng giá trị enum (`addEnumValue`, `renameEnumValue`…): đổi tên giá trị có thể cập nhật luôn giá trị mặc định, nhưng thêm bốn kiểu operation cho một trường hợp hiếm. Operation "thô" kiểu `setTable` thay cả bảng kèm cột: tool call của AI dễ vô tình xóa cột, và diff khó đọc.
@@ -580,7 +587,9 @@ function applyOperation(
 | `removeTable` | `batch`: `addTable`, `addColumn` từng cột theo thứ tự, `setPrimaryKey`, `addIndex`, `addRelation` cho các phần tử đã bị xóa kèm |
 | `removeColumn` | `batch`: `addColumn` tại vị trí cũ, `setPrimaryKey` với khóa chính cũ nếu đã đổi, `addIndex`, `addRelation` |
 | `removeSubjectArea` | `batch`: `addSubjectArea`, `updateTable` cho từng bảng thành viên cũ |
-| `batch` | `batch` gồm nghịch đảo của từng bước, theo thứ tự ngược lại |
+| `batch` | `batch` phẳng: nghịch đảo của từng bước theo thứ tự ngược lại; nghịch đảo nào là `batch` thì các bước của nó được chèn thẳng vào |
+
+Nghịch đảo của `batch` được làm phẳng nên mọi nghịch đảo có độ sâu tối đa 1 và luôn áp lại được qua `applyOperation`, kể cả khi operation gốc sâu đúng `MAX_BATCH_DEPTH`. Nếu giữ nguyên cấu trúc lồng, nghịch đảo của một `batch` sâu `d` có thể sâu `d + 1` và bị từ chối khi undo.
 
 **Phương án bị loại:** operation tự mang giá trị cũ (`{ from, to }`). Tool call của AI phải gửi lại giá trị cũ, dễ sai lệch với schema thật, và core vẫn phải kiểm tra giá trị cũ có khớp không.
 
@@ -602,13 +611,45 @@ function buildManyToMany(
 Hàm dựng trả về một `batch` gồm:
 
 1. `addTable` cho bảng trung gian.
-2. `addColumn` cho mỗi cột khóa chính của bảng trái rồi bảng phải: cùng kiểu, không nullable, không mặc định, không auto-increment. Tên cột là `<tên bảng>_<tên cột>`; plan chốt cách tránh trùng khi hai đầu là cùng một bảng.
+2. `addColumn` cho mỗi cột khóa chính của bảng trái rồi bảng phải, theo thứ tự khóa chính: cùng kiểu, không nullable, không mặc định, không auto-increment. Tên cột là `<tên bảng>_<tên cột khóa chính>`; tên trùng (so không phân biệt hoa thường, mục 7) với tên đã sinh trước đó thì thêm hậu tố `_2`, `_3`… (số nhỏ nhất chưa dùng). Hai đầu cùng là bảng `users` có khóa chính `id` cho `users_id` và `users_id_2`; cách này cũng tránh va chạm giữa hai bảng khác nhau (bảng `a_b` cột `c` và bảng `a` cột `b_c`). Tên dài quá 63 byte không bị cắt mà thành issue `name-too-long`.
 3. `setPrimaryKey` gồm toàn bộ các cột vừa tạo.
 4. Hai `addRelation` kiểu `oneToMany` từ bảng trung gian tới từng bảng hai đầu, `onDelete: 'cascade'`, `onUpdate: 'noAction'`.
 
 Bảng ở một đầu không có khóa chính thì trả lỗi `primary-key-missing`. Batch được áp bằng `applyOperation` và ghi vào lịch sử như một mục, nên undo trong một bước. Sau đó người dùng thêm cột vào bảng trung gian như bảng thường.
 
 **Vì sao là hàm dựng, không phải kiểu operation riêng:** một operation `addManyToMany` sẽ phải tự suy ra cột từ khóa chính lúc áp, và cần số lượng id thay đổi theo số cột khóa chính, trong khi `applyOperation` không được sinh id. Nghịch đảo của nó cũng chỉ là một batch. Hàm dựng giữ `applyOperation` thuần và xác định, còn tool n-n của AI gọi cùng hàm dựng này.
+
+### Tạo quan hệ kèm cột khóa ngoại
+
+```ts
+function buildRelation(
+  schema: SchemaDocument,
+  input: {
+    readonly fromTableId: TableId;
+    readonly toTableId: TableId;
+    readonly kind: Relation['kind'];
+    readonly onDelete: ReferentialAction;
+    readonly onUpdate: ReferentialAction;
+  },
+  generateId: GenerateId,
+): Result<Operation /* luôn là batch */, OperationError>;
+```
+
+Hộp thoại tạo quan hệ 1-1, 1-n của editor tự tạo cột khóa ngoại khớp khóa chính của bảng được tham chiếu. Hàm dựng trả về một `batch` gồm:
+
+1. `addColumn` cho mỗi cột khóa chính của bảng đích, theo thứ tự khóa chính, chèn vào cuối bảng nguồn:
+   - Tên `<tên bảng đích>_<tên cột khóa chính>`; trùng (so không phân biệt hoa thường) với cột có sẵn của bảng nguồn hoặc với tên vừa sinh thì thêm hậu tố `_2`, `_3`… như ở n-n.
+   - Kiểu chép từ cột được tham chiếu; không mặc định, không auto-increment, comment rỗng.
+   - Nullable khi `onDelete` hoặc `onUpdate` là `setNull`, ngược lại không nullable.
+   - `isUnique` khi `kind` là `oneToOne` và khóa chính chỉ có một cột.
+2. `addRelation` với các cặp ghép cột mới với cột khóa chính theo thứ tự khóa chính.
+3. Khi `kind` là `oneToOne` và khóa chính có từ hai cột: `addIndex` unique trên bảng nguồn gồm các cột mới, tên lấy từ `suggestIndexName`.
+
+- Lỗi, theo thứ tự: `table-not-found` tại `['fromTableId']` rồi tại `['toTableId']`; `primary-key-missing` tại `['toTableId']` khi bảng đích không có khóa chính.
+- Id sinh theo thứ tự: các cột mới, quan hệ, index (nếu có).
+- Quan hệ tự tham chiếu (`fromTableId === toTableId`) hợp lệ.
+- Kết quả không phát sinh issue mới, trừ tên cột quá 63 byte và trường hợp `setDefault`: cột mới chưa có giá trị mặc định nên còn issue `relation-set-default-without-default` cho tới khi người dùng đặt. Hàm dựng không tự bịa giá trị mặc định.
+- Quan hệ dùng cột khóa ngoại có sẵn vẫn là `addRelation` thường. Chọn hàm dựng thay vì kiểu operation riêng vì cùng lý do với `buildManyToMany`.
 
 ### Lịch sử undo/redo
 
@@ -617,12 +658,14 @@ type HistoryEntry = { readonly operation: Operation; readonly inverse: Operation
 type History = { readonly past: readonly HistoryEntry[]; readonly future: readonly HistoryEntry[] };
 
 function recordEntry(history: History, entry: HistoryEntry, limit: number): History;
+function mergeLastEntry(history: History, entry: HistoryEntry): History;
 function undo(history: History, schema: SchemaDocument): { readonly history: History; readonly schema: SchemaDocument } | null;
 function redo(history: History, schema: SchemaDocument): { readonly history: History; readonly schema: SchemaDocument } | null;
 ```
 
 - Cấu trúc lịch sử và các hàm thuần nằm trong core: ghi một mục thì xóa `future` và cắt `past` theo `limit`; undo áp `inverse`, redo áp lại `operation` và cập nhật `inverse` mới. `null` khi không còn gì để undo hoặc redo.
-- Frontend (store Zustand, phần 3) giữ đối tượng `History`, chọn `limit`, quyết định gộp thao tác (ví dụ gõ tên liên tục thành một mục) và khi nào xóa lịch sử (mở schema khác, nhận bản cloud khi xung đột).
+- `mergeLastEntry` thay mục cuối của `past` bằng một mục gộp, để một chuỗi sửa liên tục undo trong một bước. `operation` của mục gộp là `batch` gồm các bước của operation cũ rồi của operation mới; `inverse` là `batch` gồm các bước của nghịch đảo mới rồi của nghịch đảo cũ. Các bước của một `batch` là `operations` của nó, của operation khác là chính nó. Trải phẳng một cấp như vậy nên gộp nhiều lần (mỗi phím gõ) không làm `batch` lồng sâu thêm. Gộp xóa `future` và không làm `past` dài thêm nên không nhận `limit`; khi `past` rỗng thì giống `recordEntry`.
+- Frontend (store Zustand, phần 3) giữ đối tượng `History`, chọn `limit`, quyết định khi nào gộp thao tác bằng `mergeLastEntry` (ví dụ gõ tên liên tục thành một mục) và khi nào xóa lịch sử (mở schema khác, nhận bản cloud khi xung đột).
 - Vì mọi thay đổi đều đi qua lịch sử, áp `inverse` thất bại là lỗi lập trình, nên được throw.
 
 **Lý do:** tính chất "undo rồi redo trả về đúng trạng thái" gắn chặt với operation nghịch đảo, nên được test cùng chỗ với operation và tính vào coverage của core. Các hàm không phụ thuộc React hay Zustand.
@@ -647,7 +690,7 @@ function createTableId(generateId: GenerateId): TableId; // tương tự cho cá
 
 - Id gồm tiền tố theo loại và một token do bộ sinh id được truyền vào tạo ra. Frontend và backend truyền hàm sinh token ngẫu nhiên (ví dụ `crypto.randomUUID`); test truyền bộ đếm để id xác định.
 - **Core chỉ giả định về token:** không rỗng, chỉ gồm `A–Z`, `a–z`, `0–9`, `_`, `-`, toàn bộ id dài tối đa 64 ký tự, và không trùng trong một tài liệu. Core không giả định token sắp xếp được hay mang thời gian.
-- `applyOperation` không bao giờ sinh id: operation đã mang sẵn id đầy đủ, nên áp lại một operation (redo) cho đúng cùng id. Chỉ hàm dựng (`buildManyToMany`), importer (phần 7) và test factory nhận `GenerateId`.
+- `applyOperation` không bao giờ sinh id: operation đã mang sẵn id đầy đủ, nên áp lại một operation (redo) cho đúng cùng id. Chỉ hàm dựng (`buildManyToMany`, `buildRelation`), importer (phần 7) và code test (qua `createCounterIdGenerator`) nhận `GenerateId`.
 - `parseSchemaDocument` kiểm tra id đúng tiền tố và định dạng, nên khóa như `__proto__` hay `constructor` không bao giờ lọt vào map.
 
 **Lý do:**
@@ -683,7 +726,7 @@ function parseOperation(input: unknown): Result<Operation, readonly StructuralEr
 4. Kiểm tra hình dạng của version hiện tại. Object là strict: trường thừa bị từ chối, để file xuất ra rồi nhập lại giống hệt và không mang theo dữ liệu lạ.
 5. Kiểm tra toàn bộ bất biến cấu trúc. Chỉ chạy khi bước 4 qua, và trả về mọi lỗi tìm được.
 
-Issue ngữ nghĩa không nằm trong parse: tài liệu còn issue vẫn mở được. `parseOperation` chỉ kiểm tra hình dạng; tham chiếu được kiểm tra khi áp.
+Issue ngữ nghĩa không nằm trong parse: tài liệu còn issue vẫn mở được. `parseOperation` chỉ kiểm tra độ sâu lồng `batch` (mục 9) rồi hình dạng; tham chiếu được kiểm tra khi áp.
 
 **Nơi dùng:**
 
@@ -707,7 +750,13 @@ Input của core là giá trị đã qua `JSON.parse`. Giới hạn kích thư�
 - Tự viết kiểm tra hình dạng cho 19 kiểu dữ liệu, 26 loại operation và 7 loại phần tử, kèm đường dẫn lỗi chính xác, là hàng trăm dòng code dễ sai và phải test riêng.
 - Zod thuần, chạy được cả trình duyệt và Node, không có dependency.
 
-**Phương án bị loại:** tự viết validator (lý do ở trên). JSON Schema với Ajv: Ajv sinh code bằng `new Function`, vướng Content Security Policy của frontend, và AI SDK vẫn cần Zod hoặc một lớp chuyển đổi.
+**Zod dưới CSP chặt.** Zod 4 biên dịch validator của object bằng `new Function` (JIT) ở nhánh nhanh, trong khi CSP của frontend chặt, dựa trên nonce. `z.config({ jitless: true })` tắt JIT, đồng thời bỏ cả phép thử `new Function("")` mà Zod dùng để dò môi trường, nên không phát sinh báo cáo `securitypolicyviolation`. Đã kiểm chứng trên Zod 4.6.4 và 4.6.5: với `jitless`, parse vẫn đúng và không lần nào gọi `Function`.
+
+- Core không gọi `z.config`, vì đó là state toàn cục thuộc về consumer, và không dùng API chỉ chạy được khi có JIT.
+- Consumer chạy dưới CSP chặt gọi `z.config({ jitless: true })` một lần ở điểm khởi động, trước lần parse đầu tiên. Frontend làm việc này ở phần 3.
+- Core có một file test chạy dưới `jitless`: parse tài liệu, trả cùng lỗi cấu trúc, parse và áp operation, và không dựng `Function`.
+
+**Phương án bị loại:** tự viết validator (lý do ở trên). JSON Schema với Ajv: Ajv luôn sinh code validator và chạy nó bằng `new Function`, không có chế độ tắt như `jitless` của Zod; muốn chạy dưới CSP chặt phải biên dịch trước thành code standalone, thêm một bước sinh code vào build của core. AI SDK cũng vẫn cần Zod hoặc một lớp chuyển đổi.
 
 ## 12. Public API và cấu trúc module
 
@@ -717,8 +766,12 @@ Phần 1 (Scaffold & tooling) chốt cách build và cơ chế export của core
 
 | Entry point | Nội dung | Ai dùng |
 |---|---|---|
-| Chính (`src/index.ts`) | Type của model, operation, issue, lỗi; `Result`; `CURRENT_SCHEMA_VERSION`; `createEmptySchema`; các hàm tạo id; hàm sắp xếp xác định; `parseSchemaDocument`, `parseOperation`; `applyOperation`; `validateSchema`, `findIntroducedIssues`; `buildManyToMany`, `suggestIndexName`; `recordEntry`, `undo`, `redo`; danh sách hằng `ISSUE_CODES` và `ERROR_CODES` để frontend kiểm tra đủ bản dịch `vi`, `en` | frontend, backend |
-| Testing | Factory, fixture `sampleSchema`, arbitrary của fast-check | test của core; test của frontend, backend nếu phần 1 cho phép export entry point này |
+| Chính (`src/index.ts`) | Type của model, operation, issue, lỗi; `Result`; `CURRENT_SCHEMA_VERSION`; `createEmptySchema`; các hàm tạo id; hàm sắp xếp xác định; `parseSchemaDocument`, `parseOperation`, `MAX_BATCH_DEPTH`; `applyOperation`; `validateSchema`, `findIntroducedIssues`; `buildManyToMany`, `buildRelation`, `suggestIndexName`; `recordEntry`, `mergeLastEntry`, `undo`, `redo`; danh sách hằng `ISSUE_CODES` và `ERROR_CODES` để frontend kiểm tra đủ bản dịch `vi`, `en` | frontend, backend |
+| Testing (`@schemaforge/core/testing`) | Factory `make*`, `buildSchema`, `createCounterIdGenerator`, `unwrapOk`, `unwrapError`, `createSampleSchema` | test của core, frontend, backend |
+
+- Entry point testing được xuất bản thành subpath `@schemaforge/core/testing`, để frontend và backend dựng dữ liệu test mà không cần fast-check. File trong `src/testing/` không import `vitest`, helper báo lỗi bằng `throw`. Entry point chính không import `src/testing/`.
+- Arbitrary của fast-check là nội bộ của core: không export qua entry point nào và bị loại khỏi build, để `dist/` không chứa file import dev dependency.
+- Entry point chính không còn `PRODUCT_NAME`, hằng giữ chỗ của phần 1: tên sản phẩm không phải khái niệm của schema. Frontend có hằng `APP_NAME` riêng; backend ghi log `CURRENT_SCHEMA_VERSION` khi khởi động, nên bản build của backend vẫn dùng thật một export của core.
 
 Schema Zod của operation chưa được export ở phần 2; phần 5 export khi cần làm tham số tool. Generator (phần 6) và importer (phần 7) thêm entry point của chúng khi làm.
 
@@ -737,9 +790,10 @@ packages/core/src/
   operations/   operation.ts, apply-operation.ts, table-operations.ts, column-operations.ts,
                 relation-operations.ts, index-operations.ts, enum-operations.ts,
                 subject-area-operations.ts, note-operations.ts, move-elements.ts, batch.ts,
-                build-many-to-many.ts, suggest-index-name.ts
-  history/      history.ts
-  testing/      factories.ts, sample-schema.ts, arbitraries.ts
+                build-many-to-many.ts, build-relation.ts, suggest-index-name.ts
+  history/      history.ts, merge-last-entry.ts
+  testing/      index.ts, factories.ts, unwrap-result.ts, sample-schema.ts,
+                arbitraries.ts, operation-plans.ts
 ```
 
 - Schema Zod nằm cạnh type tương ứng trong `model/` và `operations/operation.ts`.
@@ -754,14 +808,15 @@ Runner là Vitest (`architecture.md`). Coverage tối thiểu 90% số dòng cho
 **Factory và fixture** (`src/testing/`):
 
 - `makeTable`, `makeColumn`, `makeRelation`… trả về phần tử có giá trị mặc định hợp lý; test chỉ ghi đè trường nó quan tâm.
-- Factory dựng tài liệu bằng cách áp operation qua public API, nên không thể tạo ra tài liệu sai cấu trúc. Id lấy từ bộ đếm, nên xác định.
-- `sampleSchema`: một schema hợp lệ dùng mọi khái niệm: khóa chính và khóa ngoại nhiều cột, quan hệ 1-1, bảng trung gian n-n có thêm cột, quan hệ tự tham chiếu, enum làm kiểu cột kèm giá trị mặc định, index unique nhiều cột, cả hai biểu thức mặc định, kiểu custom, subject area, ghi chú. Phần 6 dùng lại cho snapshot test của generator.
+- `buildSchema` dựng tài liệu từ các phần tử: ghép các map rồi đưa qua `parseSchemaDocument`, throw nếu sai cấu trúc, nên không thể tạo ra tài liệu sai cấu trúc. Factory không áp operation, để test của rule validation và của từng nhóm operation viết được trước khi `applyOperation` hoàn chỉnh. Id do test truyền vào hoặc lấy từ bộ đếm `createCounterIdGenerator`, nên xác định.
+- `unwrapOk`, `unwrapError` lấy giá trị hoặc lỗi của `Result`, throw khi gặp nhánh còn lại.
+- `createSampleSchema()`: một schema hợp lệ dùng mọi khái niệm: khóa chính và khóa ngoại nhiều cột, quan hệ 1-1, bảng trung gian n-n có thêm cột, quan hệ tự tham chiếu, enum làm kiểu cột kèm giá trị mặc định, index unique nhiều cột, cả hai biểu thức mặc định, kiểu custom, subject area, ghi chú. Dựng bằng operation và `buildManyToMany`, áp qua `applyOperation`. Là hàm thay vì hằng vì hằng cấp module phải viết `UPPER_SNAKE_CASE` và import entry point testing không nên chạy chuỗi operation; mỗi lần gọi trả schema bằng nhau theo cấu trúc. Phần 6 dùng lại cho snapshot test của generator.
 
-**Test theo operation:** với mỗi loại operation có test cho trường hợp thành công, cho từng mã lỗi điều kiện, cho tác động kèm theo khi xóa, và cho nghịch đảo. `batch` có test lỗi ở bước giữa: trả đúng `path` và schema ban đầu giữ nguyên. `buildManyToMany` có test cho khóa chính nhiều cột, hai đầu cùng một bảng, và bảng không có khóa chính.
+**Test theo operation:** với mỗi loại operation có test cho trường hợp thành công, cho từng mã lỗi điều kiện, cho tác động kèm theo khi xóa, và cho nghịch đảo. Mỗi loại operation có test trả đúng tham chiếu `schema` đầu vào khi không đổi gì. `batch` có test lỗi ở bước giữa (trả đúng `path` và schema ban đầu giữ nguyên), test nghịch đảo phẳng, và test độ sâu: sâu đúng `MAX_BATCH_DEPTH` được chấp nhận, sâu hơn bị từ chối, input lồng rất sâu trả lỗi thay vì throw. `buildManyToMany` có test cho khóa chính nhiều cột, hai đầu cùng một bảng, tên cột trùng, và bảng không có khóa chính. `buildRelation` có test cho khóa chính nhiều cột, 1-1 một cột và nhiều cột, `setNull`, tên cột trùng, quan hệ tự tham chiếu, và bảng đích không có khóa chính. `mergeLastEntry` có test undo và redo mục gộp trong một bước, và `batch` vẫn phẳng sau nhiều lần gộp.
 
 **Test theo rule:** với mỗi mã issue có một test gây ra issue (kiểm tra đúng `code` và `path`) và một test ở ngưỡng không gây ra (ví dụ tên đúng 63 byte có chữ tiếng Việt, tên 64 byte). Mỗi tiêu chí "Core báo lỗi…" của ED-01 đến ED-05 có test đặt tên theo tiêu chí.
 
-**Test parse:** mỗi mã bất biến cấu trúc, trường thừa, version mới hơn, khóa `__proto__`, `sampleSchema` qua `JSON.stringify` rồi `JSON.parse` vẫn parse được và bằng bản gốc.
+**Test parse:** mỗi mã bất biến cấu trúc, trường thừa, version mới hơn, khóa `__proto__`, `createSampleSchema()` qua `JSON.stringify` rồi `JSON.parse` vẫn parse được và bằng bản gốc.
 
 **Property test** bằng fast-check (dev dependency). Arbitrary sinh tài liệu đúng cấu trúc và chuỗi operation hợp lệ với tài liệu đó (tham chiếu tới id có thật), kèm một phần operation cố ý sai. Các tính chất:
 
@@ -779,7 +834,7 @@ fast-check chạy với seed cố định trong CI và in seed khi thất bại,
 
 | Phần | Cần gì từ model | Model đáp ứng bằng |
 |---|---|---|
-| 3 Editor | Bảng, cột, quan hệ, index, enum, comment trên canvas; vị trí; undo/redo; nhiều schema trong trình duyệt | Mục 1–6; `moveElements`; `History`; `name` trong tài liệu cho màn hình danh sách; `parseSchemaDocument` khi đọc IndexedDB |
+| 3 Editor | Bảng, cột, quan hệ, index, enum, comment trên canvas; vị trí; tạo quan hệ kèm cột khóa ngoại; undo/redo, gộp thao tác liên tục, bỏ qua thao tác không đổi gì; nhiều schema trong trình duyệt; chạy dưới CSP chặt | Mục 1–6; `moveElements`; `buildRelation`, `buildManyToMany`; `History`, `mergeLastEntry`; hợp đồng tham chiếu khi không đổi gì; `name` trong tài liệu cho màn hình danh sách; `parseSchemaDocument` khi đọc IndexedDB; Zod `jitless` |
 | 4 Lưu cloud | Validate trước khi lưu; lưu JSONB | Tài liệu là JSON thuần; `parseSchemaDocument`; không phụ thuộc thứ tự khóa |
 | 5 AI | Tool call ánh xạ sang operation; từ chối khi không hợp lệ; diff; undo được | Operation chi tiết; `batch`; `findIntroducedIssues`; `parseOperation`; diff đọc từ danh sách operation |
 | 6 SQL DDL | Khóa chính, khóa ngoại nhiều cột, hành động, index, enum, comment, mặc định, auto-increment | Mục 3–6; ánh xạ kiểu ở mục 3 |
@@ -795,23 +850,29 @@ fast-check chạy với seed cố định trong CI và in seed khi thất bại,
 ## Tiêu chí hoàn thành
 
 - [ ] Type của mọi phần tử, `ColumnType`, `ColumnDefault`, `Operation`, `Issue`, `OperationError` được export từ entry point chính và suy ra từ schema Zod.
-- [ ] `parseSchemaDocument` chấp nhận `sampleSchema` sau khi qua `JSON.stringify` và `JSON.parse`, và kết quả bằng bản gốc.
+- [ ] `parseSchemaDocument` chấp nhận `createSampleSchema()` sau khi qua `JSON.stringify` và `JSON.parse`, và kết quả bằng bản gốc.
 - [ ] `parseSchemaDocument` từ chối, đúng mã và đúng `path`, mọi trường hợp trong danh mục bất biến cấu trúc, cùng trường thừa, version mới hơn và khóa `__proto__`.
-- [ ] `validateSchema` trả đúng `code` và `path` cho mọi mã trong danh mục issue ngữ nghĩa; `sampleSchema` không có issue.
+- [ ] `validateSchema` trả đúng `code` và `path` cho mọi mã trong danh mục issue ngữ nghĩa; `createSampleSchema()` không có issue.
 - [ ] Cả 26 loại operation được cài đặt, mỗi loại trả về nghịch đảo đúng bảng ở mục 9.
+- [ ] Operation không làm thay đổi gì trả về đúng tham chiếu `schema` đầu vào, kèm nghịch đảo.
 - [ ] Xóa kéo theo đúng bảng ở mục 9; `removeEnum` khi enum đang dùng bị từ chối với `enum-in-use`.
 - [ ] `batch` lỗi ở một bước thì trả lỗi có `path` bắt đầu bằng `['operations', i]` và không thay đổi schema.
+- [ ] Nghịch đảo của `batch` là `batch` phẳng, độ sâu tối đa 1; `parseOperation` và `applyOperation` từ chối `batch` sâu hơn `MAX_BATCH_DEPTH` bằng `invalid-shape` mà không throw, kể cả với input lồng rất sâu.
 - [ ] `buildManyToMany` tạo bảng trung gian có khóa chính nhiều cột và hai quan hệ 1-n; áp nghịch đảo của batch trả về schema ban đầu.
+- [ ] `buildRelation` tạo cột khóa ngoại khớp khóa chính của bảng đích, quan hệ, và index unique cho 1-1 nhiều cột; trả `primary-key-missing` khi bảng đích không có khóa chính; áp nghịch đảo của batch trả về schema ban đầu.
 - [ ] `undo` rồi `redo` trả về đúng schema trước và sau thao tác; ghi mục mới xóa `future`.
+- [ ] `mergeLastEntry` gộp mục cuối thành một mục mà một lần `undo` hoàn tác và một lần `redo` áp lại cả hai thay đổi; gộp xóa `future`; `batch` vẫn phẳng sau nhiều lần gộp.
 - [ ] `findIntroducedIssues` chỉ trả issue mới, không trả issue đã có sẵn.
 - [ ] Cả năm tính chất property test qua với seed cố định.
 - [ ] Mỗi tiêu chí "Core báo lỗi…" của ED-01 đến ED-05 có test đặt tên theo tiêu chí và test đó qua.
 - [ ] `packages/core` chỉ có runtime dependency là Zod, không dùng API riêng của trình duyệt hay Node, coverage số dòng ≥ 90%.
+- [ ] Core không gọi `z.config`; test chạy dưới `z.config({ jitless: true })` parse và áp operation đúng mà không dựng `Function`.
+- [ ] Entry point `@schemaforge/core/testing` export factory, `buildSchema`, `createCounterIdGenerator`, `unwrapOk`, `unwrapError`, `createSampleSchema`; `dist/` không chứa arbitrary của fast-check; entry point chính không còn `PRODUCT_NAME`.
 - [ ] `architecture.md` ghi các quyết định mới (định dạng model chi tiết, Zod trong core, fast-check); `roadmap.md` cập nhật trạng thái phần 2.
 
 ## Phạm vi
 
-**Trong phạm vi:** type và schema Zod của model và operation; id; `parseSchemaDocument`, `parseOperation` và khung migration (version 1 chưa có bước migration nào); `validateSchema`, `findIntroducedIssues`; `applyOperation` cho mọi operation; `buildManyToMany`, `suggestIndexName`; hàm sắp xếp xác định; lịch sử undo/redo thuần; factory, fixture và arbitrary cho test.
+**Trong phạm vi:** type và schema Zod của model và operation; id; `parseSchemaDocument`, `parseOperation` và khung migration (version 1 chưa có bước migration nào); `validateSchema`, `findIntroducedIssues`; `applyOperation` cho mọi operation; `buildManyToMany`, `buildRelation`, `suggestIndexName`; hàm sắp xếp xác định; lịch sử undo/redo thuần kèm `mergeLastEntry`; factory, fixture và arbitrary cho test, entry point `@schemaforge/core/testing`; bỏ `PRODUCT_NAME` khỏi core (frontend dùng `APP_NAME` riêng, backend ghi log `CURRENT_SCHEMA_VERSION`).
 
 **Ngoài phạm vi:**
 

@@ -96,7 +96,8 @@ Backend giới hạn tần suất gọi AI (rate limit, ví dụ X request/phút
 | Model Gemini | Một model, đặt trong biến môi trường `GEMINI_MODEL` | Đổi model không cần sửa code |
 | Giới hạn sử dụng AI | Chỉ rate limit theo tần suất, chưa có quota theo ngày hay theo tháng | Chống lạm dụng mà không phải theo dõi quota |
 | Xác nhận thay đổi của AI | Người dùng xem diff rồi chọn chấp nhận hoặc bỏ | An toàn khi AI xóa hoặc thay đổi nhiều |
-| Parser SQL cho import | `@dbml/core` | Một thư viện parse cả DBML lẫn SQL của PostgreSQL, MySQL, SQL Server; SQLite cần xử lý thêm |
+| SQL dialect | PostgreSQL, MySQL, SQL Server. Chưa hỗ trợ SQLite | Lựa chọn của dự án |
+| Parser SQL cho import | `@dbml/core` | Một thư viện parse được cả DBML lẫn SQL của cả ba dialect được hỗ trợ |
 | Auto-layout | elkjs, chạy trong Web Worker | Hỗ trợ điểm nối theo cột, đường nối vuông góc và ít giao cắt, hợp sơ đồ ER |
 
 ## Chưa chốt

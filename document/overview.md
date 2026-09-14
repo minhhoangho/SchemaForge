@@ -46,7 +46,7 @@ Cần đăng nhập.
 
 ### 3. Code Generator
 
-- SQL DDL: PostgreSQL, MySQL, SQLite, SQL Server
+- SQL DDL: PostgreSQL, MySQL, SQL Server
 - Prisma schema
 - Drizzle schema
 - TypeScript types

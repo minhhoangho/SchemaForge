@@ -194,7 +194,7 @@ Ghi chú: quan hệ với seed data của Code Generator (CG-08) xem câu hỏi 
 
 | Mã | Tính năng | Đăng nhập | Phần | Ưu tiên |
 |---|---|---|---|---|
-| CG-01 | SQL DDL: PostgreSQL, MySQL, SQLite, SQL Server | Không | 6 | P1 |
+| CG-01 | SQL DDL: PostgreSQL, MySQL, SQL Server | Không | 6 | P1 |
 | CG-02 | Prisma schema | Không | 6 | P1 |
 | CG-03 | Drizzle schema | Không | 6 | P1 |
 | CG-04 | TypeScript types | Không | 6 | P1 |
@@ -216,7 +216,7 @@ Ghi chú: cách xử lý khi đích không hỗ trợ một khái niệm của s
 
 ### CG-01. SQL DDL
 
-- [ ] Chọn được dialect: PostgreSQL, MySQL, SQLite, SQL Server.
+- [ ] Chọn được dialect: PostgreSQL, MySQL, SQL Server.
 - [ ] Output gồm bảng, cột, khóa chính, khóa ngoại, index, enum và comment, trong phạm vi dialect hỗ trợ.
 - [ ] Chạy output trên database của dialect tương ứng không gặp lỗi.
 
@@ -435,7 +435,7 @@ Câu 1 đến 3 đã được nêu trong `architecture.md`. Các câu còn lại
 | 4 | Kiểu dữ liệu của cột là một bộ kiểu chung rồi ánh xạ sang từng dialect, hay theo dialect ngay từ đầu? | ED-02, CG-01 đến CG-05, IE-01 | 2 |
 | 5 | Model có hỗ trợ khóa chính và khóa ngoại nhiều cột, hành động ON DELETE và ON UPDATE không? | ED-02, ED-03 | 2 |
 | 6 | Quan hệ n-n được lưu thành bảng trung gian hay một loại quan hệ riêng? | ED-03, CG-01 đến CG-03 | 2 |
-| 7 | Khi đích sinh code không hỗ trợ một khái niệm (ví dụ enum trong SQLite), generator xử lý thế nào? | CG-01 đến CG-10 | 6 |
+| 7 | Khi đích sinh code không hỗ trợ một khái niệm (ví dụ enum trong SQL Server), generator xử lý thế nào? | CG-01 đến CG-10 | 6 |
 | 8 | "Mock API (REST)" sinh ra gì: code server mock, request handler hay file cấu hình? | CG-06 | 6 |
 | 9 | Seed data (CG-08) và dữ liệu mẫu do AI sinh (AI-06) khác nhau thế nào, có dùng chung định dạng output không? | CG-08, AI-06 | 5, 6 |
 | 10 | Import SQL hỗ trợ những dialect nào? Import thay thế schema hiện tại hay gộp vào? | IE-01 đến IE-04 | 7 |

@@ -37,6 +37,7 @@ Monorepo tooling: pnpm workspaces + Turborepo.
 - Everything in `document/`: Vietnamese.
 - User-facing text always goes through i18n with `vi` and `en` locales; no hardcoded UI strings.
 - TypeScript strict mode in every package.
+- Detailed rules live in `.claude/rules/`, one file per topic. Path-scoped rules load only after a matching file is read, so read the relevant rule file before creating the first files in an area.
 - Libraries not named above (canvas, state management, UI kit, i18n, auth, AI SDK) are not decided yet. Choose them in the spec of the sub-project that needs them, then record the decision in `document/architecture.md`. Candidates are listed there.
 
 ## Workflow

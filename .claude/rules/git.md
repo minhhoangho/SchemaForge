@@ -23,3 +23,8 @@ fix(frontend): keep canvas zoom after undo
 build: set up pnpm workspace and turborepo
 docs: add schema operations spec
 ```
+
+## Before committing
+
+- Run typecheck, lint, and tests for the packages you changed (once scaffolding adds these commands). Do not commit failing code.
+- Never commit secrets, `.env` files, or build output.

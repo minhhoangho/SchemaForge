@@ -349,6 +349,8 @@ Ghi chú: xem câu hỏi 11. Sau khi đăng nhập, bản trên trình duyệt c
 - [ ] Khi chưa đăng nhập, dùng tính năng cần tài khoản sẽ được mời đăng nhập; các tính năng còn lại vẫn dùng bình thường.
 - [ ] Đăng nhập không làm mất schema đang lưu trên trình duyệt.
 
+Ghi chú: chưa có chức năng quên mật khẩu, nên phần 4 chưa cần dịch vụ gửi email.
+
 ### ST-03. Lưu cloud
 
 - [ ] Lưu schema lên server; backend validate bằng core trước khi lưu vào PostgreSQL và từ chối schema không hợp lệ kèm lý do.
@@ -450,4 +452,4 @@ Quyết định kỹ thuật và lý do nằm trong [architecture.md](../archite
 | 2 | Giới hạn sử dụng AI cho mỗi người dùng là bao nhiêu, tính theo request hay token? | Chỉ rate limit theo tần suất, chưa có quota theo ngày hay theo tháng. Con số cụ thể chốt ở spec phần 5. | AI-01 đến AI-06 |
 | 3 | Bản lưu local và bản lưu cloud đồng bộ với nhau thế nào? | Sau khi đăng nhập, bản cloud là bản chính, bản local làm cache. Lần đầu đăng nhập, người dùng được hỏi có đưa schema local lên cloud không. Xung đột được phát hiện theo revision, người dùng chọn giữ bản nào. | ST-01, ST-03 |
 | 10 (một phần) | Import SQL hỗ trợ những dialect nào? | PostgreSQL, MySQL, SQL Server. SchemaForge chưa hỗ trợ SQLite. | IE-01 |
-| 12 | Đăng nhập bằng những phương thức nào? | Chỉ email và mật khẩu. Chưa xác minh email khi đăng ký. | ST-02 |
+| 12 | Đăng nhập bằng những phương thức nào? | Chỉ email và mật khẩu. Chưa xác minh email khi đăng ký và chưa có chức năng quên mật khẩu. | ST-02 |

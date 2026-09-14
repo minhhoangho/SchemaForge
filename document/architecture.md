@@ -90,7 +90,7 @@ Backend giới hạn tần suất gọi AI (rate limit, ví dụ X request/phút
 | Quản lý state | Zustand | Nhẹ, store nằm ngoài React nên gọi được từ code không phải component; React Flow cũng dùng Zustand |
 | Cơ chế lưu local | IndexedDB qua Dexie | Có bảng, index, query và migration theo version, hợp khi lưu nhiều schema cùng lịch sử operation |
 | Auth | Passport + JWT | Cách làm chuẩn của NestJS, kiểm soát hoàn toàn luồng auth |
-| Cách đăng nhập | Email + mật khẩu, chưa xác minh email khi đăng ký | Lựa chọn của dự án |
+| Cách đăng nhập | Email + mật khẩu. Chưa xác minh email khi đăng ký, chưa có chức năng quên mật khẩu, nên chưa cần dịch vụ gửi email | Lựa chọn của dự án |
 | Đồng bộ local và cloud | Sau khi đăng nhập, bản cloud là bản chính, bản local làm cache | Không phải merge operation; xung đột được phát hiện theo revision |
 | SDK gọi Gemini | Vercel AI SDK (`ai` + `@ai-sdk/google`) | Khai báo tool bằng Zod, có vòng lặp tool call nhiều bước và giao thức stream dùng được với `useChat` ở frontend |
 | Model Gemini | Một model, đặt trong biến môi trường `GEMINI_MODEL` | Đổi model không cần sửa code |

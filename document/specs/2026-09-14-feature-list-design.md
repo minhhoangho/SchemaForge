@@ -151,15 +151,14 @@ Tiêu chí chung cho nhóm AI:
 - [ ] Khi chưa đăng nhập, người dùng được mời đăng nhập trước khi dùng AI.
 - [ ] Frontend gửi tin nhắn kèm schema hiện tại lên backend, không gọi thẳng Gemini.
 - [ ] Câu trả lời được stream về frontend.
-- [ ] Mỗi request gắn với một người dùng và tính vào giới hạn sử dụng AI của người đó (xem câu hỏi 2).
+- [ ] Mỗi request gắn với một người dùng. Backend giới hạn tần suất gọi AI (rate limit) để chống lạm dụng; chưa có quota theo ngày hay theo tháng.
+- [ ] Thay đổi schema do AI đề xuất chỉ được áp dụng sau khi người dùng xem diff trên canvas (bảng, cột được thêm, sửa, xóa) và chọn Chấp nhận. Chọn Bỏ thì schema giữ nguyên.
 
 ### AI-01. Sinh schema từ mô tả
 
 - [ ] Người dùng mô tả hệ thống bằng tiếng Việt hoặc tiếng Anh và nhận về schema gồm bảng, cột, quan hệ.
-- [ ] Kết quả đi qua tool call, được core validate, rồi áp dụng theo đúng đường của thao tác tay.
+- [ ] Kết quả đi qua tool call và được core validate. Sau khi người dùng chấp nhận diff, thay đổi được áp dụng theo đúng đường của thao tác tay.
 - [ ] Undo được thay đổi do AI tạo ra.
-
-Ghi chú: có cần xem trước và xác nhận trước khi áp dụng hay không, xem câu hỏi 1.
 
 ### AI-02. Chat nhiều lượt để chỉnh sửa schema
 
@@ -289,9 +288,7 @@ Ghi chú: import thay thế schema hiện tại hay gộp vào, xem câu hỏi 1
 
 ### IE-01. Import SQL
 
-- [ ] Đọc câu lệnh DDL thành bảng, cột, khóa chính, quan hệ và index.
-
-Ghi chú: các dialect được hỗ trợ xem câu hỏi 10.
+- [ ] Đọc câu lệnh DDL của PostgreSQL, MySQL và SQL Server thành bảng, cột, khóa chính, quan hệ và index.
 
 ### IE-02. Import Prisma
 
@@ -343,20 +340,22 @@ ST-02 và ST-04 không có trong danh sách của `overview.md` nhưng thuộc p
 - [ ] Schema vẫn còn sau khi tải lại trang hoặc đóng và mở lại trình duyệt.
 - [ ] Lưu và mở schema không cần tài khoản, không gọi server.
 
-Ghi chú: xem câu hỏi 3 và 11.
+Ghi chú: xem câu hỏi 11. Sau khi đăng nhập, bản trên trình duyệt chỉ làm cache cho bản cloud (xem ST-03).
 
 ### ST-02. Đăng ký, đăng nhập
 
-- [ ] Đăng ký, đăng nhập và đăng xuất.
+- [ ] Đăng ký, đăng nhập và đăng xuất bằng email và mật khẩu.
+- [ ] Đăng ký xong dùng được ngay, không cần xác minh email.
 - [ ] Khi chưa đăng nhập, dùng tính năng cần tài khoản sẽ được mời đăng nhập; các tính năng còn lại vẫn dùng bình thường.
 - [ ] Đăng nhập không làm mất schema đang lưu trên trình duyệt.
-
-Ghi chú: phương thức đăng nhập xem câu hỏi 12.
 
 ### ST-03. Lưu cloud
 
 - [ ] Lưu schema lên server; backend validate bằng core trước khi lưu vào PostgreSQL và từ chối schema không hợp lệ kèm lý do.
 - [ ] Mở lại được schema đã lưu từ thiết bị khác sau khi đăng nhập.
+- [ ] Sau khi đăng nhập, schema tự động được lưu lên cloud; bản trên trình duyệt chỉ làm cache.
+- [ ] Lần đầu đăng nhập, người dùng được hỏi có đưa các schema đang lưu local lên cloud không.
+- [ ] Khi phát hiện xung đột theo revision, người dùng chọn giữ bản nào.
 
 ### ST-04. Danh sách schema trên cloud
 
@@ -425,22 +424,30 @@ Ghi chú: làm từ phần 3 vì thêm sau sẽ phải sửa lại toàn bộ gi
 
 ## Câu hỏi còn mở
 
-Câu 1 đến 3 đã được nêu trong `architecture.md`. Các câu còn lại phát hiện khi viết tài liệu này. Mỗi câu được trả lời trong spec của phần ở cột cuối.
+Mỗi câu được trả lời trong spec của phần ở cột cuối. Khi có câu trả lời, câu hỏi được chuyển xuống mục "Câu hỏi đã trả lời" và giữ nguyên số thứ tự, vì các mục ở trên tham chiếu tới số này.
 
 | # | Câu hỏi | Tính năng | Chốt ở phần |
 |---|---|---|---|
-| 1 | Người dùng có cần xem trước và xác nhận thay đổi của AI trước khi áp dụng không? | AI-01, AI-02, AI-03 | 5 |
-| 2 | Giới hạn sử dụng AI cho mỗi người dùng là bao nhiêu, tính theo request hay token? | AI-01 đến AI-06 | 5 |
-| 3 | Bản lưu local và bản lưu cloud đồng bộ với nhau thế nào? | ST-01, ST-03 | 4 |
 | 4 | Kiểu dữ liệu của cột là một bộ kiểu chung rồi ánh xạ sang từng dialect, hay theo dialect ngay từ đầu? | ED-02, CG-01 đến CG-05, IE-01 | 2 |
 | 5 | Model có hỗ trợ khóa chính và khóa ngoại nhiều cột, hành động ON DELETE và ON UPDATE không? | ED-02, ED-03 | 2 |
 | 6 | Quan hệ n-n được lưu thành bảng trung gian hay một loại quan hệ riêng? | ED-03, CG-01 đến CG-03 | 2 |
 | 7 | Khi đích sinh code không hỗ trợ một khái niệm (ví dụ enum trong SQL Server), generator xử lý thế nào? | CG-01 đến CG-10 | 6 |
 | 8 | "Mock API (REST)" sinh ra gì: code server mock, request handler hay file cấu hình? | CG-06 | 6 |
 | 9 | Seed data (CG-08) và dữ liệu mẫu do AI sinh (AI-06) khác nhau thế nào, có dùng chung định dạng output không? | CG-08, AI-06 | 5, 6 |
-| 10 | Import SQL hỗ trợ những dialect nào? Import thay thế schema hiện tại hay gộp vào? | IE-01 đến IE-04 | 7 |
+| 10 | Import thay thế schema hiện tại hay gộp vào? | IE-01 đến IE-04 | 7 |
 | 11 | Khi chưa đăng nhập, trình duyệt lưu được một hay nhiều schema? | ST-01 | 3 |
-| 12 | Đăng nhập bằng những phương thức nào, ví dụ email và mật khẩu, Google? | ST-02 | 4 |
 | 13 | Link private giới hạn người xem thế nào? Người mở link chia sẻ có sửa được schema không? | ST-05 | 8 |
 | 14 | "Lịch sử phiên bản cơ bản" gồm những gì: khi nào tạo phiên bản, có so sánh hai phiên bản không? | ST-06 | 8 |
 | 15 | Presentation mode hiển thị gì và khác chế độ xem thường ở điểm nào? | UX-02 | 9 |
+
+## Câu hỏi đã trả lời
+
+Quyết định kỹ thuật và lý do nằm trong [architecture.md](../architecture.md).
+
+| # | Câu hỏi | Trả lời | Tính năng |
+|---|---|---|---|
+| 1 | Người dùng có cần xem trước và xác nhận thay đổi của AI trước khi áp dụng không? | Có. Người dùng xem diff trên canvas rồi chọn Chấp nhận hoặc Bỏ. | AI-01, AI-02, AI-03 |
+| 2 | Giới hạn sử dụng AI cho mỗi người dùng là bao nhiêu, tính theo request hay token? | Chỉ rate limit theo tần suất, chưa có quota theo ngày hay theo tháng. Con số cụ thể chốt ở spec phần 5. | AI-01 đến AI-06 |
+| 3 | Bản lưu local và bản lưu cloud đồng bộ với nhau thế nào? | Sau khi đăng nhập, bản cloud là bản chính, bản local làm cache. Lần đầu đăng nhập, người dùng được hỏi có đưa schema local lên cloud không. Xung đột được phát hiện theo revision, người dùng chọn giữ bản nào. | ST-01, ST-03 |
+| 10 (một phần) | Import SQL hỗ trợ những dialect nào? | PostgreSQL, MySQL, SQL Server. SchemaForge chưa hỗ trợ SQLite. | IE-01 |
+| 12 | Đăng nhập bằng những phương thức nào? | Chỉ email và mật khẩu. Chưa xác minh email khi đăng ký. | ST-02 |

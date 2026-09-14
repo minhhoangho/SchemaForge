@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Turborepo
+.turbo/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Test coverage
+coverage/
+
+# OS and editors
+.DS_Store
+.idea/
+
+# Claude Code local settings
+.claude/settings.local.json

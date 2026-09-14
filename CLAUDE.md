@@ -17,7 +17,7 @@ Pre-scaffold. `frontend/`, `backend/`, and `packages/core/` contain only a READM
 | Path | Role | Stack |
 |---|---|---|
 | `frontend/` | Web app: canvas editor, AI chat UI, code generation and import/export panels, local persistence | Next.js, TypeScript |
-| `backend/` | API: auth, cloud storage, share links, version history, AI provider calls, encrypted API keys | NestJS, TypeScript, PostgreSQL, Prisma |
+| `backend/` | API: auth, cloud storage, share links, version history, AI assistant | NestJS, TypeScript, PostgreSQL, Prisma, Google Gemini |
 | `packages/core/` | Shared schema model, validation, schema operations, code generators, importers | Framework-free TypeScript |
 | `document/` | Product overview, architecture, roadmap, specs, plans | Markdown (Vietnamese) |
 
@@ -29,7 +29,7 @@ Monorepo tooling: pnpm workspaces + Turborepo.
 2. **Local-first.** Editing, code generation, and import/export work entirely in the browser, without an account or a backend. Signing in adds cloud save, sharing, version history, and AI.
 3. **One mutation path.** Every schema change, whether from the canvas, the AI, or an import, is expressed as a core operation. Undo/redo, AI edits, and version history all build on these operations; never mutate schema state ad hoc.
 4. **AI edits are structured.** The AI changes a schema only through tool calls that map to core operations, and core validates the result before it is applied. Never feed free-form model output (such as raw SQL) straight into the schema.
-5. **AI is bring-your-own-key and requires login.** Supported providers: OpenAI, Google Gemini, and OpenAI-compatible endpoints. The backend stores each key encrypted with AES-256-GCM (random IV per key, master key from the environment), decrypts it only in memory to call the provider, never returns a saved key to the client (a masked hint at most), and never logs it. The frontend never stores a provider key.
+5. **AI runs on Google Gemini through the backend and requires login.** Users never provide an API key. The Gemini API key lives only in the backend environment: never commit it, never send it to the client, never log it. The frontend talks to the backend, never to Gemini directly.
 
 ## Conventions
 

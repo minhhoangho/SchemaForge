@@ -48,17 +48,18 @@ Server
 ### Người dùng đã đăng nhập
 
 - **Lưu cloud:** frontend gửi schema lên backend; backend validate bằng core rồi lưu vào PostgreSQL.
+- **Đồng bộ local và cloud:** sau khi đăng nhập, bản cloud là bản chính. Schema tự động được lưu lên cloud, còn bản trong trình duyệt chỉ đóng vai trò cache. Lần đầu đăng nhập, người dùng được hỏi có đưa các schema đang lưu local lên cloud không. Xung đột được phát hiện theo revision, và khi đó người dùng chọn giữ bản nào. Chi tiết được chốt trong spec của phần "Auth + lưu cloud".
 - **Chia sẻ link và lịch sử phiên bản:** do backend quản lý.
-- Cách đồng bộ giữa bản local và bản cloud được chốt trong spec của phần "Auth + lưu cloud".
 
 ### AI Assistant
 
 1. Người dùng gửi tin nhắn; frontend gửi tin nhắn kèm schema hiện tại lên backend.
-2. Backend gọi Gemini bằng API key trong biến môi trường, kèm danh sách tool tương ứng với các operation của core.
+2. Backend gọi Gemini qua Vercel AI SDK, với API key và tên model lấy từ biến môi trường, kèm danh sách tool tương ứng với các operation của core.
 3. Backend validate các tool call bằng core, rồi stream câu trả lời và danh sách operation về frontend.
-4. Frontend áp operation qua đúng đường của thao tác tay, nên thay đổi do AI tạo ra cũng undo được.
+4. Frontend hiển thị diff của các operation trên canvas (bảng, cột được thêm, sửa, xóa) để người dùng chọn Chấp nhận hoặc Bỏ.
+5. Khi người dùng chấp nhận, frontend áp operation qua đúng đường của thao tác tay, nên thay đổi do AI tạo ra cũng undo được.
 
-Hai điểm được chốt trong spec của phần "AI Assistant": người dùng có cần xem trước và xác nhận thay đổi của AI hay không, và giới hạn sử dụng AI cho mỗi người dùng.
+Backend giới hạn tần suất gọi AI (rate limit, ví dụ X request/phút) để chống lạm dụng. Hiện chưa có quota theo ngày hay theo tháng.
 
 ## Bảo mật API key
 
@@ -81,23 +82,23 @@ Hai điểm được chốt trong spec của phần "AI Assistant": người dù
 | Quyền dùng AI | Bắt buộc đăng nhập | Hệ thống chịu chi phí AI, nên mỗi request cần gắn với một người dùng để giới hạn sử dụng |
 | Ngôn ngữ tài liệu | `CLAUDE.md` và code: tiếng Anh. `document/`: tiếng Việt | — |
 | Ngôn ngữ giao diện | Tiếng Việt và tiếng Anh, qua i18n | — |
+| UI kit, styling | Tailwind CSS + shadcn/ui | Component nằm trong repo nên tùy biến được hoàn toàn; dark mode dùng CSS variables |
+| Test runner | Vitest cho mọi package; NestJS chạy trên Vitest qua `unplugin-swc` | Cả monorepo dùng một runner và một kiểu API mock |
+| i18n | i18next + react-i18next | Hệ sinh thái lớn; backend cũng dùng được nếu cần dịch thông báo lỗi |
+| Định dạng schema model | JSON phẳng theo ID, có trường `version` để migrate | Bảng, cột, quan hệ, index, enum là các map theo ID ở cấp gốc, nên đổi tên không làm hỏng tham chiếu; operation, diff và lịch sử phiên bản đơn giản |
+| Thư viện canvas | React Flow (`@xyflow/react`) | Node là React component nên dùng được UI kit; có sẵn zoom, pan, minimap và điểm nối |
+| Quản lý state | Zustand | Nhẹ, store nằm ngoài React nên gọi được từ code không phải component; React Flow cũng dùng Zustand |
+| Cơ chế lưu local | IndexedDB qua Dexie | Có bảng, index, query và migration theo version, hợp khi lưu nhiều schema cùng lịch sử operation |
+| Auth | Passport + JWT | Cách làm chuẩn của NestJS, kiểm soát hoàn toàn luồng auth |
+| Cách đăng nhập | Email + mật khẩu | Lựa chọn của dự án |
+| Đồng bộ local và cloud | Sau khi đăng nhập, bản cloud là bản chính, bản local làm cache | Không phải merge operation; xung đột được phát hiện theo revision |
+| SDK gọi Gemini | Vercel AI SDK (`ai` + `@ai-sdk/google`) | Khai báo tool bằng Zod, có vòng lặp tool call nhiều bước và giao thức stream dùng được với `useChat` ở frontend |
+| Model Gemini | Một model, đặt trong biến môi trường `GEMINI_MODEL` | Đổi model không cần sửa code |
+| Giới hạn sử dụng AI | Chỉ rate limit theo tần suất, chưa có quota theo ngày hay theo tháng | Chống lạm dụng mà không phải theo dõi quota |
+| Xác nhận thay đổi của AI | Người dùng xem diff rồi chọn chấp nhận hoặc bỏ | An toàn khi AI xóa hoặc thay đổi nhiều |
+| Parser SQL cho import | `@dbml/core` | Một thư viện parse cả DBML lẫn SQL của PostgreSQL, MySQL, SQL Server; SQLite cần xử lý thêm |
+| Auto-layout | elkjs, chạy trong Web Worker | Hỗ trợ điểm nối theo cột, đường nối vuông góc và ít giao cắt, hợp sơ đồ ER |
 
 ## Chưa chốt
 
-Các ứng viên dưới đây chỉ là đề xuất. Quyết định cuối cùng nằm trong spec của phần tương ứng, sau đó được chuyển lên bảng "Quyết định đã chốt".
-
-| Hạng mục | Ứng viên | Chốt ở phần |
-|---|---|---|
-| UI kit, styling | Tailwind CSS + shadcn/ui | Scaffold & tooling |
-| Test runner | Vitest; Jest cho NestJS | Scaffold & tooling |
-| i18n | next-intl | Scaffold & tooling |
-| Định dạng schema model | JSON document có version | Core schema model |
-| Thư viện canvas | React Flow (`@xyflow/react`) | Editor MVP |
-| Quản lý state | Zustand | Editor MVP |
-| Cơ chế lưu local | IndexedDB | Editor MVP |
-| Auth | Better Auth; Passport + JWT | Auth + lưu cloud |
-| SDK gọi Gemini | Google Gen AI SDK (`@google/genai`); Vercel AI SDK | AI Assistant |
-| Model Gemini cụ thể | Cấu hình qua biến môi trường | AI Assistant |
-| Giới hạn sử dụng AI | Quota theo người dùng | AI Assistant |
-| Parser SQL cho import | node-sql-parser | Import / Export |
-| Auto-layout | elkjs; dagre | Hoàn thiện |
+Hiện không còn hạng mục nào. Khi phát sinh lựa chọn kỹ thuật mới, liệt kê ở đây hạng mục, các ứng viên và phần sẽ chốt. Quyết định cuối cùng nằm trong spec của phần tương ứng, sau đó được chuyển lên bảng "Quyết định đã chốt".

@@ -123,6 +123,14 @@ Backend giới hạn tần suất gọi AI (rate limit, ví dụ X request/phút
 | Nhiều tab | Web Locks API, mỗi schema một khóa exclusive; tab thứ hai chờ tới khi tab đang giữ khóa nhả ra | Hai tab không ghi đè thay đổi của nhau; khóa tự nhả khi tab đóng hoặc crash |
 | CSP | Nonce theo từng request, sinh trong `proxy.ts`; `script-src` dùng nonce và `'strict-dynamic'`; `style-src` cho `'unsafe-inline'` | Chặn script bị chèn; mọi route đã render động nên nonce không tốn thêm; Radix, Sonner và React Flow chèn style lúc chạy |
 | Test frontend | Chỉ Vitest unit và component test (jsdom); không có test e2e trên trình duyệt ở phần 3 | Lựa chọn của dự án: test nhanh, không cần trình duyệt. Logic nằm trong hàm thuần, store và repository, nên test được trên jsdom với `fake-indexeddb`; phần cần trình duyệt thật (độ tương phản, CSP, hiệu năng) được kiểm tra tay |
+| Giao diện generator | Hàm thuần `(schema, options) => { file, diagnostics }`, mỗi đích đúng một file; diagnostic là `{ code, path }`, không có mức độ; mỗi đích một subpath `@schemaforge/core/generators/<đích>` | Frontend lazy-load từng đích trong Web Worker; frontend dịch mã qua i18n |
+| Schema còn issue khi sinh code | Vẫn sinh output, panel hiện cảnh báo; output luôn quote, escape và bỏ giá trị không an toàn | Người dùng đang sửa dở vẫn xem được code; không chèn được mã vào output |
+| Drizzle | `drizzle-orm` 0.45, chỉ PostgreSQL và MySQL, relations API v1; SQL Server khi Drizzle 1.0 phát hành chính thức | 0.45 là bản ổn định; dialect SQL Server và relations v2 chỉ có ở 1.0, đang RC |
+| Mock API | Một file handler MSW 2, CRUD cho từng bảng trên dữ liệu trong bộ nhớ lấy từ seed data | Chạy ngay trong ứng dụng của người dùng, không cần server; biểu diễn được mọi khóa chính |
+| OpenAPI | OpenAPI 3.1, định dạng JSON, component schema mỗi bảng và đường dẫn CRUD trùng Mock API; conformance test dùng `@readme/openapi-parser` | JSON Schema 2020-12 biểu diễn đúng nullable; validator có kiểm tra ngữ nghĩa (tham số đường dẫn, `operationId`) |
+| Seed data | PRNG có seed trong core, không dùng faker; `SeedDataset`, hàm kiểm tra và hàm xuất dùng chung với AI-06 | Output xác định, không thêm runtime dependency; dữ liệu do AI sinh được kiểm tra bằng cùng quy tắc |
+| Syntax highlight | Shiki 4 (`shiki/core`, regex engine JavaScript, theme CSS variables), token render thành React element | Có grammar Prisma; không cần WebAssembly hay `dangerouslySetInnerHTML`; màu đi theo token sáng tối |
+| Conformance test của generator | Package `packages/codegen-conformance` chạy output qua công cụ đích (Testcontainers, `prisma validate`, `tsc`, validator OpenAPI, `@dbml/core`); chỉ chạy trong job CI và là cổng chặn | Core giữ isomorphic; máy dev không cài Docker, unit và snapshot test vẫn chạy local |
 
 ## Chưa chốt
 

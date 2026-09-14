@@ -196,7 +196,7 @@ Ghi chú: validation của core chặn schema không hợp lệ, ví dụ hai b�
 - [ ] AI sinh dữ liệu mẫu hợp ngữ cảnh, dựa trên tên và ý nghĩa của bảng và cột.
 - [ ] Dữ liệu tuân thủ kiểu dữ liệu, nullable, unique, enum và khóa ngoại.
 
-Ghi chú: quan hệ với seed data của Code Generator (CG-08) xem câu hỏi 9.
+Ghi chú: dùng chung `SeedDataset`, hàm kiểm tra và hàm xuất với seed data của Code Generator (CG-08), xem câu hỏi 9.
 
 ## 3. Code Generator
 
@@ -220,7 +220,7 @@ Tiêu chí chung cho nhóm Code Generator:
 - [ ] Cùng một schema luôn cho cùng một output.
 - [ ] Người dùng xem và copy được output. Tải output thành file thuộc IE-05.
 
-Ghi chú: cách xử lý khi đích không hỗ trợ một khái niệm của schema, xem câu hỏi 7.
+Ghi chú: đích không hỗ trợ một khái niệm thì generator dùng ánh xạ gần nhất hoặc bỏ phần đó, kèm diagnostic khi output mất thông tin (câu hỏi 7). Thiết kế chi tiết ở [spec phần 6](2026-09-14-code-generators-design.md).
 
 ### CG-01. SQL DDL
 
@@ -235,7 +235,7 @@ Ghi chú: cách xử lý khi đích không hỗ trợ một khái niệm của s
 
 ### CG-03. Drizzle schema
 
-- [ ] Output gồm bảng, quan hệ, enum và index.
+- [ ] Output gồm bảng, quan hệ, enum và index cho PostgreSQL và MySQL. SQL Server chưa được hỗ trợ (Drizzle 0.45 chưa có dialect này).
 - [ ] Output qua typecheck TypeScript strict.
 
 ### CG-04. TypeScript types
@@ -252,24 +252,24 @@ Ghi chú: cách xử lý khi đích không hỗ trợ một khái niệm của s
 
 - [ ] Sinh mock REST API cho các bảng trong schema.
 
-Ghi chú: output cụ thể chưa rõ, xem câu hỏi 8.
+Ghi chú: output là một file handler MSW 2 (câu hỏi 8).
 
 ### CG-07. OpenAPI / Swagger
 
-- [ ] Output là tài liệu OpenAPI, có định nghĩa schema cho từng bảng.
+- [ ] Output là tài liệu OpenAPI 3.1, có định nghĩa schema cho từng bảng và đường dẫn CRUD.
 - [ ] Output qua công cụ validate OpenAPI.
 
 ### CG-08. Seed data
 
 - [ ] Sinh dữ liệu mẫu tuân thủ kiểu dữ liệu, nullable, unique, enum và khóa ngoại.
-- [ ] Dữ liệu của bảng được tham chiếu đứng trước dữ liệu của bảng tham chiếu tới nó.
+- [ ] Dữ liệu của bảng được tham chiếu đứng trước dữ liệu của bảng tham chiếu tới nó. Vòng khóa ngoại được phá bằng câu `UPDATE` sau khi chèn.
 
-Ghi chú: xem câu hỏi 9.
+Ghi chú: xuất SQL `INSERT` theo dialect hoặc JSON; dùng chung định dạng và quy tắc kiểm tra với AI-06 (câu hỏi 9).
 
 ### CG-09. DBML
 
 - [ ] Output là DBML hợp lệ.
-- [ ] Import lại output bằng IE-03 cho schema tương đương.
+- [ ] Import lại output bằng IE-03 cho schema tương đương. Test round-trip đầy đủ được làm ở phần 7, khi có importer DBML.
 
 ### CG-10. Tài liệu Markdown
 
@@ -442,9 +442,6 @@ Mỗi câu được trả lời trong spec của phần ở cột cuối. Khi c�
 
 | # | Câu hỏi | Tính năng | Chốt ở phần |
 |---|---|---|---|
-| 7 | Khi đích sinh code không hỗ trợ một khái niệm (ví dụ enum trong SQL Server), generator xử lý thế nào? | CG-01 đến CG-10 | 6 |
-| 8 | "Mock API (REST)" sinh ra gì: code server mock, request handler hay file cấu hình? | CG-06 | 6 |
-| 9 | Seed data (CG-08) và dữ liệu mẫu do AI sinh (AI-06) khác nhau thế nào, có dùng chung định dạng output không? | CG-08, AI-06 | 5, 6 |
 | 10 | Import thay thế schema hiện tại hay gộp vào? | IE-01 đến IE-04 | 7 |
 | 13 | Link private giới hạn người xem thế nào? Người mở link chia sẻ có sửa được schema không? | ST-05 | 8 |
 | 14 | "Lịch sử phiên bản cơ bản" gồm những gì: khi nào tạo phiên bản, có so sánh hai phiên bản không? | ST-06 | 8 |
@@ -462,6 +459,9 @@ Quyết định kỹ thuật và lý do nằm trong [architecture.md](../archite
 | 4 | Kiểu dữ liệu của cột là một bộ kiểu chung rồi ánh xạ sang từng dialect, hay theo dialect ngay từ đầu? | Một bộ kiểu chung trong core; mỗi generator ánh xạ sang đích của mình (PostgreSQL, MySQL, SQL Server, Prisma, Drizzle, TypeScript, Zod…). Có kiểu custom cho kiểu riêng của từng database. Chi tiết ở [spec phần 2](2026-09-14-core-schema-model-design.md). | ED-02, CG-01 đến CG-05, IE-01 |
 | 5 | Model có hỗ trợ khóa chính và khóa ngoại nhiều cột, hành động ON DELETE và ON UPDATE không? | Có. Hỗ trợ đầy đủ khóa chính và khóa ngoại nhiều cột, cùng hành động ON DELETE và ON UPDATE (CASCADE, SET NULL, RESTRICT…). | ED-02, ED-03 |
 | 6 | Quan hệ n-n được lưu thành bảng trung gian hay một loại quan hệ riêng? | Bảng trung gian thật; model chỉ có quan hệ 1-1 và 1-n. Tạo quan hệ n-n trên canvas là một thao tác gộp, tạo bảng trung gian cùng hai quan hệ 1-n và undo trong một bước. Bảng trung gian thêm được cột. | ED-03, CG-01 đến CG-03 |
+| 7 | Khi đích sinh code không hỗ trợ một khái niệm (ví dụ enum trong SQL Server), generator xử lý thế nào? | Bảng ánh xạ kiểu của từng đích là hợp đồng. Ánh xạ tương đương không báo gì (enum trong SQL Server là `nvarchar` kèm `CHECK`). Khi output mất một ràng buộc, hành động, comment hoặc phần tử, generator dùng ánh xạ gần nhất hoặc bỏ phần đó, kèm diagnostic (enum trong Prisma cho SQL Server thành `String`). Chi tiết ở [spec phần 6](2026-09-14-code-generators-design.md). | CG-01 đến CG-10 |
+| 8 | "Mock API (REST)" sinh ra gì: code server mock, request handler hay file cấu hình? | Một file handler MSW 2: CRUD cho từng bảng trên dữ liệu trong bộ nhớ lấy từ seed data, chạy ngay trong ứng dụng của người dùng, không cần server. | CG-06 |
+| 9 | Seed data (CG-08) và dữ liệu mẫu do AI sinh (AI-06) khác nhau thế nào, có dùng chung định dạng output không? | CG-08 sinh giá trị theo kiểu, xác định theo seed, chạy trên trình duyệt, không cần đăng nhập, không dùng faker. AI-06 sinh giá trị hợp ngữ cảnh qua backend. Hai tính năng dùng chung `SeedDataset`, hàm kiểm tra và hàm xuất SQL `INSERT` theo dialect hoặc JSON. | CG-08, AI-06 |
 | 10 (một phần) | Import SQL hỗ trợ những dialect nào? | PostgreSQL, MySQL, SQL Server. SchemaForge chưa hỗ trợ SQLite. | IE-01 |
 | 11 | Khi chưa đăng nhập, trình duyệt lưu được một hay nhiều schema? | Nhiều schema, kèm màn hình danh sách để tạo, mở, đổi tên và xóa schema. | ST-01 |
 | 12 | Đăng nhập bằng những phương thức nào? | Chỉ email và mật khẩu. Chưa xác minh email khi đăng ký và chưa có chức năng quên mật khẩu. | ST-02 |

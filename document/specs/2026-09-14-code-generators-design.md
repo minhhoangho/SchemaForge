@@ -4,9 +4,11 @@ Spec cho phần 6 trong [roadmap.md](../roadmap.md): các generator CG-01 đến
 
 Tính năng và tiêu chí nháp lấy từ [2026-09-14-feature-list-design.md](2026-09-14-feature-list-design.md). Model, bộ kiểu chung, giá trị mặc định, quan hệ, luật đặt tên, hàm sắp xếp xác định và hai tầng validation lấy từ [spec phần 2](2026-09-14-core-schema-model-design.md). Cách build, entry point, Vitest và ESLint lấy từ [spec phần 1](2026-09-14-scaffold-tooling-design.md).
 
+Trạng thái: đã duyệt. Người dùng xác nhận các quyết định cần xác nhận: biểu diễn JSON chung (mục 3), nguyên tắc diagnostic cho câu hỏi 7 (mục 4), Drizzle 0.45 chỉ PostgreSQL và MySQL với relations v1 (CG-03), Mock API là một file handler MSW 2 (CG-06), OpenAPI 3.1 dạng JSON có đường dẫn CRUD (CG-07), seed data dùng PRNG trong core, không faker, `SeedDataset` dùng chung với AI-06 (CG-08), và conformance test chỉ chạy trong CI (mục 7).
+
 Các đoạn TypeScript là phác thảo để hình dạng dữ liệu rõ ràng. Plan và code sẽ tinh chỉnh tên và chi tiết, nhưng không đổi quyết định.
 
-Phiên bản trong spec được kiểm tra ngày 2026-09-14 bằng `npm view` (phiên bản, dist-tag, dependency, kích thước), tài liệu qua Context7, và thử nghiệm trong thư mục tạm: `prisma validate` 7.10.0 trên các schema mẫu, typecheck output mẫu của Drizzle 0.45.2, Zod 4.6.5 và TypeScript 6.0.3 ở chế độ strict, parse DBML bằng `@dbml/core` 10.1.1, validate tài liệu OpenAPI 3.1 bằng hai validator, chạy handler MSW 2.15.0 trên Node, highlight bằng Shiki 4.4.3 với regex engine JavaScript và đo kích thước bundle bằng esbuild. Hành vi của database thật chưa được thử (máy dev chưa có Docker); các điểm cần xác nhận được ghi ở mục [Rủi ro](#rủi-ro-cần-kiểm-tra-khi-triển-khai).
+Phiên bản trong spec được kiểm tra ngày 2026-09-14 bằng `npm view` (phiên bản, dist-tag, dependency, kích thước), tài liệu qua Context7, và thử nghiệm trong thư mục tạm: `prisma validate` 7.10.0 trên các schema mẫu, typecheck output mẫu của Drizzle 0.45.2, Zod 4.6.5 và TypeScript 6.0.3 ở chế độ strict, parse DBML bằng `@dbml/core` 10.1.1, validate tài liệu OpenAPI 3.1 bằng hai validator, chạy handler MSW 2.15.0 trên Node, highlight bằng Shiki 4.4.3 với regex engine JavaScript và đo kích thước bundle bằng esbuild. Hành vi của database thật chưa được thử (máy dev không cài Docker; conformance test chỉ chạy trong CI); các điểm cần xác nhận được ghi ở mục [Rủi ro](#rủi-ro-cần-kiểm-tra-khi-triển-khai).
 
 ## Quyết định đã có từ trước
 
@@ -40,7 +42,7 @@ Spec này không bàn lại các điểm sau:
 | 14 | CG-08 Seed data (câu hỏi 9) | Dựng `SeedDataset` bằng PRNG có seed trong core, không dùng faker; xuất SQL `INSERT` theo dialect hoặc JSON. AI-06 dùng chung `SeedDataset`, hàm kiểm tra và hàm xuất |
 | 15 | CG-09 DBML | Tự sinh văn bản DBML; `@dbml/core` chỉ dùng trong conformance test. Round-trip đầy đủ kiểm tra ở phần 7 |
 | 16 | CG-10 Markdown | Cấu trúc cố định; nhãn tiêu đề do frontend truyền vào từ i18n |
-| 17 | Kiểm chứng output | Package riêng `packages/codegen-conformance` chạy công cụ đích thật (Testcontainers, `prisma validate`, `tsc`, validator OpenAPI, `@dbml/core`), job CI riêng; core giữ unit test và snapshot |
+| 17 | Kiểm chứng output | Package riêng `packages/codegen-conformance` chạy công cụ đích thật (Testcontainers, `prisma validate`, `tsc`, validator OpenAPI, `@dbml/core`), chỉ chạy trong job CI riêng và là cổng chặn; core giữ unit test và snapshot, chạy cả local |
 | 18 | Code panel | Chọn đích và option, xem code highlight bằng Shiki 4 (regex engine JavaScript, theme CSS variables, render token thành React element), nút copy, danh sách diagnostic dịch qua i18n |
 | 19 | Hiệu năng | Sinh code và highlight chạy trong Web Worker; mỗi generator ≤ 100 ms với schema 200 bảng trên máy dev |
 | 20 | Test | Snapshot theo đích và fixture, unit test định danh, test theo mã diagnostic, property test xác định và không throw, conformance test |
@@ -614,12 +616,12 @@ Tiêu chí chung yêu cầu output "dùng được với công cụ đích", và
 | Tầng | Nơi | Chạy khi | Nội dung |
 |---|---|---|---|
 | Unit và snapshot | `packages/core`, trong `pnpm test` | Mọi lần `pnpm test`, local và CI | Mục 10 |
-| Conformance | Package mới `packages/codegen-conformance` (`@schemaforge/codegen-conformance`, `private`), script `test:conformance` | Job CI riêng cho mọi push và pull request; local chỉ khi sửa generator và có Docker | Chạy output qua công cụ đích thật |
+| Conformance | Package mới `packages/codegen-conformance` (`@schemaforge/codegen-conformance`, `private`), script `test:conformance` | Job CI riêng cho mọi push và pull request, là cổng chặn. Chạy local là tùy chọn và cần Docker; máy dev hiện không cài Docker | Chạy output qua công cụ đích thật |
 
-- Package conformance chỉ có test, không có mã nguồn, nên không có ngưỡng coverage và không có script `test`: `pnpm test` ở root không cần Docker. Task Turborepo `test:conformance` phụ thuộc `^build` và được cache như các task khác, nên commit không sửa core không chạy lại. Root thêm script `pnpm test:conformance`.
+- Package conformance chỉ có test, không có mã nguồn, nên không có ngưỡng coverage và không có script `test`: `pnpm test` ở root không cần Docker. Task Turborepo `test:conformance` phụ thuộc `^build` và được cache như các task khác, nên commit không sửa core không chạy lại. Root thêm script `pnpm test:conformance` cho ai có Docker; script này không thuộc các lệnh phải chạy trước khi commit (`git.md`), và lỗi conformance được phát hiện ở CI.
 - Package dùng core qua `@schemaforge/core` (bản build) và fixture qua `@schemaforge/core/testing` (plan phần 2 đã xuất bản entry point này).
 - Fixture là các schema hợp lệ (`validateSchema` rỗng): `createSampleSchema()` của phần 2, cùng các fixture phần 6 thêm vào `src/testing/` (mục 10).
-- CI thêm một job `conformance` trên `ubuntu-latest` (có sẵn Docker), song song với job hiện có, chạy `pnpm turbo run test:conformance`.
+- CI thêm một job `conformance` trên `ubuntu-latest` (có sẵn Docker), song song với job hiện có, chạy `pnpm turbo run test:conformance`. Job phải xanh trước khi merge, như job hiện có.
 
 | Tiêu chí | Kiểm chứng |
 |---|---|
@@ -777,7 +779,7 @@ Kiểm tra ngày 2026-09-14. Package đã có trong catalog của phần 1 giữ
 
 ## Rủi ro cần kiểm tra khi triển khai
 
-- **Máy dev chưa có Docker.** Conformance test chạy local cần Docker; CI có sẵn. Plan quyết định cài Docker cho máy dev hay chỉ chạy conformance trong CI.
+- **Conformance test chỉ chạy trong CI.** Lỗi của output với công cụ đích chỉ lộ ra sau khi push. Plan đặt conformance test cho các điểm MySQL dưới đây ở những commit đầu tiên của generator MySQL, để CI xác nhận trước khi viết phần còn lại.
 - **Hành vi MySQL chưa được thử trên database thật:** tên cột, tên index chỉ khác dấu bị coi là trùng; `utf8mb4_0900_as_ci` chấp nhận `ENUM` có giá trị chỉ khác dấu; InnoDB từ chối `SET DEFAULT`; `DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6)`; giá trị mặc định dạng biểu thức cho `LONGTEXT`, `JSON`; nhiều cột `VARCHAR(255)` trong một index không vượt giới hạn 3072 byte. Plan viết conformance test cho từng điểm trước khi viết generator MySQL; kết quả khác thì sửa ma trận ở mục 4 trong cùng thay đổi.
 - **SQL Server:** thuật toán phát hiện nhiều đường cascade phải khớp kiểm tra của SQL Server và của Prisma; unique index lọc được tạo trước khóa ngoại.
 - **Drizzle:** callback cấu hình bảng tham chiếu tới bảng khai báo sau (khi quan hệ tạo vòng). Plan xác nhận typecheck và `getTableConfig` chạy đúng với trường hợp này.
@@ -785,11 +787,11 @@ Kiểm tra ngày 2026-09-14. Package đã có trong catalog của phần 1 giữ
 - **Next.js 16:** worker khai báo bằng `new Worker(new URL("./code-generator.worker.ts", import.meta.url), { type: "module" })` build đúng với Turbopack và chạy dưới CSP có `worker-src 'self'`.
 - **Shiki:** regex engine JavaScript chạy đúng với năm grammar trên mẫu nhỏ; plan đo thời gian tách token với output của `createLargeSchema()`.
 
-## Câu hỏi còn mở
+## Câu hỏi đã trả lời
 
-| # | Câu hỏi |
-|---|---|
-| 1 | Drizzle chưa có SQL Server cho tới khi 1.0 phát hành chính thức (đang ở RC từ 2026-04). Chấp nhận, hay nhắm 1.0 RC ngay để có SQL Server và relations v2? |
-| 2 | Mock API và OpenAPI chỉ có CRUD tối thiểu (không kiểm tra body, không lọc, không phân trang, không tự sinh khóa). Có đủ cho CG-06, CG-07 không? |
-| 3 | Seed data của CG-08 có giá trị theo kiểu (`email_1`, số ngẫu nhiên), không giống dữ liệu thật; dữ liệu giống thật thuộc AI-06 và cần đăng nhập. Có đồng ý không? |
-| 4 | Máy dev cần Docker để chạy conformance test local. Cài Docker, hay chỉ chạy conformance trong CI? |
+| # | Câu hỏi | Trả lời |
+|---|---|---|
+| 1 | Drizzle chưa có SQL Server cho tới khi 1.0 phát hành chính thức. Chấp nhận, hay nhắm 1.0 RC ngay? | Chấp nhận: Drizzle 0.45, chỉ PostgreSQL và MySQL, relations v1. SQL Server và relations v2 làm khi Drizzle 1.0 phát hành chính thức |
+| 2 | Mock API và OpenAPI chỉ có CRUD tối thiểu. Có đủ cho CG-06, CG-07 không? | Đủ: Mock API là một file handler MSW 2; OpenAPI 3.1 dạng JSON có đường dẫn CRUD trùng Mock API |
+| 3 | Seed data có giá trị theo kiểu, không giống dữ liệu thật. Có đồng ý không? | Đồng ý: PRNG có seed trong core, không faker; dữ liệu giống thật thuộc AI-06 |
+| 4 | Cài Docker cho máy dev, hay chỉ chạy conformance trong CI? | Conformance test chỉ chạy trong CI; máy dev không cài Docker. Unit test và snapshot test vẫn chạy local |

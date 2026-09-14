@@ -99,6 +99,21 @@ Backend giới hạn tần suất gọi AI (rate limit, ví dụ X request/phút
 | SQL dialect | PostgreSQL, MySQL, SQL Server. Chưa hỗ trợ SQLite | Lựa chọn của dự án |
 | Parser SQL cho import | `@dbml/core` | Một thư viện parse được cả DBML lẫn SQL của cả ba dialect được hỗ trợ |
 | Auto-layout | elkjs, chạy trong Web Worker | Hỗ trợ điểm nối theo cột, đường nối vuông góc và ít giao cắt, hợp sơ đồ ER |
+| Phiên bản Node.js | Node.js 24 LTS, khai báo trong `.nvmrc` và `engines` | LTS được hỗ trợ tới 2028-04-30; Node 22 hết hỗ trợ 2027-04-30 |
+| Package manager | pnpm 12, khai báo trong `packageManager`; dependency dùng chung khai báo phiên bản trong `catalog` của `pnpm-workspace.yaml` | Mọi máy và CI dùng cùng một bản pnpm; mỗi dependency dùng chung chỉ có một phiên bản |
+| Phiên bản TypeScript | TypeScript 6.0 | typescript-eslint và Nest CLI chưa hỗ trợ TypeScript 7; package `typescript` 7 chưa có API JS |
+| Tên package | `@schemaforge/core`, `@schemaforge/frontend`, `@schemaforge/backend` | Cùng một scope, trùng tên thư mục |
+| Định dạng module | ESM ở mọi package | NestJS 12 chỉ phát hành ESM; Next.js và Vitest vốn dùng ESM |
+| Build `packages/core` | `tsc` sinh `dist/` (ESM, `.d.ts`); `exports` trong `package.json` trỏ vào `dist/` | Next.js, NestJS và Vitest dùng cùng một output; không cần thêm tool build |
+| Build backend | `nest build` với builder mặc định (`tsc`) | Theo template ESM của NestJS 12, ít cấu hình nhất |
+| tsconfig dùng chung | `tsconfig.base.json` ở root, mỗi package `extends` | Một nơi giữ các option strict mà quy tắc TypeScript yêu cầu |
+| Lint | ESLint 10 + typescript-eslint (lint có type), kèm plugin Next.js, React Hooks, import-x, eslint-comments, Vitest; một `eslint.config.mjs` ở root | Rule cần type chạy trên chính TypeScript compiler; enforce được các quy tắc trong `.claude/rules/`. Oxlint cần TypeScript 7; `eslint-config-next` kéo theo plugin chưa hỗ trợ ESLint 10 |
+| Format | Prettier, không format Markdown | Chuẩn phổ biến; không làm xáo trộn bảng trong `document/` |
+| Coverage | `@vitest/coverage-v8`, ngưỡng kiểm tra trong script `test` của từng package | Local và CI kiểm tra cùng một ngưỡng |
+| Môi trường test frontend | jsdom + React Testing Library | Theo hướng dẫn Vitest của Next.js; test query theo role, label, text |
+| Validate env backend | `@nestjs/config` + Zod | Kiểu config suy ra từ schema; Zod đã có trong stack |
+| CI | GitHub Actions; cache kết quả task của Turborepo bằng `actions/cache` | Repo nằm trên GitHub; không cần tài khoản remote cache |
+| Git hooks | Không dùng | Lint có type và typecheck quá chậm cho mỗi commit; CI là cổng chặn |
 
 ## Chưa chốt
 

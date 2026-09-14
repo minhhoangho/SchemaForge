@@ -51,6 +51,24 @@ When a technical decision or a sub-project's status changes, update `document/ar
 
 ## Commits
 
-- Commit each part as soon as it is done; do not batch unrelated work into one commit.
-- Message: one short English line (e.g. `Add schema validation for enums`). No body, no detailed list of changes.
-- No `Co-Authored-By` or any other attribution trailer.
+Commit each part as soon as it is done; do not batch unrelated work into one commit.
+
+Message format (Conventional Commits), a single line with no body:
+
+```
+<type>(<scope>): <subject>
+```
+
+- **type**: `feat` (new feature), `fix` (bug fix), `refactor` (no behavior change), `perf`, `test`, `docs`, `build` (tooling, dependencies), `ci`, `chore` (other maintenance).
+- **scope**: `core`, `frontend`, or `backend`. Omit it when the change is repo-wide or docs-only.
+- **subject**: English, imperative mood, lowercase first letter, no trailing period, header at most 72 characters. Say what changed, not how.
+- No body, no list of changes, no `Co-Authored-By` or any other trailer.
+
+Examples:
+
+```
+feat(core): add enum validation
+fix(frontend): keep canvas zoom after undo
+build: set up pnpm workspace and turborepo
+docs: add schema operations spec
+```

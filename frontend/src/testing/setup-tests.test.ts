@@ -1,9 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const SCALE_FACTOR = 1.5;
 const POINTER_ID = 1;
 
 describe("setup-tests", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("provides a ResizeObserver that can observe an element", () => {
     const observer = new ResizeObserver(() => undefined);
     const element = document.createElement("div");
@@ -41,6 +45,13 @@ describe("setup-tests", () => {
   });
 
   it("resolves modules through the @/ alias", async () => {
+    await expect(import("@/testing/setup-tests")).resolves.toBeDefined();
+  });
+
+  it("can be evaluated without a DOM", async () => {
+    vi.resetModules();
+    vi.stubGlobal("window", undefined);
+
     await expect(import("@/testing/setup-tests")).resolves.toBeDefined();
   });
 });

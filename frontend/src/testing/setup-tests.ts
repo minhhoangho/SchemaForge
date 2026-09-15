@@ -66,35 +66,45 @@ function defineIfMissing(
   });
 }
 
+function installDomStubs(): void {
+  defineIfMissing(window, "matchMedia", createMediaQueryList);
+  defineIfMissing(SVGElement.prototype, "getBBox", () => ({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  }));
+  defineIfMissing(Element.prototype, "scrollIntoView", () => undefined);
+  defineIfMissing(Element.prototype, "hasPointerCapture", () => false);
+  defineIfMissing(Element.prototype, "setPointerCapture", () => undefined);
+  defineIfMissing(Element.prototype, "releasePointerCapture", () => undefined);
+
+  // jsdom always reports 0 here because it has no layout, so React Flow would
+  // measure every node as empty. These getters override jsdom unconditionally.
+  Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+    configurable: true,
+    get(this: HTMLElement): number {
+      return parseSize(this.style.width);
+    },
+  });
+  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+    configurable: true,
+    get(this: HTMLElement): number {
+      return parseSize(this.style.height);
+    },
+  });
+}
+
 afterEach(() => {
   cleanup();
 });
 
 defineIfMissing(globalThis, "ResizeObserver", ResizeObserverStub);
 defineIfMissing(globalThis, "DOMMatrixReadOnly", DOMMatrixReadOnlyStub);
-defineIfMissing(window, "matchMedia", createMediaQueryList);
-defineIfMissing(SVGElement.prototype, "getBBox", () => ({
-  x: 0,
-  y: 0,
-  width: 0,
-  height: 0,
-}));
-defineIfMissing(Element.prototype, "scrollIntoView", () => undefined);
-defineIfMissing(Element.prototype, "hasPointerCapture", () => false);
-defineIfMissing(Element.prototype, "setPointerCapture", () => undefined);
-defineIfMissing(Element.prototype, "releasePointerCapture", () => undefined);
 
-// jsdom always reports 0 here because it has no layout, so React Flow would
-// measure every node as empty. These getters override jsdom unconditionally.
-Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
-  configurable: true,
-  get(this: HTMLElement): number {
-    return parseSize(this.style.width);
-  },
-});
-Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
-  configurable: true,
-  get(this: HTMLElement): number {
-    return parseSize(this.style.height);
-  },
-});
+// Test files that opt into `// @vitest-environment node` (such as the proxy
+// test, which must run against Node's own Request and URL) have no DOM, so
+// the DOM stubs are skipped there.
+if (typeof window !== "undefined") {
+  installDomStubs();
+}

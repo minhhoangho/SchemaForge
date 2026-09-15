@@ -8,8 +8,12 @@ import {
   NONCE_HEADER_NAME,
 } from "@/lib/security/content-security-policy";
 
+// CSP Level 3 recommends at least 128 bits of randomness for a nonce.
+const NONCE_BYTE_LENGTH = 16;
+
 export function proxy(request: NextRequest): NextResponse {
-  const nonce = btoa(crypto.randomUUID());
+  const nonceBytes = crypto.getRandomValues(new Uint8Array(NONCE_BYTE_LENGTH));
+  const nonce = btoa(String.fromCharCode(...nonceBytes));
   const policy = buildContentSecurityPolicy({
     nonce,
     isDevelopment: env.isDevelopment,

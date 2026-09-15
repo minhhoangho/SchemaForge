@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
@@ -9,6 +10,9 @@ const NONCE_PATTERN = /'nonce-([^']+)'/;
 // Next.js 16.3.5 encodes headers forwarded with NextResponse.next({ request })
 // as x-middleware-request-<name> headers on the response.
 const FORWARDED_HEADER_PREFIX = "x-middleware-request-";
+// CSP Level 3 recommends at least 128 bits of randomness for a nonce.
+const NONCE_BYTE_LENGTH = 16;
+const BASE64_VALUE_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
 
 function readNonce(policy: string | null): string | undefined {
   return NONCE_PATTERN.exec(policy ?? "")?.[1];
@@ -38,6 +42,15 @@ describe("proxy", () => {
     expect(
       headers.get(`${FORWARDED_HEADER_PREFIX}content-security-policy`),
     ).toBe(headers.get("Content-Security-Policy"));
+  });
+
+  it("encodes 16 random bytes as a base64 nonce", () => {
+    const nonce = readNonce(runProxy().get("Content-Security-Policy")) ?? "";
+
+    expect({
+      isBase64Value: BASE64_VALUE_PATTERN.test(nonce),
+      byteLength: atob(nonce).length,
+    }).toStrictEqual({ isBase64Value: true, byteLength: NONCE_BYTE_LENGTH });
   });
 
   it("generates a different nonce for each request", () => {

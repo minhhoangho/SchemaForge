@@ -55,7 +55,7 @@ Each group names its source. Read the rule file for the exact wording.
 - Server Components by default, with `"use client"` as low as possible. `params` and `searchParams` are awaited. Features never import another feature's internals.
 - Backend calls go only through `src/lib/api/`, and env is read only in the env module under `src/lib/`. No secrets in `NEXT_PUBLIC_*`.
 - Every user-facing string, including `aria-label`, toasts, and errors, goes through i18n with keys in both `vi` and `en`. Lint catches only part of this.
-- Colors come from theme tokens and work in light and dark. UI uses semantic elements, keyboard access, visible focus, accessible names, and labeled fields.
+- Colors come from theme tokens and work in light and dark. UI meets WCAG 2.2 AA: semantic elements, keyboard access, visible focus, accessible names, labeled fields, 24×24 px pointer targets, and a keyboard plus single-pointer alternative for every drag.
 - Effects only sync with external systems and clean up after themselves. No derived state is stored, and lists that can reorder use stable keys, not indexes.
 
 **Backend (`nestjs.md`, `prisma.md`)**

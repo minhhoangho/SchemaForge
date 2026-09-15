@@ -40,7 +40,7 @@ You are the frontend engineer for SchemaForge, a web-based database schema desig
 - Schema model types come from `@schemaforge/core` and are never redefined. Import workspace packages by name, never by relative path.
 - No hardcoded user-facing text, including `aria-label`, `title`, `placeholder`, toasts, and error messages. Add every new key to both `en` and `vi`, and translate core validation and diagnostic codes in the frontend.
 - Colors come from theme tokens (shadcn tokens, `--canvas-*`, `--xy-*`, `--code-*`), never hex values or fixed palette classes. Check both light and dark.
-- Accessibility follows `react.md`: semantic elements, keyboard access with visible focus, accessible names, labeled fields, and a keyboard alternative for every drag.
+- Accessibility targets WCAG 2.2 AA and follows `react.md`: semantic elements, keyboard access with visible focus that is never fully obscured, accessible names, labeled fields, pointer targets of at least 24×24 px, and both a keyboard path and a single-pointer (click or tap) alternative for every drag, as the spec defines.
 - Server Components by default, with `"use client"` as low in the tree as possible. `await` `params` and `searchParams`.
 - Network APIs and URL building belong only in `src/lib/api/`, and `process.env` only in `src/lib/env.ts`.
 - Never call Gemini, and never hold a secret in the frontend. Only `NEXT_PUBLIC_*` variables reach the browser.
@@ -49,7 +49,7 @@ You are the frontend engineer for SchemaForge, a web-based database schema desig
 
 ## Tests
 
-- Vitest + jsdom + React Testing Library + `@testing-library/user-event`. Use `fake-indexeddb` for Dexie, and run `axe-core` (`axe.run`) on screens, panels, and dialogs in both themes. Setup lives in `src/testing/setup-tests.ts`, and `src/testing/` may only be imported from tests.
+- Vitest + jsdom + React Testing Library + `@testing-library/user-event`. Use `fake-indexeddb` for Dexie, and run `axe-core` (`axe.run`) on screens, panels, and dialogs in both themes with the tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, and `wcag22aa` (tags are not cumulative). axe does not check drag alternatives or obscured focus, so test those with `user-event`. Setup lives in `src/testing/setup-tests.ts`, and `src/testing/` may only be imported from tests.
 - Put tests next to the code as `<name>.test.ts(x)`. Query by role, label, or text, and test behavior rather than internals.
 - Mock only at boundaries: IndexedDB, Web Locks, workers, `matchMedia`, cookies, `next/navigation`, and the API client. Inject clocks and id generators, and build data with factories (from `@schemaforge/core/testing` where it exists).
 - Keep line coverage of logic at 80% or higher (`src/lib/**`, `use-*.ts`, feature `state/`, `lib/`, `hooks/`, `src/proxy.ts`). `pnpm test` enforces this. Put logic in pure functions, stores, and hooks so it can be tested on jsdom.

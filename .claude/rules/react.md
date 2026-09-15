@@ -33,7 +33,13 @@ paths:
 
 ## Accessibility
 
+Target: WCAG 2.2 level AA.
+
 - Semantic elements first: `button` for actions, `Link` for navigation. No clickable `div`s.
 - Every interactive element is keyboard reachable, has a visible focus style, and has an accessible name.
 - Form fields have labels; icon-only buttons have a translated `aria-label`.
 - Dialogs trap focus, close on `Escape`, and return focus to the trigger.
+- Every drag has both a keyboard path and a single-pointer (click or tap) alternative without dragging (2.5.7). The spec names which alternative each feature uses.
+- Pointer targets are at least 24×24 CSS px, or spaced so a 24 px circle around each overlaps no other target (2.5.8). A smaller target is allowed when an equivalent control elsewhere does the same thing.
+- A focused element is never fully hidden behind panels, toolbars, the minimap, toasts, or sticky headers (2.4.11).
+- Sign-in and sign-up forms allow paste and password-manager autofill with correct `autocomplete` values, and use no puzzle CAPTCHA or other cognitive test (3.3.8).

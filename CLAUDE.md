@@ -10,7 +10,7 @@ Product overview, architecture, and roadmap live in `document/`, written in Viet
 
 ## Current status
 
-Scaffold and tooling (roadmap part 1) are in place. `packages/core` exports only a placeholder (`PRODUCT_NAME`), `frontend/` has a placeholder page, and `backend/` validates its env but has no routes yet.
+Scaffold and tooling (roadmap part 1) are in place. `packages/core` (roadmap part 2) has the schema model, validation, operations, undo/redo history, and the `@schemaforge/core/testing` entry point. `frontend/` still shows a placeholder page while the editor infrastructure is in progress, and `backend/` validates its env but has no routes yet.
 
 ## Commands
 

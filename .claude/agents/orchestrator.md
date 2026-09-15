@@ -30,11 +30,19 @@ Reply to the user in the language they write in.
 
 ## 3. Dispatch
 
-- **Agent type.** Pick the most specific type from the available list:
-  - `Explore` for finding code and broad read-only searches.
-  - `Plan` for implementation strategy.
-  - `general-purpose` for implementation, docs, and other multi-step work.
-  - A specialist (for example `ecc:code-reviewer`, `ecc:typescript-reviewer`, `ecc:security-reviewer`, `ecc:database-reviewer`, `ecc:build-error-resolver`) when the task matches its description.
+- **Agent type.** Prefer the project agents. Each kind of work has one default owner:
+  - `core-engineer`: `packages/core` (model, validation, operations, generators, importers), and `packages/codegen-conformance` when assigned.
+  - `frontend-engineer`: `frontend/`, including the AI chat UI, i18n, and theming.
+  - `backend-engineer`: `backend/` outside the AI module, including auth, guards, `ApiExceptionFilter`, the env schema, and the Prisma schema and migrations.
+  - `ai-engineer`: the backend AI module `backend/src/modules/ai/` (Gemini, tools mapped to core operations, prompts, streaming, AI rate-limit policy).
+  - `devops-engineer`: `.github/`, `turbo.json`, `pnpm-workspace.yaml`, root scripts and devDependencies, Docker, deployment, and CI failures whose logs point at the CI setup.
+  - `spec-writer`: `document/` (specs, plans, `architecture.md`, `roadmap.md`).
+  - `test-engineer`: coverage beyond what implementers wrote, a failing test that reproduces a bug, and test-quality audits. Implementers write the tests for their own changes.
+  - `debugger`: a failure whose cause is unclear or spans packages. A bug with a known cause goes to the agent that owns the code.
+  - `project-reviewer` and `ui-a11y-reviewer`: read-only reviews (see section 5).
+  - `Explore` for broad read-only searches, `Plan` for implementation strategy when no spec or plan document is needed, and `general-purpose` only for work no project agent covers, such as `.claude/` config.
+  - Plugin specialists (`ecc:security-reviewer`, `ecc:database-reviewer`, `ecc:performance-optimizer`, `ecc:react-reviewer`, `ecc:typescript-reviewer`, `ecc:build-error-resolver`) add focused review or a narrow fix; they do not replace the owning project agent.
+- **Cross-package work.** Split it into one task per owning agent in dependency order (for example a core change, then its frontend consumer), or name each agent's files explicitly in the prompt. `packages/api-contract`, shared rule config (`eslint.config.mjs`, `tsconfig.base.json`, `.prettierrc.json`), and `CLAUDE.md` have no default owner: assign them per task.
 - **Prompt.** Every prompt is self-contained and covers:
   - Goal, and why it matters.
   - Context: relevant files, decisions already made, results from earlier tasks.
@@ -64,8 +72,8 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 ## 5. Verify and integrate
 
 - Do not take a subagent's report at face value. Check `git status` and `git diff`, read the key changes, and run the checks that exist for the changed packages (typecheck, lint, tests). If no checks exist yet, say so.
-- For substantial code changes, dispatch a reviewer agent before accepting the work.
-- When something fails, send the exact failure output back to the agent that did the work.
+- For substantial code changes, dispatch `project-reviewer` before accepting the work, plus `ui-a11y-reviewer` when frontend UI changed. Also add `ecc:security-reviewer` when the change touches auth, user input, secrets, or AI; `ecc:database-reviewer` for the Prisma schema, migrations, or queries; and `ecc:performance-optimizer` for performance-sensitive paths.
+- When something fails, send the exact failure output back to the agent that did the work. If the cause is still unclear after that, or the failure spans packages, dispatch `debugger`.
 - For worktree tasks, merge the agent's branch into the current branch. If a conflict needs edits, delegate the resolution to a subagent.
 - As soon as a worktree task is merged or dropped, clean up its worktree to save disk space: `git worktree remove --force <path>`, delete the directory if removal leaves it behind, delete the task branch with `git branch -d`, and run `git worktree prune`. Never remove the worktree of an agent that is still running or whose work is not merged yet.
 - Commit each finished, verified part separately, following `.claude/rules/git.md`. Do not push unless the user asks.

@@ -6,6 +6,8 @@ Spec dựa trên [spec phần 1](2026-09-14-scaffold-tooling-design.md), [spec p
 
 Các đoạn TypeScript và Prisma là phác thảo. Plan và code tinh chỉnh tên và chi tiết, nhưng không đổi quyết định. Mục ghi ⚠ là lựa chọn cần người dùng xác nhận khi duyệt spec.
 
+Trạng thái: đã duyệt. Người dùng xác nhận mọi đề xuất ⚠: mật khẩu tối thiểu 8 ký tự kèm danh sách mật khẩu phổ biến (mục 2); bộ đếm rate limit trong bộ nhớ, một instance (mục 3); giới hạn 100 schema mỗi tài khoản (mục 5); thêm package `packages/api-contract` (mục 5); đăng xuất xóa cache của tài khoản khỏi trình duyệt (mục 7); hộp thoại xung đột chỉ có "giữ bản trên máy" hoặc "dùng bản trên cloud", không thêm "giữ cả hai" (mục 7); PostgreSQL local qua Docker sẵn có trên máy dev, `prisma dev` là phương án thay thế khi không có Docker (mục 10). Ngoại lệ: đề xuất hoãn deploy sang một phần riêng của roadmap **không** được chấp nhận — chưa chọn nơi deploy, phương án cụ thể (ưu tiên gói miễn phí) được chọn sau, trong phần 4 (mục 12); không thêm phần 10 "Triển khai" vào roadmap.
+
 ## Quyết định đã có từ trước
 
 Spec này không bàn lại các điểm sau (nguồn: `architecture.md`, `.claude/rules/`, câu trả lời câu hỏi 3 và 12 trong danh sách tính năng, và quyết định của người dùng khi duyệt spec phần 2 và 3):
@@ -16,7 +18,7 @@ Spec này không bàn lại các điểm sau (nguồn: `architecture.md`, `.clau
 - `security.md`: route private mặc định qua guard toàn cục; trả `404` cho tài nguyên người gọi không được thấy; cookie auth phải `HttpOnly`, `Secure`, `SameSite=Lax` trở lên, kèm bảo vệ CSRF; không giữ token trong `localStorage`; rate limit đăng nhập và đăng ký; Helmet; CORS chỉ cho origin đã cấu hình.
 - `nestjs.md`, `prisma.md`: cấu trúc module theo feature; DTO với `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`); exception filter toàn cục; dịch lỗi Prisma ở một chỗ; env qua `@nestjs/config` có validate; model có `id`, `createdAt`, `updatedAt`; `onDelete` khai báo rõ; index; list có phân trang; migration đi cùng mọi thay đổi schema Prisma.
 - Không có test chạy trên trình duyệt. Test frontend là Vitest trên jsdom.
-- Máy dev **không có Docker**. CI (GitHub Actions) chạy được PostgreSQL bằng service container.
+- Máy dev có Docker Desktop, dùng để chạy PostgreSQL local (mục 10). CI (GitHub Actions) chạy được PostgreSQL bằng service container.
 
 ## Tóm tắt quyết định
 
@@ -25,18 +27,18 @@ Spec này không bàn lại các điểm sau (nguồn: `architecture.md`, `.clau
 | 1 | Token | Access token là JWT HS256 sống 15 phút, trong cookie `sf-access`. Refresh token là chuỗi ngẫu nhiên 256 bit sống 30 ngày, trong cookie `sf-refresh` (`Path=/auth`), server chỉ lưu SHA-256 trong bảng `refresh_tokens`; xoay vòng mỗi lần refresh, token đã xoay bị dùng lại thì thu hồi cả họ. Cookie `HttpOnly`, `Secure`, `SameSite=Strict`, không có `Domain` |
 | 2 | CSRF | `SameSite=Strict` cộng guard toàn cục kiểm tra header `Origin` nằm trong `CORS_ORIGINS` cho mọi request `POST`, `PUT`, `PATCH`, `DELETE`, kể cả route public |
 | 3 | Biết ai đang đăng nhập | `GET /auth/me`. Frontend chỉ gọi khi có cookie gợi ý `sf-auth-hint` (không chứa token), nên khách không bao giờ gọi server |
-| 4 | Mật khẩu | argon2id qua `@node-rs/argon2` (binary dựng sẵn, không có script cài đặt), `m=19456 KiB, t=2, p=1`. Chuẩn hóa NFKC; 8 đến 128 ký tự; chặn mật khẩu nằm trong danh sách phổ biến ⚠. Đăng nhập sai luôn trả cùng một lỗi `invalid-credentials` |
-| 5 | Rate limit | `rate-limiter-flexible` bọc trong guard. Đăng nhập 10 lần/15 phút theo IP + email và 30 lần/15 phút theo IP; đăng ký 5 lần/giờ theo IP; refresh 60 lần/15 phút theo IP. Bộ đếm trong bộ nhớ, chỉ đúng khi chạy một instance ⚠ |
+| 4 | Mật khẩu | argon2id qua `@node-rs/argon2` (binary dựng sẵn, không có script cài đặt), `m=19456 KiB, t=2, p=1`. Chuẩn hóa NFKC; 8 đến 128 ký tự; chặn mật khẩu nằm trong danh sách phổ biến. Đăng nhập sai luôn trả cùng một lỗi `invalid-credentials` |
+| 5 | Rate limit | `rate-limiter-flexible` bọc trong guard. Đăng nhập 10 lần/15 phút theo IP + email và 30 lần/15 phút theo IP; đăng ký 5 lần/giờ theo IP; refresh 60 lần/15 phút theo IP. Bộ đếm trong bộ nhớ, chỉ đúng khi chạy một instance |
 | 6 | Data model | `User`, `Schema` (JSONB, `revision`), `RefreshToken`. Id UUID, mặc định UUIDv7; `onDelete: Cascade`. Prisma 7.10 với generator `prisma-client` (ESM) và driver adapter `@prisma/adapter-pg`; `prisma generate` là task `generate` của Turborepo |
-| 7 | REST API | Auth: `register`, `login`, `refresh`, `logout`, `me`. Schemas: list phân trang theo keyset, get, create với id UUID do client tạo, update toàn phần kèm `expectedRevision` (lệch thì `409`), delete `204`. Body tối đa 2 MiB. Tài liệu sai cấu trúc trả `422` kèm danh sách `{ code, path }`. Mỗi người tối đa 100 schema ⚠. Chưa có OpenAPI |
-| 8 | Hợp đồng API | Package mới `packages/api-contract`: schema Zod của response, type của request và response, mã lỗi, hằng giới hạn; backend DTO `implements` các type này, frontend parse response bằng các schema này ⚠ |
+| 7 | REST API | Auth: `register`, `login`, `refresh`, `logout`, `me`. Schemas: list phân trang theo keyset, get, create với id UUID do client tạo, update toàn phần kèm `expectedRevision` (lệch thì `409`), delete `204`. Body tối đa 2 MiB. Tài liệu sai cấu trúc trả `422` kèm danh sách `{ code, path }`. Mỗi người tối đa 100 schema. Chưa có OpenAPI |
+| 8 | Hợp đồng API | Package mới `packages/api-contract`: schema Zod của response, type của request và response, mã lỗi, hằng giới hạn; backend DTO `implements` các type này, frontend parse response bằng các schema này |
 | 9 | Frontend auth | API client có kiểu trong `src/lib/api/` (nơi duy nhất gọi `fetch`); auth store trong `src/lib/auth/`; trang `/sign-in`, `/sign-up`; hộp thoại `SignInPrompt` dùng lại cho phần 5, 8; refresh được tuần tự hóa giữa các tab bằng Web Lock |
 | 10 | Đồng bộ | Dexie version 2 thêm `ownerId`, `cloudRevision`, `syncStatus` vào `schemas`. Sau mỗi lần lưu local thành công, đẩy cả tài liệu lên cloud, mỗi lúc một request. Offline thì giữ `pending` và thử lại. `409` mở hộp thoại chọn bản trên máy hoặc bản cloud. Sau mỗi lần đăng nhập chủ động, hỏi đưa schema của khách lên |
-| 11 | Đăng xuất | Xóa mọi bản cache của tài khoản khỏi trình duyệt, cảnh báo trước nếu còn thay đổi chưa đồng bộ ⚠ |
+| 11 | Đăng xuất | Xóa mọi bản cache của tài khoản khỏi trình duyệt, cảnh báo trước nếu còn thay đổi chưa đồng bộ |
 | 12 | Header, CORS, CSP | Helmet với CSP `default-src 'none'` cho JSON API; CORS `credentials: true` chỉ cho `CORS_ORIGINS`; CSP frontend thêm origin backend vào `connect-src`. Frontend và backend phải cùng site |
-| 13 | PostgreSQL local | `prisma dev` (PostgreSQL chạy trên PGlite, đi kèm Prisma CLI, không cần cài thêm) cho dev và e2e local; CI chạy PostgreSQL 18 thật ⚠ |
+| 13 | PostgreSQL local | Container Docker Postgres 16 sẵn có trên máy dev, database `schemaforge_dev` và `schemaforge_test` trong đó; CI chạy PostgreSQL 16 thật (cùng major). `prisma dev` là phương án thay thế khi máy không có Docker |
 | 14 | Test | Unit test Nest với test double; e2e trong `backend/test/` trên PostgreSQL thật, chạy bằng script `test:e2e` riêng và job CI riêng; frontend Vitest trên jsdom với `fake-indexeddb` và `fetch` giả |
-| 15 | Triển khai | Hoãn sang một phần riêng trong roadmap; spec này ghi các ràng buộc deploy phải thỏa ⚠ |
+| 15 | Triển khai | Không hoãn, không thêm phần 10 vào roadmap. Nơi deploy được chọn trong phần 4, ở một bước sau; spec này ghi các ràng buộc mà phương án đó phải thỏa |
 
 ## Phiên bản
 
@@ -56,7 +58,7 @@ Kiểm tra ngày 2026-09-15 bằng `npm view` (phiên bản, dist-tag, `peerDepe
 | `class-validator`, `class-transformer` | 0.15.1, 0.5.1 | Peer bắt buộc của `ValidationPipe` trong `@nestjs/common` 12 (`>=0.13.2`, `>=0.4.1`) |
 | `@nestjs/mapped-types` | 12.0.0 | peer `@nestjs/common` tới `^12`, `class-validator ^0.15`; chỉ cài khi có DTO cần `PickType`, `OmitType` |
 | `supertest` | 7.2.2 | Chỉ dùng trong e2e; `@types/supertest` 7.2.1 |
-| PostgreSQL | 18 | Image `postgres:18` trong CI; `prisma dev` ở local (mục 10) |
+| PostgreSQL | 16 | Image `postgres:16-alpine` trong CI, cùng major với container Docker ở local; `prisma dev` là phương án thay thế khi không có Docker (mục 10) |
 
 Gói đã xem xét và không dùng:
 
@@ -164,13 +166,13 @@ Backend chỉ đăng ký parser JSON (mục 5), nên form HTML từ site khác k
 | Trường | Quy tắc |
 |---|---|
 | Email | Bỏ khoảng trắng đầu cuối, chuyển toàn bộ sang chữ thường, kiểm tra bằng `@IsEmail()`, tối đa 254 ký tự. Lưu dạng đã chuẩn hóa, unique |
-| Mật khẩu | Chuẩn hóa Unicode NFKC trước khi kiểm tra và băm. Từ 8 đến 128 ký tự, đếm theo code point. Không bắt buộc loại ký tự. Không bỏ khoảng trắng. Không được nằm trong danh sách mật khẩu phổ biến (so không phân biệt hoa thường) ⚠ |
+| Mật khẩu | Chuẩn hóa Unicode NFKC trước khi kiểm tra và băm. Từ 8 đến 128 ký tự, đếm theo code point. Không bắt buộc loại ký tự. Không bỏ khoảng trắng. Không được nằm trong danh sách mật khẩu phổ biến (so không phân biệt hoa thường) |
 
 - **NFKC:** bộ gõ tiếng Việt (Telex, VNI qua Unikey hay bộ gõ của hệ điều hành) có thể sinh ký tự dựng sẵn hoặc chữ cái cộng dấu tổ hợp. Không chuẩn hóa thì cùng một mật khẩu gõ trên hai máy có thể ra hai chuỗi byte khác nhau. NIST SP 800-63B cũng khuyên chuẩn hóa Unicode.
 - **Danh sách mật khẩu phổ biến:** khoảng 3.000 mật khẩu phổ biến nhất (OWASP ASVS 5.0 cấp 1 yêu cầu kiểm tra ít nhất 3.000), là file dữ liệu trong `backend/src/modules/auth/`, nạp một lần khi khởi động. Plan chọn nguồn có giấy phép phù hợp (ví dụ SecLists, MIT). Chỉ backend kiểm tra; frontend hiện lỗi sau khi gửi.
 - Độ dài tối thiểu, tối đa và giới hạn email là hằng trong `packages/api-contract` (mục 5), dùng chung cho decorator DTO của backend và kiểm tra trên form của frontend.
 
-⚠ **Độ dài tối thiểu.** Spec đề xuất 8 ký tự cộng danh sách mật khẩu phổ biến, theo ASVS 5.0 cấp 1: dữ liệu là thiết kế schema, và đăng nhập đã có rate limit. Phương án chặt hơn là 15 ký tự, theo NIST SP 800-63B bản 4 cho mật khẩu là yếu tố xác thực duy nhất; đổi lựa chọn chỉ là đổi một hằng số.
+**Độ dài tối thiểu (đã chốt: 8 ký tự).** Theo ASVS 5.0 cấp 1: dữ liệu là thiết kế schema, và đăng nhập đã có rate limit. Phương án chặt hơn là 15 ký tự, theo NIST SP 800-63B bản 4 cho mật khẩu là yếu tố xác thực duy nhất; đổi lựa chọn chỉ là đổi một hằng số.
 
 ### Thông báo lỗi và dò tài khoản
 
@@ -212,14 +214,14 @@ Backend chỉ đăng ký parser JSON (mục 5), nên form HTML từ site khác k
 - IP lấy từ `request.ip`. Express `trust proxy` đặt theo `TRUST_PROXY_HOPS` (mục 9), để IP đúng khi chạy sau reverse proxy; mặc định `0`, không tin header `X-Forwarded-For`.
 - Khóa được băm SHA-256 trước khi đưa vào store, để email không nằm trong bộ nhớ hay store dưới dạng rõ.
 
-### Nơi lưu bộ đếm ⚠
+### Nơi lưu bộ đếm
 
 **Đề xuất:** `RateLimiterMemory`, bộ đếm nằm trong tiến trình.
 
 - Chỉ đúng khi backend chạy **một instance**. Chạy N instance thì giới hạn thực tế thành N lần; khởi động lại thì bộ đếm về 0.
 - Khi deploy nhiều instance: đổi sang store PostgreSQL có sẵn trong thư viện (không thêm dịch vụ), hoặc Redis nếu khi đó đã có Redis. Chỉ đổi phần tạo limiter trong `RateLimitModule`.
 
-**Phương án khác:** Redis ngay từ đầu. Đúng với mọi số instance, nhưng thêm một dịch vụ phải chạy ở local (máy dev không có Docker), CI và deploy, trong khi phần 4 chưa deploy và mới có một instance.
+**Phương án khác:** Redis ngay từ đầu (máy dev đã có container `local_redis`). Đúng với mọi số instance, nhưng thêm một dịch vụ phải cấu hình ở CI và deploy, trong khi phần 4 chưa deploy và mới có một instance; đổi sang Redis khi cần nhiều instance chỉ sửa phần tạo limiter trong `RateLimitModule`.
 
 ## 4. Data model Prisma
 
@@ -315,7 +317,7 @@ const updated = await this.prisma.schema.updateManyAndReturn({
 
 - Mỗi thay đổi `schema.prisma` đi cùng một migration từ `prisma migrate dev --name <snake_case>`. Migration đầu tiên: `init_auth_and_schemas`.
 - CI (job e2e) và deploy dùng `prisma migrate deploy`.
-- `migrate dev` cần shadow database: `prisma.config.ts` đọc `SHADOW_DATABASE_URL` nếu có (`prisma dev` in sẵn giá trị này, mục 10). Biến này chỉ CLI dùng, không nằm trong schema env của Nest.
+- `migrate dev` cần shadow database: `prisma.config.ts` đọc `SHADOW_DATABASE_URL` nếu có. Local dùng thêm database `schemaforge_shadow` trong cùng container Docker (mục 10); `prisma dev` tự in giá trị này khi dùng phương án thay thế. Biến này chỉ CLI dùng, không nằm trong schema env của Nest.
 
 ### `prisma generate` trong pipeline
 
@@ -454,7 +456,7 @@ Frontend mới hơn backend (gửi tài liệu version cao hơn) nhận `422` v�
 - **Lý do:** gửi lại `POST` sau khi mất response không tạo bản trùng; URL của schema không đổi khi đưa từ local lên cloud.
 - **Phương án bị loại:** `PUT /schemas/:id` kiêm tạo mới (upsert): trộn hai ngữ nghĩa, và không rõ phải làm gì khi schema chưa tồn tại mà request có `expectedRevision`. Id do server sinh: xem mục 7.
 
-### Giới hạn số schema mỗi người ⚠
+### Giới hạn số schema mỗi người
 
 **Đề xuất:** `MAX_SCHEMAS_PER_USER` = 100. `POST /schemas` đếm và chèn trong một `$transaction`; vượt thì `403 schema-limit-reached`. Hai request đồng thời có thể vượt giới hạn một chút; spec chấp nhận vì đây là giới hạn mềm.
 
@@ -468,7 +470,7 @@ Frontend mới hơn backend (gửi tài liệu version cao hơn) nhận `422` v�
 
 **Lý do:** client duy nhất là frontend, đã có hợp đồng có kiểu qua `packages/api-contract`. `@nestjs/swagger` 12.0.1 hỗ trợ NestJS 12, nhưng cần decorator `@ApiProperty` (hoặc CLI plugin) trên mọi DTO và một route tài liệu phải quyết định có public hay không. Cân nhắc lại khi có client khác frontend.
 
-### Hợp đồng API: `packages/api-contract` ⚠
+### Hợp đồng API: `packages/api-contract`
 
 **Quyết định:** thêm workspace package `@schemaforge/api-contract`, không phụ thuộc framework:
 
@@ -787,7 +789,7 @@ Gộp một id:
 
 `syncPendingSchemas` chạy khi auth chuyển sang `signed-in`, khi có `online`, và khi màn hình danh sách mount. Hàm lần lượt duyệt các record có `ownerId` là người dùng và `syncStatus` là `pending`: lấy khóa với `ifAvailable` (không lấy được thì bỏ qua, vì tab đang giữ khóa sẽ tự đẩy), rồi đẩy một lần theo đúng bảng kết quả ở trên nhưng không mở hộp thoại (`409 revision-conflict` thì chỉ đánh dấu `conflict`, `404` thì `deleted-in-cloud`). Không có hẹn giờ chạy nền.
 
-### Đăng xuất ⚠
+### Đăng xuất
 
 **Đề xuất:** đăng xuất xóa mọi bản cache của tài khoản khỏi trình duyệt.
 
@@ -918,28 +920,27 @@ app.enableCors({
 - `turbo.json`: task `build` thêm `env: ["NEXT_PUBLIC_API_URL"]`, vì giá trị được nhúng vào bundle và đổi giá trị thì phải build lại (spec phần 1 đã dự kiến).
 - Job `verify` của CI đặt `NEXT_PUBLIC_API_URL=https://api.schemaforge.invalid` cho `next build`. Domain `.invalid` không bao giờ phân giải được.
 
-## 10. PostgreSQL khi phát triển local ⚠
+## 10. PostgreSQL khi phát triển local
 
-Máy dev không có Docker, nên không dùng được image `postgres` như CI.
+Máy dev có Docker Desktop, đã chạy sẵn container `local_postgres` (`postgres:16-alpine`).
 
 | Cách | Cài đặt | Độ giống production | Nhược điểm |
 |---|---|---|---|
-| **`prisma dev`** (đề xuất) | Không cần: có sẵn trong Prisma CLI (dependency `@prisma/dev` của `prisma` 7.10.0) | PostgreSQL chạy trên PGlite (WebAssembly), nói giao thức PostgreSQL chuẩn | Mỗi lúc chỉ nhận một kết nối, kết nối thứ hai phải chờ; là công cụ cho phát triển, không phải PostgreSQL đầy đủ |
-| Homebrew `postgresql@18` | `brew install postgresql@18` (18.6, có bottle, keg-only nên phải thêm vào `PATH`), `brew services start`, tạo role và database | Giống CI (PostgreSQL 18) | Thêm một dịch vụ chạy nền trên máy |
+| **Container Docker sẵn có** (đề xuất) | Không cần: tạo hai database `schemaforge_dev`, `schemaforge_test` (và `schemaforge_shadow` cho migration) trong container `local_postgres` đang chạy | PostgreSQL 16 thật, cùng engine và cùng major với CI | Phải tự tạo database và role trong container sẵn có, không cô lập theo dự án như một container riêng |
+| `prisma dev` (thay thế khi không có Docker) | Không cần: có sẵn trong Prisma CLI (dependency `@prisma/dev` của `prisma` 7.10.0) | PostgreSQL chạy trên PGlite (WebAssembly), nói giao thức PostgreSQL chuẩn | Mỗi lúc chỉ nhận một kết nối, kết nối thứ hai phải chờ; là công cụ cho phát triển, không phải PostgreSQL đầy đủ |
+| Homebrew `postgresql@18` | `brew install postgresql@18` (18.6, có bottle, keg-only nên phải thêm vào `PATH`), `brew services start`, tạo role và database | PostgreSQL thật, khác major với CI | Thêm một dịch vụ chạy nền trên máy, ngoài Docker đã có |
 | Postgres.app | Tải app | Như Homebrew | Chỉ có trên macOS, cài bằng giao diện |
 | Neon (gói miễn phí) | Tạo tài khoản và project | PostgreSQL thật, được quản lý | Cần mạng và tài khoản; e2e qua mạng chậm, dễ chập chờn; mỗi developer phải giữ một secret |
-| PGlite chạy trong tiến trình test (`@electric-sql/pglite` 0.5.8) | Dev dependency | Như `prisma dev` | Không có cổng TCP, nên không đi qua `@prisma/adapter-pg`; phải thêm adapter khác chỉ để test |
 
-**Đề xuất:** `prisma dev`.
+**Đề xuất:** container Docker Postgres sẵn có trên máy dev (`local_postgres`), với database `schemaforge_dev`, `schemaforge_test`, `schemaforge_shadow`.
 
-- Script của backend: `db:dev` chạy `prisma dev --name schemaforge --detach`, `db:test` chạy `prisma dev --name schemaforge-test --detach`. Mỗi instance có tên riêng giữ connection string cố định; developer chép `DATABASE_URL` và `SHADOW_DATABASE_URL` được in ra vào `.env` hoặc `.env.test`. `prisma dev ls` và `prisma dev stop <name>` để xem và dừng.
-- e2e chạy tuần tự (mục 11), nên giới hạn một kết nối đủ dùng. Plan chốt cấu hình pool của `PrismaPg` cho giới hạn này.
-- CI chạy PostgreSQL 18 thật và là cổng chặn cho mọi khác biệt giữa PGlite và PostgreSQL.
-- README của backend hướng dẫn cả `prisma dev` lẫn Homebrew; đổi giữa hai cách chỉ là đổi URL trong `.env`.
+- Developer đặt `DATABASE_URL` và `SHADOW_DATABASE_URL` trong `.env` (và biến thể `_test`) trỏ vào container `local_postgres`. README của backend hướng dẫn cả cách này lẫn `prisma dev --name schemaforge --detach` cho máy không có Docker; đổi giữa hai cách chỉ là đổi URL trong `.env`.
+- e2e chạy tuần tự (mục 11), một kết nối là đủ; plan chốt cấu hình pool của `PrismaPg`.
+- CI chạy PostgreSQL 16 thật (cùng major với container local) bằng service container, và là cổng chặn cho mọi khác biệt giữa `prisma dev` (PGlite) và PostgreSQL thật.
 
-**Lý do:** không cài thêm gì, không cần Docker hay dịch vụ nền, chạy được ngay sau `pnpm install`; database test tách khỏi database dev; cùng một CLI với migration.
+**Lý do:** máy dev đã có Docker Desktop và container Postgres đang chạy sẵn, nên dùng ngay không cài thêm gì; cùng engine PostgreSQL thật với CI, giống production hơn PGlite của `prisma dev`.
 
-**Phương án khác:** Homebrew `postgresql@18`, khi cần giống hệt production ở local (kết nối đồng thời, extension) hoặc khi gặp giới hạn của PGlite.
+**Phương án khác:** `prisma dev` khi máy không có Docker (không cài thêm gì, chạy ngay sau `pnpm install`); Homebrew `postgresql@18` khi cần một bản PostgreSQL khác tách khỏi container Docker hiện có.
 
 ## 11. Test
 
@@ -996,7 +997,7 @@ e2e:
   runs-on: ubuntu-latest
   services:
     postgres:
-      image: postgres:18
+      image: postgres:16-alpine
       env:
         POSTGRES_USER: schemaforge
         POSTGRES_PASSWORD: schemaforge
@@ -1086,19 +1087,19 @@ Vitest trên jsdom. Mock chỉ ở biên: `fetch` (qua `fetchImpl` được inje
 | Hai thiết bị | Chrome và Firefox cùng tài khoản, sửa cùng một schema, thấy hộp thoại xung đột |
 | Safari với cookie `Secure` trên `http://localhost` | Mục 8 |
 
-## 12. Triển khai ⚠
+## 12. Triển khai
 
 Roadmap chưa có bước deploy, trong khi lưu cloud cần backend và database chạy ở đâu đó.
 
-**Đề xuất:** hoãn deploy sang một phần riêng, thêm vào roadmap là phần 10 "Triển khai", phụ thuộc phần 4.
+Phát triển trước hoàn toàn ở local; chưa chọn nơi deploy. Khi cần triển khai, ưu tiên các gói miễn phí; phương án cụ thể được chọn và bổ sung vào mục này sau, trong phần 4 — không thêm phần 10 vào roadmap.
 
-Không có phần deploy, phần 4 giao:
+Tới lúc đó, phần 4 giao:
 
-- Toàn bộ luồng chạy được ở local: `pnpm dev` (frontend cổng 3000, backend cổng 3001) với database từ `prisma dev`.
-- e2e trên PostgreSQL 18 thật trong CI.
-- Danh sách ràng buộc dưới đây, để phần deploy không phải đổi thiết kế auth.
+- Toàn bộ luồng chạy được ở local: `pnpm dev` (frontend cổng 3000, backend cổng 3001) với database Docker Postgres cục bộ (mục 10).
+- e2e trên PostgreSQL 16 thật trong CI.
+- Danh sách ràng buộc dưới đây, để phương án deploy chọn sau không phải đổi thiết kế auth.
 
-Hệ quả: tới khi có phần deploy, chỉ developer chạy local mới dùng được tính năng tài khoản.
+Hệ quả: tới khi chọn và làm phương án deploy, chỉ developer chạy local mới dùng được tính năng tài khoản.
 
 **Ràng buộc mà mọi phương án deploy phải thỏa:**
 
@@ -1114,13 +1115,7 @@ Hệ quả: tới khi có phần deploy, chỉ developer chạy local mới dùn
 | `JWT_ACCESS_SECRET`, `DATABASE_URL` chỉ nằm trong biến môi trường của nền tảng | `security.md` |
 | RAM của backend đủ cho các lần băm argon2 đồng thời (19 MiB mỗi lần) | Mục 2; rate limit giới hạn số lần đăng nhập |
 
-**Phương án khác: một mục tiêu deploy tối thiểu ngay trong phần 4.**
-
-- Frontend trên Vercel với domain riêng `app.<domain>`. Backend là container NestJS trên một dịch vụ chạy container (Fly.io, Render hoặc Railway) ở `api.<domain>`. PostgreSQL được quản lý (Neon, hoặc dịch vụ PostgreSQL của chính nền tảng container).
-- Phải làm thêm: mua domain; tài khoản và chi phí trên các nền tảng; Dockerfile cho backend trong monorepo pnpm (`pnpm deploy`); workflow deploy; quản lý secret; backup database.
-- Hợp lý nếu muốn có bản demo công khai ngay sau phần 4.
-
-**Lý do đề xuất hoãn:** quyết định deploy (nhà cung cấp, domain, chi phí, CD, backup) độc lập với thiết kế auth và lớn hơn phạm vi phần 4. Các ràng buộc trên đủ để thiết kế hiện tại không phải đổi khi deploy.
+**Phương án deploy cụ thể:** chưa chọn. Ưu tiên gói miễn phí (ví dụ Vercel cho frontend; một dịch vụ chạy container hoặc PostgreSQL được quản lý có gói miễn phí cho backend và database); được chọn và viết vào mục này sau, khi cần triển khai.
 
 ## Cấu trúc thư mục
 
@@ -1293,17 +1288,17 @@ Tiêu chí ghi "(kiểm tra tay)" được kiểm tra theo checklist ở mục 1
 | Cộng tác thời gian thực, tự merge khi xung đột | Chưa có trong roadmap |
 | Tài liệu OpenAPI | Khi có client khác frontend (mục 5) |
 
-## Câu hỏi còn mở
+## Câu hỏi đã trả lời
 
-Mỗi câu ứng với một mục ⚠ trong spec. Spec đã viết theo đề xuất; đổi lựa chọn chỉ ảnh hưởng mục được nêu.
+Mỗi câu ứng với một mục từng đánh dấu ⚠ trong spec. Người dùng xác nhận khi duyệt spec.
 
-| # | Câu hỏi | Đề xuất của spec |
+| # | Câu hỏi | Quyết định |
 |---|---|---|
 | 1 | Mật khẩu tối thiểu 8 ký tự kèm danh sách mật khẩu phổ biến, hay 15 ký tự theo NIST SP 800-63B bản 4 (mục 2)? | 8 ký tự kèm danh sách |
 | 2 | Bộ đếm rate limit nằm trong bộ nhớ (chỉ đúng với một instance), hay dùng Redis ngay từ đầu (mục 3)? | Trong bộ nhớ |
 | 3 | Giới hạn 100 schema mỗi tài khoản, không giới hạn, hay giới hạn theo dung lượng (mục 5)? | 100 schema |
 | 4 | Thêm package `packages/api-contract` cho hợp đồng giữa frontend và backend (mục 5)? | Có |
 | 5 | Đăng xuất xóa cache của tài khoản khỏi trình duyệt, hay giữ lại và ẩn đi (mục 7)? | Xóa, có cảnh báo khi còn thay đổi chưa đồng bộ |
-| 6 | PostgreSQL local bằng `prisma dev`, hay Homebrew `postgresql@18` (mục 10)? | `prisma dev` |
-| 7 | Hoãn deploy sang phần 10 mới, hay có mục tiêu deploy tối thiểu ngay trong phần 4 (mục 12)? | Hoãn |
-| 8 | Hộp thoại xung đột có thêm lựa chọn thứ ba "Giữ cả hai" (lưu bản trên máy thành schema mới với id mới) không? | Chưa thêm, vì quyết định đã chốt chỉ nêu việc chọn một trong hai bản; thêm sau không đổi thiết kế đồng bộ |
+| 6 | PostgreSQL local bằng container Docker sẵn có, `prisma dev`, hay Homebrew `postgresql@18` (mục 10)? | Container Docker sẵn có trên máy dev; `prisma dev` là phương án thay thế khi không có Docker |
+| 7 | Hoãn deploy sang phần 10 mới, hay có mục tiêu deploy tối thiểu ngay trong phần 4 (mục 12)? | Không hoãn và không thêm phần 10 vào roadmap, nhưng cũng chưa chọn nơi deploy ngay: phát triển trước ở local, phương án deploy (ưu tiên gói miễn phí) được chọn trong phần 4, ở một bước sau |
+| 8 | Hộp thoại xung đột có thêm lựa chọn thứ ba "Giữ cả hai" (lưu bản trên máy thành schema mới với id mới) không? | Không thêm, vì quyết định đã chốt chỉ nêu việc chọn một trong hai bản; thêm sau không đổi thiết kế đồng bộ |

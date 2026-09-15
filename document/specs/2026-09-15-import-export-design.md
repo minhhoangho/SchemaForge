@@ -6,6 +6,8 @@ Spec dựa trên [spec phần 2](2026-09-14-core-schema-model-design.md), [spec 
 
 Các đoạn TypeScript là phác thảo. Plan và code tinh chỉnh tên và chi tiết, nhưng không đổi quyết định. Mục ghi ⚠ là lựa chọn cần người dùng xác nhận khi duyệt spec.
 
+Trạng thái: đã duyệt. Người dùng xác nhận các quyết định cần xác nhận: import có hai chế độ, tạo schema mới và gộp vào schema hiện tại, không có chế độ thay thế, tên trùng khi gộp thêm hậu tố `_2`, `_3`… (mục 2); import không dùng chế độ chặt, issue ngữ nghĩa hiện ở bước xem trước và không chặn import (mục 3); export ảnh bằng `modern-screenshot`, theo theme đang hiển thị (mục 10); và `@dbml/core` chỉ được import trong subpath importer (`@schemaforge/core/importers/sql`, `.../dbml`), tải lazy trong Web Worker, không lọt vào entry chính của core hay bundle editor (mục 1).
+
 ## Quyết định đã có từ trước
 
 Spec này không bàn lại các điểm sau (nguồn: `architecture.md`, `.claude/rules/`, spec phần 2, 3, 6):
@@ -26,15 +28,15 @@ Spec này không bàn lại các điểm sau (nguồn: `architecture.md`, `.clau
 | # | Hạng mục | Quyết định |
 |---|---|---|
 | 1 | Giao diện importer | Hàm thuần `(source, options) => Result<{ document, diagnostics }, { diagnostics }>`, trả một tài liệu độc lập; diagnostic `{ code, location, path }` với dòng, cột bắt đầu từ 1, không có mức độ; mỗi định dạng một subpath `@schemaforge/core/importers/<định dạng>`; giới hạn 2 MiB và 20 000 phần tử |
-| 2 | ⚠ Import vào đâu (câu hỏi 10) | Hai chế độ: tạo schema mới (mặc định) và thêm vào schema hiện tại; không có chế độ thay thế. `buildImportOperation` dựng một `batch` phẳng; khi gộp thì cấp id mới, tên trùng thêm hậu tố `_2`, `_3`… kèm diagnostic. Mỗi lần import là một mục lịch sử |
-| 3 | ⚠ Issue ngữ nghĩa (câu hỏi 3 của phần 2) | Không dùng chế độ chặt; issue mới hiện ở bước xem trước và không chặn import |
+| 2 | Import vào đâu (câu hỏi 10) | Hai chế độ: tạo schema mới (mặc định) và thêm vào schema hiện tại; không có chế độ thay thế. `buildImportOperation` dựng một `batch` phẳng; khi gộp thì cấp id mới, tên trùng thêm hậu tố `_2`, `_3`… kèm diagnostic. Mỗi lần import là một mục lịch sử |
+| 3 | Issue ngữ nghĩa (câu hỏi 3 của phần 2) | Không dùng chế độ chặt; issue mới hiện ở bước xem trước và không chặn import |
 | 4 | Vị trí bảng | Lưới xác định trong core, gom theo subject area; kích thước ô lấy từ `LayoutMetrics` do frontend truyền vào |
 | 5 | IE-01 SQL | `@dbml/core` kèm statement scanner tự viết để báo câu lệnh bị parser bỏ âm thầm, lấy vị trí, đọc identity của `pg_dump` và comment SQL Server. Bảng ánh xạ kiểu và giá trị mặc định cho ba dialect. Round-trip là điểm bất động của DDL |
 | 6 | IE-02 Prisma | Parser tự viết trong core, không dependency. Tên bảng, cột theo `@@map`, `@map`. Round-trip bằng nhau với `postgresql`, điểm bất động với `mysql`, `sqlserver` |
 | 7 | IE-03 DBML | `Parser.parse(…, 'dbmlv2')`; `TableGroup` thành subject area, `Note` thành ghi chú; đọc lại văn bản gốc cho kiểu trong nháy và số. Import output của CG-09 cho schema bằng bản gốc |
 | 8 | IE-04, IE-06 JSON | `serializeSchemaDocument` với thứ tự khóa theo khai báo và phần tử theo id; import qua `parseSchemaDocument`, giữ id, giống hệt từng byte |
 | 9 | IE-05 Tải file | Nút "Tải file" trong code panel; tên file ASCII có option (`blog.mysql.sql`); `Blob`, object URL và `a[download]`, CSP không đổi |
-| 10 | ⚠ IE-07 Ảnh | `modern-screenshot` 4.7.0 chụp DOM của canvas trong khung bao mọi node; PNG thu nhỏ theo giới hạn canvas thay vì cắt; theo theme đang hiển thị; SVG dạng `foreignObject` |
+| 10 | IE-07 Ảnh | `modern-screenshot` 4.7.0 chụp DOM của canvas trong khung bao mọi node; PNG thu nhỏ theo giới hạn canvas thay vì cắt; theo theme đang hiển thị; SVG dạng `foreignObject` |
 | 11 | IE-08 ZIP | `fflate` 0.8.3, `zipSync` trong worker của code panel; hộp thoại chọn nhiều định dạng; ZIP xác định từng byte |
 | 12 | Giao diện | Hộp thoại import ba bước (nguồn, phân tích, xem trước); parse trong worker riêng, hủy được, quá 30 giây thì hủy; đọc UTF-8 và UTF-16 có BOM; menu Export trên toolbar; namespace `importExport`, `importDiagnostics` |
 | 13 | Bảo mật | Giới hạn trước khi parse, hủy worker khi quá thời gian, không `eval`, tra cứu theo tên bằng `Map`, giá trị từ file hiện dạng text, tên file ASCII |
@@ -158,14 +160,14 @@ source ─▶ kiểm tra độ dài ─▶ parse (thư viện hoặc parser tự
 
 - `package.json` của core thêm pattern `"./importers/*"` giống `"./generators/*"` của phần 6. `importers/shared/` không nằm trong `exports`.
 - Entry point chính không import `@dbml/core`, nên editor, backend và mọi consumer không dùng importer SQL, DBML không tải thư viện này. Frontend chỉ `import()` subpath trong worker import (mục 12).
-- `@dbml/core` trở thành runtime dependency thứ hai của core, sau Zod. Đối chiếu quy tắc "chỉ thêm dependency khi tự viết rõ ràng tệ hơn": parser SQL cho ba dialect là việc lớn nhất của phần này, và `architecture.md` đã chốt thư viện. Bản ESM của `@dbml/core` không import module Node (đã kiểm tra), nên core vẫn isomorphic. Lời gọi `Function("return this")()` duy nhất trong bundle là nhánh dự phòng của lodash, chỉ chạy khi không có `globalThis`, `self` và `global`, nên không chạy trên trình duyệt, worker hay Node.
+- **Zod vẫn là runtime dependency duy nhất của entry chính; `@dbml/core` chỉ là runtime dependency của subpath importer SQL và DBML.** Điều này thay quy tắc cũ "Zod là runtime dependency duy nhất của core" (spec phần 1, phần 2) thành: Zod là runtime dependency của entry chính; `@dbml/core` chỉ được import trong subpath importer. Đối chiếu quy tắc "chỉ thêm dependency khi tự viết rõ ràng tệ hơn": parser SQL cho ba dialect là việc lớn nhất của phần này, và `architecture.md` đã chốt thư viện. Bản ESM của `@dbml/core` không import module Node (đã kiểm tra), nên core vẫn isomorphic. Lời gọi `Function("return this")()` duy nhất trong bundle là nhánh dự phòng của lodash, chỉ chạy khi không có `globalThis`, `self` và `global`, nên không chạy trên trình duyệt, worker hay Node.
 - Type của `@dbml/core` có chỗ `any` (`checks?: any[]`). Chỉ hai file `importers/shared/dbml-core-adapter.ts` import thư viện; adapter thu hẹp model thành type hẹp của core, theo quy tắc chứa `any` trong một wrapper của `typescript.md`.
 
 **Phương án bị loại:** đặt importer SQL, DBML ở frontend để core không phụ thuộc `@dbml/core`: trái `core.md` (importer nằm trong core), và backend không dùng lại được importer nếu phần 5 hay phần 8 cần. Một subpath chung `@schemaforge/core/importers`: `import()` importer Prisma hay JSON sẽ kéo cả `@dbml/core` khoảng 2,7 MB gzip.
 
 ## 2. Import vào đâu (câu hỏi 10)
 
-### ⚠ Quyết định đề xuất
+### Quyết định
 
 Hộp thoại import có hai chế độ:
 
@@ -231,7 +233,7 @@ function buildImportOperation(
 
 Trả lời câu hỏi 3 của spec phần 2: kết quả import có dùng chế độ chặt như AI không.
 
-### ⚠ Quyết định đề xuất
+### Quyết định
 
 Import **không** dùng chế độ chặt. Kết quả còn issue ngữ nghĩa vẫn được áp dụng; hộp thoại cho thấy trước các issue mới trước khi người dùng xác nhận.
 
@@ -613,7 +615,7 @@ function downloadBlob(blob: Blob, fileName: string): void;
 | Test tự động | Chỉ phần tính khung ảnh; chụp ảnh cần trình duyệt thật | Như bên trái | Snapshot SVG trên jsdom |
 | CSP | Ảnh trung gian là `data:image/svg+xml` (`img-src data:` đã có); tải font cùng origin (`connect-src 'self'`); worker chỉ khi truyền `workerUrl` | Như bên trái | Không liên quan |
 
-**⚠ Quyết định:** `modern-screenshot` 4.7.0 cho cả PNG và SVG, dùng trong frontend.
+**Quyết định:** `modern-screenshot` 4.7.0 cho cả PNG và SVG, dùng trong frontend.
 
 **Lý do:** ảnh luôn khớp canvas, kể cả khi phần 9 thêm khung subject area, ghi chú và các thay đổi giao diện sau này, với vài chục dòng code. Thư viện được bảo trì, trong khi thư viện React Flow gợi ý phải khóa ở bản 2023. Đánh đổi cần người dùng xác nhận: file SVG hiển thị đúng trên trình duyệt và nơi nhúng ảnh bằng trình duyệt (GitHub, Confluence, Notion), nhưng không phải SVG vector thuần để sửa trong công cụ thiết kế.
 
@@ -934,11 +936,11 @@ Tiêu chí ghi "(kiểm tra tay)" theo checklist ở mục 15; các tiêu chí c
 | SVG vector thuần, chọn theme khi xuất ảnh, xuất PDF | Chưa có tính năng nào cần (xem câu hỏi 3, 4) |
 | Script migration giữa hai phiên bản schema | Chưa có tính năng nào cần |
 
-## Câu hỏi còn mở
+## Câu hỏi đã trả lời
 
-Cần người dùng trả lời khi duyệt spec.
+Người dùng xác nhận khi duyệt spec.
 
-| # | Câu hỏi | Đề xuất của spec |
+| # | Câu hỏi | Quyết định |
 |---|---|---|
 | 1 | Câu hỏi 10 của danh sách tính năng: import thay thế schema hiện tại hay gộp vào? | Hai chế độ: tạo schema mới (mặc định) và thêm vào schema hiện tại; không có chế độ thay thế; tên trùng khi gộp được đổi bằng hậu tố `_2`, `_3`… kèm diagnostic (mục 2) |
 | 2 | Câu hỏi 3 của spec phần 2: import có dùng chế độ chặt như AI không? | Không; issue mới được liệt kê ở bước xem trước và không chặn import (mục 3) |

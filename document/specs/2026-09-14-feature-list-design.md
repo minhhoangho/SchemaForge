@@ -293,11 +293,12 @@ Tiêu chí chung cho import:
 - [ ] Kết quả import đi qua operation của core, được validate và undo được.
 - [ ] Khi không đọc được file, báo lỗi rõ ràng kèm vị trí lỗi nếu có (ví dụ số dòng), và không làm thay đổi schema hiện tại.
 
-Ghi chú: import thay thế schema hiện tại hay gộp vào, xem câu hỏi 10.
+Ghi chú: import có hai chế độ, tạo schema mới hoặc gộp vào; không có chế độ thay thế (câu hỏi 10).
 
 ### IE-01. Import SQL
 
 - [ ] Đọc câu lệnh DDL của PostgreSQL, MySQL và SQL Server thành bảng, cột, khóa chính, quan hệ và index.
+- [ ] Câu lệnh không đọc được báo diagnostic kèm dòng và cột.
 
 ### IE-02. Import Prisma
 
@@ -326,6 +327,7 @@ Ghi chú: import thay thế schema hiện tại hay gộp vào, xem câu hỏi 1
 
 - [ ] Tải về ảnh sơ đồ schema dạng PNG hoặc SVG.
 - [ ] Ảnh thể hiện đủ bảng, cột và quan hệ, không bị cắt.
+- [ ] Ảnh theo theme đang hiển thị (sáng hoặc tối); muốn ảnh theme kia thì đổi theme rồi xuất.
 
 ### IE-08. Export file ZIP
 
@@ -347,7 +349,7 @@ ST-02 và ST-04 không có trong danh sách của `overview.md` nhưng thuộc p
 ### ST-01. Lưu local
 
 - [ ] Schema vẫn còn sau khi tải lại trang hoặc đóng và mở lại trình duyệt.
-- [ ] Lưu và mở schema không cần tài khoản, không gọi server.
+- [ ] Khách (chưa đăng nhập) lưu và mở schema không cần tài khoản; không gọi mạng nào.
 - [ ] Lưu được nhiều schema trên trình duyệt; có màn hình danh sách để tạo, mở, đổi tên và xóa schema.
 
 Ghi chú: khách lưu được nhiều schema (câu hỏi 11). Sau khi đăng nhập, bản trên trình duyệt chỉ làm cache cho bản cloud (xem ST-03).
@@ -363,7 +365,7 @@ Ghi chú: chưa có chức năng quên mật khẩu, nên phần 4 chưa cần d
 
 ### ST-03. Lưu cloud
 
-- [ ] Lưu schema lên server; backend validate bằng core trước khi lưu vào PostgreSQL và từ chối schema không hợp lệ kèm lý do.
+- [ ] Lưu schema lên server; backend validate bằng core, từ chối tài liệu sai cấu trúc kèm lý do; tài liệu còn issue ngữ nghĩa vẫn được lưu.
 - [ ] Mở lại được schema đã lưu từ thiết bị khác sau khi đăng nhập.
 - [ ] Sau khi đăng nhập, schema tự động được lưu lên cloud; bản trên trình duyệt chỉ làm cache.
 - [ ] Lần đầu đăng nhập, người dùng được hỏi có đưa các schema đang lưu local lên cloud không.
@@ -442,7 +444,6 @@ Mỗi câu được trả lời trong spec của phần ở cột cuối. Khi c�
 
 | # | Câu hỏi | Tính năng | Chốt ở phần |
 |---|---|---|---|
-| 10 | Import thay thế schema hiện tại hay gộp vào? | IE-01 đến IE-04 | 7 |
 | 13 | Link private giới hạn người xem thế nào? Người mở link chia sẻ có sửa được schema không? | ST-05 | 8 |
 | 14 | "Lịch sử phiên bản cơ bản" gồm những gì: khi nào tạo phiên bản, có so sánh hai phiên bản không? | ST-06 | 8 |
 | 15 | Presentation mode hiển thị gì và khác chế độ xem thường ở điểm nào? | UX-02 | 9 |
@@ -462,6 +463,7 @@ Quyết định kỹ thuật và lý do nằm trong [architecture.md](../archite
 | 7 | Khi đích sinh code không hỗ trợ một khái niệm (ví dụ enum trong SQL Server), generator xử lý thế nào? | Bảng ánh xạ kiểu của từng đích là hợp đồng. Ánh xạ tương đương không báo gì (enum trong SQL Server là `nvarchar` kèm `CHECK`). Khi output mất một ràng buộc, hành động, comment hoặc phần tử, generator dùng ánh xạ gần nhất hoặc bỏ phần đó, kèm diagnostic (enum trong Prisma cho SQL Server thành `String`). Chi tiết ở [spec phần 6](2026-09-14-code-generators-design.md). | CG-01 đến CG-10 |
 | 8 | "Mock API (REST)" sinh ra gì: code server mock, request handler hay file cấu hình? | Một file handler MSW 2: CRUD cho từng bảng trên dữ liệu trong bộ nhớ lấy từ seed data, chạy ngay trong ứng dụng của người dùng, không cần server. | CG-06 |
 | 9 | Seed data (CG-08) và dữ liệu mẫu do AI sinh (AI-06) khác nhau thế nào, có dùng chung định dạng output không? | CG-08 sinh giá trị theo kiểu, xác định theo seed, chạy trên trình duyệt, không cần đăng nhập, không dùng faker. AI-06 sinh giá trị hợp ngữ cảnh qua backend. Hai tính năng dùng chung `SeedDataset`, hàm kiểm tra và hàm xuất SQL `INSERT` theo dialect hoặc JSON. | CG-08, AI-06 |
+| 10 | Import thay thế schema hiện tại hay gộp vào? | Hai chế độ: tạo schema mới (mặc định) và thêm vào schema hiện tại; không có chế độ thay thế. Tên trùng khi gộp được đổi bằng hậu tố `_2`, `_3`… kèm diagnostic. Chi tiết ở [spec phần 7](2026-09-15-import-export-design.md), mục 2. | IE-01 đến IE-04 |
 | 10 (một phần) | Import SQL hỗ trợ những dialect nào? | PostgreSQL, MySQL, SQL Server. SchemaForge chưa hỗ trợ SQLite. | IE-01 |
 | 11 | Khi chưa đăng nhập, trình duyệt lưu được một hay nhiều schema? | Nhiều schema, kèm màn hình danh sách để tạo, mở, đổi tên và xóa schema. | ST-01 |
 | 12 | Đăng nhập bằng những phương thức nào? | Chỉ email và mật khẩu. Chưa xác minh email khi đăng ký và chưa có chức năng quên mật khẩu. | ST-02 |

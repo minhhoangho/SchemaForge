@@ -52,6 +52,7 @@ Kiểm tra ngày 2026-09-14 bằng `npm view` (phiên bản, `peerDependencies`,
 | `shadcn` (CLI) | 4.21.0 | `engines.node >=20.18.1`; chạy bằng `pnpm dlx shadcn@4.21.0`, không cài làm dependency |
 | `@tailwindcss/postcss` | 4.3.3 | cùng phiên bản với `tailwindcss` |
 | `radix-ui` | 1.6.7 | peer `react ^19` |
+| `cmdk` | 1.1.1 | peer `react ^18 \|\| ^19 \|\| ^19.0.0-rc`, `react-dom` cùng phạm vi; tương thích React 19.3.0. Dùng cho combobox `Command` của shadcn/ui (ô chọn kiểu cột) |
 | `lucide-react` | 1.46.0 | peer `react ^19` |
 | `class-variance-authority`, `clsx`, `tailwind-merge`, `tw-animate-css` | 0.7.1, 2.1.1, 3.7.0, 1.4.0 | do `shadcn init` thêm vào |
 | `sonner` | 2.0.8 | peer `react ^19`; component toast của shadcn/ui |
@@ -179,7 +180,7 @@ Nội dung theo lựa chọn:
 
 **Cột.** Mỗi cột một dòng gồm: tên, kiểu, và các checkbox nullable, khóa chính, unique, auto-increment. Nút "Chi tiết" mở phần tham số kiểu (độ dài; precision và scale; tên kiểu custom), giá trị mặc định (không có, literal, `currentTimestamp`, `generateUuid`, chỉ hiện các biểu thức hợp với kiểu) và comment. Nút lên, xuống dispatch `moveColumn`, nút xóa dispatch `removeColumn`. "Thêm cột" dispatch `addColumn` ở cuối, với tên `column_<n>`, kiểu `varchar(255)`, không nullable.
 
-- Chọn kiểu bằng combobox có ba nhóm: 17 kiểu chung, các enum hiện có, "Kiểu custom…".
+- Chọn kiểu bằng combobox `Popover` + `Command` (cmdk) của shadcn/ui, gõ để lọc, có ba nhóm: 17 kiểu chung, các enum hiện có, "Kiểu custom…".
 - Checkbox khóa chính dispatch `setPrimaryKey` với danh sách mới: thêm vào cuối hoặc bỏ ra. Thứ tự khóa chính nhiều cột là thứ tự tick, và node hiện số thứ tự cạnh icon khóa. UI không tự sửa tổ hợp thuộc tính: tick khóa chính trên cột nullable sẽ hiện issue `column-primary-key-nullable`, người dùng tự bỏ nullable.
 
 **Index.** Mỗi index có tên (gợi ý bằng `suggestIndexName`), danh sách cột có thứ tự (chọn thêm cột; nút lên, xuống, bỏ), checkbox unique và nút xóa. Không cho lưu index không có cột: nút bỏ cột cuối cùng bị disable, vì mảng rỗng là bất biến cấu trúc.

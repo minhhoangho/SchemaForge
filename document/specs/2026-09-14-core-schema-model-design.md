@@ -397,7 +397,7 @@ Từ đó có hai mức cho một tài liệu:
 |---|---|---|
 | Editor, thao tác tay (phần 3) | Từ chối operation | Hiển thị cạnh phần tử, không chặn |
 | AI tool call (phần 5) | Từ chối tool call | Từ chối nếu kết quả phát sinh issue mới so với schema trước đó |
-| Import (phần 7) | Từ chối | Phần 7 chốt, dùng cùng các hàm của core |
+| Import (phần 7) | Từ chối | Cho phép: kết quả import không dùng chế độ chặt, issue mới hiện ở bước xem trước và không chặn import ([spec phần 7](2026-09-15-import-export-design.md), mục 3) |
 | Lưu local (phần 3), backend nhận schema (phần 4) | Từ chối tài liệu | Cho phép, để không mất bản đang sửa dở khi tự động lưu |
 | Template (phần 9) | — | Không được có issue, kiểm tra bằng test |
 | Generator (phần 6) | Yêu cầu tài liệu đúng cấu trúc | Chỉ đảm bảo output đúng khi không có issue; phần 6 chốt cách xử lý schema còn issue |
@@ -742,7 +742,7 @@ Input của core là giá trị đã qua `JSON.parse`. Giới hạn kích thư�
 
 ### Thư viện kiểm tra hình dạng: Zod
 
-**Quyết định:** dùng Zod làm runtime dependency duy nhất của core, cho bước kiểm tra hình dạng của tài liệu và operation. Type của model suy ra từ schema Zod (`z.infer`), không khai báo lại. Bất biến cấu trúc và issue ngữ nghĩa vẫn viết tay, để kiểm soát mã lỗi và tách khỏi bước kiểm tra hình dạng. Thông báo lỗi của Zod không được dùng: core chuyển mỗi lỗi của Zod thành `invalid-shape` kèm `path`. Plan chọn phiên bản Zod trùng với phiên bản Vercel AI SDK dùng ở phần 5.
+**Quyết định:** dùng Zod làm runtime dependency của entry chính, cho bước kiểm tra hình dạng của tài liệu và operation. Spec phần 7 (import) thêm `@dbml/core` làm runtime dependency của subpath importer SQL và DBML; entry chính không import `@dbml/core`. Type của model suy ra từ schema Zod (`z.infer`), không khai báo lại. Bất biến cấu trúc và issue ngữ nghĩa vẫn viết tay, để kiểm soát mã lỗi và tách khỏi bước kiểm tra hình dạng. Thông báo lỗi của Zod không được dùng: core chuyển mỗi lỗi của Zod thành `invalid-shape` kèm `path`. Plan chọn phiên bản Zod trùng với phiên bản Vercel AI SDK dùng ở phần 5.
 
 **Đối chiếu với quy tắc "chỉ thêm dependency khi tự viết rõ ràng tệ hơn":**
 
@@ -865,7 +865,7 @@ fast-check chạy với seed cố định trong CI và in seed khi thất bại,
 - [ ] `findIntroducedIssues` chỉ trả issue mới, không trả issue đã có sẵn.
 - [ ] Cả năm tính chất property test qua với seed cố định.
 - [ ] Mỗi tiêu chí "Core báo lỗi…" của ED-01 đến ED-05 có test đặt tên theo tiêu chí và test đó qua.
-- [ ] `packages/core` chỉ có runtime dependency là Zod, không dùng API riêng của trình duyệt hay Node, coverage số dòng ≥ 90%.
+- [ ] Entry chính của `packages/core` chỉ có runtime dependency là Zod, không dùng API riêng của trình duyệt hay Node, coverage số dòng ≥ 90%. (Subpath importer SQL và DBML thêm `@dbml/core`, chốt ở spec phần 7.)
 - [ ] Core không gọi `z.config`; test chạy dưới `z.config({ jitless: true })` parse và áp operation đúng mà không dựng `Function`.
 - [ ] Entry point `@schemaforge/core/testing` export factory, `buildSchema`, `createCounterIdGenerator`, `unwrapOk`, `unwrapError`, `createSampleSchema`; `dist/` không chứa arbitrary của fast-check; entry point chính không còn `PRODUCT_NAME`.
 - [ ] `architecture.md` ghi các quyết định mới (định dạng model chi tiết, Zod trong core, fast-check); `roadmap.md` cập nhật trạng thái phần 2.

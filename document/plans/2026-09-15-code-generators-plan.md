@@ -176,12 +176,13 @@ Không dùng: `@faker-js/faker`, `json-server` (spec CG-06, CG-08).
 | 30 | Conformance: `prisma validate`; typecheck Drizzle, TypeScript, Zod; parse seed JSON bằng schema Zod | 8, 17, 18, 19, 20, 22 | 7 |
 | 31 | Conformance: Mock API trên `msw/node`, validator OpenAPI, parse DBML | 8, 23, 24, 25 | 7 |
 | 32 | Dependency `shiki` cho frontend, lockfile | P3 | 8 |
-| 33 | Worker sinh code và tách token Shiki, hook `use-generated-code` | 5, 14–26, 32, P3 | 9 |
+| 33 | Worker sinh code và tách token Shiki, hook `use-generated-code`; worker import `zod-config.ts` của phần 3 đầu tiên | 5, 14–26, 32, P3 | 9 |
 | 34 | Code panel, nút "Code" trên toolbar, i18n `codeGenerator` và `generatorDiagnostics`, CSP `worker-src 'self'` | 33 | 10 |
 | 35 | Tài liệu (`roadmap.md`, `architecture.md`, `CLAUDE.md`), kết quả benchmark, kiểm tra toàn repo | 27–31, 34 | 11 |
 
 - Đường tới hạn của core: Task 2 → 6 → 12 → 13 → 14, 15, 16. Task 32 bắt đầu được ngay khi phần 3 merge, không cần chờ đợt 7.
 - Task 15, 16 cần job `conformance` của Task 8 đã xanh trên CI (mục "Điểm nóng").
+- Task 33: import đầu tiên của `code-generator.worker.ts` là `zod-config.ts` của phần 3 (đặt `z.config({ jitless: true })`), đứng trước mọi module import `@schemaforge/core`, vì Zod đọc `jitless` khi tạo schema chứ không phải khi parse, còn core tạo schema lúc được import (spec mục 8, "CSP"; `packages/core/src/zod-jitless.test.ts`). Thân Task 33 có bước kiểm tra rằng dòng import đầu tiên của file worker là `zod-config`.
 - Task 0 phải xong trước mọi task nằm trong cột "Ảnh hưởng" của vấn đề tương ứng; các task khác không chờ Task 0.
 - Thân task: lượt 1 viết Task 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16 ở ngay dưới. Task 3, 8, 17–35 do lượt 2 viết ở mục [Các task còn lại](#các-task-còn-lại).
 

@@ -7,5 +7,9 @@
     "declarationMap": true
   },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/testing/arbitraries.ts",
+    "src/testing/operation-plans*.ts"
+  ]
 }

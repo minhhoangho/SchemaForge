@@ -1,8 +1,9 @@
-import { PRODUCT_NAME } from "@schemaforge/core";
 import type { Metadata } from "next";
 import type { JSX, ReactNode } from "react";
 
-export const metadata: Metadata = { title: PRODUCT_NAME };
+import { APP_NAME } from "@/lib/app-name";
+
+export const metadata: Metadata = { title: APP_NAME };
 
 type RootLayoutProps = {
   readonly children: ReactNode;

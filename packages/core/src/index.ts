@@ -1,6 +1,3 @@
-// Task 27 of the core schema model plan removes this placeholder.
-export const PRODUCT_NAME = "SchemaForge";
-
 export type { DocumentPath } from "./document-path.js";
 export type {
   ErrorCode,

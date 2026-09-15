@@ -7,7 +7,6 @@ const DOCUMENTED_RUNTIME_VALUES = [
   "ERROR_CODES",
   "ISSUE_CODES",
   "MAX_BATCH_DEPTH",
-  "PRODUCT_NAME",
   "applyOperation",
   "buildManyToMany",
   "buildRelation",
@@ -52,11 +51,5 @@ describe("public API", () => {
       ISSUE_CODE_COUNT,
       ERROR_CODE_COUNT,
     ]);
-  });
-});
-
-describe("PRODUCT_NAME", () => {
-  it("is the product name", () => {
-    expect(core.PRODUCT_NAME).toBe("SchemaForge");
   });
 });

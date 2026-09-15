@@ -753,7 +753,7 @@ Input của core là giá trị đã qua `JSON.parse`. Giới hạn kích thư�
 **Zod dưới CSP chặt.** Zod 4 biên dịch validator của object bằng `new Function` (JIT) ở nhánh nhanh, trong khi CSP của frontend chặt, dựa trên nonce. `z.config({ jitless: true })` tắt JIT, đồng thời bỏ cả phép thử `new Function("")` mà Zod dùng để dò môi trường, nên không phát sinh báo cáo `securitypolicyviolation`. Đã kiểm chứng trên Zod 4.6.4 và 4.6.5: với `jitless`, parse vẫn đúng và không lần nào gọi `Function`.
 
 - Core không gọi `z.config`, vì đó là state toàn cục thuộc về consumer, và không dùng API chỉ chạy được khi có JIT.
-- Consumer chạy dưới CSP chặt gọi `z.config({ jitless: true })` một lần ở điểm khởi động, trước lần parse đầu tiên. Frontend làm việc này ở phần 3.
+- Consumer chạy dưới CSP chặt gọi `z.config({ jitless: true })` một lần ở điểm khởi động, trước khi import `@schemaforge/core` hay bất kỳ module nào tạo schema Zod. Zod đọc `jitless` và chạy phép thử `new Function("")` khi tạo schema chứ không phải khi parse, còn core tạo schema lúc module được import, nên gọi sau các import tĩnh là đã muộn. Cách làm thực tế là một module nhỏ chỉ đặt cấu hình và được import đầu tiên. Frontend làm việc này ở phần 3.
 - Core có một file test chạy dưới `jitless`: parse tài liệu, trả cùng lỗi cấu trúc, parse và áp operation, và không dựng `Function`.
 
 **Phương án bị loại:** tự viết validator (lý do ở trên). JSON Schema với Ajv: Ajv luôn sinh code validator và chạy nó bằng `new Function`, không có chế độ tắt như `jitless` của Zod; muốn chạy dưới CSP chặt phải biên dịch trước thành code standalone, thêm một bước sinh code vào build của core. AI SDK cũng vẫn cần Zod hoặc một lớp chuyển đổi.

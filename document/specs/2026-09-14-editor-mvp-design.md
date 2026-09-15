@@ -632,7 +632,7 @@ Hàm thuần `toStorageErrorCode(error: unknown): StorageErrorCode` ánh xạ l�
 - Hàm thuần `buildContentSecurityPolicy({ nonce, isDevelopment })` nằm trong `lib/security/`, có unit test. `proxy.ts` đặt header CSP cho request (để Next.js tự gắn nonce vào script của nó) và cho response, và đặt `x-nonce` cho layout. `matcher` bỏ qua `_next/static`, `_next/image`, favicon và request prefetch, theo tài liệu Next.js.
 - `isDevelopment` đọc từ `src/lib/env.ts`. Module này được tạo ở phần 3 thay vì phần 4 như spec phần 1 dự kiến, vì proxy cần nó.
 - `style-src` cho `'unsafe-inline'` vì Radix (qua `react-remove-scroll`), Sonner và React Flow chèn thẻ `<style>` hoặc thuộc tính `style` lúc chạy mà không nhận nonce. Chèn CSS rủi ro thấp hơn nhiều so với chèn script, còn script, nguồn XSS chính, vẫn bị khóa bằng nonce.
-- Frontend gọi `z.config({ jitless: true })` trong module cấu hình được import đầu tiên ở `AppProviders`. Nếu không, Zod 4 thử `new Function` để biên dịch schema và gây vi phạm CSP mỗi lần tải trang (xem [Vấn đề với spec phần 2](#vấn-đề-với-spec-phần-2), mục 3).
+- Frontend gọi `z.config({ jitless: true })` trong module cấu hình được import đầu tiên ở `AppProviders`. Module này phải được nạp trước `@schemaforge/core` và mọi module tạo schema Zod, vì Zod đọc `jitless` khi tạo schema chứ không phải khi parse, còn core tạo schema lúc được import. Nếu không, Zod 4 thử `new Function` để biên dịch schema và gây vi phạm CSP mỗi lần tải trang (xem [Vấn đề với spec phần 2](#vấn-đề-với-spec-phần-2), mục 3).
 - Phần 4 thêm origin của backend vào `connect-src`, lấy từ env.
 
 **Kiểm tra:**

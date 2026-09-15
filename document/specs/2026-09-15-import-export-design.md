@@ -720,7 +720,7 @@ Tải JSON từ màn hình danh sách giúp sao lưu mà không phải mở edit
 
 ### Worker import
 
-- `frontend/src/features/import-export/workers/importer.worker.ts`, tạo bằng `new Worker(new URL(…, import.meta.url), { type: 'module' })` như worker của code panel. Worker gọi `z.config({ jitless: true })` trước lần parse đầu tiên.
+- `frontend/src/features/import-export/workers/importer.worker.ts`, tạo bằng `new Worker(new URL(…, import.meta.url), { type: 'module' })` như worker của code panel. Import đầu tiên của worker là module đặt `z.config({ jitless: true })` (`zod-config.ts` của phần 3), đứng trước mọi import của `@schemaforge/core` hay module tạo schema Zod, vì Zod đọc `jitless` khi tạo schema chứ không phải khi parse.
 - Nhận `{ requestId, format, source, fallbackSchemaName, layout, mode, target }` (`target` là tài liệu hiện tại ở chế độ gộp, hoặc `null`). Worker `import()` động subpath của định dạng, chạy importer với `generateId` dùng `crypto.randomUUID`, gọi `buildImportOperation`, áp thử bằng `applyOperation` để đếm phần tử và tính `findIntroducedIssues`, rồi trả `{ requestId, kind: 'success', operation, resultDocument, summary, diagnostics, introducedIssues }` hoặc `{ requestId, kind: 'failure', diagnostics }`.
 - Luồng chính dispatch đúng `operation` nhận được; id đã nằm sẵn trong operation nên kết quả trên luồng chính trùng kết quả áp thử.
 - Worker được tạo khi mở hộp thoại và bị hủy khi đóng, để giải phóng bộ nhớ của parser. Quá `IMPORT_TIMEOUT_MS` (30 giây) hoặc người dùng bấm "Hủy" thì luồng chính gọi `worker.terminate()`, báo `import-timeout` hoặc trở về bước 1; lần phân tích sau tạo worker mới.

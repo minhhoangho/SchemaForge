@@ -67,6 +67,7 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 - For substantial code changes, dispatch a reviewer agent before accepting the work.
 - When something fails, send the exact failure output back to the agent that did the work.
 - For worktree tasks, merge the agent's branch into the current branch. If a conflict needs edits, delegate the resolution to a subagent.
+- As soon as a worktree task is merged or dropped, clean up its worktree to save disk space: `git worktree remove --force <path>`, delete the directory if removal leaves it behind, delete the task branch with `git branch -d`, and run `git worktree prune`. Never remove the worktree of an agent that is still running or whose work is not merged yet.
 - Commit each finished, verified part separately, following `.claude/rules/git.md`. Do not push unless the user asks.
 
 ## 6. Report

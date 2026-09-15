@@ -696,7 +696,7 @@ Tải JSON từ màn hình danh sách giúp sao lưu mà không phải mở edit
 
 **Bước 1, Nguồn:**
 
-- Hai tab "Chọn file" và "Dán văn bản". Tab file có nút chọn file (`accept=".sql,.prisma,.dbml,.json"`) và vùng thả file; nút chọn file là đường thay thế bằng bàn phím cho thao tác kéo thả.
+- Hai tab "Chọn file" và "Dán văn bản". Tab file có nút chọn file (`accept=".sql,.prisma,.dbml,.json"`) và vùng thả file; nút chọn file là đường thay thế cho thao tác kéo thả, dùng được bằng bấm không kéo (WCAG 2.5.7) và bằng bàn phím (WCAG 2.1.1), theo mục tiêu WCAG 2.2 AA ở spec phần 3, mục 12.
 - Định dạng: SQL, Prisma, DBML, JSON. Chọn file thì tự chọn theo phần mở rộng, người dùng đổi được. SQL cần chọn dialect (PostgreSQL, MySQL, SQL Server): lần đầu chưa chọn sẵn, nên nút "Phân tích" bị disable tới khi chọn; lựa chọn được nhớ tới khi tải lại trang.
 - Chế độ (chỉ trong editor): "Tạo schema mới" (mặc định) hoặc "Thêm vào schema hiện tại" (mục 2).
 - **Đọc file:** kiểm tra `file.size` với `MAX_IMPORT_FILE_BYTES` trước khi đọc. Đọc byte, nhận diện BOM (UTF-8, UTF-16 LE, UTF-16 BE) rồi giải mã bằng `TextDecoder` với `fatal: true`; không có BOM thì giải mã UTF-8. Hỗ trợ UTF-16 vì "Generate Scripts" của SQL Server Management Studio mặc định lưu Unicode (UTF-16 LE). Giải mã lỗi thì báo "chỉ hỗ trợ UTF-8 và UTF-16" và không phân tích.

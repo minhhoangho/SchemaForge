@@ -1,6 +1,6 @@
 # Plan: Editor MVP
 
-Plan triển khai phần 3 trong [roadmap.md](../roadmap.md), dựa trên spec đã duyệt [2026-09-14-editor-mvp-design.md](../specs/2026-09-14-editor-mvp-design.md) (commit b9bf16b). Spec là nguồn gốc: plan chỉ chia việc, chốt các chi tiết mức cài đặt mà spec để lại, và không đổi quyết định nào của spec. Chỗ spec còn hở hoặc mâu thuẫn với thực tế của thư viện được nêu ở mục [Vấn đề phát hiện khi lập plan](#vấn-đề-phát-hiện-khi-lập-plan).
+Plan triển khai phần 3 trong [roadmap.md](../roadmap.md), dựa trên spec đã duyệt [2026-09-14-editor-mvp-design.md](../specs/2026-09-14-editor-mvp-design.md) (commit b9bf16b; ngày 2026-09-15 spec được sửa tại chỗ để đặt mục tiêu WCAG 2.2 mức AA ở mục 12 và 14, plan theo bản đã sửa). Spec là nguồn gốc: plan chỉ chia việc, chốt các chi tiết mức cài đặt mà spec để lại, và không đổi quyết định nào của spec. Chỗ spec còn hở hoặc mâu thuẫn với thực tế của thư viện được nêu ở mục [Vấn đề phát hiện khi lập plan](#vấn-đề-phát-hiện-khi-lập-plan).
 
 Plan được viết trong hai lượt. Lượt thứ nhất viết mọi mục chung, bảng task đầy đủ và nội dung chi tiết của các task loại A. Lượt thứ hai viết nội dung chi tiết của các task loại B trong mục [Task loại B](#task-loại-b), có thể tinh chỉnh tên, phụ thuộc và đợt của các dòng B trong bảng task, và bổ sung mục "Vấn đề phát hiện khi lập plan".
 
@@ -193,9 +193,9 @@ Gói spec đã loại và plan không dùng: `next-themes`, `eslint-plugin-jsx-a
 | 21 | Màn hình danh sách schema và route `/` | B | 7, 12, 13, 15 | 10 |
 | 22 | Route editor, `EditorScreenLoader`, `EditorScreen` và các trạng thái mở | B | 12, 13, 15, 18, 20 | 10 |
 | 23 | Toolbar và `ViewportControls` | B | 12, 16, 17, 18 | 10 |
-| 24 | Canvas: `TableNode`, `ColumnRow`, `RelationEdge`, marker, `ariaLabelConfig` | B | 12, 17, 18, 19 | 10 |
+| 24 | Canvas: `TableNode`, `ColumnRow`, `RelationEdge`, marker, `ariaLabelConfig`, `useRevealFocusedElement` | B | 12, 17, 18, 19 | 10 |
 | 25 | Panel trái: tab Bảng, Enum, Vấn đề | B | 12, 17, 18 | 10 |
-| 26 | Panel bảng: cột, index, comment | B | 12, 17, 18 | 11 |
+| 26 | Panel bảng: cột, index, comment, vị trí | B | 12, 17, 18 | 11 |
 | 27 | Panel quan hệ và panel nhiều lựa chọn | B | 12, 17, 18 | 11 |
 | 28 | Hộp thoại "Tạo quan hệ" | B | 12, 16, 18 | 11 |
 | 29 | Ghép editor: bố cục, landmark, skip link, xóa bằng phím, toast hoàn tác, focus | B | 20, 22, 23, 24, 25, 26, 27, 28 | 12 |
@@ -204,7 +204,7 @@ Gói spec đã loại và plan không dùng: `next-themes`, `eslint-plugin-jsx-a
 | 32 | Tài liệu, kiểm tra toàn repo, checklist kiểm tra tay | B | 1–31 | 14 |
 
 - Task 13 đứng ở đợt 9 vì ngoài các task A còn cần core 27; nếu core 27 merge sớm thì chạy ở đợt 8.
-- Checklist kiểm tra tay (spec mục 11 "Kiểm tra", mục 12 "Kiểm tra tay", mục 13 "Cách đo tay", mục 14 "Không kiểm tra tự động được") nằm trong Task 32, gồm độ tương phản, CSP trên Chrome thật và số đo hiệu năng.
+- Checklist kiểm tra tay (spec mục 11 "Kiểm tra", mục 12 "Kiểm tra tay", mục 13 "Cách đo tay", mục 14 "Không kiểm tra tự động được") nằm trong Task 32, gồm độ tương phản, CSP trên Chrome thật, số đo hiệu năng, và ba mục WCAG 2.2 AA mà axe không đo được trên jsdom: kích thước mục tiêu bấm, focus không bị che, đường thay thế kéo bằng bấm.
 
 ## Task 1: Dependency, alias `@/`, cấu hình Vitest và setup test
 
@@ -342,6 +342,7 @@ Danh sách component lấy từ spec: nút và nút icon (`button`, `tooltip`); 
    - Bỏ mọi `as`; `React.ComponentProps<…>` và `VariantProps<…>` giữ nguyên.
    - `DialogContent`: bỏ chữ `Close` hardcode, thêm prop bắt buộc `closeLabel: string` hiển thị trong `<span className="sr-only">`; đổi `showCloseButton` thành `hasCloseButton` (mặc định `true`). Component nào khác còn chuỗi hiển thị hardcode (lint báo) thì cũng đổi thành prop bắt buộc.
    - File trong `components/ui/` giữ cấu trúc nhiều export của shadcn/ui (`Dialog`, `DialogContent`, `DialogTitle`…); đây là ngoại lệ có chủ đích với quy tắc một component mỗi file (Vấn đề 7).
+   - Ngoại lệ duy nhất về class (spec mục 12 "Kích thước mục tiêu bấm", WCAG 2.5.8): component có phần tử bấm nhỏ hơn 24×24 px trong class sinh ra (ít nhất `Checkbox` với `size-4`) thêm `relative after:absolute after:-inset-1` vào phần tử đó, để vùng bấm tối thiểu 24×24 px mà kích thước hiển thị không đổi. Ghi danh sách component đã sửa vào báo cáo; Task 32 đo lại bằng DevTools.
 8. `.prettierrc.json`: `{ "plugins": ["prettier-plugin-tailwindcss"], "tailwindStylesheet": "./frontend/src/app/globals.css", "tailwindFunctions": ["cn", "cva"] }`. Chạy `pnpm exec prettier --write` trên mọi file của task.
 
 **Test viết trước:**
@@ -679,7 +680,7 @@ Mong đợi: cả bốn fail đúng chỗ; sau khi hoàn tác, bốn lệnh ki�
   - Giá trị context được memo để consumer không render lại vô cớ.
 - `components/theme-switch.tsx` (`"use client"`): nút icon (lucide) có `aria-label={t("theme.label")}` và `Tooltip` cùng nội dung; `DropdownMenuRadioGroup` với ba mục `system`, `light`, `dark`. `onValueChange` chỉ nhận giá trị có trong `THEME_PREFERENCES` (tìm bằng `find`, không ép kiểu).
 - `components/ui/sonner.tsx`, viết tay thay cho bản của shadcn (Vấn đề 3):
-  - `export function Toaster(props: ToasterProps & { readonly containerAriaLabel: string }): JSX.Element` render `Toaster` của `sonner` với `theme={preference}` từ `useThemePreference()` (`ThemePreference` trùng kiểu `theme` của Sonner), `className="toaster group"`, icon lucide như bản shadcn.
+  - `export function Toaster(props: ToasterProps & { readonly containerAriaLabel: string }): JSX.Element` render `Toaster` của `sonner` với `theme={preference}` từ `useThemePreference()` (`ThemePreference` trùng kiểu `theme` của Sonner), `className="toaster group"`, `position="bottom-center"` (spec mục 12 "Focus không bị che": toast nổi trên canvas, không đè panel phải), icon lucide như bản shadcn.
   - `containerAriaLabel` bắt buộc, vì mặc định của Sonner là chuỗi tiếng Anh "Notifications"; Task 13 truyền `t("notifications.label")`.
   - Không có `style` ép kiểu; biến màu nằm trong `globals.css`.
 - `globals.css` (giữ nguyên phần Task 3 sinh):
@@ -753,15 +754,24 @@ Mong đợi: cả bốn fail đúng chỗ; sau khi hoàn tác, bốn lệnh ki�
   - Trước khi render: đặt `document.documentElement.lang` và áp class theme bằng `applyResolvedTheme(resolveTheme(themePreference, false))`, thay cho `theme-init.js` không chạy trong test.
   - Bọc `I18nProvider` → `ThemeProvider` → `TooltipProvider` → `ui` và `Toaster` (nhãn vùng lấy bằng `useTranslation` trong một component nhỏ cùng file).
   - `user` là `userEvent.setup()`.
-- `expect-no-axe-violations.ts`: `expectNoAxeViolations(container: Element): Promise<void>` gọi `axe.run(container, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] }, rules: { "color-contrast": { enabled: false } } })` rồi `expect` danh sách `{ id, targets }` của vi phạm bằng `[]`, để thông báo lỗi dễ đọc. Comment: axe-core không cho chạy song song, nên luôn `await` từng lần gọi.
+- `expect-no-axe-violations.ts`: `expectNoAxeViolations(container: Element): Promise<void>` gọi `axe.run(container, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }, rules: { "color-contrast": { enabled: false }, "target-size": { enabled: false } } })` rồi `expect` danh sách `{ id, targets }` của vi phạm bằng `[]`, để thông báo lỗi dễ đọc. Comment: axe-core không cho chạy song song, nên luôn `await` từng lần gọi.
+  - Tag của axe không cộng dồn, nên danh sách có đủ tag A, AA của WCAG 2.0, 2.1, 2.2 (mục tiêu WCAG 2.2 AA). axe-core 4.13.0 không có rule nào mang `wcag22a`, nên không liệt kê tag này. `wcag22aa` hiện chỉ gồm `target-size`, rule cần bố cục thật và cho kết quả đạt giả trên jsdom, nên bị tắt như `color-contrast`; comment trong file nêu hai lý do này.
+  - Helper chỉ phủ phần tiêu chí axe đo được. Bảng ở spec mục 12 "Kiểm tra tự động" chia tiêu chí mới của 2.2 theo cách kiểm tra: 2.4.11 bằng unit test và test component của Task 24, 2.5.7 bằng test component của Task 23, 25, 26, 28; 2.5.8, 2.4.11, 2.5.7 trên trình duyệt thật bằng checklist của Task 32.
 
 **Test viết trước:**
 
 - `match-media-stub.test.ts`: `reports the initial dark preference`; `notifies change listeners when the preference changes`; `restores the original matchMedia`.
 - `render-with-providers.test.tsx`: `renders Vietnamese translations by default`; `renders translations for the requested locale`; `applies the dark class for the dark theme`; `provides a user-event instance that can click`; `renders tooltips without a missing provider error`.
-- `expect-no-axe-violations.test.tsx`: `passes for a labelled button`; `fails for a button without an accessible name`; `does not report color contrast`.
+- `expect-no-axe-violations.test.tsx`: `passes for a labelled button`; `fails for a button without an accessible name`; `does not report color contrast`; `does not report target size on jsdom` (nút có `aria-label` với `style` 10×10 px).
 
-**Kiểm tra:** như "Quy ước chung".
+**Kiểm tra:** như "Quy ước chung", thêm lệnh xác nhận tag trên bản axe-core đã cài:
+
+```bash
+source ~/.nvm/nvm.sh >/dev/null 2>&1; nvm use 24 >/dev/null 2>&1;
+(cd frontend && node -e 'const axe = require("axe-core"); console.log(axe.version, axe.getRules(["wcag22aa"]).map((rule) => rule.ruleId).join(","), axe.getRules(["wcag22a"]).length)')
+```
+
+Mong đợi: `4.13.0 target-size 0`. Phiên bản axe-core khác mà `wcag22aa` có thêm rule thì ghi vào báo cáo; không tự tắt thêm rule.
 
 **Commit:** `test(frontend): add component test helpers`
 

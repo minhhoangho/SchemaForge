@@ -33,7 +33,7 @@ Quyết định của người dùng khi duyệt spec: **phần 3 không có tes
 | 9 | i18n | Cookie `sf-locale`; lần đầu chọn theo `Accept-Language`, không khớp thì `en`. Server và client dùng chung resource TypeScript, key có kiểu, `vi` phải khớp `en` lúc biên dịch. Lint bằng `eslint-plugin-i18next` và `eslint-plugin-jsx-a11y-x` |
 | 10 | Zoom, pan, minimap | Có sẵn trong React Flow; nút zoom và fit view nằm trên toolbar của ứng dụng; `MiniMap` có `pannable`, `zoomable` |
 | 11 | Bảo mật | CSP có nonce theo từng request, sinh trong `proxy.ts`, ngay từ phần 3. `script-src` dùng nonce và `'strict-dynamic'`; `style-src` cho phép `'unsafe-inline'`. Zod chạy chế độ `jitless` ở frontend |
-| 12 | Accessibility | Mọi thao tác kéo có đường thay thế bằng bàn phím; landmark, skip link; hộp thoại Radix; nhãn của React Flow được dịch qua `ariaLabelConfig`; axe-core chạy trong test component |
+| 12 | Accessibility | Mục tiêu WCAG 2.2 mức AA. Mọi thao tác kéo có đường thay thế bằng bấm (không kéo) và bằng bàn phím; mục tiêu bấm tối thiểu 24×24 CSS px; phần tử đang focus không bị minimap hay toast che hoàn toàn; landmark, skip link; hộp thoại Radix; nhãn của React Flow được dịch qua `ariaLabelConfig`; axe-core chạy trong test component, phần axe không đo được trên jsdom kiểm tra bằng test component và kiểm tra tay |
 | 13 | Hiệu năng | Schema 100 bảng, 1.500 cột, 150 quan hệ: sửa một cột chỉ render lại đúng dòng cột đó (test tự động); INP ≤ 200 ms và kéo bảng ≥ 30 fps khi CPU chậm 4× (đo tay) |
 | 14 | Test | Chỉ Vitest trên jsdom: unit test, component test, và test tích hợp màn hình + store + repository với `fake-indexeddb`. Không có test chạy trên trình duyệt; độ tương phản, CSP trên trình duyệt và hiệu năng được kiểm tra tay |
 
@@ -174,7 +174,7 @@ Nội dung theo lựa chọn:
 | Lựa chọn | Panel |
 |---|---|
 | Không có | Ẩn |
-| Một bảng | Tên, comment; cột; index; nút "Thêm quan hệ" và "Xóa bảng" |
+| Một bảng | Tên, comment; vị trí X, Y; cột; index; nút "Thêm quan hệ" và "Xóa bảng" |
 | Một quan hệ (không kèm bảng) | Loại, bảng hai đầu, cặp cột, ON DELETE, ON UPDATE, nút xóa |
 | Nhiều phần tử | "Đã chọn n bảng, m quan hệ" và nút xóa tất cả (một `batch`) |
 
@@ -188,6 +188,8 @@ Nội dung theo lựa chọn:
 **Quan hệ.** Loại chỉ có 1-1 hoặc 1-n (`updateRelation({ kind })`), kèm dòng giải thích "n-n được tạo bằng bảng trung gian". Bảng hai đầu chỉ hiển thị; đổi bảng là xóa rồi tạo lại. Cặp cột có thể thêm, sửa, bỏ, và luôn còn ít nhất một cặp. ON DELETE, ON UPDATE chọn trong năm hành động.
 
 **Comment.** Bảng và cột có textarea comment; xóa hết nội dung là xóa comment (chuỗi rỗng). Node có icon comment, tooltip hiện nội dung dạng văn bản thuần.
+
+**Vị trí.** Hai ô số X, Y (pixel canvas ở mức zoom 1, hiển thị làm tròn tới số nguyên) là đường thay thế bằng bấm và bằng bàn phím cho việc kéo bảng (mục 12). Ô commit khi blur hoặc Enter như mọi ô nhập một dòng (mục 6) và dispatch một `moveElements` cho riêng bảng đó. Giá trị không phải số hữu hạn thì ô trả về giá trị đang hiển thị, không dispatch. Kéo bảng hoặc di chuyển bằng phím mũi tên thì ô cập nhật theo tài liệu. Nhãn nằm trong namespace `editor`.
 
 ### Chỉnh sửa trong panel, không trong node
 
@@ -261,9 +263,10 @@ Khác kiểu hoặc cột được tham chiếu không unique không bị chặn
 
 ### Chọn, di chuyển, xóa
 
-- **Chọn:** bấm vào node hoặc edge. `Shift` + bấm, hoặc `Shift` + kéo khung, để chọn nhiều (phím bổ trợ mặc định của React Flow, không phải phím tắt). Bấm vào nền thì bỏ chọn. Lựa chọn nằm trong store (mục 5), nên panel và canvas luôn khớp.
+- **Chọn:** bấm vào node hoặc edge. Phím chọn nhiều + bấm (`multiSelectionKeyCode`, mặc định của React Flow 12.11.6 là `⌘` trên macOS và `Ctrl` trên hệ khác), hoặc `Shift` + kéo khung (`selectionKeyCode`), để chọn nhiều (phím bổ trợ mặc định của React Flow, không phải phím tắt). Bấm vào nền thì bỏ chọn. Lựa chọn nằm trong store (mục 5), nên panel và canvas luôn khớp.
 - **Di chuyển bằng chuột:** trong lúc kéo, vị trí tạm nằm trong `dragPositions` của store, không nằm trong tài liệu. Ở `onNodeDragStop`, store dispatch **một** `moveElements` chứa mọi bảng đang kéo, rồi xóa `dragPositions`. Không phát operation nếu vị trí không đổi.
 - **Di chuyển bằng phím mũi tên** (tính năng accessibility có sẵn của React Flow trên node đang focus): mỗi lần nhấn dispatch một `moveElements`, và các lần nhấn liên tiếp trên cùng tập bảng được gộp thành một mục lịch sử (mục 6). Plan xác nhận chuỗi sự kiện `onNodesChange` của React Flow để phân biệt kéo chuột với phím mũi tên.
+- **Di chuyển bằng ô "Vị trí"** trong panel bảng (mục 2): mỗi lần commit dispatch một `moveElements` và là một mục lịch sử.
 - **Xóa bằng nút** trong panel: bảng, cột, quan hệ, index, enum, hoặc nhiều phần tử cùng lúc.
 - **Xóa bằng phím `Delete` hoặc `Backspace`:** xóa lựa chọn hiện tại (bảng và quan hệ) bằng **một** operation. Hàm thuần `buildDeleteSelectionOperation(selection)` trả `batch` gồm `removeRelation` cho từng quan hệ được chọn, rồi `removeTable` cho từng bảng được chọn. Quan hệ bị xóa trước, nên quan hệ nối với một bảng cũng đang được chọn không bị xóa hai lần. Batch được dispatch một lần, nên một lần undo khôi phục tất cả. Lựa chọn rỗng thì không làm gì.
   - Phím chỉ có tác dụng khi `shouldHandleShortcut(event, { requiresCanvasFocus: true })` cho phép (mục 6): không khi đang gõ trong ô nhập, `textarea`, phần tử `contenteditable`, không khi IME đang composition, không khi hộp thoại đang mở, và chỉ khi focus nằm trong vùng canvas hoặc ở `body`.
@@ -387,7 +390,7 @@ Test ở mục 14 kiểm tra việc dùng lại object (`toBe`) và số lần r
 
 | Nguồn | Khi nào dispatch | Gộp |
 |---|---|---|
-| Ô nhập một dòng (tên, độ dài, literal mặc định, giá trị enum) | Blur, hoặc Enter khi không đang gõ bằng IME (`event.isComposing` là `false`). Escape trả ô về giá trị hiện tại, không dispatch | Không cần: một lần commit là một mục |
+| Ô nhập một dòng (tên, độ dài, literal mặc định, giá trị enum, vị trí X, Y của bảng) | Blur, hoặc Enter khi không đang gõ bằng IME (`event.isComposing` là `false`). Escape trả ô về giá trị hiện tại, không dispatch | Không cần: một lần commit là một mục |
 | Textarea (comment) | Blur. Enter xuống dòng | Không cần |
 | Checkbox, select, combobox | Mỗi lần đổi | Không |
 | Nút lên, xuống, thêm, xóa | Mỗi lần bấm | Không |
@@ -662,25 +665,54 @@ Hàm thuần `toStorageErrorCode(error: unknown): StorageErrorCode` ánh xạ l�
 
 ## 12. Accessibility
 
+- **Mục tiêu: WCAG 2.2 mức AA** (người dùng chốt ngày 2026-09-15, ghi ở `architecture.md`). WCAG 2.2 là W3C Recommendation (bản ngày 2024-12-12), bao trùm WCAG 2.1 và bỏ tiêu chí 4.1.1 Parsing. Tiêu chí mức AAA (gồm 2.4.12, 2.4.13, 3.3.9) không bắt buộc. Mục này thiết kế cho các tiêu chí mới ở mức A và AA của 2.2 trong phạm vi phần 3; tiêu chí 3.3.8 và 3.3.7 của form đăng nhập, đăng ký nằm ở [spec phần 4](2026-09-15-auth-cloud-design.md), mục 6.
 - **Landmark:** `<header>` chứa toolbar; hai `<aside>` cho panel trái và panel phải, có `aria-label` đã dịch; `<main>` chứa canvas. Đầu `<main>` có skip link "Bỏ qua canvas", chuyển focus tới panel thuộc tính (hoặc panel trái nếu chưa chọn gì).
 - **Thứ tự tab:** toolbar → panel trái → canvas (node, edge theo thứ tự của React Flow) → panel phải. Toolbar là các nút thường trong thứ tự tab, không dùng `role="toolbar"`, vì role này đòi điều hướng bằng phím mũi tên.
-- **Mọi thao tác kéo có đường thay thế bằng bàn phím** (WCAG 2.5.7):
+- **Mọi thao tác kéo có hai đường thay thế**, vì đây là hai tiêu chí riêng và phải đạt cả hai:
+  - WCAG 2.5.7 Dragging Movements (AA): làm được bằng một con trỏ **mà không kéo**, tức bấm hoặc chạm. Phím tắt hay phím mũi tên không thỏa tiêu chí này.
+  - WCAG 2.1.1 Keyboard (A): làm được chỉ bằng bàn phím.
 
-| Thao tác kéo | Thay thế |
-|---|---|
-| Chọn bảng trên canvas | Tab "Bảng" ở panel trái; Tab tới node rồi Enter hoặc Space |
-| Di chuyển bảng | Phím mũi tên trên node đang được chọn (có sẵn trong React Flow) |
-| Nối quan hệ | Nút "Thêm quan hệ" trong panel bảng |
-| Pan, zoom, minimap | Nút zoom và fit view trên toolbar; tab "Bảng" đưa bảng vào giữa khung nhìn |
-| Sắp xếp cột, giá trị enum, cột của index | Nút lên, xuống |
+| Thao tác kéo | Con trỏ, không kéo (2.5.7) | Bàn phím (2.1.1) |
+|---|---|---|
+| Di chuyển bảng | Ô "Vị trí" X, Y trong panel bảng (mục 2) | Phím mũi tên trên node đang được chọn (có sẵn trong React Flow; `Shift` + mũi tên đi bước gấp 4); ô "Vị trí" |
+| Nối quan hệ từ handle sang handle | Nút "Thêm quan hệ" trong panel bảng | Nút "Thêm quan hệ" |
+| Chọn nhiều bằng kéo khung | Bấm từng node, edge kèm phím chọn nhiều (mục 3). Mọi thao tác trên nhiều phần tử (xóa, di chuyển) cũng làm được trên từng phần tử | Tab tới từng phần tử và thao tác trên từng phần tử |
+| Pan canvas bằng kéo nền, kéo trên minimap | Nút zoom in, zoom out, fit view trên toolbar; bấm một dòng trong tab "Bảng" đưa bảng vào giữa khung nhìn | Các nút và tab trên; focus một node hay edge thì phần tử được đưa vào khung nhìn (mục "Focus không bị che" bên dưới) |
+
+Chọn bảng bằng bàn phím: dòng trong tab "Bảng" ở panel trái, hoặc Tab tới node rồi Enter hoặc Space. Phần 3 không có thao tác kéo nào khác: sắp xếp cột, giá trị enum và cột của index chỉ dùng nút lên, xuống; panel thu gọn bằng nút, không đổi kích thước bằng kéo. Thao tác kéo mới ở các phần sau (vùng thả file ở phần 7, khung subject area và ghi chú ở phần 9) phải có đủ hai đường thay thế trong spec của phần đó.
 
 - **React Flow:** `nodesFocusable`, `edgesFocusable` bật; `ariaLabelConfig` được dựng từ namespace `canvas` cho mọi key có hiển thị: `node.a11yDescription.default`, `node.a11yDescription.keyboardDisabled`, `node.a11yDescription.ariaLiveMessage` (hàm nhận `direction`, `x`, `y`), `edge.a11yDescription.default`, `minimap.ariaLabel`, `handle.ariaLabel`. Node và edge có `ariaLabel` riêng (mục 3).
 - **Hộp thoại:** dùng `Dialog` và `AlertDialog` của shadcn/ui (Radix): giữ focus bên trong, đóng bằng Escape, trả focus về nút đã mở. Hộp thoại "Tạo quan hệ" mở từ thao tác kéo không có nút mở, nên khi đóng thì trả focus về node nguồn.
 - **Quản lý focus:** thêm bảng thì focus ô tên trong panel; thêm cột, index, giá trị enum thì focus ô tên mới; xóa phần tử bằng nút hoặc phím `Delete` thì focus về vùng canvas; bấm issue thì focus trường có lỗi.
 - **Nhìn thấy focus:** dùng token `ring` cho mọi phần tử tương tác, kể cả node, edge (`:focus-visible`) và dòng trong panel.
 - **Không chỉ dựa vào màu:** khóa, khóa ngoại, unique, nullable, issue, loại quan hệ đều có icon hoặc ký hiệu kèm text cho trình đọc màn hình.
-- **Kiểm tra tự động:** lint `jsx-a11y-x`; test component truy vấn theo role và label; helper `expectNoAxeViolations(container)` gọi `axe.run` của axe-core (tag WCAG 2.1 A và AA) trong test component của màn hình danh sách, editor, các panel và hộp thoại, ở cả hai theme; test component chỉ dùng bàn phím qua `user-event` (mục 14).
-- **Kiểm tra tay:** jsdom không tính style và bố cục, nên rule `color-contrast` của axe bị tắt trong test. Độ tương phản được kiểm tra tay trên các cặp token chữ và nền của cả hai theme (mục 8) bằng công cụ đo tương phản của Chrome DevTools, với ngưỡng 4.5:1 cho chữ thường và 3:1 cho icon, viền và vòng focus. Vòng focus có nhìn thấy không và thứ tự tab qua canvas cũng được kiểm tra tay trên Chrome.
+- **Focus không bị che** (WCAG 2.4.11, AA): phần tử đang có focus bàn phím không bị nội dung của ứng dụng che hoàn toàn.
+  - Toolbar, hai panel và canvas là các ô của bố cục, không nổi đè lên nhau. Trong panel không có tiêu đề dính (`sticky`) đè lên nội dung cuộn.
+  - Toast (Sonner) đặt ở `bottom-center`, nổi trên vùng canvas thay vì đè lên panel phải như vị trí mặc định `bottom-right`.
+  - Trên canvas, minimap và vùng toast nổi đè lên node và edge, và node hay edge nhận focus có thể nằm ngoài khung nhìn. Hook `useRevealFocusedElement` nghe `focusin` trong canvas. Khi phần tử nhận focus là node hoặc edge và khớp `:focus-visible`, hàm thuần `isFocusTargetObscured(target, canvas, overlays)` nhận `DOMRect` của phần tử, của vùng canvas và của các overlay (minimap, vùng toast), trả `true` khi phần giao của phần tử với canvas rỗng hoặc nằm trọn trong một overlay. Khi đó canvas gọi `setCenter` của `ViewportControls` (mục 14) tới tâm phần tử, đổi sang tọa độ canvas theo viewport hiện tại, giữ mức zoom, hiệu ứng 200 ms hoặc 0 khi `prefers-reduced-motion: reduce` (mục 10). Bị che một phần thì không pan.
+  - `autoPanOnNodeFocus` của React Flow 12.11.6 (mặc định bật) chỉ pan khi node nằm hoàn toàn ngoài khung nhìn, không xét minimap và không áp cho edge, nên được tắt (`autoPanOnNodeFocus={false}`) để hai cơ chế không chạy chồng.
+  - Hộp thoại Radix là modal và giữ focus bên trong. Popover, dropdown menu và tooltip đóng khi focus rời đi, nên không che phần tử đang focus bên ngoài.
+- **Kích thước mục tiêu bấm** (WCAG 2.5.8, AA): mọi mục tiêu bấm do ứng dụng vẽ có kích thước tối thiểu 24×24 CSS px.
+  - Nút icon không nhỏ hơn size `icon-xs` của shadcn/ui (`size-6`, 24 px); nút icon trên toolbar dùng size `icon` (36 px) hoặc `icon-sm` (32 px).
+  - `Checkbox` của shadcn/ui vẽ ở `size-4` (16 px). Component `ui` có phần tử bấm nhỏ hơn 24 px được mở rộng vùng bấm thành tối thiểu 24×24 px bằng pseudo-element nằm trên chính phần tử, không đổi kích thước hiển thị.
+  - `RelationEdge` truyền `interactionWidth={24}` cho `BaseEdge` (mặc định của React Flow là 20 px).
+  - Handle của node (React Flow vẽ 6×6 px) dùng ngoại lệ "Equivalent" của tiêu chí: nối quan hệ làm được bằng nút "Thêm quan hệ", là nút đạt 24 px. Link nằm trong câu văn dùng ngoại lệ "Inline".
+- **Trợ giúp nhất quán, không bắt nhập lại** (WCAG 3.2.6 và 3.3.7, mức A): phần 3 không có cơ chế trợ giúp nào nên 3.2.6 chưa áp dụng; khi một phần sau thêm trợ giúp lặp lại trên nhiều màn hình (ví dụ danh sách phím tắt UX-03 ở phần 9), trợ giúp nằm cùng vị trí tương đối trên màn hình danh sách và editor. Phần 3 không có quy trình nhiều bước bắt nhập lại thông tin đã nhập; hộp thoại "Tạo quan hệ" điền sẵn theo điểm kéo và lựa chọn hiện tại.
+- **Kiểm tra tự động:** lint `jsx-a11y-x`; test component truy vấn theo role và label; helper `expectNoAxeViolations(container)` gọi `axe.run` của axe-core 4.13.0 với tag `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa` trong test component của màn hình danh sách, editor, các panel và hộp thoại, ở cả hai theme; test component chỉ dùng bàn phím qua `user-event` (mục 14).
+  - Tag của axe không cộng dồn: `wcag22aa` chỉ gắn cho rule của tiêu chí mới trong 2.2, nên danh sách phải có đủ tag của 2.0, 2.1 và 2.2. Kiểm tra ngày 2026-09-15 bằng `axe.getRules()` trên axe-core 4.13.0 đã cài: `wcag22aa` chỉ có rule `target-size` (2.5.8); không rule nào mang tag `wcag22a`, nên tag này không được liệt kê.
+  - Rule `target-size` cần bố cục thật. Trên jsdom rule cho kết quả đạt giả (thử ngày 2026-09-15: nút 10×10 px vẫn nằm trong `passes`), nên helper tắt rule này cùng với `color-contrast`.
+  - Tiêu chí mới ở mức A và AA của WCAG 2.2 được kiểm tra như sau:
+
+| Tiêu chí | axe trên jsdom | Unit test, test component | Kiểm tra tay |
+|---|---|---|---|
+| 2.4.11 Focus Not Obscured (Minimum), AA | Không có rule | `isFocusTargetObscured`; canvas gọi `setCenter` khi node hoặc edge nhận focus bị che (rect được giả trong test) | Tab qua node nằm dưới minimap, nằm ngoài khung nhìn, và khi toast đang hiện |
+| 2.5.7 Dragging Movements, AA | Không có rule | Ô "Vị trí" dispatch `moveElements`; nút "Thêm quan hệ", zoom, fit view; bấm dòng tab "Bảng" đưa bảng vào giữa | Làm mọi thao tác trong bảng thay thế kéo chỉ bằng bấm chuột |
+| 2.5.8 Target Size (Minimum), AA | Rule `target-size` bị tắt vì đạt giả trên jsdom | Không | Đo bằng Chrome DevTools: nút icon, checkbox, edge |
+| 3.2.6 Consistent Help, A | Không có rule | Không áp dụng ở phần 3 | Không áp dụng ở phần 3 |
+| 3.3.7 Redundant Entry, A | Không có rule | Hộp thoại "Tạo quan hệ" điền sẵn (mục 14) | Không |
+| 3.3.8 Accessible Authentication (Minimum), AA | Không có rule | Phần 4 | Phần 4 |
+
+- **Kiểm tra tay:** jsdom không tính style và bố cục, nên rule `color-contrast` và `target-size` của axe bị tắt trong test. Độ tương phản được kiểm tra tay trên các cặp token chữ và nền của cả hai theme (mục 8) bằng công cụ đo tương phản của Chrome DevTools, với ngưỡng 4.5:1 cho chữ thường và 3:1 cho icon, viền và vòng focus. Vòng focus có nhìn thấy không và thứ tự tab qua canvas cũng được kiểm tra tay trên Chrome. Kích thước mục tiêu bấm, focus không bị che và các đường thay thế kéo được kiểm tra tay theo bảng ở trên.
 
 ## 13. Hiệu năng
 
@@ -713,6 +745,7 @@ Mock chỉ ở biên: IndexedDB (`fake-indexeddb`), Web Locks (bản giả của
 | `issue-index`, `resolve-issue-target` | Mọi tiền tố `path` ra đúng phần tử và biến nội suy |
 | `build-add-table-operation`, `build-relation-operation`, `name-suggestions` | Batch thêm bảng không phát sinh issue; dùng cột có sẵn; tạo cột mới cho 1-n, 1-1 một cột và nhiều cột; tránh trùng tên; n-n gọi `buildManyToMany`; lỗi khi thiếu khóa chính |
 | `build-delete-selection-operation` | Batch có quan hệ trước, bảng sau; chọn cùng lúc một bảng và quan hệ nối với nó thì vẫn áp thành công; một lần undo khôi phục tất cả; lựa chọn rỗng không tạo operation |
+| `is-focus-target-obscured` | Phần tử nằm ngoài canvas thì bị che; nằm trọn dưới minimap hoặc trong vùng toast thì bị che; bị minimap che một phần thì không |
 | `should-handle-shortcut` | Tổ hợp phím theo nền tảng; bỏ qua ô nhập, `contenteditable`, IME, hộp thoại đang mở; `requiresCanvasFocus` chỉ cho phép khi focus ở canvas hoặc `body` |
 | `schema-repository` | Tạo, liệt kê theo `updatedAt`, mở (parse thành công, lỗi cấu trúc, `version-unsupported`, không ghi đè), lưu, đổi tên bằng `renameSchema`, xóa cả ba bảng, lưu viewport |
 | `use-autosave` | Mỗi lúc chỉ một lần ghi; thay đổi đến trong lúc ghi được ghi một lần ở cuối; `saveStatus` chuyển đúng khi lỗi |
@@ -730,11 +763,12 @@ Mock chỉ ở biên: IndexedDB (`fake-indexeddb`), Web Locks (bản giả của
 | `SchemaListScreen` | Trạng thái rỗng; hộp thoại tạo có kiểm tra tên và chuyển trang; đổi tên; xóa phải xác nhận; toast khi schema đang mở ở tab khác; dòng không đọc được chỉ có Xóa |
 | `EditorScreen` | Các trạng thái ở mục 1: không tìm thấy, đang mở ở tab khác, không đọc được |
 | `Toolbar` | Undo, redo bị disable đúng lúc; tên truy cập đã dịch ở cả hai locale; trạng thái lưu và nút thử lại; nút zoom, fit view gọi đúng hàm của `ViewportControls` (interface bọc `useReactFlow`, được mock) |
-| Panel bảng, dòng cột | Commit khi blur và Enter; Escape trả về giá trị cũ; Enter trong lúc IME composition không commit; không dispatch khi giá trị không đổi; checkbox khóa chính; combobox kiểu có nhóm enum; phần chi tiết chỉ hiện biểu thức mặc định hợp với kiểu |
+| Panel bảng, dòng cột | Commit khi blur và Enter; Escape trả về giá trị cũ; Enter trong lúc IME composition không commit; không dispatch khi giá trị không đổi; checkbox khóa chính; combobox kiểu có nhóm enum; phần chi tiết chỉ hiện biểu thức mặc định hợp với kiểu; ô "Vị trí" commit một `moveElements`, giá trị không hợp lệ trả ô về giá trị cũ và không dispatch |
 | Hộp thoại "Tạo quan hệ" | Điền sẵn theo handle nguồn và đích (test gọi handler kết nối của canvas với dữ liệu kết nối giả); chặn khi thiếu khóa chính; Enter xác nhận; focus trở về đúng chỗ khi đóng |
 | Panel quan hệ, index, tab "Enum" | Luôn còn ít nhất một cặp cột và một cột index; nút xóa enum đang dùng bị disable và liệt kê cột |
 | Tab "Vấn đề" | Thông báo đã dịch có tên phần tử; bấm thì chọn phần tử và focus trường lỗi |
 | `TableNode` (trong `ReactFlowProvider`) | Dấu khóa, khóa ngoại, unique, nullable; `aria-label`; test đếm render ở mục 13 |
+| `useRevealFocusedElement` | Node hoặc edge nhận focus bị che thì gọi `setCenter` của `ViewportControls` (được mock) với mức zoom hiện tại; không bị che thì không gọi |
 | `ThemeSwitch`, `LanguageSwitch` | Ghi cookie; đổi class `dark` và `html[lang]` |
 | Accessibility | `expectNoAxeViolations` (mục 12) trên danh sách, editor, panel bảng, panel quan hệ, hộp thoại "Tạo quan hệ", hộp thoại xóa schema, ở cả hai theme |
 
@@ -766,6 +800,9 @@ Những mục sau cần trình duyệt thật. Chúng được kiểm tra tay th
 | CSP có hiệu lực trên trình duyệt | jsdom không áp CSP | Mục 11 |
 | Dữ liệu còn sau khi đóng và mở lại trình duyệt | `fake-indexeddb` chỉ nằm trong bộ nhớ | Chrome: tạo schema, đóng trình duyệt, mở lại |
 | Hai tab thật với Web Locks | Test chỉ dùng khóa giả | Mở cùng schema ở hai tab Chrome |
+| Mục tiêu bấm tối thiểu 24×24 CSS px (WCAG 2.5.8) | jsdom không có bố cục; rule `target-size` của axe đạt giả | Đo bằng Chrome DevTools nút icon, checkbox, edge ở toolbar, panel, canvas |
+| Focus không bị minimap, toast che hoàn toàn (WCAG 2.4.11) | jsdom không có bố cục | Tab qua node nằm dưới minimap, nằm ngoài khung nhìn, và khi toast đang hiện; làm lại ở màn hình danh sách |
+| Đường thay thế kéo bằng bấm (WCAG 2.5.7) | Cần sự kiện con trỏ thật | Chỉ bằng bấm chuột: di chuyển bảng bằng ô "Vị trí", tạo quan hệ bằng nút, xem mọi bảng bằng fit view và tab "Bảng" |
 | Số đo hiệu năng | Mục 13 | Mục 13 |
 
 ### Coverage
@@ -799,8 +836,9 @@ frontend/
         lib/            to-table-nodes.ts, to-relation-edges.ts, issue-index.ts, resolve-issue-target.ts,
                         build-add-table-operation.ts, build-relation-operation.ts,
                         build-delete-selection-operation.ts, name-suggestions.ts,
-                        should-handle-shortcut.ts
-        hooks/          use-autosave.ts, use-editor-shortcuts.ts, use-schema-lock.ts
+                        should-handle-shortcut.ts, is-focus-target-obscured.ts
+        hooks/          use-autosave.ts, use-editor-shortcuts.ts, use-schema-lock.ts,
+                        use-reveal-focused-element.ts
     lib/
       class-names.ts, env.ts, logger.ts, notify.ts, zod-config.ts
       i18n/             create-i18n-instance.ts, server-translation.ts, negotiate-locale.ts,
@@ -837,6 +875,7 @@ Spec phần 2 đã được duyệt. Năm điểm editor cần được bổ sun
 - **`eslint-plugin-jsx-a11y-x` 0.2.0** còn mới. Plan so danh sách rule của `configs.recommended` với `flatConfigs.recommended` của bản gốc.
 - **Script `theme-init.js`:** plan xác nhận React 19.3 render thẻ `<script>` đồng bộ đúng chỗ trong `<head>` của HTML SSR, không chuyển thành async, và không có cảnh báo khi hydrate hay khi `router.refresh()`.
 - **Trình duyệt xóa dữ liệu:** IndexedDB ở chế độ best-effort có thể bị xóa khi thiếu dung lượng, và Safari xóa dữ liệu của site không được mở trong 7 ngày. Phần 3 không gọi `navigator.storage.persist()` vì Firefox hiện hộp thoại xin quyền. Bản sao lâu dài là export JSON (IE-06, phần 7) và lưu cloud (phần 4).
+- **Focus bị che trên canvas:** plan xác nhận `autoPanOnNodeFocus={false}` tắt việc tự pan khi focus node của React Flow 12.11.6, `focusin` nổi lên từ edge SVG, `getBoundingClientRect` của edge trả đúng vùng, và vùng toast đo được qua phần tử `[data-sonner-toaster]`. Nếu kiểm tra tay thấy toast `bottom-center` che hoàn toàn phần tử đang focus ở màn hình danh sách, thêm `scroll-padding-bottom` cho vùng cuộn của màn hình đó.
 - **`crypto.randomUUID`** chỉ có trong secure context (HTTPS hoặc `localhost`), nên môi trường deploy phải dùng HTTPS.
 
 ## Tiêu chí hoàn thành
@@ -870,7 +909,10 @@ Tiêu chí ghi "(kiểm tra tay)" được kiểm tra theo checklist ở mục 1
 - [ ] ED-10: Minimap được render với `pannable` và `zoomable`; minimap hiện mọi bảng, vùng đang xem, và bấm hoặc kéo để di chuyển: kiểm tra tay.
 - [ ] ED-12: Chọn được Theo hệ thống, Sáng, Tối; mặc định là Theo hệ thống; lựa chọn được ghi vào cookie và được giữ khi mount lại.
 - [ ] ED-12: `theme-init.js` đặt class `dark` đúng với cả ba lựa chọn (test jsdom); không nháy sai theme khi tải trang: kiểm tra tay.
-- [ ] ED-12: axe-core không có vi phạm trong test component ở cả hai theme; canvas, node, edge và minimap chỉ dùng token; độ tương phản của token ở cả hai theme đạt ngưỡng ở mục 12: kiểm tra tay.
+- [ ] ED-12: axe-core (tag `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`) không có vi phạm trong test component ở cả hai theme; canvas, node, edge và minimap chỉ dùng token; độ tương phản của token ở cả hai theme đạt ngưỡng ở mục 12: kiểm tra tay.
+- [ ] Accessibility (WCAG 2.2 AA): mọi thao tác kéo trong bảng ở mục 12 có đường thay thế bằng bấm không kéo và bằng bàn phím; ô "Vị trí" trong panel bảng dispatch một `moveElements`, undo được (test component). Làm chỉ bằng bấm chuột trên Chrome: kiểm tra tay.
+- [ ] Accessibility (WCAG 2.2 AA): node hoặc edge nhận focus bàn phím mà nằm ngoài khung nhìn hoặc nằm trọn dưới minimap, vùng toast thì được đưa vào giữa khung nhìn (unit test `isFocusTargetObscured`, test `useRevealFocusedElement`); trên Chrome: kiểm tra tay.
+- [ ] Accessibility (WCAG 2.2 AA): mọi mục tiêu bấm tối thiểu 24×24 CSS px, trừ handle của node và link trong câu theo ngoại lệ ở mục 12: kiểm tra tay.
 - [ ] ED-13: Undo, redo mọi thay đổi schema làm từ canvas, panel và hộp thoại, bằng nút và phím tắt; phím tắt không chạy khi đang gõ trong ô nhập. Thay đổi do AI và import được kiểm tra ở phần 5 và 7.
 - [ ] ED-13: Lịch sử chỉ chứa cặp operation và nghịch đảo do core trả về, không chứa bản sao schema; kéo nhiều bảng rồi thả là một mục lịch sử.
 - [ ] ST-01: Schema còn nguyên khi màn hình được mount lại trên cùng database (test tích hợp); còn nguyên sau khi đóng rồi mở lại trình duyệt: kiểm tra tay.
@@ -915,3 +957,4 @@ Không còn câu hỏi mở.
 | 3 | Lịch sử undo có còn sau khi tải lại trang không? | Không |
 | 4 | Các điểm editor cần từ core được xử lý ở đâu? | Trong plan phần 2 |
 | 5 | Phần 3 có test chạy trên trình duyệt không? | Không; chỉ Vitest trên jsdom, phần còn lại kiểm tra tay |
+| 6 | Mục tiêu accessibility là mức nào? (người dùng chốt ngày 2026-09-15, sau khi spec đã duyệt) | WCAG 2.2 mức AA. Spec được sửa tại chỗ ở mục 2, 3, 6, 12, 14, "Rủi ro" và "Tiêu chí hoàn thành" |

@@ -12,6 +12,7 @@ Trạng thái: đã duyệt. Người dùng xác nhận mọi đề xuất ⚠: 
 
 Spec này không bàn lại các điểm sau (nguồn: `architecture.md`, `.claude/rules/`, câu trả lời câu hỏi 3 và 12 trong danh sách tính năng, và quyết định của người dùng khi duyệt spec phần 2 và 3):
 
+- Mục tiêu accessibility WCAG 2.2 mức AA (`architecture.md`; người dùng chốt ngày 2026-09-15, sau khi spec này đã duyệt). Yêu cầu chung nằm ở spec phần 3, mục 12; yêu cầu riêng cho form đăng nhập, đăng ký ở mục 6.
 - Backend NestJS 12 (ESM), PostgreSQL + Prisma, Passport + JWT. Chỉ đăng nhập bằng email và mật khẩu; không xác minh email, không có quên mật khẩu, nên không có dịch vụ gửi email.
 - Sau khi đăng nhập, bản cloud là bản chính, bản trên trình duyệt là cache. Lần đầu đăng nhập, người dùng được hỏi có đưa schema local lên cloud không. Xung đột được phát hiện theo revision, người dùng chọn giữ bản nào.
 - Tài liệu schema lưu dạng JSONB và đi qua `parseSchemaDocument` trước mọi lần ghi. Backend chỉ từ chối tài liệu **sai cấu trúc**; tài liệu còn issue ngữ nghĩa vẫn được lưu, để tự động lưu không làm mất bản đang sửa dở (spec phần 2, mục 8).
@@ -574,6 +575,10 @@ type AuthActions = {
 
 - Route là Server Component mỏng: `await searchParams`, lấy `returnTo`, `generateMetadata` dịch tiêu đề. Form là client component gọi API client; không có Server Action hay Route Handler.
 - Form có `<label>` cho mọi ô: email (`type="email"`, `autoComplete="email"`), mật khẩu (`type="password"`, `autoComplete="current-password"` hoặc `"new-password"`), nút hiện/ẩn mật khẩu có `aria-label` đã dịch và `aria-pressed`. Kiểm tra phía client theo hằng của hợp đồng; lỗi hiện dưới từng ô với `aria-invalid`, `aria-describedby`; lỗi từ server hiện trong vùng `role="alert"`. Nút gửi bị disable khi đang gửi.
+- **WCAG 2.2 AA cho form** (mục tiêu chung ở [spec phần 3](2026-09-14-editor-mvp-design.md), mục 12):
+  - 3.3.8 Accessible Authentication (Minimum): nhớ mật khẩu là bài kiểm tra nhận thức, nên form phải để trình quản lý mật khẩu và thao tác dán hỗ trợ người dùng. Không chặn dán hay sao chép ở ô email và mật khẩu (không `preventDefault` trên `paste`, `copy`); không đặt `autoComplete="off"` và không đổi `name`, `id` của ô theo từng lần render; `autoComplete` là `email` và `current-password` ở `/sign-in`, `email` và `new-password` ở `/sign-up`. Không có CAPTCHA hay câu đố; chống dò mật khẩu bằng rate limit (mục 3).
+  - 3.3.7 Redundant Entry: `/sign-up` chỉ có một ô mật khẩu, không có ô nhập lại mật khẩu; người dùng kiểm tra điều đã gõ bằng nút hiện/ẩn. Tiêu chí cho phép ô nhập lại mật khẩu vì lý do bảo mật, nhưng spec không dùng. Lỗi từ server (ví dụ `invalid-credentials`, `429`) không xóa giá trị đã nhập ở cả hai ô. Form đăng nhập khi phiên hết hạn điền sẵn email từ `expired.lastUser`.
+  - 2.5.8 Target Size (Minimum): nút hiện/ẩn mật khẩu tối thiểu 24×24 CSS px.
 - Trang đăng nhập ghi rõ chưa có chức năng khôi phục mật khẩu; trang đăng ký ghi dùng được ngay, không cần xác minh email.
 - Thành công thì `router.replace(returnTo)`. Người đã đăng nhập mở hai trang này thì được chuyển về `/`.
 - `sanitizeReturnTo(value)` là hàm thuần: chỉ nhận chuỗi bắt đầu bằng `/`, không bắt đầu bằng `//`, không chứa `\`, và khi resolve với một origin giả thì origin không đổi; mọi giá trị khác thành `/`. Chặn open redirect.
@@ -1046,7 +1051,7 @@ Vitest trên jsdom. Mock chỉ ở biên: `fetch` (qua `fetchImpl` được inje
 
 | Component | Hành vi chính |
 |---|---|
-| `SignInScreen`, `SignUpScreen` | Nhãn; lỗi dưới từng ô; thông báo đúng cho `invalid-credentials`, `email-already-registered`, `password-too-common`, `429`; nút bị disable khi đang gửi; chuyển tới `returnTo` |
+| `SignInScreen`, `SignUpScreen` | Nhãn; lỗi dưới từng ô; thông báo đúng cho `invalid-credentials`, `email-already-registered`, `password-too-common`, `429`; nút bị disable khi đang gửi; chuyển tới `returnTo`; `autoComplete` đúng từng ô; `user.paste` vào ô mật khẩu giữ giá trị; `/sign-up` không có ô nhập lại mật khẩu; lỗi từ server không xóa giá trị đã nhập |
 | `AccountMenu` | Bốn trạng thái |
 | `SignInPrompt` | Mở khi chưa đăng nhập; link có `returnTo`; đã đăng nhập thì không mở |
 | Hộp thoại đưa schema lên | Liệt kê schema của khách, mặc định chọn hết; "Để sau" không gọi API |
@@ -1086,6 +1091,7 @@ Vitest trên jsdom. Mock chỉ ở biên: `fetch` (qua `fetchImpl` được inje
 | Offline rồi online | Chế độ Offline của tab Network |
 | Hai thiết bị | Chrome và Firefox cùng tài khoản, sửa cùng một schema, thấy hộp thoại xung đột |
 | Safari với cookie `Secure` trên `http://localhost` | Mục 8 |
+| Trình quản lý mật khẩu (WCAG 3.3.8) | Chrome: đăng ký thì trình duyệt đề xuất lưu mật khẩu; đăng nhập thì điền được email và mật khẩu đã lưu; dán mật khẩu từ clipboard được |
 
 ## 12. Triển khai
 
@@ -1267,6 +1273,7 @@ Tiêu chí ghi "(kiểm tra tay)" được kiểm tra theo checklist ở mục 1
 - [ ] Không có token trong `localStorage`, IndexedDB hay cookie đọc được bằng JavaScript; `sf-auth-hint` chỉ chứa `1`.
 - [ ] Backend từ chối khởi động khi thiếu `DATABASE_URL`, `JWT_ACCESS_SECRET`, `CORS_ORIGINS`, hoặc khi production có `AUTH_COOKIE_SECURE=false`, origin `http`, hay secret mẫu (unit test `env`).
 - [ ] `pnpm install --frozen-lockfile` từ bản clone sạch không còn cảnh báo build script bị chặn; `pnpm lint`, `pnpm typecheck`, `pnpm test` (đạt ngưỡng coverage) và `pnpm build` chạy qua ở local và CI; job `e2e` xanh trên CI.
+- [ ] Form đăng nhập, đăng ký đạt WCAG 2.2 AA theo mục 6: `autoComplete` đúng, dán được vào ô mật khẩu, không có ô nhập lại mật khẩu, lỗi từ server không xóa giá trị đã nhập, không có CAPTCHA (test component); trình quản lý mật khẩu của Chrome lưu và điền được (kiểm tra tay).
 - [ ] Mọi chuỗi mới có `vi` và `en`; `apiErrors` phủ đủ `ApiErrorCode` (typecheck).
 - [ ] Checklist kiểm tra tay ở mục 11 đã chạy xong, kết quả ghi vào PR.
 - [ ] `architecture.md`, `roadmap.md` và danh sách tính năng (cách viết ST-03) được cập nhật theo mục [Vấn đề với các spec đã duyệt](#vấn-đề-với-các-spec-đã-duyệt).

@@ -56,6 +56,8 @@ User đã chốt khi duyệt spec: không có test chạy trên trình duyệt (
   - Hàm export khai báo kiểu trả về; component trả `JSX.Element` (import type `JSX` từ `react`). Boolean bắt đầu bằng `is`, `has`, `can`, `should`, trừ tên do API ngoài đặt sẵn mà Task 2 cho phép (`asChild`, `open`, `disabled`…).
   - Import chéo thư mục dùng alias `@/` (Task 1 tạo); import trong cùng thư mục dùng đường dẫn tương đối.
   - Mọi chuỗi người dùng nhìn thấy (text trong JSX, `aria-label`, `title`, `placeholder`, `alt`, toast, thông báo lỗi) đi qua i18n, có đủ `vi` và `en`. Component trong `components/ui/` không gọi i18n; chuỗi của chúng (ví dụ nhãn nút đóng) được truyền vào qua prop.
+  - **Nút có chữ nhìn thấy không dùng `aria-label`** (WCAG 2.5.3 Label in Name): accessible name phải chứa đúng chữ đang hiện, nếu không người dùng điều khiển bằng giọng nói đọc chữ trên màn hình sẽ không khớp. Cần thêm ngữ cảnh thì đặt một `<span className="sr-only">` **trước** chữ nhìn thấy, cách nhau bằng `{" "}`; thiếu khoảng trắng đó thì accessible name bị nối liền (ví dụ `"Ngôn ngữVI"`) và hỏng việc khớp theo từ. Mẫu có sẵn: `LanguageSwitch` ở Task 9. Nút **chỉ có icon** không có nhãn nhìn thấy nên `aria-label` vẫn là cách đúng (ví dụ `ThemeSwitch` ở Task 10, nút icon trên toolbar và trong panel).
+  - Chuỗi hiển thị bằng một ngôn ngữ khác ngôn ngữ của trang (tên ngôn ngữ trong menu chọn ngôn ngữ) được bọc `<span lang="…">` (WCAG 3.1.2 Language of Parts), để trình đọc màn hình dùng đúng bộ phát âm.
   - Màu chỉ lấy từ theme token (class Tailwind như `bg-background`, `text-muted-foreground`, `border-border`, hoặc `var(--token)`); không mã màu, không class màu cố định như `bg-red-500`, không màu dạng arbitrary value.
   - Không `dangerouslySetInnerHTML`. Không `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`. Không `console` ngoài `src/lib/logger.ts`. Không state có thể thay đổi ở cấp module.
   - `"use client"` đặt ở component thấp nhất cần nó. Hàm dưới khoảng 40 dòng, file dưới khoảng 300 dòng, lồng tối đa 3 cấp.
@@ -182,28 +184,30 @@ Gói spec đã loại và plan không dùng: `next-themes`, `eslint-plugin-jsx-a
 | 10 | Theme: `theme-init.js`, `ThemeProvider`, `ThemeSwitch`, token, `Toaster` | A | 3, 4, 5, 9 | 6 |
 | 11 | Logger và `notify` | A | 2, 9 | 6 |
 | 12 | Helper test component: `renderWithProviders`, `expectNoAxeViolations`, `matchMedia` giả | A | 3, 9, 10 | 7 |
-| 13 | `AppProviders`, nối vào `layout.tsx`, `not-found.tsx`, tiêu đề trang | B | core 27, 5, 9, 10, 11 | 9 |
+| 13 | `AppProviders`, nối vào `layout.tsx`, `not-found.tsx`, tiêu đề trang | B | core 27, 5, 9, 10, 11, 15 | 9 |
 | 14 | Bản dịch `issues` và `errors` | B | core 26, 9 | 8 |
-| 15 | `SchemaRepository` | B | core 26, 6 | 8 |
-| 16 | Hàm dựng operation: thêm bảng, quan hệ, xóa lựa chọn, gợi ý tên | B | core 26 | 8 |
+| 15 | `SchemaRepository` và `StorageProvider` | B | core 26, 6, 7 | 8 |
+| 16 | Lựa chọn, gợi ý tên, operation thêm bảng, thêm enum, xóa lựa chọn | B | core 26 | 8 |
 | 17 | Chỉ mục issue và `resolveIssueTarget` | B | core 26 | 8 |
-| 18 | Store editor: `createEditorStore`, provider, `useEditorStore` | B | core 26, 11 | 8 |
-| 19 | Suy ra node và edge: `toTableNodes`, `toRelationEdges` | B | 17 | 9 |
-| 20 | Hook `useAutosave`, `useSchemaLock`, `useEditorShortcuts` | B | 7, 8, 11, 15, 18 | 9 |
-| 21 | Màn hình danh sách schema và route `/` | B | 7, 12, 13, 15 | 10 |
-| 22 | Route editor, `EditorScreenLoader`, `EditorScreen` và các trạng thái mở | B | 12, 13, 15, 18, 20 | 10 |
-| 23 | Toolbar và `ViewportControls` | B | 12, 16, 17, 18 | 10 |
+| 18 | Store editor: `createEditorStore`, provider, `useEditorStore` | B | core 26, 11, 14, 16 | 9 |
+| 19 | Id handle, `toTableNodes`, `toRelationEdges`, `ViewportControls` | B | core 26, 17 | 9 |
+| 20 | Hook `useAutosave`, `useSchemaLock`, `useEditorShortcuts` | B | 7, 8, 11, 15, 18 | 10 |
+| 21 | Màn hình danh sách schema và route `/` | B | 12, 13, 15 | 10 |
+| 22 | Route editor, `EditorScreenLoader`, `EditorScreen`, `EditorWorkspace` | B | 12, 13, 15, 18, 20, 23, 24 | 11 |
+| 23 | Toolbar, lệnh thêm bảng, thêm enum và ô nhập commit | B | 12, 16, 17, 18, 19 | 10 |
 | 24 | Canvas: `TableNode`, `ColumnRow`, `RelationEdge`, marker, `ariaLabelConfig`, `useRevealFocusedElement` | B | 12, 17, 18, 19 | 10 |
-| 25 | Panel trái: tab Bảng, Enum, Vấn đề | B | 12, 17, 18 | 10 |
-| 26 | Panel bảng: cột, index, comment, vị trí | B | 12, 17, 18 | 11 |
-| 27 | Panel quan hệ và panel nhiều lựa chọn | B | 12, 17, 18 | 11 |
-| 28 | Hộp thoại "Tạo quan hệ" | B | 12, 16, 18 | 11 |
-| 29 | Ghép editor: bố cục, landmark, skip link, xóa bằng phím, toast hoàn tác, focus | B | 20, 22, 23, 24, 25, 26, 27, 28 | 12 |
+| 25 | Panel trái: tab Bảng, Enum, Vấn đề | B | 12, 14, 17, 18, 19, 23 | 11 |
+| 26 | Panel bảng: cột, index, comment, vị trí | B | 12, 14, 17, 18, 23, task `cmdk` (Vấn đề 23) | 11 |
+| 27 | Panel quan hệ và panel nhiều lựa chọn | B | 12, 14, 17, 18, 23 | 11 |
+| 28 | Hộp thoại "Tạo quan hệ" và `buildRelationOperation` | B | 12, 16, 18, 24 | 12 |
+| 29 | Ghép editor: bố cục, landmark, skip link, xóa bằng phím, toast hoàn tác, focus | B | 20, 22, 23, 24, 25, 26, 27, 28 | 13 |
 | 30 | Test hiệu năng và script `perf:snippet` | B | 24, 26 | 12 |
-| 31 | Test tích hợp hành trình 1–8 | B | 21, 29 | 13 |
-| 32 | Tài liệu, kiểm tra toàn repo, checklist kiểm tra tay | B | 1–31 | 14 |
+| 31 | Test tích hợp hành trình 1–8 | B | 21, 29 | 14 |
+| 32 | Tài liệu, kiểm tra toàn repo, checklist kiểm tra tay | B | 1–31 | 15 |
 
-- Task 13 đứng ở đợt 9 vì ngoài các task A còn cần core 27; nếu core 27 merge sớm thì chạy ở đợt 8.
+- Số task trong mỗi đợt: đợt 8 có 14, 15, 16, 17; đợt 9 có 13, 18, 19; đợt 10 có 20, 21, 23, 24; đợt 11 có 22, 25, 26, 27; đợt 12 có 28, 30; đợt 13 có 29; đợt 14 có 31; đợt 15 có 32. Không đợt nào quá 5 task và các task trong cùng đợt có tập file rời nhau.
+- **Đường găng:** 14 → 18 → 20 → 22 → 29 → 31 → 32. Nhánh dài thứ hai là 17 → 19 → 24 → 28 → 29.
+- Task 13 đứng ở đợt 9 vì ngoài các task A còn cần core 27 và Task 15; nếu core 27 merge sớm thì chạy ngay khi Task 15 xong.
 - Checklist kiểm tra tay (spec mục 11 "Kiểm tra", mục 12 "Kiểm tra tay", mục 13 "Cách đo tay", mục 14 "Không kiểm tra tự động được") nằm trong Task 32, gồm độ tương phản, CSP trên Chrome thật, số đo hiệu năng, và ba mục WCAG 2.2 AA mà axe không đo được trên jsdom: kích thước mục tiêu bấm, focus không bị che, đường thay thế kéo bằng bấm.
 
 ## Task 1: Dependency, alias `@/`, cấu hình Vitest và setup test
@@ -626,25 +630,37 @@ function shouldHandleShortcut(event: ShortcutKeyEvent, context: ShortcutContext)
 - `resources.ts`: `NAMESPACES = ["common", "schemaList", "editor", "canvas", "issues", "errors", "storage"] as const`; `type Namespace`; `DEFAULT_NAMESPACE = "common" satisfies Namespace`; `enResources` (`as const`); `viResources` (`as const satisfies LocaleNamespace<typeof enResources>`); `RESOURCES = { en: enResources, vi: viResources }` với `satisfies Record<Locale, LocaleNamespace<typeof enResources>>`.
 - `i18next.d.ts`: `declare module "i18next" { interface CustomTypeOptions { defaultNS: typeof DEFAULT_NAMESPACE; resources: typeof enResources } }`, dùng `import type` (Task 2 đã tắt `consistent-type-definitions` cho file này).
 - `create-i18n-instance.ts`: `createI18nInstance(locale: Locale): i18n`. Gọi `createInstance()` rồi `init({ lng: locale, fallbackLng: DEFAULT_LOCALE, supportedLngs: [...SUPPORTED_LOCALES], ns: [...NAMESPACES], defaultNS: DEFAULT_NAMESPACE, resources: RESOURCES, interpolation: { escapeValue: false }, initAsync: false, react: { useSuspense: false } })`. Promise của `init` được đánh dấu `void` kèm comment: resource đã bundle và `initAsync: false` nên khởi tạo xong đồng bộ; test xác nhận điều đó.
-- `server-translation.ts`: `getServerTranslation<N extends Namespace>(locale: Locale, namespace: N)` trả `getFixedT(locale, namespace)` của một instance **mới** mỗi lần gọi, không có instance ở cấp module. Kiểu trả về lấy theo chữ ký `getFixedT` của i18next 26.4; không biên dịch được mà không ép kiểu thì dừng và báo.
+- `server-translation.ts`: `getServerTranslation<N extends Namespace>(locale: Locale, namespace: N): TFunction<N>` trả `createI18nInstance(locale).getFixedT(locale, namespace)`, tức một instance **mới** mỗi lần gọi, không có instance ở cấp module. `getFixedT` của i18next 26.4 khớp kiểu trả về `TFunction<N>` như viết, không cần type argument tường minh và không cần `as` (đã xác minh khi triển khai).
 - `negotiate-locale.ts`:
-  - `negotiateLocale(acceptLanguage: string | null): Locale | null`: tách theo dấu phẩy, tối đa `MAX_LANGUAGE_RANGES = 32` mục (header không tin cậy); mỗi mục là tag và `q` (mặc định 1; `q` không phải số trong khoảng 0–1 thì bỏ mục; `q=0` thì bỏ); bỏ `*`; lấy subtag chính, chữ thường; sắp ổn định theo `q` giảm dần; trả locale được hỗ trợ đầu tiên.
+  - `negotiateLocale(acceptLanguage: string | null): Locale | null`: tách theo dấu phẩy, tối đa `MAX_LANGUAGE_RANGES = 32` mục (header không tin cậy); mỗi mục tách tiếp theo `;` và **trim từng phần sau khi tách**, không chỉ trim cả range, vì RFC 9110 cho phép khoảng trắng tùy chọn quanh `;` và quanh `,`. Chỉ trim cả range thì `" q=0.1"` không `startsWith("q=")`, trọng số rơi về mặc định 1 và hàm chọn sai locale. Mỗi mục là tag và `q` (mặc định 1; `q` không phải số trong khoảng 0–1 thì bỏ mục; `q=0` thì bỏ); bỏ `*`; lấy subtag chính, chữ thường; sắp ổn định theo `q` giảm dần; trả locale được hỗ trợ đầu tiên.
   - `resolveRequestLocale(input: { readonly cookieValue: string | undefined; readonly acceptLanguage: string | null }): Locale` = `parseLocalePreference(cookieValue) ?? negotiateLocale(acceptLanguage) ?? DEFAULT_LOCALE`.
 - `change-locale.ts`: `changeLocale(locale: Locale, dependencies: { readonly i18n: Pick<i18n, "changeLanguage">; readonly refresh: () => void; readonly isSecure: boolean }): Promise<void>`. Thứ tự: `await i18n.changeLanguage(locale)`; ghi cookie `sf-locale`; đặt `document.documentElement.lang`; gọi `refresh()`.
 - `components/i18n-provider.tsx` (`"use client"`): props `{ readonly locale: Locale; readonly children: ReactNode }`; `const [instance] = useState(() => createI18nInstance(locale))`; bọc `I18nextProvider`.
 - `components/language-switch.tsx` (`"use client"`):
-  - `DropdownMenu` với nút kích hoạt `Button` (`variant="ghost"`, `size="sm"`) hiện `t("language.shortName")`, `aria-label={t("language.label")}`.
-  - `DropdownMenuRadioGroup` có `value={i18n.language}`, hai `DropdownMenuRadioItem` `vi` và `en`. `onValueChange` kiểm tra `isLocale(value)` rồi gọi `changeLocale(value, { i18n, refresh: router.refresh, isSecure: env.isProduction })`, với `useRouter` của `next/navigation`.
+  - `DropdownMenu` với nút kích hoạt `Button` (`variant="ghost"`, `size="sm"`). Nút **không** có `aria-label`: nó hiện chữ `t("language.shortName")` (`VI`/`EN`), nên `aria-label` là "Ngôn ngữ"/"Language" sẽ vi phạm WCAG 2.5.3 Label in Name (accessible name không chứa nhãn nhìn thấy, người dùng điều khiển bằng giọng nói nói "click VI" sẽ không khớp). Thay vào đó dùng nhãn ẩn (**user đã chốt phương án này**):
+
+    ```tsx
+    <Button variant="ghost" size="sm">
+      {/* The space keeps the visible short name a separate word in the
+          accessible name, so voice control can match it (WCAG 2.5.3). */}
+      <span className="sr-only">{t("language.label")}</span>{" "}
+      {t("language.shortName")}
+    </Button>
+    ```
+
+    `{" "}` là bắt buộc: không có nó thì accessible name tính ra `"Ngôn ngữVI"` (jsdom nối hai đoạn không có khoảng trắng) và hỏng việc khớp theo từ. Accessible name thực tế: "Ngôn ngữ VI" và "Language EN". Quy tắc chung cho mọi nút có chữ nhìn thấy nằm ở mục "Quy ước chung cho mọi task", phần Code.
+  - `DropdownMenuRadioGroup` có `value={i18n.language}`, hai `DropdownMenuRadioItem` `vi` và `en`. Tên ngôn ngữ được bọc `lang` vì spec quy định "Tiếng Việt" và "English" hiện bằng chính ngôn ngữ đó ở cả hai locale, nên không đánh dấu thì trình đọc màn hình đọc "Tiếng Việt" bằng bộ phát âm tiếng Anh (WCAG 3.1.2 Language of Parts): `<span lang="vi">{t("language.vi")}</span>` và `<span lang="en">{t("language.en")}</span>`.
+  - `onValueChange` kiểm tra `isLocale(value)` rồi gọi `changeLocale(value, { i18n, refresh: router.refresh, isSecure: env.isProduction })`, với `useRouter` của `next/navigation`.
 
 **Test viết trước:**
 
-- `negotiate-locale.test.ts`: `negotiates %s as %s` (`it.each`: `vi-VN,vi;q=0.9,en;q=0.8` → `vi`; `en-US,en;q=0.9` → `en`; `fr-FR,fr;q=0.9,en;q=0.5,vi;q=0.8` → `vi`; `fr,de` → `null`; chuỗi rỗng → `null`; `vi;q=0,en` → `en`; `*` → `null`; `EN-gb` → `en`; `vi;q=abc,en;q=0.5` → `en`); `keeps header order for equal weights`; `returns null for a missing header`; `ignores language ranges beyond the limit`; `prefers a valid locale cookie over the header`; `uses the header when the cookie is invalid`; `falls back to en without cookie or matching header`.
+- `negotiate-locale.test.ts`: `negotiates %s as %s` (`it.each`: `vi-VN,vi;q=0.9,en;q=0.8` → `vi`; `en-US,en;q=0.9` → `en`; `fr-FR,fr;q=0.9,en;q=0.5,vi;q=0.8` → `vi`; `fr,de` → `null`; chuỗi rỗng → `null`; `vi;q=0,en` → `en`; `*` → `null`; `EN-gb` → `en`; `vi;q=abc,en;q=0.5` → `en`; `vi;q=0.9,en; q=0.1` → `vi`; `vi;q=0.1, en ; q=0.9` → `en`); `keeps header order for equal weights`; `returns null for a missing header`; `ignores language ranges beyond the limit`; `prefers a valid locale cookie over the header`; `uses the header when the cookie is invalid`; `falls back to en without cookie or matching header`.
 - `create-i18n-instance.test.ts`: `translates right after creation without awaiting init`; `uses en as the fallback language`; `does not escape interpolation values`; `creates independent instances` (đổi ngôn ngữ của instance này không ảnh hưởng instance kia).
 - `server-translation.test.ts`: `translates a namespace in %s` (`it.each` hai locale); `returns an independent translator for each call`.
 - `resources.test.ts` (spec mục 9, test bản dịch; hàm làm phẳng key viết trong file test): `has the same keys in vi and en`; `has a non-empty %s translation for %s` (`it.each` trên key đã làm phẳng × locale); `uses the same interpolation variables in vi and en for %s`; `has one storage message per storage error code`.
 - `change-locale.test.ts`: `changes the i18next language`; `writes the sf-locale cookie`; `sets the html lang attribute`; `refreshes the router after the language has changed`.
 - `i18n-provider.test.tsx`: `renders children with translations for the given locale`; `keeps the i18next instance when the provider rerenders`.
-- `language-switch.test.tsx` (mock `next/navigation`): `names the trigger with the translated language label`; `marks the current language as checked`; `switches to English from the menu` (cookie `sf-locale=en`, `html[lang="en"]`, `refresh` được gọi một lần, nhãn đổi sang tiếng Anh). Menu Radix không mở bằng `user.click` trên jsdom thì mở bằng bàn phím (`{Enter}` khi nút đang focus) và ghi vào báo cáo.
+- `language-switch.test.tsx` (mock `next/navigation`): `names the trigger with the translated language label`; `marks the current language as checked`; `switches to English from the menu` (cookie `sf-locale=en`, `html[lang="en"]`, `refresh` được gọi một lần, nhãn đổi sang tiếng Anh); `opens the menu with the keyboard`; `closes on Escape and returns focus to the trigger`. `DropdownMenu` của Radix mở được bằng `user.click` trên jsdom với các stub sẵn có của Task 1 (đã xác minh khi triển khai), nên không cần đường vòng bằng bàn phím.
 
 **Kiểm tra:** như "Quy ước chung", thêm bốn thử nghiệm biên dịch tạm thời (làm từng cái, hoàn tác ngay sau đó):
 
@@ -803,9 +819,1447 @@ Các vấn đề dưới đây không đổi quyết định nào của spec; m�
 | 20 | Kiểu key có tiền tố namespace (`ParseKeys<Namespace[]>`) và lời gọi `t` với union key chưa được thử trên i18next 26.4 | Task 11 thử trước; không biên dịch được mà không ép kiểu thì dừng và báo, orchestrator chọn cách khác (ví dụ `notify` nhận hàm dịch đã áp dụng thay vì key) | 11 |
 | 21 | Spec mục "Cấu trúc thư mục" nói `logger.ts` "tắt `no-console` kèm lý do", nhưng rule chỉ bắt lời gọi `console.*`; comment tắt rule không cần thiết sẽ làm lint fail vì `reportUnusedDisableDirectives: "error"` | Logger nhận `console` làm sink; chỉ thêm comment tắt rule nếu lint thực sự báo | 11 |
 | 22 | `nextjs.md` yêu cầu module không bao giờ được xuống trình duyệt bắt đầu bằng `import "server-only"`, nhưng gói `server-only` không có trong bảng phiên bản | Phần 3 không có module nào chứa bí mật; `server-translation.ts` chạy được ở cả hai phía. Không thêm `server-only` ở phần 3 | 9 |
+| 23 | **(cần user xác nhận)** Task 3 đã merge nhưng **không** cài `cmdk` và không thêm component `command`, `popover`, trái với cách xử lý ghi ở Vấn đề 8. Spec mục 2 chốt ô chọn kiểu cột là combobox `Popover` + `Command` có ba nhóm và gõ để lọc, nên Task 26 không làm được với bộ component hiện có | Trước đợt 11, orchestrator chạy **một task cấu hình tuần tự** (không có task nào chạy cùng): `pnpm --filter @schemaforge/frontend add cmdk@^1.1.1`, rồi `pnpm dlx shadcn@4.21.0 add command popover --cwd frontend`, sửa component sinh ra theo bước 7 của Task 3, và kiểm tra `git diff` chỉ chạm `frontend/package.json`, `pnpm-lock.yaml`, `frontend/src/components/ui/command.tsx`, `popover.tsx`. Phiên bản `cmdk` phải được kiểm tra lại bằng `npm view cmdk version time peerDependencies` vào ngày chạy (spec ghi 1.1.1) và phải đủ 24 giờ. Không task B nào tự cài | 26 |
+| 24 | Khối "Cấu trúc thư mục" của spec không có file cho: lựa chọn (`Selection`), hàm dựng operation thêm enum, id handle, `ViewportControls`, ô nhập commit, và kho lưu trữ dùng chung của hai màn hình | Plan thêm `features/editor/lib/selection.ts`, `build-add-enum-operation.ts`, `handle-ids.ts`, `viewport-controls.tsx`, `features/editor/components/committed-text-field.tsx`, `committed-text-area.tsx`, `lib/storage/create-browser-storage.ts`, `storage-context.tsx`. Không namespace, không key i18n và không quyết định nào của spec đổi | 15, 16, 19, 23 |
+| 25 | `getIssues` của spec mục 4 cần một `WeakMap` ở cấp module, trái với quy ước "không state có thể thay đổi ở cấp module" của mục "Quy ước chung cho mọi task" | Cho đúng một ngoại lệ trong `features/editor/lib/issue-index.ts`, kèm comment nêu lý do: cache thuần theo tham chiếu object, không có khóa nào sống lâu hơn tài liệu, và mỗi store có tài liệu riêng nên không rò giữa hai schema hay hai request. Test chứng minh hai tài liệu khác nhau cho hai kết quả khác nhau | 17 |
+| 26 | `packages/core` export `type Result` nhưng **không** export `ok` và `err` | `dispatch` dựng literal `{ isOk: true, value: undefined }` và `{ isOk: false, error }`, đúng hình dạng của `Result`; không tự khai báo lại type | 18 |
+| 27 | `packages/core` không export type guard cho id (`isTableId` có trong `model/ids.ts` nhưng không nằm trong `src/index.ts`; không có `isColumnId`) và không export `toNameKey` | `parseHandleId` trả id dạng `string`; nơi gọi tra `document.tables[id]` hoặc `document.columns[id]` rồi dùng `element.id` đã có nhãn kiểu, nên không cần ép kiểu. Gợi ý tên so sánh bằng `value.toLowerCase()` cục bộ, kèm comment nêu rõ nó phải khớp `toNameKey` của core | 16, 19 |
+| 28 | Plan lượt 1 (Task 8) ghi hook truyền `navigator.userAgentData?.platform ?? navigator.platform`, nhưng `userAgentData` không có trong lib DOM của TypeScript nên phải ép kiểu | `useEditorShortcuts` nhận `platformHint` là tham số; nơi gọi truyền `navigator.platform` (đã lỗi thời nhưng có trong mọi trình duyệt được hỗ trợ và có kiểu sẵn), kèm comment | 20 |
+| 29 | Task 8 đã triển khai trường là `shouldRequireCanvasFocus`, còn spec mục 6 và plan lượt 1 viết `requiresCanvasFocus` | Task 20 dùng đúng tên trong code: `ShortcutContext.shouldRequireCanvasFocus` (quy tắc boolean của `typescript.md`). Ý nghĩa không đổi | 20 |
+| 30 | Spec mục 3 cần thêm câu "Thao tác không được áp dụng" cho toast lỗi dispatch, nhưng spec mục 9 buộc namespace `errors` có `satisfies Record<ErrorCode, string>`, nên không thêm key phẳng được | `errors` có hai nhánh: `codes` (`satisfies Record<ErrorCode, string>`) và `operationNotApplied`. Key dùng trong code là `errors:codes.<code>` và `errors:operationNotApplied`. `issues` vẫn phẳng, `satisfies Record<IssueCode, string>` | 14, 18 |
+| 31 | `not-found.tsx` dịch được thì phải biết locale; đọc bằng `headers()` làm trang 404 không prerender được và có thể làm `next build` đỏ | `not-found.tsx` là client component dùng `useTranslation("common")`; nó nằm dưới `layout.tsx` nên đã có `I18nProvider` với locale của request | 13 |
+| 32 | `SchemaforgeDatabase` và `createBrowserSchemaLockManager` chỉ dựng được trên trình duyệt (IndexedDB, Web Locks), nhưng cả hai màn hình đều được SSR phần khung | `StorageProvider` dựng chúng trong một effect và `useStorage()` trả `{ kind: "pending" \| "ready" \| "unavailable" }`; trạng thái `unavailable` mang `StorageErrorCode`. Test truyền bản giả qua prop `storage` | 15, 13, 21, 22 |
+| 33 | Spec mục 12 ghi size nút icon của shadcn/ui là `icon` 36 px và `icon-sm` 32 px, nhưng bản đã cài ở Task 3 dùng `icon` = `size-8` (32 px), `icon-sm` = `size-7` (28 px), `icon-xs` = `size-6` (24 px), `icon-lg` = `size-9` (36 px) | Nút icon trên toolbar dùng `size="icon"` (32 px); nút icon trong panel dùng `size="icon"` hoặc `size="icon-xs"` (24 px), không dùng `size="sm"` hay `size="xs"` cho nút chỉ có icon. Mọi mục tiêu bấm vẫn ≥ 24 px, đúng yêu cầu WCAG 2.5.8 của spec; chỉ con số px trong spec là sai | 23, 25, 26, 27, 32 |
+| 34 | Spec mục 13 gọi fixture `makeLargeSchema`, nhưng `@schemaforge/core/testing` không có hàm này | Task 30 viết `frontend/src/testing/large-schema.ts` bằng `buildSchema`, `makeTable`, `makeColumn`, `makeRelation`, `createCounterIdGenerator` của `@schemaforge/core/testing`, đúng như khối "Cấu trúc thư mục" của spec | 30 |
+| 35 | **(cần user xác nhận)** Mục "Current status" của `CLAUDE.md` mô tả frontend còn là trang placeholder; xong phần 3 thì mục này sai, nhưng `CLAUDE.md` nằm ngoài `document/` | Task 32 sửa đúng đoạn "Current status" của `CLAUDE.md` cùng với `roadmap.md` và `architecture.md`. User xác nhận trước khi Task 32 chạy; không thì Task 32 chỉ báo cáo nội dung cần sửa | 32 |
 
-**Rủi ro của spec chuyển cho task B** (spec mục "Rủi ro cần kiểm tra khi triển khai"): React 19.3 render thẻ `<script src="/theme-init.js">` đồng bộ trong `<head>` mà không cảnh báo khi hydrate hay `router.refresh()` (Task 13); `deleteKeyCode={null}`, `onBeforeDelete` và chuỗi sự kiện `onNodesChange` phân biệt kéo chuột với phím mũi tên trong React Flow 12.11 (Task 24, 29); kiểm tra tay trên trình duyệt thật (Task 32).
+| 36 | **(cần user xác nhận)** Task 9 phải bỏ `as const satisfies LocaleNamespace<typeof en<Tên>>` ở 11 file `vi` rỗng (`issues`, `errors`, `schema-list`, `canvas` và bảy file con của `editor`), vì với object `en` rỗng thì `LocaleNamespace<typeof en<Tên>>` resolve ra `{}` và vướng rule **`@typescript-eslint/no-generated-empty-object-type`** của `strictTypeChecked` (`error: This type resolves to \`{}\`, the empty object type`). Đây **không** phải `no-empty-object-type`: rule đó chỉ bắt `{}` viết trực tiếp dạng type literal hoặc interface, nên option `allowObjectTypes` của nó không áp dụng được ở đây. Dạng khai báo kiểu thay vì `satisfies` (`export const viCanvas: LocaleNamespace<typeof enCanvas> = {};`) cũng bị chính rule đó bắt, nên **không có cách nào** nằm gọn trong file resource. Hệ quả type học: key **thiếu** vẫn bị bắt lúc biên dịch qua `viResources satisfies LocaleNamespace<typeof enResources>` ở `resources.ts`, nhưng key **thừa** thì không, kể cả khi namespace đã có key, vì `canvas: viCanvas` là tham chiếu biến chứ không phải object literal tươi nên excess property check của TypeScript không kích hoạt. Vì vậy mệnh đề `satisfies` ở từng file con là bắt buộc, không phải cho đẹp | Mỗi task B điền một file resource tự thêm lại mệnh đề `satisfies` cho file `vi` của mình khi thêm key đầu tiên (ghi trong mục "Cài đặt" của từng task), và kiểm tra bằng một key thừa tạm thời. Khoảng hở chỉ tồn tại với file còn rỗng. Khuyến nghị: **giữ nguyên hiện trạng, không sửa `eslint.config.mjs`.** Chưa tìm được cách tắt `no-generated-empty-object-type` cho `locales/**` mà không tắt hẳn rule đó cho cả thư mục (rule không có option nào cho phép `{}` sinh ra từ type reference); nếu user muốn chặn triệt để thì phải là một task cấu hình riêng chạy tuần tự trước đợt 8, thêm khối `files: ["frontend/src/lib/i18n/locales/**/*.ts"]` đặt rule về `"off"`, và task đó phải cân nhắc rằng tắt hẳn sẽ bỏ luôn cảnh báo cho mọi type reference rỗng khác trong thư mục | 9, 14, 21, 22, 23, 24, 25, 26, 27, 28, 29 |
+
+**Rủi ro của spec chuyển cho task B** (spec mục "Rủi ro cần kiểm tra khi triển khai"): React 19.3 render thẻ `<script src="/theme-init.js">` đồng bộ trong `<head>` mà không cảnh báo khi hydrate hay `router.refresh()` (Task 13); `deleteKeyCode={null}`, `onBeforeDelete` và chuỗi sự kiện `onNodesChange` phân biệt kéo chuột với phím mũi tên trong React Flow 12.11 (Task 24, phần nối phím `Delete` ở Task 29); `autoPanOnNodeFocus={false}`, `focusin` nổi lên từ edge SVG, `getBoundingClientRect` của edge và vùng toast đo qua `[data-sonner-toaster]` (Task 24); kiểm tra tay trên trình duyệt thật (Task 32).
 
 ## Task loại B
 
-Phần này do lượt lập plan thứ hai viết.
+Mọi task dưới đây import public API của core (`@schemaforge/core`, và `@schemaforge/core/testing` chỉ trong file test), nên chỉ bắt đầu được khi core Task 26 đã merge; task sửa `layout.tsx`, `page.tsx` hoặc dùng `APP_NAME` cần thêm core Task 27. Tên type, hàm và mã lỗi lấy đúng từ `packages/core/src/index.ts`; không task nào khai báo lại type của schema model.
+
+Các tên dùng lại từ core mà task B sẽ gặp: `SchemaDocument`, `Table`, `Column`, `ColumnType`, `ColumnDefault`, `Relation`, `RelationKind`, `ReferentialAction`, `ColumnPair`, `Index`, `Enum`, `Position`, `TableId`, `ColumnId`, `RelationId`, `IndexId`, `EnumId`, `GenerateId`, `DocumentPath`, `Operation`, `OperationType`, `OperationError`, `ErrorCode`, `ERROR_CODES`, `Issue`, `IssueCode`, `ISSUE_CODES`, `History`, `HistoryEntry`, `Result`, `applyOperation`, `parseSchemaDocument`, `validateSchema`, `createEmptySchema`, `createEmptyHistory`, `recordEntry`, `mergeLastEntry`, `undo`, `redo`, `buildRelation`, `buildManyToMany`, `suggestIndexName`, `sortTables`, `sortEnums`, `sortIndexes`, `sortRelations`.
+
+## Task 13: `AppProviders`, `layout.tsx`, `not-found.tsx`, tiêu đề trang
+
+**Mục tiêu:** một cây provider duy nhất cho toàn ứng dụng (Zod jitless, i18n, theme, tooltip, kho lưu trữ, vùng toast), layout gốc render đúng ngôn ngữ, lựa chọn theme và script chống nháy có nonce, và trang không tìm thấy đã được dịch.
+
+**Loại:** B. **Phụ thuộc:** core 27, 5, 9, 10, 11, 15. **Đợt:** 9.
+
+**File sở hữu:**
+
+- Tạo `frontend/src/components/app-providers.tsx`, `frontend/src/components/app-providers.test.tsx`.
+- Tạo `frontend/src/lib/i18n/request-locale.ts`, `frontend/src/lib/i18n/request-locale.test.ts`.
+- Tạo `frontend/src/app/not-found.tsx`, `frontend/src/app/not-found.test.tsx`.
+- Sửa `frontend/src/app/layout.tsx`.
+- Sửa `frontend/src/lib/i18n/locales/en/common.ts` và `frontend/src/lib/i18n/locales/vi/common.ts` (chỉ **thêm** key, không sửa key đã có).
+
+**Cài đặt** (spec mục 1 "Rendering", mục 8 "Mặc định, ghi nhớ, không nháy", mục 9 "Chọn ngôn ngữ", mục 11 "Content Security Policy"):
+
+- `lib/i18n/request-locale.ts`, chỉ dùng ở Server Component:
+
+  ```ts
+  export async function getRequestLocale(): Promise<Locale>;
+  export async function getRequestThemePreference(): Promise<ThemePreference>;
+  export async function getRequestNonce(): Promise<string | null>;
+  ```
+
+  - `getRequestLocale` đọc `cookies()` và `headers()` của `next/headers`, rồi trả `resolveRequestLocale({ cookieValue: cookieStore.get(LOCALE_COOKIE_NAME)?.value, acceptLanguage: headerList.get("accept-language") })`.
+  - `getRequestThemePreference` trả `parseThemePreference(cookieStore.get(THEME_COOKIE_NAME)?.value)`.
+  - `getRequestNonce` trả `headerList.get(NONCE_HEADER_NAME)`.
+  - Test gọi ba hàm này với `vi.mock("next/headers")`.
+- `components/app-providers.tsx` (`"use client"`):
+  - **Dòng import đầu tiên của file** là `import "@/lib/zod-config";`, kèm comment: Zod đọc `jitless` lúc **tạo** schema, còn core tạo schema khi được import, nên cấu hình phải nạp trước mọi import khác. Nếu `import-x/order` đòi sắp lại thì dùng `// eslint-disable-next-line import-x/order -- zod must be configured before any module creates a schema` và ghi vào báo cáo.
+  - `type AppProvidersProps = { readonly locale: Locale; readonly themePreference: ThemePreference; readonly children: ReactNode }`.
+  - `export function AppProviders({ locale, themePreference, children }: AppProvidersProps): JSX.Element` bọc theo thứ tự ngoài vào trong: `I18nProvider locale` → `ThemeProvider initialPreference={themePreference}` → `TooltipProvider` → `StorageProvider` → `<>{children}<AppToaster /></>`.
+  - `AppToaster` là component **không export** trong cùng file: lấy `t` bằng `useTranslation("common")` rồi render `<Toaster containerAriaLabel={t("notifications.label")} />`.
+- `app/layout.tsx` (Server Component, giữ default export):
+  - `import "./globals.css";`.
+  - `export async function generateMetadata(): Promise<Metadata>`: lấy locale bằng `getRequestLocale()`, `const t = await getServerTranslation(locale, "common")`, trả `{ title: t("meta.title", { appName: APP_NAME }), description: t("meta.description") }`. Bỏ hằng `metadata` hiện có.
+  - `RootLayout` là `async`, đọc locale, themePreference, nonce, rồi render:
+
+    ```tsx
+    <html lang={locale} data-theme-preference={themePreference} suppressHydrationWarning>
+      <head>
+        <script src="/theme-init.js" nonce={nonce ?? undefined} />
+      </head>
+      <body>
+        <AppProviders locale={locale} themePreference={themePreference}>{children}</AppProviders>
+      </body>
+    </html>
+    ```
+
+  - Thẻ `<script>` không có `async`, không có `defer`. Nếu React 19.3 cảnh báo khi hydrate hoặc khi `router.refresh()` (rủi ro ở spec mục "Rủi ro cần kiểm tra khi triển khai") thì dừng và báo kèm nguyên văn cảnh báo, không tự đổi cách làm.
+- `app/not-found.tsx` (`"use client"`, default export): dùng `useTranslation("common")`, render `<main>` có `<h1>{t("notFound.title")}</h1>`, một đoạn mô tả và `<Link href="/">{t("notFound.backToList")}</Link>` của `next/link`. Là client component để trang 404 không cần dynamic API lúc prerender (Vấn đề 31).
+- Key thêm vào `common` (cả `en` và `vi`, `vi` có đủ dấu):
+  - `meta.title` (có biến `{{appName}}`), `meta.description`.
+  - `notFound.title`, `notFound.description`, `notFound.backToList`.
+
+**Test viết trước:**
+
+- `request-locale.test.ts`: `reads the locale from the sf-locale cookie`; `falls back to Accept-Language without a cookie`; `falls back to en without a cookie or a matching header`; `reads the theme preference from the sf-theme cookie`; `returns null when the nonce header is missing`.
+- `app-providers.test.tsx`: `configures zod in jitless mode`; `renders children translated in the given locale`; `applies the initial theme preference`; `renders a toast region with a translated label`; `renders tooltips without a missing provider error`; `renders storage-dependent children while storage is still pending`.
+- `not-found.test.tsx`: `shows a translated not found message in %s` (`it.each` `vi`, `en`); `links back to the schema list`; `reports no axe violations` (dùng `expectNoAxeViolations`).
+
+**Kiểm tra:** như "Quy ước chung", thêm:
+
+```bash
+source ~/.nvm/nvm.sh >/dev/null 2>&1; nvm use 24 >/dev/null 2>&1;
+grep -n 'zod-config' frontend/src/components/app-providers.tsx
+grep -rn 'from "next/headers"' frontend/src --include=*.tsx --include=*.ts
+```
+
+Mong đợi: `zod-config` là import đầu tiên của `app-providers.tsx`; chỉ `lib/i18n/request-locale.ts` import `next/headers`. `pnpm --filter @schemaforge/frontend build` in route `/` và `/_not-found` mà không có cảnh báo về dynamic API.
+
+**Commit:** `feat(frontend): wire app providers into the root layout`
+
+## Task 14: Bản dịch `issues` và `errors`
+
+**Mục tiêu:** mỗi `IssueCode` và mỗi `ErrorCode` của core có một thông báo đã dịch ở cả `vi` và `en`, nên thêm mã mới trong core mà chưa dịch là lỗi biên dịch.
+
+**Loại:** B. **Phụ thuộc:** core 26, 9. **Đợt:** 8.
+
+**File sở hữu:** sửa `frontend/src/lib/i18n/locales/en/issues.ts`, `locales/vi/issues.ts`, `locales/en/errors.ts`, `locales/vi/errors.ts`, `frontend/src/lib/i18n/create-i18n-instance.test.ts` (chỉ một test, xem mục "Cài đặt"); tạo `frontend/src/lib/i18n/issue-and-error-messages.test.ts`.
+
+**Cài đặt** (spec mục 4 "Dịch", mục 9 "Namespace và resource", mục 3 "Lỗi cấu trúc khi dispatch"):
+
+- **Mệnh đề `satisfies` của file `vi`.** Task 9 để lại `export const viIssues = {} as const;` và `export const viErrors = {} as const;` không có `satisfies`, vì với object `en` rỗng thì `LocaleNamespace<typeof enIssues>` resolve ra `{}` và vướng rule `@typescript-eslint/no-generated-empty-object-type` (Vấn đề 36). Khi thêm key đầu tiên, thay bằng `as const satisfies LocaleNamespace<typeof enIssues>` (và `LocaleNamespace<typeof enErrors>`), rồi xóa comment placeholder. Mệnh đề chỉ hợp lệ khi object đã có ít nhất một key.
+- `issues.ts` phẳng: `export const enIssues = { …25 key… } as const satisfies Record<IssueCode, string>;` và `export const viIssues = { … } as const satisfies LocaleNamespace<typeof enIssues>;`. Key là chính mã issue (`"table-name-duplicate"`…); dấu `-` không phải ký tự phân tách key của i18next nên dùng trực tiếp được.
+- `errors.ts` có hai nhánh (Vấn đề 30):
+
+  ```ts
+  export const enErrors = {
+    codes: { …17 key… },
+    operationNotApplied: "The action was not applied",
+  } as const;
+  ```
+
+  với `codes` mang `satisfies Record<ErrorCode, string>`. `viErrors` tương ứng, thêm `satisfies LocaleNamespace<typeof enErrors>`.
+- Biến nội suy dùng đúng năm tên ở spec mục 4: `{{table}}`, `{{column}}`, `{{index}}`, `{{enum}}`, `{{value}}`. Biến của mỗi mã:
+
+  | Nhóm mã | Biến |
+  |---|---|
+  | `name-empty`, `name-invalid`, `name-too-long` | không có (thông báo chung cho tên, hiển thị cạnh trường) |
+  | `table-name-duplicate` | `{{table}}` |
+  | `enum-name-duplicate` | `{{enum}}` |
+  | `column-name-duplicate` | `{{table}}`, `{{column}}` |
+  | `index-name-duplicate` | `{{index}}` |
+  | `subject-area-name-duplicate` | không có |
+  | `enum-values-empty` | `{{enum}}` |
+  | `enum-value-duplicate` | `{{enum}}`, `{{value}}` |
+  | `column-type-invalid-scale`, `column-custom-type-invalid`, `column-default-invalid`, `column-default-incompatible`, `column-primary-key-nullable`, `column-auto-increment-invalid-type`, `column-auto-increment-nullable`, `column-auto-increment-with-default`, `column-auto-increment-not-key` | `{{column}}` |
+  | `table-multiple-auto-increment` | `{{table}}` |
+  | `relation-column-type-mismatch`, `relation-target-not-unique`, `relation-one-to-one-not-unique`, `relation-set-null-not-nullable`, `relation-set-default-without-default` | `{{column}}` |
+
+- **Siết test nội suy của Task 9.** Đây là task đầu tiên thêm key có biến `{{…}}`, nên sửa luôn test `does not escape interpolation values` trong `frontend/src/lib/i18n/create-i18n-instance.test.ts`: hiện nó đi qua `instance.services.interpolator.interpolate(...)` vì lúc Task 9 chạy chưa có key nào có biến; nay khẳng định trực tiếp qua `t(key, { … })` với một key thật của `issues`. Đây là ngoại lệ duy nhất mà task này được sửa file của Task 9; không đụng phần còn lại của file đó.
+- Giọng văn: một câu, nêu vấn đề rồi cách sửa, không dùng thuật ngữ nội bộ ("operation", "path"), tên phần tử đặt trong dấu nháy kép cong (`“…”` ở `vi`, `“…”` ở `en`). Ví dụ:
+  - `table-name-duplicate`: vi "Bảng “{{table}}” trùng tên với một bảng khác." / en "Another table is already named “{{table}}”."
+  - `column-primary-key-nullable`: vi "Cột “{{column}}” là khóa chính nên không được cho phép NULL." / en "Primary key column “{{column}}” cannot be nullable."
+  - `enum-values-empty`: vi "Enum “{{enum}}” chưa có giá trị nào." / en "Enum “{{enum}}” has no values."
+- `errors.codes.*` nói cho người dùng hiểu chuyện gì xảy ra mà không lộ đường dẫn tài liệu, ví dụ `table-not-found`: vi "Không tìm thấy bảng cần thay đổi." / en "The table to change no longer exists."
+
+**Test viết trước** (`issue-and-error-messages.test.ts`, import `ISSUE_CODES`, `ERROR_CODES` từ `@schemaforge/core`):
+
+- `has a non-empty issue message for %s in %s` (`it.each` trên tích `ISSUE_CODES` × `["en", "vi"]`).
+- `has a non-empty error message for %s in %s` (`it.each` trên tích `ERROR_CODES` × hai locale).
+- `has an operationNotApplied message in %s` (`it.each` hai locale).
+- `uses only the documented interpolation variables` (mọi `{{…}}` trong hai namespace, ở cả hai locale, nằm trong tập `table`, `column`, `index`, `enum`, `value`).
+- `uses the same interpolation variables in vi and en for %s` (`it.each` trên `ISSUE_CODES`).
+- `translates issue %s through createI18nInstance` (`it.each` vài mã tiêu biểu có biến, kiểm tra `t("issues:table-name-duplicate", { table: "users" })` chứa `users` và không còn `{{`).
+
+**Kiểm tra:** như "Quy ước chung", thêm hai thử nghiệm biên dịch tạm thời (làm từng cái, hoàn tác ngay sau đó, rồi xác nhận `git diff` sạch):
+
+1. Xóa một key trong `locales/en/issues.ts` → `pnpm --filter @schemaforge/frontend typecheck` fail tại `satisfies Record<IssueCode, string>`.
+2. Thêm một key thừa vào `locales/vi/issues.ts` → `typecheck` fail tại `satisfies LocaleNamespace<typeof enIssues>`.
+
+**Commit:** `feat(frontend): add issue and error message translations`
+
+## Task 15: `SchemaRepository` và `StorageProvider`
+
+**Mục tiêu:** một cửa duy nhất để đọc và ghi IndexedDB: mọi lần đọc tài liệu đi qua `parseSchemaDocument`, mọi lần ghi là một transaction, và hai màn hình lấy repository cùng khóa tab qua một context dựng được trên trình duyệt lẫn trong test.
+
+**Loại:** B. **Phụ thuộc:** core 26, 6, 7. **Đợt:** 8.
+
+**File sở hữu:** tạo trong `frontend/src/lib/storage/`: `schema-repository.ts`, `schema-repository.test.ts`, `create-browser-storage.ts`, `storage-context.tsx`, `storage-context.test.tsx`.
+
+**Cài đặt** (spec mục 7 "Database", "Đọc: luôn qua `parseSchemaDocument`", "Ghi: autosave", "Đổi tên và xóa từ màn hình danh sách", "Viewport"; mục 1 "Màn hình danh sách"):
+
+- `schema-repository.ts`:
+
+  ```ts
+  export type SchemaListEntry =
+    | { readonly kind: "readable"; readonly schema: SchemaRecord }
+    | { readonly kind: "unreadable"; readonly schemaId: string };
+
+  export type OpenSchemaResult =
+    | { readonly kind: "opened"; readonly document: SchemaDocument }
+    | { readonly kind: "not-found" }
+    | { readonly kind: "unreadable"; readonly errors: readonly StructuralError[] };
+
+  export type RenameSchemaResult =
+    | { readonly kind: "renamed" }
+    | { readonly kind: "not-found" }
+    | { readonly kind: "unreadable" };
+
+  export type SchemaRepositoryDependencies = {
+    readonly database: SchemaforgeDatabase;
+    readonly clock: () => number;
+    readonly generateId: () => string;
+  };
+
+  export type SchemaRepository = {
+    readonly listSchemas: () => Promise<readonly SchemaListEntry[]>;
+    readonly createSchema: (name: string) => Promise<SchemaRecord>;
+    readonly openSchema: (schemaId: string) => Promise<OpenSchemaResult>;
+    readonly saveDocument: (schemaId: string, document: SchemaDocument) => Promise<void>;
+    readonly renameSchema: (schemaId: string, name: string) => Promise<RenameSchemaResult>;
+    readonly deleteSchema: (schemaId: string) => Promise<void>;
+    readonly readViewport: (schemaId: string) => Promise<ViewportRecord | null>;
+    readonly saveViewport: (viewport: ViewportRecord) => Promise<void>;
+  };
+
+  export function createSchemaRepository(dependencies: SchemaRepositoryDependencies): SchemaRepository;
+  ```
+
+  - `listSchemas`: `database.schemas.orderBy("updatedAt").reverse().toArray()`, rồi từng dòng qua `parseSchemaRecord`. Dòng parse được thành `readable`; dòng không parse được nhưng có `id` là chuỗi hợp `isSchemaId` thành `unreadable`; dòng không lấy được `id` hợp lệ bị bỏ qua.
+  - `createSchema(name)`: `id = generateId()`, `now = clock()`, `document = createEmptySchema(name)`; một transaction `rw` trên `schemas` và `documents` ghi `{ id, name, createdAt: now, updatedAt: now }` và `{ schemaId: id, document }`; trả về record vừa ghi. `generateId` ở code chạy thật là `() => crypto.randomUUID()`, trong test là bộ đếm sinh UUID cố định.
+  - `openSchema`: đọc `documents.get(schemaId)`; không có thì `not-found`; có thì `parseSchemaDocument(record.document)` và trả `opened` hoặc `unreadable` kèm `result.error`. **Không bao giờ ghi lại** trong hàm này.
+  - `saveDocument`: một transaction `rw` trên `documents` và `schemas`: `documents.put({ schemaId, document })` và `schemas.update(schemaId, { name: document.name, updatedAt: clock() })`. Bản ghi `schemas` không tồn tại thì `update` trả 0 và hàm kết thúc bình thường (schema đã bị xóa ở tab khác).
+  - `renameSchema`: trong một transaction `rw`, đọc tài liệu, `parseSchemaDocument`, `applyOperation(document, { type: "renameSchema", name })`; lỗi parse thì trả `unreadable` và không ghi gì; thành công thì ghi tài liệu mới cùng `schemas.update(schemaId, { name, updatedAt: clock() })`. `applyOperation` trả lỗi ở đây là lỗi lập trình: throw `Error` kèm mã lỗi.
+  - `deleteSchema`: một transaction `rw` trên cả ba bảng, xóa theo khóa.
+  - `readViewport`: `viewports.get(schemaId)` rồi `parseViewportRecord`; sai hình dạng trả `null`.
+  - `saveViewport`: `viewports.put(viewport)`. Không đụng `schemas`, nên `updatedAt` không đổi.
+  - Repository **không bắt lỗi** của Dexie: nơi gọi ánh xạ bằng `toStorageErrorCode`.
+- `create-browser-storage.ts`:
+
+  ```ts
+  export type StorageBundle = {
+    readonly repository: SchemaRepository;
+    readonly lockManager: SchemaLockManager;
+    readonly database: SchemaforgeDatabase;
+  };
+  export function createBrowserStorage(): StorageBundle;
+  ```
+
+  Dựng `new SchemaforgeDatabase()`, `createBrowserSchemaLockManager()` và `createSchemaRepository({ database, clock: () => Date.now(), generateId: () => crypto.randomUUID() })`. Hàm này chỉ được gọi trên trình duyệt.
+- `storage-context.tsx` (`"use client"`):
+
+  ```ts
+  export type StorageState =
+    | { readonly kind: "pending" }
+    | { readonly kind: "ready"; readonly storage: StorageBundle }
+    | { readonly kind: "unavailable"; readonly errorCode: StorageErrorCode };
+  export type StorageProviderProps = { readonly storage?: StorageBundle; readonly children: ReactNode };
+  export function StorageProvider({ storage, children }: StorageProviderProps): JSX.Element;
+  export function useStorage(): StorageState;
+  ```
+
+  - Có prop `storage` (test và Storybook tương lai) thì state là `ready` ngay, không chạy effect.
+  - Không có thì state khởi tạo `pending`, và một effect chạy một lần gọi `createBrowserStorage()` trong `try`/`catch`; lỗi thành `{ kind: "unavailable", errorCode: toStorageErrorCode(error) }`. Cleanup đóng `database` khi provider unmount.
+  - `useStorage` ngoài provider trả `{ kind: "pending" }`? **Không**: throw `Error` như `useThemePreference` (lỗi lập trình). Giá trị context được memo.
+  - Effect là nơi duy nhất chạm trình duyệt, nên SSR chỉ render `pending` (Vấn đề 32).
+
+**Test viết trước** (mỗi test tạo `new SchemaforgeDatabase({ indexedDB: new IDBFactory(), IDBKeyRange })` của `fake-indexeddb`, `clock` là bộ đếm, `generateId` sinh UUID cố định; `afterEach` đóng database):
+
+- `schema-repository.test.ts`:
+  - `creates a schema with an empty document and matching metadata`.
+  - `lists schemas from the most recently updated`.
+  - `reports a schema row that does not parse as unreadable`.
+  - `skips a schema row without a valid id`.
+  - `opens a stored document through parseSchemaDocument`.
+  - `returns not-found for a schema id that was never stored`.
+  - `returns unreadable with version-unsupported for a newer document version`.
+  - `returns unreadable for a structurally invalid document`.
+  - `never overwrites a document it could not parse`.
+  - `saves a document and updates the name and updatedAt together`.
+  - `keeps working when saving a document whose metadata row is gone`.
+  - `renames a schema through the renameSchema operation`.
+  - `refuses to rename a schema whose document does not parse`.
+  - `deletes the schema, document and viewport rows`.
+  - `stores a viewport without touching updatedAt`.
+  - `returns null for a viewport row with an invalid shape`.
+- `storage-context.test.tsx`:
+  - `exposes the storage passed as a prop`.
+  - `reports unavailable when creating browser storage throws` (`vi.mock` module `./create-browser-storage`).
+  - `maps a MissingAPIError to the unavailable storage code`.
+  - `throws when useStorage is used outside the provider`.
+
+**Kiểm tra:** như "Quy ước chung".
+
+**Commit:** `feat(frontend): add schema repository and storage provider`
+
+## Task 16: Lựa chọn, gợi ý tên và hàm dựng operation
+
+**Mục tiêu:** các hàm thuần dựng operation nhiều bước mà UI cần: thêm bảng có cột `id` khóa chính, thêm enum có sẵn một giá trị, xóa lựa chọn bằng một `batch`, cùng kiểu `Selection` và cách gợi ý tên không trùng.
+
+**Loại:** B. **Phụ thuộc:** core 26. **Đợt:** 8.
+
+**File sở hữu:** tạo trong `frontend/src/features/editor/lib/`: `selection.ts`, `selection.test.ts`, `name-suggestions.ts`, `name-suggestions.test.ts`, `build-add-table-operation.ts`, `build-add-table-operation.test.ts`, `build-add-enum-operation.ts`, `build-add-enum-operation.test.ts`, `build-delete-selection-operation.ts`, `build-delete-selection-operation.test.ts`.
+
+**Cài đặt** (spec mục 2 "Toolbar", mục 3 "Chọn, di chuyển, xóa", mục 5 "Store theo từng schema"):
+
+- `selection.ts`:
+
+  ```ts
+  export type Selection = {
+    readonly tableIds: readonly TableId[];
+    readonly relationIds: readonly RelationId[];
+  };
+  export const EMPTY_SELECTION: Selection;
+  export function countSelection(selection: Selection): number;
+  export function isSelectionEmpty(selection: Selection): boolean;
+  export function filterSelection(selection: Selection, document: SchemaDocument): Selection;
+  ```
+
+  `filterSelection` bỏ id không còn trong `document.tables`, `document.relations`; không có gì bị bỏ thì **trả lại đúng object `selection` cũ**, để selector của Zustand không render lại vô cớ.
+- `name-suggestions.ts`:
+
+  ```ts
+  export const TABLE_NAME_PREFIX = "table_";
+  export const COLUMN_NAME_PREFIX = "column_";
+  export const ENUM_NAME_PREFIX = "enum_";
+  export const ENUM_VALUE_PREFIX = "value_";
+
+  export function suggestNumberedName(prefix: string, usedNames: readonly string[]): string;
+  export function suggestTableName(document: SchemaDocument): string;
+  export function suggestColumnName(document: SchemaDocument, tableId: TableId): string;
+  export function suggestEnumName(document: SchemaDocument): string;
+  export function suggestEnumValue(values: readonly string[]): string;
+  export function suggestJunctionTableName(
+    document: SchemaDocument,
+    input: { readonly leftTableName: string; readonly rightTableName: string },
+  ): string;
+  ```
+
+  - `suggestNumberedName` trả `${prefix}${n}` với `n` nguyên nhỏ nhất từ 1 mà tên chưa dùng.
+  - `suggestJunctionTableName` trả `<left>_<right>`, trùng thì thêm `_2`, `_3`… (giống `pickUnusedName` của core).
+  - So sánh **không phân biệt hoa thường** bằng hàm nội bộ `toNameKey(name) = name.toLowerCase()`, kèm comment: phải khớp `toNameKey` của core, hàm này không nằm trong public API (Vấn đề 27). `toLowerCase` chứ không phải `toLocaleLowerCase`, để kết quả không đổi theo locale.
+  - `suggestColumnName` chỉ xét tên các cột của `tableId`; `suggestEnumValue` chỉ xét mảng giá trị được truyền vào.
+- `build-add-table-operation.ts`:
+
+  ```ts
+  export const NEW_TABLE_OFFSET = 24;
+  export type AddTableResult = {
+    readonly operation: Operation;
+    readonly tableId: TableId;
+    readonly primaryKeyColumnId: ColumnId;
+  };
+  export function findFreeTablePosition(document: SchemaDocument, position: Position): Position;
+  export function buildAddTableOperation(
+    document: SchemaDocument,
+    input: { readonly position: Position; readonly generateId: GenerateId },
+  ): AddTableResult;
+  ```
+
+  - `findFreeTablePosition` cộng dồn `NEW_TABLE_OFFSET` vào cả `x` và `y` chừng nào còn một bảng có đúng vị trí đó, tối đa `MAX_POSITION_ATTEMPTS = 50` lần rồi trả vị trí cuối cùng.
+  - `operation` là `batch` gồm ba bước, đúng thứ tự:
+    1. `addTable` với `table: { id, name: suggestTableName(document), comment: "", position, subjectAreaId: null }`.
+    2. `addColumn` với `insertAt: 0` và `column: { id, tableId, name: "id", type: { kind: "bigint" }, isNullable: false, defaultValue: null, isUnique: false, isAutoIncrement: true, comment: "" }`.
+    3. `setPrimaryKey` với `columnIds: [primaryKeyColumnId]`.
+  - Id lấy từ `createTableId(generateId)` rồi `createColumnId(generateId)`, đúng thứ tự đó.
+- `build-add-enum-operation.ts`: `buildAddEnumOperation(document, generateId): { readonly operation: Operation; readonly enumId: EnumId }`, một bước `addEnum` với `values: [suggestEnumValue([])]`, tức `["value_1"]`.
+- `build-delete-selection-operation.ts`: `buildDeleteSelectionOperation(selection: Selection): Operation | null`. Lựa chọn rỗng trả `null`. Ngược lại trả `batch` gồm `removeRelation` cho từng `relationIds` (theo thứ tự trong lựa chọn) rồi `removeTable` cho từng `tableIds`. Quan hệ đứng trước nên quan hệ nối với một bảng cũng đang được chọn không bị xóa hai lần.
+
+**Test viết trước** (dựng schema bằng `buildSchema`, `makeTable`, `makeColumn`, `makeRelation` và `createCounterIdGenerator` của `@schemaforge/core/testing`; áp operation bằng `applyOperation` và `unwrapOk`):
+
+- `selection.test.ts`: `counts tables and relations together`; `treats an empty selection as empty`; `drops ids that no longer exist in the document`; `returns the same selection object when nothing was dropped`.
+- `name-suggestions.test.ts`: `suggests %s when %s are taken` (`it.each` cho `table_1`, `table_2`, `column_1`, `enum_1`, `value_1`); `ignores case when a name is taken`; `suggests a junction table name from both table names`; `adds a numeric suffix when the junction name is taken`.
+- `build-add-table-operation.test.ts`: `builds one batch with a table, an id column and a primary key`; `names the new table with the first free numbered name`; `offsets the position when a table already sits there`; `applies without introducing any issue` (`validateSchema` sau khi áp trả mảng rỗng); `undoes the whole batch in one step` (áp nghịch đảo trả về đúng tài liệu ban đầu về mặt nội dung).
+- `build-add-enum-operation.test.ts`: `builds an enum with one starter value`; `applies without introducing any issue`.
+- `build-delete-selection-operation.test.ts`: `returns null for an empty selection`; `removes relations before tables`; `applies when a table and one of its relations are both selected`; `restores everything with a single undo`; `keeps relations that are not selected`.
+
+**Kiểm tra:** như "Quy ước chung".
+
+**Commit:** `feat(frontend): add selection and schema operation builders`
+
+## Task 17: Chỉ mục issue và `resolveIssueTarget`
+
+**Mục tiêu:** từ một tài liệu, có ngay danh sách issue đã được nhóm theo phần tử và theo bảng, cùng cách đổi một `DocumentPath` thành phần tử và các biến nội suy để dịch thông báo.
+
+**Loại:** B. **Phụ thuộc:** core 26. **Đợt:** 8.
+
+**File sở hữu:** tạo `frontend/src/features/editor/lib/resolve-issue-target.ts`, `resolve-issue-target.test.ts`, `issue-index.ts`, `issue-index.test.ts`.
+
+**Cài đặt** (spec mục 4):
+
+- `resolve-issue-target.ts`:
+
+  ```ts
+  export type IssueElementKind = "schema" | "table" | "column" | "relation" | "index" | "enum" | "subjectArea";
+
+  export type IssueValues = {
+    readonly table?: string;
+    readonly column?: string;
+    readonly index?: string;
+    readonly enum?: string;
+    readonly value?: string;
+  };
+
+  export type IssueTarget = {
+    readonly kind: IssueElementKind;
+    readonly elementId: string | null;
+    readonly tableId: TableId | null;
+    readonly values: IssueValues;
+  };
+
+  export function resolveIssueTarget(document: SchemaDocument, path: DocumentPath): IssueTarget;
+  ```
+
+  - `switch` trên `path[0]` với nhánh `default` trả `{ kind: "schema", elementId: null, tableId: null, values: {} }` (dùng cho `["name"]` và mọi đường dẫn lạ).
+  - `["tables", id, …]`: `kind: "table"`, `tableId` là bảng đó, `values.table` là tên bảng.
+  - `["columns", id, …]`: `kind: "column"`, `tableId` lấy từ `column.tableId`, `values.column` là tên cột và `values.table` là tên bảng chứa nó.
+  - `["relations", id, …]`: `kind: "relation"`, `tableId` là `relation.fromTableId`, `values.table` là tên bảng `from`; có `columnPairs[0]` thì `values.column` là tên cột khóa ngoại đầu tiên.
+  - `["indexes", id, …]`: `kind: "index"`, `tableId` lấy từ `index.tableId`, `values.index` là tên index, `values.table` là tên bảng.
+  - `["enums", id, …]`: `kind: "enum"`, `values.enum` là tên enum; đường dẫn dạng `["enums", id, "values", n]` với `n` là số thì thêm `values.value` là giá trị tại chỉ số đó.
+  - `["subjectAreas", id, …]`: `kind: "subjectArea"`, `elementId` là id, không có biến nào.
+  - Phần tử không tồn tại trong tài liệu (đường dẫn cũ) thì `elementId` vẫn là id đọc được, `tableId` là `null` và `values` rỗng. Không throw.
+  - Đọc `path[1]` bằng thu hẹp kiểu (`typeof segment === "string"`), không ép kiểu.
+- `issue-index.ts`:
+
+  ```ts
+  export type IssueIndex = {
+    readonly issues: readonly Issue[];
+    readonly schemaIssues: readonly Issue[];
+    readonly issuesOfElement: (elementId: string) => readonly Issue[];
+    readonly countOfElement: (elementId: string) => number;
+    readonly countOfTable: (tableId: TableId) => number;
+  };
+  export function getIssueIndex(document: SchemaDocument): IssueIndex;
+  ```
+
+  - `getIssueIndex` nhớ kết quả trong một `WeakMap<SchemaDocument, IssueIndex>` ở cấp module. Đây là ngoại lệ duy nhất với quy ước "không state ở cấp module" (Vấn đề 25): comment ngay trên khai báo nêu lý do và ghi rằng cache không bao giờ được xóa bằng tay.
+  - `issues` là kết quả `validateSchema(document)`, giữ nguyên thứ tự.
+  - `issuesOfElement` tra theo `IssueTarget.elementId`; `countOfTable` tra theo `IssueTarget.tableId`, nên issue của cột và index cộng vào huy hiệu của bảng.
+  - Hai hàm tra cứu đọc từ hai `Map` dựng sẵn lúc tạo chỉ mục; phần tử không có issue trả mảng rỗng **dùng chung một hằng** `NO_ISSUES: readonly Issue[] = []`, để selector trả cùng tham chiếu.
+  - `countOfElement` và `countOfTable` trả số, dùng làm selector của Zustand.
+
+**Test viết trước:**
+
+- `resolve-issue-target.test.ts`: `resolves %s to the %s element` (`it.each` đủ sáu tiền tố cộng `["name"]`); `reads the owning table of a column`; `reads the owning table of an index`; `names the foreign key column of a relation`; `reads an enum value by index`; `returns an empty target for an unknown path prefix`; `returns no values for an element that no longer exists`.
+- `issue-index.test.ts`: `returns the issues of validateSchema in the same order`; `returns the same index object for the same document reference`; `returns a different index for a different document`; `groups issues by element id`; `counts column and index issues on their table`; `returns the same empty array for elements without issues` (`toBe`); `separates schema-level issues from element issues`.
+
+**Kiểm tra:** như "Quy ước chung".
+
+**Commit:** `feat(frontend): add issue index and issue target resolution`
+
+## Task 18: Store editor: `createEditorStore`, provider, `useEditorStore`
+
+**Mục tiêu:** một store Zustand cho mỗi schema đang mở, với đúng một đường thay đổi tài liệu là `dispatch`, undo và redo dựa trên lịch sử của core, và cách đọc lát cắt hẹp từ component.
+
+**Loại:** B. **Phụ thuộc:** core 26, 11, 14, 16. **Đợt:** 9.
+
+**File sở hữu:** tạo trong `frontend/src/features/editor/state/`: `create-editor-store.ts`, `create-editor-store.test.ts`, `editor-store-provider.tsx`, `editor-store-provider.test.tsx`, `use-editor-store.ts`.
+
+**Cài đặt** (spec mục 5, mục 6 "Gộp thao tác", mục 3 "Lỗi cấu trúc khi dispatch"):
+
+- `create-editor-store.ts`:
+
+  ```ts
+  export const HISTORY_LIMIT = 200;
+
+  export type SaveStatus =
+    | { readonly kind: "saved" }
+    | { readonly kind: "saving" }
+    | { readonly kind: "failed"; readonly errorCode: StorageErrorCode };
+
+  export type LeftPanelTab = "tables" | "enums" | "issues";
+
+  export type DispatchOptions = { readonly coalesce?: "keyboardMove" };
+
+  export type EditorState = {
+    readonly schemaId: string;
+    readonly document: SchemaDocument;
+    readonly history: History;
+    readonly selection: Selection;
+    readonly dragPositions: Readonly<Partial<Record<TableId, Position>>>;
+    readonly leftPanelTab: LeftPanelTab | null;
+    readonly focusRequest: DocumentPath | null;
+    readonly saveStatus: SaveStatus;
+    readonly coalesceKey: string | null;
+  };
+
+  export type EditorActions = {
+    readonly dispatch: (operation: Operation, options?: DispatchOptions) => Result<void, OperationError>;
+    readonly undo: () => void;
+    readonly redo: () => void;
+    readonly setSelection: (selection: Selection) => void;
+    readonly setDragPositions: (dragPositions: Readonly<Partial<Record<TableId, Position>>>) => void;
+    readonly setLeftPanelTab: (tab: LeftPanelTab | null) => void;
+    readonly requestFocus: (path: DocumentPath | null) => void;
+    readonly setSaveStatus: (status: SaveStatus) => void;
+    readonly replaceDocument: (document: SchemaDocument) => void;
+  };
+
+  export type EditorStore = StoreApi<EditorState & EditorActions>;
+
+  export type CreateEditorStoreInput = {
+    readonly schemaId: string;
+    readonly document: SchemaDocument;
+    readonly generateId: GenerateId;
+    readonly notify: Notify;
+    readonly logger: Logger;
+  };
+
+  export function createEditorStore(input: CreateEditorStoreInput): EditorStore;
+  export function getMoveCoalesceKey(operation: Operation): string | null;
+  ```
+
+  - Dựng bằng `createStore` của `zustand/vanilla`. State ban đầu: `history: createEmptyHistory()`, `selection: EMPTY_SELECTION`, `dragPositions: {}`, `leftPanelTab: "tables"`, `focusRequest: null`, `saveStatus: { kind: "saved" }`, `coalesceKey: null`.
+  - `generateId` được giữ trong closure và **không** nằm trong state; component lấy id mới qua các hàm dựng operation, không qua store.
+  - `dispatch(operation, options)`:
+    1. `const applied = applyOperation(state.document, operation)`.
+    2. Lỗi: `logger.error("editor.operation-rejected", { operationType: operation.type, code: applied.error.code, path: applied.error.path })`, rồi `notify({ tone: "error", titleKey: "errors:operationNotApplied", descriptionKey: \`errors:codes.${applied.error.code}\` })`; state giữ nguyên; trả `{ isOk: false, error: applied.error }`.
+    3. Thành công nhưng `applied.value.schema === state.document` (core trả đúng tham chiếu cũ khi không có gì đổi): không ghi lịch sử, không `set`, trả `{ isOk: true, value: undefined }`.
+    4. Thành công: `entry = { operation, inverse: applied.value.inverse }`; `key = options?.coalesce === "keyboardMove" ? getMoveCoalesceKey(operation) : null`; nếu `key !== null && key === state.coalesceKey` thì `history = mergeLastEntry(state.history, entry)`, ngược lại `history = recordEntry(state.history, entry, HISTORY_LIMIT)`; `selection = filterSelection(state.selection, applied.value.schema)`; `set({ document: applied.value.schema, history, selection, coalesceKey: key })`; trả `{ isOk: true, value: undefined }`.
+    - Core không export `ok`/`err`, nên hai giá trị trả về là literal đúng hình dạng `Result` (Vấn đề 26).
+  - `getMoveCoalesceKey` trả `null` cho operation không phải `moveElements`, ngược lại trả `"keyboardMove:"` cộng danh sách `elementId` đã sắp tăng dần, nối bằng `,`. Nhờ vậy hai lần nhấn mũi tên trên **cùng tập bảng** mới gộp, còn một dispatch khác xen giữa sẽ đặt `coalesceKey` về `null`.
+  - `undo()`: gọi `undo(state.history, state.document)` của core; `null` thì không làm gì; ngược lại `set({ document, history, selection: filterSelection(...), coalesceKey: null })`. `redo()` tương tự. Core throw khi áp nghịch đảo thất bại; store **không** bắt, để `error.tsx` hiện (spec mục 1).
+  - `setSelection`, `setDragPositions`, `setLeftPanelTab`, `requestFocus`, `setSaveStatus` chỉ `set` đúng trường của mình.
+  - `replaceDocument(document)`: dùng khi tab này vừa được cấp khóa và đọc lại tài liệu từ database; đặt `document`, `history: createEmptyHistory()`, `selection: EMPTY_SELECTION`, `dragPositions: {}`, `coalesceKey: null`.
+- `editor-store-provider.tsx` (`"use client"`): `EditorStoreContext = createContext<EditorStore | null>(null)`; `type EditorStoreProviderProps = { readonly store: EditorStore; readonly children: ReactNode }`; `export function EditorStoreProvider({ store, children }: EditorStoreProviderProps): JSX.Element`. Store được tạo ở nơi biết tài liệu (Task 22), provider chỉ truyền xuống.
+- `use-editor-store.ts`:
+
+  ```ts
+  export function useEditorStoreApi(): EditorStore;
+  export function useEditorStore<Slice>(selector: (state: EditorState & EditorActions) => Slice): Slice;
+  ```
+
+  `useEditorStoreApi` throw `Error` khi dùng ngoài provider (lỗi lập trình). `useEditorStore` bọc `useStore` của `zustand`. Comment: selector không được trả object mới ở mỗi lần gọi; cần nhiều giá trị thì dùng `useShallow` của `zustand/react/shallow`.
+
+**Test viết trước** (`create-editor-store.test.ts` dùng `buildSchema`, `makeTable`, `makeColumn` và `createCounterIdGenerator`; `notify` và `logger` là object với `vi.fn()`):
+
+- `records one history entry for a successful dispatch`.
+- `keeps the document and history unchanged when the operation is rejected`.
+- `notifies and logs the error code when the operation is rejected`.
+- `returns the operation error to the caller`.
+- `records nothing when the operation changes nothing`.
+- `undoes the last entry`; `redoes an undone entry`; `does nothing when there is nothing to undo`.
+- `merges consecutive keyboard moves of the same tables into one entry`.
+- `does not merge keyboard moves of a different set of tables`.
+- `does not merge when another dispatch happened in between`.
+- `keeps a mouse drag of several tables as one entry`.
+- `drops selected ids that the operation removed`.
+- `keeps the selection object when nothing was removed`.
+- `clears history and selection when the document is replaced`.
+- `caps the history at the history limit` (dispatch `HISTORY_LIMIT + 1` lần, `past.length` là `HISTORY_LIMIT`).
+- `editor-store-provider.test.tsx`: `exposes the store to consumers`; `throws when useEditorStore is used outside the provider`; `re-renders a consumer only when its slice changes` (đếm render bằng bộ đếm trong component test).
+
+**Kiểm tra:** như "Quy ước chung".
+
+**Commit:** `feat(frontend): add the editor store with one dispatch path`
+
+## Task 19: Id handle, `toTableNodes`, `toRelationEdges` và `ViewportControls`
+
+**Mục tiêu:** hàm thuần suy ra node và edge của React Flow từ tài liệu, dùng lại object khi không có gì đổi, cùng quy ước id handle và một interface điều khiển viewport mock được trong test.
+
+**Loại:** B. **Phụ thuộc:** core 26, 17. **Đợt:** 9.
+
+**File sở hữu:** tạo trong `frontend/src/features/editor/lib/`: `handle-ids.ts`, `handle-ids.test.ts`, `to-table-nodes.ts`, `to-table-nodes.test.ts`, `to-relation-edges.ts`, `to-relation-edges.test.ts`, `viewport-controls.tsx`, `viewport-controls.test.tsx`.
+
+**Cài đặt** (spec mục 3 "Node bảng", "Edge quan hệ", mục 5 "Suy ra node và edge với tham chiếu ổn định", mục 10, mục 12 "Focus không bị che"):
+
+- `handle-ids.ts`:
+
+  ```ts
+  export type HandleSide = "left" | "right";
+  export type ParsedHandle =
+    | { readonly kind: "column"; readonly columnId: string; readonly side: HandleSide }
+    | { readonly kind: "table"; readonly tableId: string; readonly side: HandleSide };
+
+  export function formatColumnHandleId(columnId: ColumnId, side: HandleSide): string;
+  export function formatTableHandleId(tableId: TableId, side: HandleSide): string;
+  export function parseHandleId(handleId: string | null | undefined): ParsedHandle | null;
+  export function chooseHandleSides(
+    fromPosition: Position,
+    toPosition: Position,
+  ): { readonly source: HandleSide; readonly target: HandleSide };
+  ```
+
+  - Định dạng đúng spec: `column:<columnId>:left`, `table:<tableId>:right`. Tách bằng `split(":")` và chỉ chấp nhận đúng ba phần với phần đầu là `column` hoặc `table` và phần cuối là `left` hoặc `right`; id trong kết quả là `string`, nơi gọi tra `document.columns[columnId]` rồi dùng `column.id` để có lại nhãn kiểu của core (Vấn đề 27).
+  - `chooseHandleSides`: `fromPosition.x <= toPosition.x` cho `{ source: "right", target: "left" }`, ngược lại `{ source: "left", target: "right" }`. Quan hệ tự tham chiếu (hai vị trí bằng nhau) rơi vào nhánh đầu, nên cả hai đầu dùng cạnh phải: nơi gọi truyền cùng một `Position` và ép `target: "right"` bằng nhánh riêng `isSelfReference`.
+- `to-table-nodes.ts`:
+
+  ```ts
+  export const TABLE_NODE_TYPE = "table";
+  export type TableNodeData = { readonly tableId: TableId };
+  export type TableNode = Node<TableNodeData, typeof TABLE_NODE_TYPE>;
+
+  export function toTableNodes(input: {
+    readonly tables: SchemaDocument["tables"];
+    readonly selection: Selection;
+    readonly dragPositions: Readonly<Partial<Record<TableId, Position>>>;
+    readonly previousNodes: readonly TableNode[];
+  }): readonly TableNode[];
+  ```
+
+  - Node sắp theo id bảng tăng dần (so sánh `<`, `>` như core), để thứ tự không phụ thuộc thứ tự khóa của map.
+  - `position` là `dragPositions[tableId] ?? table.position`; `selected` là `selection.tableIds.includes(tableId)`.
+  - Dựng `Map` từ `previousNodes` theo id; node cũ có cùng `position.x`, `position.y`, `selected` thì **trả lại đúng object cũ** (`toBe`).
+  - Mảng kết quả cũng được dùng lại: nếu mọi node đều là object cũ và số lượng không đổi thì trả lại `previousNodes`.
+  - `data` chỉ chứa `tableId`; component tự đọc lát cắt.
+- `to-relation-edges.ts`:
+
+  ```ts
+  export const RELATION_EDGE_TYPE = "relation";
+  export type RelationEdgeData = {
+    readonly relationId: RelationId;
+    readonly kind: RelationKind;
+    readonly columnPairCount: number;
+    readonly hasIssue: boolean;
+  };
+  export type RelationEdge = Edge<RelationEdgeData, typeof RELATION_EDGE_TYPE>;
+
+  export function toRelationEdges(input: {
+    readonly relations: SchemaDocument["relations"];
+    readonly tables: SchemaDocument["tables"];
+    readonly selection: Selection;
+    readonly issueIndex: IssueIndex;
+    readonly previousEdges: readonly RelationEdge[];
+  }): readonly RelationEdge[];
+  ```
+
+  - Một edge cho mỗi quan hệ, id là `relation.id`, sắp theo id tăng dần. `source` là `fromTableId`, `target` là `toTableId`.
+  - `sourceHandle`, `targetHandle` dựng từ cặp cột **đầu tiên** và `chooseHandleSides(fromTable.position, toTable.position)`; quan hệ tự tham chiếu dùng `right` ở cả hai đầu.
+  - `hasIssue` là `issueIndex.countOfElement(relation.id) > 0`.
+  - Dùng lại edge cũ khi `kind`, `columnPairCount`, `hasIssue`, `selected`, hai handle và hai đầu đều không đổi. Vị trí bảng chỉ ảnh hưởng qua hai handle, nên kéo một bảng chỉ tạo lại edge của bảng đó.
+  - Bảng ở một đầu không tồn tại (tài liệu lỗi) thì bỏ qua quan hệ đó, không throw.
+- `viewport-controls.tsx` (`"use client"`):
+
+  ```ts
+  export type ViewportControls = {
+    readonly zoomIn: () => void;
+    readonly zoomOut: () => void;
+    readonly fitView: () => void;
+    readonly setCenter: (x: number, y: number, options: { readonly zoom: number; readonly duration: number }) => void;
+    readonly getZoom: () => number;
+  };
+  export const MIN_ZOOM = 0.1;
+  export const MAX_ZOOM = 2;
+  export const FIT_VIEW_PADDING = 0.2;
+  export const VIEWPORT_TRANSITION_MS = 200;
+
+  export function ViewportControlsProvider(props: { readonly controls: ViewportControls; readonly children: ReactNode }): JSX.Element;
+  export function useViewportControls(): ViewportControls;
+  ```
+
+  - `useViewportControls` ngoài provider throw `Error`. Canvas (Task 24) dựng `controls` từ `useReactFlow`; toolbar và panel trái chỉ dùng interface này, nên test mock được mà không cần `ReactFlowProvider`.
+  - `useViewportControls` **không** gọi `useReactFlow`, nên file này không kéo React Flow vào bundle của các component chỉ dùng nút zoom.
+
+**Test viết trước:**
+
+- `handle-ids.test.ts`: `formats a %s handle id` (`it.each` bốn tổ hợp); `parses %s back into its parts` (`it.each`); `rejects %s` (`it.each`: `null`, chuỗi rỗng, `column:col_1`, `column:col_1:middle`, `other:col_1:left`); `puts the source on the right when the from table is to the left`; `puts the source on the left when the from table is to the right`.
+- `to-table-nodes.test.ts`: `creates one node per table ordered by id`; `marks selected tables`; `prefers a drag position over the stored position`; `reuses the node object of an unchanged table` (`toBe`); `reuses the whole array when nothing changed` (`toBe`); `creates a new node when the table moved`; `creates a new node when the selection changed`; `drops the node of a removed table`.
+- `to-relation-edges.test.ts`: `creates one edge per relation, even for a composite foreign key`; `uses the handles of the first column pair`; `connects the right edge to the left edge when the from table is to the left`; `uses the right side on both ends of a self relation`; `marks an edge whose relation has an issue`; `reuses the edge object of an unchanged relation` (`toBe`); `creates a new edge when one of its tables moved`; `skips a relation whose table is missing`.
+- `viewport-controls.test.tsx`: `exposes the controls to consumers`; `throws when used outside the provider`.
+
+**Kiểm tra:** như "Quy ước chung".
+
+**Commit:** `feat(frontend): derive react flow nodes and edges from the schema`
+
+## Task 20: Hook `useAutosave`, `useSchemaLock`, `useEditorShortcuts`
+
+**Mục tiêu:** ba hook nối store với thế giới bên ngoài: ghi tài liệu xuống IndexedDB ngay sau mỗi thay đổi với mỗi lúc một lần ghi, giữ khóa tab của schema, và biến `keydown` thành undo, redo, xóa lựa chọn.
+
+**Loại:** B. **Phụ thuộc:** 7, 8, 11, 15, 18. **Đợt:** 10.
+
+**File sở hữu:** tạo trong `frontend/src/features/editor/hooks/`: `use-autosave.ts`, `use-autosave.test.tsx`, `use-schema-lock.ts`, `use-schema-lock.test.tsx`, `use-editor-shortcuts.ts`, `use-editor-shortcuts.test.tsx`.
+
+**Cài đặt** (spec mục 7 "Ghi: autosave", "Cùng một schema ở hai tab", "Lỗi lưu trữ", mục 6 "Phím tắt"):
+
+- `use-autosave.ts`:
+
+  ```ts
+  export type AutosaveControls = { readonly retry: () => void };
+  export function useAutosave(input: {
+    readonly store: EditorStore;
+    readonly repository: SchemaRepository;
+  }): AutosaveControls;
+  ```
+
+  - Một effect `store.subscribe` so `state.document` với giá trị trước; đổi tham chiếu thì gọi `requestSave(document)`. Cleanup hủy đăng ký.
+  - `requestSave` giữ trong `useRef`: `isSaving` và `pendingDocument`. Đang ghi thì chỉ ghi `pendingDocument` rồi thoát. Không thì đặt `saveStatus: { kind: "saving" }`, `await repository.saveDocument(schemaId, document)`; xong mà có `pendingDocument` khác thì ghi tiếp đúng một lần nữa với tài liệu mới nhất; hết thì `saveStatus: { kind: "saved" }`.
+  - Lỗi: `saveStatus: { kind: "failed", errorCode: toStorageErrorCode(error) }`; `logger.error("editor.save-failed", { code, errorName: getStorageErrorName(error) })`; `notify({ tone: "error", titleKey: \`storage:${code}\`, action: { labelKey: "common:actions.retry", onSelect: retry } })`. Tài liệu trong bộ nhớ không bị đụng tới.
+  - `retry` ghi lại tài liệu hiện tại của store; toolbar dùng cho nút "Thử lại".
+  - Không có timer, không debounce; test không cần giả lập đồng hồ.
+- `use-schema-lock.ts`:
+
+  ```ts
+  export type SchemaLockState =
+    | { readonly kind: "acquiring" }
+    | { readonly kind: "blocked" }
+    | { readonly kind: "held"; readonly grantId: number };
+
+  export function useSchemaLock(input: {
+    readonly schemaId: string;
+    readonly lockManager: SchemaLockManager;
+  }): SchemaLockState;
+  ```
+
+  - Effect chạy lại khi `schemaId` hoặc `lockManager` đổi. Tạo `AbortController`; gọi `tryAcquire(schemaId)`.
+  - Lấy được: state `{ kind: "held", grantId: 1 }`.
+  - Không: state `blocked`, rồi `acquire(schemaId, controller.signal)`; khi được cấp thì `{ kind: "held", grantId: 2 }`. `grantId` tăng mỗi lần được cấp, để nơi gọi biết phải đọc lại tài liệu (Task 22 dùng `grantId` làm dependency).
+  - Cleanup: `controller.abort()` và `lock.release()` nếu đang giữ. Lỗi `AbortError` khi unmount bị nuốt có chủ đích, kèm comment; lỗi khác đi qua `logger.warn("editor.lock-failed", { errorName })`.
+- `use-editor-shortcuts.ts`:
+
+  ```ts
+  export function useEditorShortcuts(input: {
+    readonly store: EditorStore;
+    readonly canvasElement: Element | null;
+    readonly isDialogOpen: boolean;
+    readonly platformHint: string;
+    readonly onDeleteSelection: () => void;
+  }): void;
+  ```
+
+  - Effect gắn `keydown` trên `window` (`window.addEventListener("keydown", handler)`), gỡ khi unmount.
+  - Handler: `const action = matchShortcut(event, getShortcutPlatform(platformHint))`; `null` thì thoát. Dựng `ShortcutContext = { shouldRequireCanvasFocus: action === "deleteSelection", isDialogOpen, canvasElement }` (tên trường đúng như Task 8 đã cài, Vấn đề 29). `shouldHandleShortcut` trả `false` thì thoát. Ngược lại `event.preventDefault()` rồi: `undo` gọi `store.getState().undo()`, `redo` gọi `redo()`, `deleteSelection` gọi `onDeleteSelection()`.
+  - `platformHint` do nơi gọi truyền, thường là `navigator.platform` (Vấn đề 28).
+  - Các giá trị thay đổi được (`isDialogOpen`, `canvasElement`, `onDeleteSelection`) giữ trong một `useRef` được cập nhật mỗi lần render, để listener chỉ gắn một lần mà vẫn đọc giá trị mới nhất.
+
+**Test viết trước** (dùng `renderHook` của `@testing-library/react`; repository giả là object `vi.fn()`; `vi.mock("sonner")` khi cần):
+
+- `use-autosave.test.tsx`: `saves the document after a dispatch`; `does not save when nothing changed`; `saves only once while a save is in flight`; `saves the newest document after the in-flight save finishes`; `sets the save status to saving and then saved`; `sets the save status to failed with the mapped storage code`; `shows a translated toast with a retry action when saving fails`; `saves again when retry is called`; `stops saving after unmount`.
+- `use-schema-lock.test.tsx` (dùng `createFakeLockRegistry` và `createSchemaLockManager`): `reports held when the lock is free`; `reports blocked while another tab holds the lock`; `reports held with a new grant id after the other tab releases`; `releases the lock on unmount`; `removes the waiting request on unmount`.
+- `use-editor-shortcuts.test.tsx`: `undoes on the undo shortcut`; `redoes on the redo shortcut`; `calls onDeleteSelection on Delete when the canvas has focus`; `ignores Delete while focus is in a text field`; `ignores shortcuts while a dialog is open`; `prevents the default browser action for a handled shortcut`; `leaves an unrelated key alone`; `removes the listener on unmount`.
+
+**Kiểm tra:** như "Quy ước chung".
+
+**Commit:** `feat(frontend): add autosave, schema lock and shortcut hooks`
+
+## Task 21: Màn hình danh sách schema và route `/`
+
+**Mục tiêu:** màn hình đầu tiên của ứng dụng: tạo, mở, đổi tên, xóa schema trên IndexedDB, có đủ các trạng thái đang đọc, rỗng, bản ghi hỏng và lưu trữ không dùng được.
+
+**Loại:** B. **Phụ thuộc:** 12, 13, 15. **Đợt:** 10.
+
+**File sở hữu:**
+
+- Sửa `frontend/src/app/page.tsx`, `frontend/src/app/page.test.tsx`.
+- Tạo trong `frontend/src/features/schema-list/components/`: `schema-list-screen.tsx`, `schema-list-screen.test.tsx`, `schema-list-row.tsx`, `create-schema-dialog.tsx`, `create-schema-dialog.test.tsx`, `rename-schema-dialog.tsx`, `delete-schema-dialog.tsx`.
+- Tạo trong `frontend/src/features/schema-list/hooks/`: `use-schema-list.ts`, `use-schema-list.test.tsx`, `use-schema-actions.ts`, `use-schema-actions.test.tsx`.
+- Sửa `frontend/src/lib/i18n/locales/en/schema-list.ts`, `locales/vi/schema-list.ts`.
+
+**Cài đặt** (spec mục 1 "Màn hình danh sách", mục 7 "Đổi tên và xóa từ màn hình danh sách", "Cùng một schema ở hai tab"):
+
+- **Mệnh đề `satisfies` của file `vi`.** `locales/vi/schema-list.ts` hiện là `export const viSchemaList = {} as const;` (Vấn đề 36). Khi thêm key đầu tiên, thay bằng `as const satisfies LocaleNamespace<typeof enSchemaList>` và xóa comment placeholder; mệnh đề chỉ hợp lệ khi object đã có ít nhất một key.
+- `app/page.tsx` (Server Component mỏng, giữ default export): `export async function generateMetadata(): Promise<Metadata>` dùng `getRequestLocale()` và `getServerTranslation(locale, "schemaList")` cho `title: t("pageTitle")`; thân hàm chỉ render `<SchemaListScreen />`.
+- `use-schema-list.ts`: `useSchemaList(repository: SchemaRepository): readonly SchemaListEntry[] | undefined` dùng `useLiveQuery` của `dexie-react-hooks` gọi `repository.listSchemas()`. `undefined` nghĩa là đang đọc.
+- `use-schema-actions.ts`:
+
+  ```ts
+  export type SchemaActions = {
+    readonly createSchema: (name: string) => Promise<void>;
+    readonly renameSchema: (schemaId: string, name: string) => Promise<void>;
+    readonly deleteSchema: (schemaId: string) => Promise<void>;
+  };
+  export function useSchemaActions(storage: StorageBundle): SchemaActions;
+  ```
+
+  - `createSchema` gọi `repository.createSchema(name)` rồi `router.push(\`/schemas/${record.id}\`)` (`useRouter` của `next/navigation`).
+  - `renameSchema` và `deleteSchema` gọi `lockManager.tryAcquire(schemaId)` trước; `null` thì `notify({ tone: "error", titleKey: "schemaList:openInAnotherTab" })` và không làm gì; ngược lại làm việc rồi `lock.release()` trong `finally`.
+  - `renameSchema` gặp `{ kind: "unreadable" }` thì `notify({ tone: "error", titleKey: "schemaList:unreadableCannotRename" })`.
+  - Mọi lỗi ném ra từ repository được bắt tại đây: `notify({ tone: "error", titleKey: \`storage:${toStorageErrorCode(error)}\` })` và `logger.error("schema-list.action-failed", { errorName: getStorageErrorName(error) })`.
+- `schema-list-screen.tsx` (`"use client"`):
+  - `<header>` có `APP_NAME`, `<ThemeSwitch />`, `<LanguageSwitch />`; `<main>` có `<h1>{t("title")}</h1>` và nút "Tạo schema".
+  - `useStorage()`: `pending` → danh sách `Skeleton` không có chữ; `unavailable` → đoạn `storage:<errorCode>` và **không** render nút tạo.
+  - `ready` → `useSchemaList`; `undefined` → skeleton; mảng rỗng → `t("empty.title")` và nút `t("empty.createFirst")`; ngược lại `<ul>` các `SchemaListRow`.
+  - Hộp thoại tạo, đổi tên, xóa được điều khiển bằng state của màn hình, mỗi hộp thoại một component riêng.
+- `schema-list-row.tsx`: `<li>` gồm `<Link href={\`/schemas/${schema.id}\`}>` hiện tên, thời điểm `updatedAt` định dạng bằng `new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" })`, và `DropdownMenu` (nút icon `size="icon"`, `aria-label={t("row.actions", { name })}`) với ba mục Mở, Đổi tên, Xóa. Dòng `unreadable` hiện `t("row.unreadable")`, không có link, chỉ có mục Xóa.
+- `create-schema-dialog.tsx`, `rename-schema-dialog.tsx`: `Dialog` + `<form>`; ô tên bắt buộc, chặn xác nhận khi `name.trim()` rỗng và hiện `t("nameRequired")` qua `aria-describedby` cùng `aria-invalid`. Nút đóng nhận `closeLabel={t("common:actions.close")}`.
+- `delete-schema-dialog.tsx`: `AlertDialog` với cảnh báo không hoàn tác được, nút hủy và nút xóa.
+- Key `schemaList` cần có: `pageTitle`, `title`, `create.trigger`, `create.dialogTitle`, `create.nameLabel`, `create.submit`, `rename.*`, `delete.title`, `delete.description`, `delete.confirm`, `empty.title`, `empty.createFirst`, `row.actions`, `row.open`, `row.rename`, `row.delete`, `row.unreadable`, `row.updatedAt`, `nameRequired`, `openInAnotherTab`, `unreadableCannotRename`, `loading`.
+
+**Test viết trước** (dùng `renderWithProviders`, bọc thêm `<StorageProvider storage={fakeStorage}>` với repository thật trên `fake-indexeddb` và `createFakeLockRegistry`; `vi.mock("next/navigation")`):
+
+- `page.test.tsx`: `renders the schema list screen`; `translates the page title in %s` (`it.each` hai locale).
+- `schema-list-screen.test.tsx`:
+  - `shows a skeleton while storage is pending`.
+  - `shows the empty state when there is no schema`.
+  - `lists schemas from the most recently updated`.
+  - `formats the update time with the active locale`.
+  - `creates a schema and navigates to its editor`.
+  - `refuses to create a schema with a blank name`.
+  - `renames a schema from the row menu`.
+  - `asks for confirmation before deleting a schema`.
+  - `shows a toast when the schema is open in another tab`.
+  - `offers only delete for a row that cannot be read`.
+  - `shows a translated storage message when indexeddb is unavailable`.
+  - `hides the create button when storage is unavailable`.
+  - `reports no axe violations in the %s theme` (`it.each` `light`, `dark`).
+- `create-schema-dialog.test.tsx`: `focuses the name field when it opens`; `submits on Enter`; `closes on Escape and returns focus to the trigger`.
+- `use-schema-list.test.tsx`: `returns undefined while the query is loading`; `updates when a schema is added`.
+- `use-schema-actions.test.tsx`: `does not rename while another tab holds the lock`; `releases the lock after renaming`; `maps a storage error to a translated toast`.
+
+**Kiểm tra:** như "Quy ước chung", thêm: thêm một key thừa vào `locales/vi/schema-list.ts` → `pnpm --filter @schemaforge/frontend typecheck` phải fail; hoàn tác và xác nhận `git diff` sạch.
+
+**Commit:** `feat(frontend): add the schema list screen`
+
+## Task 22: Route editor, `EditorScreenLoader`, `EditorScreen`, `EditorWorkspace`
+
+**Mục tiêu:** route `/schemas/[schemaId]` mở đúng schema: kiểm tra id, lấy khóa tab, đọc và parse tài liệu, dựng store, bật autosave, và hiện đúng thông báo cho từng trạng thái không mở được.
+
+**Loại:** B. **Phụ thuộc:** 12, 13, 15, 18, 20, 23, 24. **Đợt:** 11.
+
+**File sở hữu:**
+
+- Tạo `frontend/src/app/schemas/[schemaId]/page.tsx`, `loading.tsx`, `error.tsx`, `page.test.tsx`.
+- Tạo trong `frontend/src/features/editor/components/`: `editor-screen-loader.tsx`, `editor-screen.tsx`, `editor-screen.test.tsx`, `editor-status-screen.tsx`, `editor-status-screen.test.tsx`, `editor-workspace.tsx`.
+- Tạo `frontend/src/features/editor/hooks/use-open-schema.ts`, `use-open-schema.test.tsx`.
+- Sửa `frontend/src/lib/i18n/locales/en/editor/screen.ts`, `locales/vi/editor/screen.ts`.
+
+**Cài đặt** (spec mục 1 "Màn hình editor", "Rendering", mục 7 "Cùng một schema ở hai tab", "Viewport", mục 5 "Store theo từng schema"):
+
+- **Mệnh đề `satisfies` của file `vi`.** `locales/vi/editor/screen.ts` hiện là `export const viEditorScreen = {} as const;` (Vấn đề 36). Khi thêm key đầu tiên, thay bằng `as const satisfies LocaleNamespace<typeof enEditorScreen>` và xóa comment placeholder.
+- `app/schemas/[schemaId]/page.tsx` (Server Component, default export):
+
+  ```ts
+  type EditorPageProps = { readonly params: Promise<{ readonly schemaId: string }> };
+  export async function generateMetadata({ params }: EditorPageProps): Promise<Metadata>;
+  export default async function EditorPage({ params }: EditorPageProps): Promise<JSX.Element>;
+  ```
+
+  `await params`; `isSchemaId(schemaId)` sai thì render `<EditorStatusScreen variant="not-found" />`, đúng thì render `<EditorScreenLoader schemaId={schemaId} />`. `generateMetadata` trả `t("editor:screen.pageTitle")` (không chứa tên schema, vì server không đọc IndexedDB).
+- `loading.tsx` (default export, Server Component): khung `Skeleton` của toolbar và canvas, không có chữ.
+- `error.tsx` (`"use client"`, default export): props `{ readonly error: Error; readonly reset: () => void }`; hiện `t("editor:screen.crashTitle")`, `crashDescription` và nút `common:actions.reload` gọi `reset()`. Không hiển thị `error.message`; `logger.error("editor.crashed", { errorName: error.name })`.
+- `editor-screen-loader.tsx` (`"use client"`): `const EditorScreen = dynamic(() => import("./editor-screen").then((module) => module.EditorScreen), { ssr: false, loading: () => <EditorSkeleton /> })`. Loader phải là client component vì Next.js 16 không cho `ssr: false` trong Server Component. `EditorSkeleton` là component không export trong cùng file.
+- `editor-status-screen.tsx` (`"use client"`): một component cho mọi trạng thái không mở được.
+
+  ```ts
+  export type EditorStatusVariant = "not-found" | "locked" | "unsupported-version" | "unreadable" | "storage-unavailable";
+  export type EditorStatusScreenProps = {
+    readonly variant: EditorStatusVariant;
+    readonly storageErrorCode?: StorageErrorCode;
+  };
+  ```
+
+  Render `<main>` có tiêu đề, mô tả và `<Link href="/">` về danh sách. Key lấy theo `variant` từ một object hằng ánh xạ `variant` sang cặp key (không ghép chuỗi key động, để `ParseKeys` còn kiểm tra được). `storage-unavailable` lấy mô tả từ `storage:<storageErrorCode>`.
+- `use-open-schema.ts`:
+
+  ```ts
+  export type OpenSchemaState =
+    | { readonly kind: "opening" }
+    | { readonly kind: "not-found" }
+    | { readonly kind: "unreadable"; readonly isVersionUnsupported: boolean }
+    | { readonly kind: "storage-error"; readonly errorCode: StorageErrorCode }
+    | { readonly kind: "opened"; readonly document: SchemaDocument; readonly viewport: ViewportRecord | null };
+
+  export function useOpenSchema(input: {
+    readonly repository: SchemaRepository;
+    readonly schemaId: string;
+    readonly grantId: number | null;
+  }): OpenSchemaState;
+  ```
+
+  - `grantId` là `null` khi chưa giữ khóa: state ở `opening`.
+  - Effect chạy lại mỗi khi `grantId` đổi (tab này vừa được cấp khóa sau khi chờ), gọi `Promise.all([repository.openSchema(schemaId), repository.readViewport(schemaId)])`, bỏ kết quả nếu effect đã bị hủy (cờ `isActive` trong cleanup).
+  - `unreadable` đặt `isVersionUnsupported` là `true` khi có lỗi mang mã `version-unsupported`.
+  - Ngoại lệ được bắt và đổi thành `storage-error` bằng `toStorageErrorCode`.
+- `editor-screen.tsx` (`"use client"`), props `{ readonly schemaId: string }`:
+  - `useStorage()`: `pending` → `<EditorSkeleton />`; `unavailable` → `<EditorStatusScreen variant="storage-unavailable" storageErrorCode={...} />`.
+  - `useSchemaLock({ schemaId, lockManager })`: `acquiring` → skeleton; `blocked` → `<EditorStatusScreen variant="locked" />`.
+  - `useOpenSchema({ repository, schemaId, grantId })` theo bảng trạng thái của spec mục 1; `opened` → `<EditorWorkspace ... />` với `key={schemaId}`, để mở schema khác là mount lại và có store mới.
+- `editor-workspace.tsx` (`"use client"`), props `{ readonly schemaId: string; readonly document: SchemaDocument; readonly viewport: ViewportRecord | null; readonly repository: SchemaRepository }`:
+  - `const [store] = useState(() => createEditorStore({ schemaId, document, generateId: () => crypto.randomUUID(), notify, logger }))`, với `notify` lấy từ `useNotify()`.
+  - `const autosave = useAutosave({ store, repository })`.
+  - Render `<EditorStoreProvider store={store}>` bọc một `<div>` xếp dọc: `<Toolbar onRetrySave={autosave.retry} />` rồi `<EditorCanvas defaultViewport={...} onMoveEnd={...} onAddTable={...} />`.
+  - `onMoveEnd` gọi `repository.saveViewport({ schemaId, x, y, zoom })` và nuốt lỗi bằng `logger.warn("editor.viewport-save-failed", { errorName })`: mất viewport không đáng làm hỏng phiên làm việc.
+  - `onAddTable` dựng operation bằng `useSchemaCommands()` của Task 23.
+  - File này được Task 29 mở rộng thành bố cục đầy đủ (panel trái, panel phải, landmark, phím tắt). Ở task này nó chỉ có toolbar và canvas.
+- Key `editor.screen` cần có: `pageTitle`, `notFound.title`, `notFound.description`, `locked.title`, `locked.description`, `unsupportedVersion.title`, `unsupportedVersion.description`, `unreadable.title`, `unreadable.description`, `storageUnavailable.title`, `crashTitle`, `crashDescription`, `backToList`, `loading`.
+
+**Test viết trước:**
+
+- `page.test.tsx`: `renders the not found state for an id that is not a uuid`; `renders the editor loader for a valid id`.
+- `editor-status-screen.test.tsx`: `shows the %s message` (`it.each` năm variant); `links back to the schema list`; `shows the translated storage message for an unavailable storage`; `reports no axe violations`.
+- `editor-screen.test.tsx` (repository thật trên `fake-indexeddb`, `createFakeLockRegistry`):
+  - `shows a skeleton while the lock is being acquired`.
+  - `shows the not found state for a schema that was never stored`.
+  - `shows the locked state while another tab holds the lock`.
+  - `opens the editor after the other tab releases the lock`.
+  - `shows the unsupported version message for a newer document`.
+  - `shows the unreadable message for a corrupt document`.
+  - `never overwrites a document it could not read` (bản ghi trong database không đổi sau khi màn hình mount).
+  - `shows the storage message when storage is unavailable`.
+  - `renders the toolbar and the canvas once the schema is open`.
+  - `reports no axe violations in the %s theme` (`it.each` `light`, `dark`).
+- `use-open-schema.test.tsx`: `stays in opening while no lock has been granted`; `reads the document and the viewport together`; `re-reads the document when a new grant arrives`; `ignores a result that arrives after unmount`; `maps a thrown dexie error to a storage error`.
+
+**Kiểm tra:** như "Quy ước chung", thêm: thêm một key thừa vào `locales/vi/editor/screen.ts` → `typecheck` phải fail; hoàn tác. `pnpm --filter @schemaforge/frontend build` in cả route `/schemas/[schemaId]`.
+
+**Commit:** `feat(frontend): add the editor route and open states`
+
+## Task 23: Toolbar, lệnh thêm bảng, thêm enum và ô nhập commit
+
+**Mục tiêu:** thanh công cụ trên cùng của editor với đủ nhóm nút đã dịch, hai lệnh dựng schema dùng chung, và hai ô nhập commit theo đúng quy tắc blur, Enter, Escape và IME mà mọi panel sẽ dùng lại.
+
+**Loại:** B. **Phụ thuộc:** 12, 16, 17, 18, 19. **Đợt:** 10.
+
+**File sở hữu:**
+
+- Tạo trong `frontend/src/features/editor/components/`: `committed-text-field.tsx`, `committed-text-field.test.tsx`, `committed-text-area.tsx`, `committed-text-area.test.tsx`.
+- Tạo trong `frontend/src/features/editor/components/toolbar/`: `editor-toolbar.tsx`, `editor-toolbar.test.tsx`, `schema-name-button.tsx`, `save-status-badge.tsx`, `issue-count-button.tsx`.
+- Tạo `frontend/src/features/editor/hooks/use-schema-commands.ts`, `use-schema-commands.test.tsx`.
+- Sửa `frontend/src/lib/i18n/locales/en/editor/toolbar.ts`, `locales/vi/editor/toolbar.ts`.
+
+**Cài đặt** (spec mục 2 "Toolbar", mục 6 "Gộp thao tác", mục 10, mục 12 "Kích thước mục tiêu bấm"):
+
+- **Mệnh đề `satisfies` của file `vi`.** `locales/vi/editor/toolbar.ts` hiện là `export const viEditorToolbar = {} as const;` (Vấn đề 36). Khi thêm key đầu tiên, thay bằng `as const satisfies LocaleNamespace<typeof enEditorToolbar>` và xóa comment placeholder.
+- `committed-text-field.tsx` (`"use client"`):
+
+  ```ts
+  export type CommittedTextFieldProps = {
+    readonly id: string;
+    readonly label: string;
+    readonly value: string;
+    readonly onCommit: (value: string) => void;
+    readonly errorMessage?: string;
+    readonly inputMode?: "text" | "numeric";
+    readonly isLabelHidden?: boolean;
+    readonly inputRef?: RefObject<HTMLInputElement | null>;
+  };
+  ```
+
+  - State `draft` khởi tạo từ `value`; một effect đồng bộ `draft` khi prop `value` đổi.
+  - Commit khi `blur` và khi `keydown` `Enter` với `event.nativeEvent.isComposing === false`. `Escape` đặt `draft` về `value` và **không** commit.
+  - Commit gọi `onCommit(draft)` chỉ khi `draft !== value`, rồi đặt `draft` về `value` hiện tại; nơi gọi không dispatch (giá trị không hợp lệ) thì ô quay lại giá trị cũ, nơi gọi dispatch thì effect đồng bộ đưa giá trị mới vào.
+  - `errorMessage` khác `undefined` thì `aria-invalid="true"` và `aria-describedby` trỏ tới phần tử chứa thông báo.
+  - `isLabelHidden` chỉ đổi cách hiện `Label` (`sr-only`), không bao giờ bỏ label.
+- `committed-text-area.tsx`: như trên nhưng dùng `Textarea`, chỉ commit khi `blur` (Enter xuống dòng), không có `inputMode`.
+- `use-schema-commands.ts`:
+
+  ```ts
+  export type SchemaCommands = {
+    readonly addTable: () => void;
+    readonly addEnum: () => void;
+  };
+  export function useSchemaCommands(): SchemaCommands;
+  ```
+
+  - `addTable`: lấy tâm khung nhìn hiện tại từ `useViewportControls()` (dùng `getZoom` và `setCenter` không đủ, nên interface được dùng ở đây chỉ để `setCenter` sau khi thêm); vị trí ban đầu là `{ x: 0, y: 0 }` cộng offset của `findFreeTablePosition`. Gọi `buildAddTableOperation(document, { position, generateId: () => crypto.randomUUID() })`, `dispatch(result.operation)`, `setSelection({ tableIds: [result.tableId], relationIds: [] })`, `requestFocus(["tables", result.tableId, "name"])`, và `setCenter` tới vị trí bảng mới với `zoom: getZoom()`, `duration: VIEWPORT_TRANSITION_MS`.
+  - `addEnum`: `buildAddEnumOperation`, `dispatch`, `setLeftPanelTab("enums")`, `requestFocus(["enums", enumId, "name"])`.
+  - Hàm được bọc `useCallback`, và object trả về bọc `useMemo`, để truyền xuống canvas không làm canvas render lại.
+- `editor-toolbar.tsx` (`"use client"`), props `{ readonly onRetrySave: () => void }`, thứ tự đúng spec:
+  1. `<Link href="/">` có `aria-label={t("backToList")}` và `Tooltip`.
+  2. `<SchemaNameButton />`: nút hiện `document.name`, mở `Dialog` đổi tên dùng `CommittedTextField`; xác nhận dispatch `{ type: "renameSchema", name }`. Tên schema có issue thì nút mang `aria-invalid="true"` và thông báo nằm trong tooltip đã dịch.
+  3. Nút "Thêm bảng", "Thêm enum" gọi `useSchemaCommands()`.
+  4. Nút undo, redo: `disabled` khi `history.past.length === 0` hoặc `history.future.length === 0`.
+  5. Nút zoom out, zoom in, fit view gọi `useViewportControls()`.
+  6. `<IssueCountButton />`: `getIssueIndex(document).issues.length`; bằng 0 thì icon đạt, không có số; khác 0 thì icon cảnh báo kèm số và `aria-label={t("issues.count", { count })}`; bấm thì `setLeftPanelTab("issues")`.
+  7. `<SaveStatusBadge />`: `common:saveStatus.saving`, `saved`, `failed`; `failed` kèm nút `common:actions.retry` gọi `onRetrySave`.
+  8. `<ThemeSwitch />`, `<LanguageSwitch />`.
+  - Các nhóm ngăn bằng `Separator` (`orientation="vertical"`, `aria-hidden`). Toolbar là các nút thường trong thứ tự tab, **không** dùng `role="toolbar"`.
+  - Nút chỉ có icon dùng `size="icon"` (32 px, Vấn đề 33), có `aria-label` đã dịch và `Tooltip` cùng nội dung.
+- Key `editor.toolbar` cần có: `backToList`, `schemaName.label`, `schemaName.dialogTitle`, `schemaName.submit`, `addTable`, `addEnum`, `undo`, `redo`, `zoomIn`, `zoomOut`, `fitView`, `issues.count`, `issues.none`.
+
+**Test viết trước** (dùng `renderWithProviders`, bọc `EditorStoreProvider` với store thật và `ViewportControlsProvider` với controls giả `vi.fn()`):
+
+- `committed-text-field.test.tsx`: `commits the new value on blur`; `commits on Enter`; `does not commit while the IME is composing`; `restores the current value on Escape`; `does not commit when the value did not change`; `shows the current value again when the caller rejects the commit`; `marks the field invalid and links the error message`.
+- `committed-text-area.test.tsx`: `commits on blur`; `keeps Enter as a line break`; `does not commit an unchanged value`.
+- `use-schema-commands.test.tsx`: `dispatches one batch when adding a table`; `selects the new table and focuses its name`; `centers the viewport on the new table`; `dispatches one operation when adding an enum`; `opens the enums tab after adding an enum`; `returns a stable commands object across rerenders`.
+- `editor-toolbar.test.tsx`:
+  - `names every icon button in %s` (`it.each` hai locale).
+  - `disables undo when there is nothing to undo`; `enables redo after an undo`.
+  - `renames the schema from the toolbar dialog`.
+  - `shows the issue count and opens the issues tab`.
+  - `shows the check icon when there is no issue`.
+  - `calls zoomIn, zoomOut and fitView on the viewport controls`.
+  - `shows the retry button while saving failed`.
+  - `reports no axe violations in the %s theme` (`it.each` `light`, `dark`).
+
+**Kiểm tra:** như "Quy ước chung", thêm: thêm một key thừa vào `locales/vi/editor/toolbar.ts` → `typecheck` phải fail; hoàn tác.
+
+**Commit:** `feat(frontend): add the editor toolbar and committed inputs`
+
+## Task 24: Canvas: `TableNode`, `ColumnRow`, `RelationEdge`, marker, `ariaLabelConfig`, `useRevealFocusedElement`
+
+**Mục tiêu:** canvas React Flow hiển thị bảng và quan hệ với đủ dấu hiệu, nhãn đã dịch và màu lấy từ token; mọi đường xóa của React Flow bị chặn; phần tử nhận focus bàn phím không bị minimap hay toast che.
+
+**Loại:** B. **Phụ thuộc:** 12, 17, 18, 19. **Đợt:** 10.
+
+**File sở hữu:**
+
+- Tạo trong `frontend/src/features/editor/components/canvas/`: `editor-canvas.tsx`, `editor-canvas.test.tsx`, `table-node.tsx`, `table-node.test.tsx`, `column-row.tsx`, `relation-edge.tsx`, `relation-edge.test.tsx`, `relation-markers.tsx`, `canvas-empty-state.tsx`.
+- Tạo `frontend/src/features/editor/lib/aria-label-config.ts`, `aria-label-config.test.ts`, `format-column-type.ts`, `format-column-type.test.ts`, `is-focus-target-obscured.ts`, `is-focus-target-obscured.test.ts`, `foreign-key-columns.ts`, `foreign-key-columns.test.ts`.
+- Tạo `frontend/src/features/editor/hooks/use-reveal-focused-element.ts`, `use-reveal-focused-element.test.tsx`.
+- Sửa `frontend/src/lib/i18n/locales/en/canvas.ts`, `locales/vi/canvas.ts`.
+
+**Cài đặt** (spec mục 3 "Node bảng", "Edge quan hệ", "Chọn, di chuyển, xóa", mục 8 "Token", mục 10, mục 12 "React Flow", "Focus không bị che", "Kích thước mục tiêu bấm", mục 13):
+
+- **Mệnh đề `satisfies` của file `vi`.** `locales/vi/canvas.ts` hiện là `export const viCanvas = {} as const;` (Vấn đề 36). Khi thêm key đầu tiên, thay bằng `as const satisfies LocaleNamespace<typeof enCanvas>` và xóa comment placeholder.
+- `format-column-type.ts`: `formatColumnType(type: ColumnType, enums: SchemaDocument["enums"]): string` — `varchar(255)`, `decimal(10,2)`, `char(n)`, tên enum cho `kind: "enum"` (enum đã bị xóa thì trả key kỹ thuật `"?"`), `name` cho `kind: "custom"`, còn lại là `kind`. `switch` vét cạn kết thúc bằng kiểm tra `never`. Hàm không dịch: đây là tên kiểu dữ liệu, không phải chuỗi giao diện.
+- `foreign-key-columns.ts`: `getForeignKeyColumnIds(relations: SchemaDocument["relations"]): ReadonlySet<string>` — tập mọi `fromColumnId`, memo theo tham chiếu `relations` bằng một `WeakMap` (cùng ngoại lệ đã ghi ở Vấn đề 25, comment tương tự).
+- `aria-label-config.ts`: `buildAriaLabelConfig(t: TFunction<"canvas">): AriaLabelConfig` dựng đủ các key spec mục 12 nêu: `node.a11yDescription.default`, `node.a11yDescription.keyboardDisabled`, `node.a11yDescription.ariaLiveMessage` (hàm nhận `{ direction, x, y }`), `edge.a11yDescription.default`, `minimap.ariaLabel`, `handle.ariaLabel`. Tên type lấy từ `@xyflow/react`; nếu tên khác `AriaLabelConfig` thì dùng đúng tên trong `node_modules/@xyflow/react/dist/esm/types` và ghi vào báo cáo.
+- `table-node.tsx`: `export const TableNode = memo(function TableNode({ data }: NodeProps<TableNode>): JSX.Element { … })`.
+  - Đọc `useEditorStore((state) => state.document.tables[data.tableId])`; bảng không còn thì render `null`.
+  - Tiêu đề: tên bảng (cắt bằng CSS `truncate`, tooltip hiện đầy đủ), icon comment khi `comment !== ""` với tooltip là comment dạng text, huy hiệu issue khi `countOfTable > 0` với `aria-label={t("node.issueCount", { count })}`.
+  - `aria-label` của node: `t("node.label", { name, columnCount })`.
+  - Handle: mỗi cạnh của tiêu đề một `<Handle type="source" position={Position.Left|Right} id={formatTableHandleId(...)} />`; `connectionMode="loose"` nên `type` không giới hạn chiều.
+  - Render `<ColumnRow columnId={...} tableId={...} />` theo đúng `table.columnIds`, `key` là `columnId`.
+- `column-row.tsx`: `export const ColumnRow = memo(function ColumnRow({ columnId, tableId }: ColumnRowProps): JSX.Element { … })`.
+  - Đọc `useEditorStore((state) => state.document.columns[columnId])`; các selector còn lại trả primitive: số issue của cột, `isPrimaryKey` (và số thứ tự khóa chính khi khóa chính nhiều cột), `isForeignKey` từ `getForeignKeyColumnIds`.
+  - Dấu theo bảng của spec: icon khóa kèm số thứ tự, icon mắt xích, chữ `U`, hậu tố `?`, chữ `AI`. Mỗi dấu luôn đi kèm `<span className="sr-only">` đã dịch, không chỉ dựa vào màu.
+  - Hai `<Handle>` trái, phải với `formatColumnHandleId`.
+- `relation-markers.tsx`: `export function RelationMarkers(): JSX.Element` — một `<svg>` ẩn (`aria-hidden`, kích thước 0) chứa `<defs>` với marker chân gà và vạch đơn, `fill` và `stroke` lấy `var(--canvas-relation)` và `var(--canvas-relation-selected)`. Được render một lần trong `editor-canvas.tsx`.
+- `relation-edge.tsx`: `export const RelationEdge = memo(function RelationEdge(props: EdgeProps<RelationEdge>): JSX.Element { … })` — `getBezierPath`, `<BaseEdge interactionWidth={24} markerStart markerEnd />`, `<EdgeLabelRenderer>` hiện nhãn `t("edge.oneToMany")` hoặc `t("edge.oneToOne")` và `t("edge.columnCount", { count })` khi `columnPairCount > 1`. Edge có issue dùng class nét đứt và màu `destructive`. `ariaLabel` là `t("edge.label", { fromTable, fromColumn, toTable, toColumn, kind })`.
+- `editor-canvas.tsx` (`"use client"`), props `{ readonly defaultViewport: Viewport | null; readonly onMoveEnd: (viewport: Viewport) => void; readonly onAddTable: () => void; readonly onConnect: (connection: Connection) => void }`:
+  - Bọc `<ReactFlowProvider>`; component con dựng `ViewportControls` từ `useReactFlow()` và bọc `ViewportControlsProvider`.
+  - `nodeTypes`, `edgeTypes` khai báo ở cấp module (hằng, không phải state).
+  - Node và edge suy ra bằng `toTableNodes`, `toRelationEdges` với `previousNodes` giữ trong `useRef`.
+  - Props bắt buộc: `connectionMode="loose"`, `deleteKeyCode={null}`, `onBeforeDelete={() => Promise.resolve(false)}`, `nodesFocusable`, `edgesFocusable`, `autoPanOnNodeFocus={false}`, `minZoom={MIN_ZOOM}`, `maxZoom={MAX_ZOOM}`, `colorMode` lấy từ `useThemePreference()`, `ariaLabelConfig` dựng từ `buildAriaLabelConfig`.
+  - `onNodesChange` **bỏ qua** mọi change `type === "remove"`; change `position` có `dragging: true` ghi vào `setDragPositions`; `onNodeDragStop` dispatch **một** `moveElements` cho mọi bảng đang kéo rồi xóa `dragPositions`, và không dispatch khi vị trí không đổi. Change `position` với `dragging: false` (phím mũi tên) dispatch `moveElements` với `{ coalesce: "keyboardMove" }`.
+  - `onSelectionChange` gọi `setSelection`; `onEdgesChange` cũng bỏ qua `remove`.
+  - `defaultViewport` khác `null` thì truyền thẳng, ngược lại `fitView` với `fitViewOptions={{ padding: FIT_VIEW_PADDING }}`.
+  - `<MiniMap pannable zoomable />`, `<Background variant={BackgroundVariant.Dots} />`.
+  - `tables` rỗng thì render `<CanvasEmptyState onAddTable={onAddTable} />` nằm giữa canvas.
+  - `useRevealFocusedElement` được gọi ở đây với ref của phần tử canvas.
+- `is-focus-target-obscured.ts`:
+
+  ```ts
+  export function isFocusTargetObscured(input: {
+    readonly target: DOMRect;
+    readonly canvas: DOMRect;
+    readonly overlays: readonly DOMRect[];
+  }): boolean;
+  ```
+
+  Trả `true` khi phần giao của `target` với `canvas` rỗng, hoặc khi phần giao đó nằm **trọn** trong một overlay. Bị che một phần trả `false`.
+- `use-reveal-focused-element.ts`: `useRevealFocusedElement(canvasElement: HTMLElement | null): void` — nghe `focusin` trên `canvasElement`; chỉ xử lý khi target khớp `.react-flow__node, .react-flow__edge` và `:focus-visible`; đo `getBoundingClientRect` của target, của canvas và của các overlay (`.react-flow__minimap`, `[data-sonner-toaster]`); bị che thì gọi `setCenter` của `useViewportControls()` tới tâm phần tử đổi sang tọa độ canvas, giữ `getZoom()`, `duration` là `VIEWPORT_TRANSITION_MS` hoặc `0` khi `matchMedia("(prefers-reduced-motion: reduce)").matches`.
+- Key `canvas` cần có: `node.label`, `node.issueCount`, `node.comment`, `column.primaryKey`, `column.primaryKeyPosition`, `column.foreignKey`, `column.unique`, `column.nullable`, `column.autoIncrement`, `column.issue`, `edge.label`, `edge.oneToOne`, `edge.oneToMany`, `edge.columnCount`, `empty.title`, `empty.addTable`, `minimap.label`, `handle.label`, `a11y.nodeDescription`, `a11y.nodeKeyboardDisabled`, `a11y.nodeMoved`, `a11y.edgeDescription`.
+
+**Test viết trước** (component test bọc `ReactFlowProvider`, `EditorStoreProvider` và `ViewportControlsProvider` giả):
+
+- `format-column-type.test.ts`: `formats %s as %s` (`it.each` đủ 19 `kind`, gồm `decimal`, `varchar`, `char`, `enum`, `custom`); `falls back when the enum no longer exists`.
+- `foreign-key-columns.test.ts`: `collects every from column of every relation`; `returns the same set for the same relations reference`.
+- `aria-label-config.test.ts`: `translates every aria label key in %s` (`it.each` hai locale); `builds the live message from direction and position`.
+- `is-focus-target-obscured.test.ts`: `treats an element outside the canvas as obscured`; `treats an element fully under the minimap as obscured`; `treats an element fully inside the toast area as obscured`; `treats a partly covered element as visible`; `treats a fully visible element as visible`.
+- `table-node.test.tsx`: `shows the table name and the column count in its label`; `shows a comment icon with the comment in a tooltip`; `shows an issue badge with the number of issues of the table and its columns`; `marks a primary key column with an icon and screen reader text`; `numbers the columns of a composite primary key`; `marks a foreign key column`; `marks unique, nullable and auto increment columns`; `renders one row per column in the stored order`; `reports no axe violations in the %s theme`.
+- `relation-edge.test.tsx`: `labels a one-to-many relation with both endpoints`; `shows the column count for a composite foreign key`; `marks an edge whose relation has an issue`.
+- `editor-canvas.test.tsx`: `renders one node per table`; `ignores remove changes from react flow`; `dispatches one moveElements when a drag stops`; `does not dispatch when a drag ends at the same position`; `coalesces arrow key moves`; `stores the selection in the editor store`; `saves the viewport on move end`; `uses the stored viewport as the default viewport`; `shows the empty state and adds a table from it`; `passes a connection to onConnect`.
+- `use-reveal-focused-element.test.tsx`: `centers the viewport on a focused node hidden behind the minimap`; `does nothing when the focused node is visible`; `uses no transition when reduced motion is requested`.
+
+**Kiểm tra:** như "Quy ước chung", thêm: thêm một key thừa vào `locales/vi/canvas.ts` → `typecheck` phải fail; hoàn tác. Xác minh trước khi viết: đọc `frontend/node_modules/@xyflow/react/dist/esm/types/general.d.ts` (hoặc file khai báo tương đương) để lấy đúng tên `AriaLabelConfig`, `NodeProps`, `EdgeProps`, `Connection`, `Viewport`, và xác nhận `onBeforeDelete` cùng `autoPanOnNodeFocus` có trong `ReactFlowProps` của 12.11.6; khác mô tả trên thì làm theo khai báo thật và ghi vào báo cáo.
+
+**Commit:** `feat(frontend): add the schema canvas with table nodes and edges`
+
+## Task 25: Panel trái: tab Bảng, Enum, Vấn đề
+
+**Mục tiêu:** panel trái ba tab: chọn bảng không cần đi qua canvas, sửa enum đầy đủ, và danh sách issue đã dịch bấm được để nhảy tới phần tử có lỗi.
+
+**Loại:** B. **Phụ thuộc:** 12, 14, 17, 18, 19, 23. **Đợt:** 11.
+
+**File sở hữu:**
+
+- Tạo trong `frontend/src/features/editor/components/panels/`: `left-panel.tsx`, `left-panel.test.tsx`, `table-list-tab.tsx`, `enum-list-tab.tsx`, `enum-list-tab.test.tsx`, `issue-list-tab.tsx`, `issue-list-tab.test.tsx`.
+- Tạo `frontend/src/features/editor/lib/enum-usage.ts`, `enum-usage.test.ts`.
+- Tạo `frontend/src/features/editor/hooks/use-reveal-table.ts`, `use-reveal-table.test.tsx`.
+- Sửa `frontend/src/lib/i18n/locales/en/editor/left-panel.ts`, `locales/vi/editor/left-panel.ts`.
+
+**Cài đặt** (spec mục 2 "Panel trái", mục 4 "Tab Vấn đề", mục 12 "Mọi thao tác kéo có hai đường thay thế"):
+
+- **Mệnh đề `satisfies` của file `vi`.** `locales/vi/editor/left-panel.ts` hiện là `export const viEditorLeftPanel = {} as const;` (Vấn đề 36). Khi thêm key đầu tiên, thay bằng `as const satisfies LocaleNamespace<typeof enEditorLeftPanel>` và xóa comment placeholder.
+- `enum-usage.ts`: `getEnumUsage(document: SchemaDocument): ReadonlyMap<EnumId, readonly string[]>` — với mỗi enum, danh sách nhãn `\`${table.name}.${column.name}\`` của mọi cột có `type.kind === "enum"` trỏ tới nó, sắp theo thứ tự `sortTables` rồi theo `table.columnIds`. Memo theo tham chiếu `document` (cùng ngoại lệ `WeakMap` ở Vấn đề 25).
+- `use-reveal-table.ts`: `useRevealTable(): (tableId: TableId) => void` — `setSelection({ tableIds: [tableId], relationIds: [] })` rồi `setCenter` của `useViewportControls()` tới `table.position` với `zoom: getZoom()` và `duration: VIEWPORT_TRANSITION_MS` (hoặc `0` khi `prefers-reduced-motion: reduce`). Đây là đường thay thế bằng bấm cho việc pan canvas (WCAG 2.5.7).
+- `left-panel.tsx` (`"use client"`): `<aside aria-label={t("label")}>` chứa `Tabs` với `value` lấy từ `leftPanelTab` của store (`null` nghĩa là thu gọn) và `onValueChange` gọi `setLeftPanelTab`. Nút thu gọn, mở lại là `Button size="icon"` có `aria-expanded`. Ba `TabsTrigger`: `t("tabs.tables")`, `t("tabs.enums")`, `t("tabs.issues", { count })`.
+- `table-list-tab.tsx`: `ScrollArea` chứa danh sách `sortTables(document)`; mỗi dòng là `<button type="button">` hiện tên bảng và số cột, `aria-current` khi bảng đang được chọn, bấm thì gọi `useRevealTable()`. Bảng có issue hiện huy hiệu số.
+- `enum-list-tab.tsx`: mỗi enum trong `sortEnums(document)` là một nhóm có:
+  - `CommittedTextField` cho tên, dispatch `{ type: "updateEnum", enumId, changes: { name } }`.
+  - Danh sách giá trị: mỗi giá trị một `CommittedTextField` (nhãn ẩn) cùng ba nút icon lên, xuống, xóa; mọi thay đổi dispatch `updateEnum` với **cả mảng** `values` mới. Nút lên của giá trị đầu và nút xuống của giá trị cuối bị `disabled`.
+  - Nút "Thêm giá trị" dispatch `updateEnum` với mảng có thêm `suggestEnumValue(values)`, rồi focus ô mới.
+  - Nút xóa enum dispatch `removeEnum`; enum đang được dùng thì nút `disabled`, kèm danh sách `bảng.cột` lấy từ `getEnumUsage` và `aria-describedby` trỏ tới danh sách đó.
+  - Trường có issue (`issuesOfElement(enumId)`, và issue đường dẫn `["enums", id, "values", n]` cho từng ô giá trị) nhận `errorMessage` đã dịch bằng `t(\`issues:${issue.code}\`, values)`.
+- `issue-list-tab.tsx`: danh sách `getIssueIndex(document).issues` theo đúng thứ tự; mỗi dòng là `<button type="button">` hiện `t(\`issues:${issue.code}\`, target.values)`. Bấm thì: bảng hoặc cột → `useRevealTable(target.tableId)`; quan hệ → `setSelection({ tableIds: [], relationIds: [elementId] })`; enum → `setLeftPanelTab("enums")`; rồi luôn gọi `requestFocus(issue.path)`. Danh sách rỗng hiện `t("issues.none")`.
+- Key `editor.leftPanel` cần có: `label`, `collapse`, `expand`, `tabs.tables`, `tabs.enums`, `tabs.issues`, `tables.columnCount`, `tables.issueCount`, `tables.empty`, `enums.nameLabel`, `enums.valueLabel`, `enums.addValue`, `enums.moveValueUp`, `enums.moveValueDown`, `enums.removeValue`, `enums.remove`, `enums.inUse`, `enums.empty`, `issues.none`, `issues.goTo`.
+
+**Test viết trước** (dùng `renderWithProviders` bọc `EditorStoreProvider` và `ViewportControlsProvider` giả):
+
+- `enum-usage.test.ts`: `lists the columns that use an enum as table.column`; `returns an empty list for an unused enum`; `orders usages by table then by column order`.
+- `use-reveal-table.test.tsx`: `selects the table and centers the viewport on it`; `keeps the current zoom`; `uses no transition when reduced motion is requested`.
+- `left-panel.test.tsx`: `switches tabs from the store`; `collapses and expands the panel`; `names the panel in %s` (`it.each` hai locale); `reports no axe violations in the %s theme`.
+- `enum-list-tab.test.tsx`: `renames an enum on blur`; `adds a value and focuses the new field`; `moves a value up and down with one dispatch each`; `disables move up on the first value`; `removes a value`; `disables deleting an enum that is in use and lists the columns`; `shows the translated issue of an empty enum`; `shows the translated issue on the duplicated value field`.
+- `issue-list-tab.test.tsx`: `shows the empty message when there is no issue`; `shows a translated message with the element name in %s` (`it.each` hai locale); `selects the table and centers it when a table issue is clicked`; `selects the relation of a relation issue`; `requests focus on the path of the issue`; `keeps the order of validateSchema`.
+
+**Kiểm tra:** như "Quy ước chung", thêm: thêm một key thừa vào `locales/vi/editor/left-panel.ts` → `typecheck` phải fail; hoàn tác.
+
+**Commit:** `feat(frontend): add the left panel with tables, enums and issues`
+
+## Task 26: Panel bảng: cột, index, comment, vị trí
+
+**Mục tiêu:** panel thuộc tính của một bảng: tên, comment, vị trí X, Y, danh sách cột đầy đủ thuộc tính và danh sách index, mọi thay đổi đi qua đúng một operation.
+
+**Loại:** B. **Phụ thuộc:** 12, 14, 17, 18, 23, và task cấu hình `cmdk` ở Vấn đề 23. **Đợt:** 11.
+
+**File sở hữu:**
+
+- Tạo trong `frontend/src/features/editor/components/panels/table-panel/`: `table-panel.tsx`, `table-panel.test.tsx`, `table-position-fields.tsx`, `column-list.tsx`, `column-list.test.tsx`, `column-item.tsx`, `column-type-combobox.tsx`, `column-type-combobox.test.tsx`, `column-details.tsx`, `column-details.test.tsx`, `index-list.tsx`, `index-list.test.tsx`.
+- Tạo `frontend/src/features/editor/lib/column-type-options.ts`, `column-type-options.test.ts`, `allowed-column-defaults.ts`, `allowed-column-defaults.test.ts`.
+- Sửa `frontend/src/lib/i18n/locales/en/editor/table-panel.ts`, `locales/vi/editor/table-panel.ts`.
+
+**Cài đặt** (spec mục 2 "Panel thuộc tính (phải)", "Cột", "Index", "Comment", "Vị trí", mục 4 "Trong panel", mục 12 "Kích thước mục tiêu bấm"):
+
+- **Mệnh đề `satisfies` của file `vi`.** `locales/vi/editor/table-panel.ts` hiện là `export const viEditorTablePanel = {} as const;` (Vấn đề 36). Khi thêm key đầu tiên, thay bằng `as const satisfies LocaleNamespace<typeof enEditorTablePanel>` và xóa comment placeholder.
+- `column-type-options.ts`:
+
+  ```ts
+  export const COMMON_COLUMN_TYPE_KINDS = [
+    "smallint", "integer", "bigint", "decimal", "real", "double", "boolean",
+    "char", "varchar", "text", "uuid", "date", "time", "timestamp", "timestamptz",
+    "json", "binary",
+  ] as const;
+  export type CommonColumnTypeKind = (typeof COMMON_COLUMN_TYPE_KINDS)[number];
+  export const DEFAULT_VARCHAR_LENGTH = 255;
+  export const DEFAULT_DECIMAL_PRECISION = 10;
+  export const DEFAULT_DECIMAL_SCALE = 2;
+  export function buildColumnType(kind: CommonColumnTypeKind, previous: ColumnType): ColumnType;
+  ```
+
+  Đúng 17 kiểu chung. `buildColumnType` giữ lại tham số cũ khi đổi giữa hai kiểu cùng tham số (`char` ↔ `varchar` giữ `length`), ngược lại dùng giá trị mặc định.
+- `allowed-column-defaults.ts`: `getAllowedColumnDefaults(type: ColumnType): readonly ColumnDefault["kind"][]` — luôn có `"literal"` trừ `kind: "binary"`; thêm `"currentTimestamp"` chỉ với `timestamp` và `timestamptz`; thêm `"generateUuid"` chỉ với `uuid`. Danh sách này khớp đúng quy tắc `column-default-incompatible` của core (`validation/rules/column-defaults.ts`), có comment nói rõ điều đó.
+- `table-panel.tsx` (`"use client"`), props `{ readonly tableId: TableId }`:
+  - `CommittedTextField` cho tên → `updateTable({ name })`; `CommittedTextArea` cho comment → `updateTable({ comment })`, chuỗi rỗng nghĩa là xóa comment.
+  - `<TablePositionFields />`: hai `CommittedTextField` `inputMode="numeric"` hiện `Math.round(position.x)`, `Math.round(position.y)`. Commit: `Number(value)` không phải số hữu hạn thì **không dispatch** (ô tự quay lại giá trị cũ); hợp lệ thì dispatch một `moveElements` chỉ chứa bảng này.
+  - Nút "Thêm quan hệ" gọi prop `onCreateRelation(tableId)`; nút "Xóa bảng" dispatch `removeTable` rồi `setSelection(EMPTY_SELECTION)` và gọi prop `onDeleted()`. Hai prop do Task 29 truyền vào.
+  - Trường có issue nhận `errorMessage` dịch từ `issuesOfElement(tableId)` khớp đoạn cuối của `path`.
+- `column-list.tsx` và `column-item.tsx`: mỗi cột một dòng theo `table.columnIds` (`key` là `columnId`):
+  - `CommittedTextField` tên → `updateColumn({ name })`.
+  - `<ColumnTypeCombobox />`.
+  - Bốn `Checkbox` nullable, khóa chính, unique, auto-increment. Nullable, unique, auto-increment dispatch `updateColumn`; khóa chính dispatch `setPrimaryKey` với danh sách mới (thêm vào **cuối** hoặc bỏ ra), không tự sửa thuộc tính khác.
+  - Nút icon lên, xuống dispatch `moveColumn`; nút xóa dispatch `removeColumn`. Nút lên của cột đầu, nút xuống của cột cuối `disabled`.
+  - Nút "Chi tiết" (`aria-expanded`, `aria-controls`) mở `<ColumnDetails />`.
+  - Nút "Thêm cột" dispatch `addColumn` ở cuối với `name: suggestColumnName(document, tableId)`, `type: { kind: "varchar", length: DEFAULT_VARCHAR_LENGTH }`, `isNullable: false`, `defaultValue: null`, `isUnique: false`, `isAutoIncrement: false`, `comment: ""`, rồi focus ô tên cột mới.
+- `column-type-combobox.tsx`: `Popover` + `Command` của shadcn/ui (`CommandInput`, `CommandList`, `CommandEmpty`, `CommandGroup`, `CommandItem`), ba nhóm: `t("columns.typeGroups.common")` (17 kiểu), `t("columns.typeGroups.enums")` (mọi enum trong `sortEnums`), `t("columns.typeGroups.custom")` (một mục "Kiểu custom…" mở ô nhập tên kiểu). Nút kích hoạt có `aria-label={t("columns.typeLabel", { column })}` và hiện `formatColumnType`.
+- `column-details.tsx`: tham số kiểu (`length`, hoặc `precision` và `scale`, hoặc tên kiểu custom) bằng `CommittedTextField`; `RadioGroup` giá trị mặc định với các lựa chọn `t("columns.default.none")` cộng `getAllowedColumnDefaults(type)`; chọn `literal` thì hiện thêm ô giá trị; `CommittedTextArea` comment của cột.
+- `index-list.tsx`: mỗi index trong `sortIndexes(document)` thuộc bảng này:
+  - `CommittedTextField` tên → `updateIndex({ name })`; `Checkbox` unique → `updateIndex({ isUnique })`.
+  - Danh sách cột có thứ tự: mỗi dòng có tên cột và nút lên, xuống, bỏ; **nút bỏ của cột cuối cùng bị `disabled`** vì mảng rỗng là bất biến cấu trúc. `Select` "Thêm cột" chỉ liệt kê cột chưa có trong index.
+  - Nút "Thêm index" dispatch `addIndex` với `name: suggestIndexName(document, { tableName, columnNames, isUnique: false })`, `columnIds` là khóa chính của bảng, hoặc cột đầu tiên khi bảng chưa có khóa chính; nút `disabled` khi bảng chưa có cột nào.
+  - Nút xóa index dispatch `removeIndex`.
+- Nút icon trong panel dùng `size="icon"` hoặc `size="icon-xs"` (≥ 24 px, Vấn đề 33).
+- Key `editor.tablePanel` cần có (rút gọn): `label`, `nameLabel`, `commentLabel`, `position.x`, `position.y`, `position.hint`, `addRelation`, `removeTable`, `columns.title`, `columns.add`, `columns.nameLabel`, `columns.typeLabel`, `columns.typeGroups.common`, `columns.typeGroups.enums`, `columns.typeGroups.custom`, `columns.customTypeLabel`, `columns.search`, `columns.noResult`, `columns.nullable`, `columns.primaryKey`, `columns.unique`, `columns.autoIncrement`, `columns.moveUp`, `columns.moveDown`, `columns.remove`, `columns.details`, `columns.default.label`, `columns.default.none`, `columns.default.literal`, `columns.default.currentTimestamp`, `columns.default.generateUuid`, `columns.default.valueLabel`, `columns.length`, `columns.precision`, `columns.scale`, `columns.comment`, `indexes.title`, `indexes.add`, `indexes.nameLabel`, `indexes.unique`, `indexes.addColumn`, `indexes.moveUp`, `indexes.moveDown`, `indexes.removeColumn`, `indexes.remove`, `indexes.lastColumn`.
+
+**Test viết trước:**
+
+- `column-type-options.test.ts`: `lists the seventeen common column kinds`; `keeps the length when switching between char and varchar`; `uses the default length for varchar`; `uses the default precision and scale for decimal`.
+- `allowed-column-defaults.test.ts`: `allows %s for a %s column` (`it.each` gồm `timestamp`, `timestamptz`, `uuid`, `varchar`, `binary`); `never allows a literal default on a binary column`; `matches the core rule for every column kind`.
+- `table-panel.test.tsx`: `renames the table on blur`; `stores the comment on blur`; `clears the comment when the text is deleted`; `dispatches one moveElements when the x field is committed`; `restores the shown value for a non numeric position`; `shows the translated issue of a duplicated table name`; `removes the table`.
+- `column-list.test.tsx`: `adds a column with the suggested name and focuses it`; `renames a column on Enter`; `toggles nullable, unique and auto increment`; `adds a column to the primary key at the end`; `removes a column from the primary key`; `moves a column up and down`; `removes a column`; `disables move up on the first column`; `shows the translated issue on the auto increment checkbox`.
+- `column-type-combobox.test.tsx`: `lists the common types, the enums and the custom entry`; `filters the list while typing`; `changes the column type`; `keeps the length when switching from varchar to char`; `sets a custom type name`.
+- `column-details.test.tsx`: `offers currentTimestamp only for timestamp columns`; `offers generateUuid only for uuid columns`; `offers no default kind for a binary column`; `stores a literal default`; `edits the length of a varchar column`; `edits precision and scale of a decimal column`.
+- `index-list.test.tsx`: `creates an index named by suggestIndexName`; `disables adding an index for a table without columns`; `adds and removes index columns`; `disables removing the last index column`; `toggles unique`; `removes an index`.
+- `reports no axe violations in the %s theme` trong `table-panel.test.tsx` (`it.each` `light`, `dark`).
+
+**Kiểm tra:** như "Quy ước chung", thêm: thêm một key thừa vào `locales/vi/editor/table-panel.ts` → `typecheck` phải fail; hoàn tác. Trước khi bắt đầu, xác nhận `frontend/src/components/ui/command.tsx` và `popover.tsx` đã tồn tại; nếu chưa thì **dừng và báo** (Vấn đề 23), không tự chạy `shadcn add`.
+
+**Commit:** `feat(frontend): add the table properties panel`
+
+## Task 27: Panel quan hệ và panel nhiều lựa chọn
+
+**Mục tiêu:** panel thuộc tính cho một quan hệ (loại, cặp cột, ON DELETE, ON UPDATE) và panel cho nhiều phần tử được chọn với một nút xóa tất cả.
+
+**Loại:** B. **Phụ thuộc:** 12, 14, 17, 18, 23. **Đợt:** 11.
+
+**File sở hữu:**
+
+- Tạo trong `frontend/src/features/editor/components/panels/`: `relation-panel.tsx`, `relation-panel.test.tsx`, `column-pair-list.tsx`, `multi-selection-panel.tsx`, `multi-selection-panel.test.tsx`.
+- Sửa `frontend/src/lib/i18n/locales/en/editor/relation-panel.ts`, `locales/vi/editor/relation-panel.ts`.
+
+**Cài đặt** (spec mục 2 "Quan hệ", "Panel thuộc tính (phải)", mục 3 "Chọn, di chuyển, xóa"):
+
+- **Mệnh đề `satisfies` của file `vi`.** `locales/vi/editor/relation-panel.ts` hiện là `export const viEditorRelationPanel = {} as const;` (Vấn đề 36). Khi thêm key đầu tiên, thay bằng `as const satisfies LocaleNamespace<typeof enEditorRelationPanel>` và xóa comment placeholder.
+- Namespace `editor.relationPanel` chứa cả key của panel nhiều lựa chọn, dưới nhánh `multiSelection`, vì plan không được thêm file resource mới sau Task 9 (Vấn đề 24, 36).
+- `relation-panel.tsx` (`"use client"`), props `{ readonly relationId: RelationId }`:
+  - `Select` loại quan hệ chỉ có `oneToMany` và `oneToOne` → `updateRelation({ kind })`, kèm dòng giải thích `t("kindHint")` ("n-n được tạo bằng bảng trung gian").
+  - Tên bảng `from`, `to` chỉ hiển thị (`<p>`), kèm `t("changeTablesHint")`.
+  - `<ColumnPairList />`: mỗi cặp có hai `Select` (cột của bảng `from`, cột của bảng `to`) và nút bỏ; nút bỏ bị `disabled` khi chỉ còn một cặp. Nút "Thêm cặp cột" thêm một cặp dùng cột đầu tiên chưa được ghép ở mỗi bên; mọi thay đổi dispatch `updateRelation({ columnPairs })` với **cả mảng**.
+  - Hai `Select` ON DELETE, ON UPDATE với đủ năm `ReferentialAction` (`noAction`, `restrict`, `cascade`, `setNull`, `setDefault`), nhãn dịch trong `actions.*`.
+  - Nút "Xóa quan hệ" dispatch `removeRelation` rồi `setSelection(EMPTY_SELECTION)`.
+  - Issue của quan hệ (`issuesOfElement(relationId)`) hiện dưới đúng trường theo đoạn cuối của `path`: `kind`, `columnPairs`, `onDelete`, `onUpdate`; đoạn khác thì hiện ở đầu panel.
+- `multi-selection-panel.tsx` (`"use client"`), props `{ readonly selection: Selection; readonly onDeleted: () => void }`: hiện `t("multiSelection.summary", { tableCount, relationCount })` và nút `t("multiSelection.deleteAll")` dispatch `buildDeleteSelectionOperation(selection)` trong **một** lần, rồi `setSelection(EMPTY_SELECTION)` và gọi `onDeleted()`. Không hỏi xác nhận (undo được).
+- Key `editor.relationPanel` cần có: `label`, `kindLabel`, `kind.oneToOne`, `kind.oneToMany`, `kindHint`, `fromTable`, `toTable`, `changeTablesHint`, `columnPairs.title`, `columnPairs.fromLabel`, `columnPairs.toLabel`, `columnPairs.add`, `columnPairs.remove`, `columnPairs.lastPair`, `onDelete`, `onUpdate`, `actions.noAction`, `actions.restrict`, `actions.cascade`, `actions.setNull`, `actions.setDefault`, `remove`, `multiSelection.summary`, `multiSelection.deleteAll`.
+
+**Test viết trước:**
+
+- `relation-panel.test.tsx`: `changes the relation kind`; `offers only one-to-one and one-to-many`; `shows both table names`; `changes a column pair`; `adds a column pair`; `disables removing the last column pair`; `changes ON DELETE and ON UPDATE`; `shows the translated type mismatch issue on the column pairs`; `removes the relation and clears the selection`; `names every field in %s` (`it.each` hai locale); `reports no axe violations in the %s theme`.
+- `multi-selection-panel.test.tsx`: `summarises the number of tables and relations`; `deletes everything with one dispatch`; `restores everything with a single undo`; `clears the selection after deleting`.
+
+**Kiểm tra:** như "Quy ước chung", thêm: thêm một key thừa vào `locales/vi/editor/relation-panel.ts` → `typecheck` phải fail; hoàn tác.
+
+**Commit:** `feat(frontend): add the relation and multi selection panels`
+
+## Task 28: Hộp thoại "Tạo quan hệ" và `buildRelationOperation`
+
+**Mục tiêu:** một hộp thoại duy nhất tạo quan hệ 1-n, 1-1 và n-n, mở được cả bằng kéo nối lẫn bằng nút trong panel, điền sẵn hợp lý và chặn đúng các trường hợp không tạo được.
+
+**Loại:** B. **Phụ thuộc:** 12, 16, 18, 24. **Đợt:** 12.
+
+**File sở hữu:**
+
+- Tạo `frontend/src/features/editor/lib/build-relation-operation.ts`, `build-relation-operation.test.ts`, `to-relation-draft.ts`, `to-relation-draft.test.ts`.
+- Tạo trong `frontend/src/features/editor/components/dialogs/`: `create-relation-dialog.tsx`, `create-relation-dialog.test.tsx`.
+- Sửa `frontend/src/lib/i18n/locales/en/editor/relation-dialog.ts`, `locales/vi/editor/relation-dialog.ts`.
+
+**Cài đặt** (spec mục 3 "Tạo quan hệ", mục 12 "Hộp thoại"):
+
+- **Mệnh đề `satisfies` của file `vi`.** `locales/vi/editor/relation-dialog.ts` hiện là `export const viEditorRelationDialog = {} as const;` (Vấn đề 36). Khi thêm key đầu tiên, thay bằng `as const satisfies LocaleNamespace<typeof enEditorRelationDialog>` và xóa comment placeholder.
+- `to-relation-draft.ts`:
+
+  ```ts
+  export type RelationDraftKind = "oneToMany" | "oneToOne" | "manyToMany";
+  export type ForeignKeyMode = "new-columns" | "existing-columns";
+  export type RelationDraft = {
+    readonly fromTableId: TableId;
+    readonly toTableId: TableId;
+    readonly kind: RelationDraftKind;
+    readonly foreignKeyMode: ForeignKeyMode;
+    readonly referencedColumnIds: readonly ColumnId[];
+    readonly columnPairs: readonly ColumnPair[];
+    readonly junctionTableName: string;
+    readonly onDelete: ReferentialAction;
+    readonly onUpdate: ReferentialAction;
+  };
+
+  export function createRelationDraftFromTable(document: SchemaDocument, fromTableId: TableId): RelationDraft | null;
+  export function createRelationDraftFromConnection(
+    document: SchemaDocument,
+    connection: { readonly source: string | null; readonly target: string | null; readonly sourceHandle: string | null; readonly targetHandle: string | null },
+  ): RelationDraft | null;
+  ```
+
+  - `createRelationDraftFromConnection` dùng `parseHandleId`: bảng nguồn là `from`, bảng đích là `to`; thả vào handle của cột `d` thì `referencedColumnIds = [d]`, thả vào tiêu đề thì là `toTable.primaryKeyColumnIds`; kéo **từ** handle cột `c` thì `foreignKeyMode = "existing-columns"` với `columnPairs = [{ fromColumnId: c, toColumnId: referencedColumnIds[0] }]`, kéo từ tiêu đề thì `"new-columns"`.
+  - `createRelationDraftFromTable` (nút "Thêm quan hệ"): `toTableId` là bảng khác đầu tiên theo `sortTables`, `kind` là `oneToMany`, `foreignKeyMode` là `"new-columns"`, `referencedColumnIds` là khóa chính của bảng đích.
+  - Mặc định `kind: "oneToMany"`, `onDelete` và `onUpdate` là `"noAction"`, `junctionTableName` là `suggestJunctionTableName(...)`.
+  - Tài liệu không có đủ hai bảng, hoặc handle không parse được, thì trả `null`.
+- `build-relation-operation.ts`:
+
+  ```ts
+  export type RelationDraftError =
+    | { readonly field: "referencedColumnIds"; readonly reason: "primary-key-missing" }
+    | { readonly field: "columnPairs"; readonly reason: "unmatched-column" | "duplicate-column" };
+
+  export function validateRelationDraft(document: SchemaDocument, draft: RelationDraft): readonly RelationDraftError[];
+  export function buildRelationOperation(
+    document: SchemaDocument,
+    draft: RelationDraft,
+    generateId: GenerateId,
+  ): Result<Operation, OperationError>;
+  ```
+
+  - `validateRelationDraft` chặn đúng ba trường hợp spec nêu: `referencedColumnIds` rỗng (1-n, 1-1) hoặc một trong hai bảng thiếu khóa chính (n-n); chế độ "Dùng cột có sẵn" còn cột được tham chiếu chưa ghép; một cột được chọn hai lần. Khác kiểu và cột đích không unique **không** bị chặn.
+  - `buildRelationOperation`:
+    - `kind: "manyToMany"` → `buildManyToMany(document, { leftTableId, rightTableId, junctionTableName, position }, generateId)` với `position` là trung điểm hai bảng.
+    - `foreignKeyMode: "new-columns"` → `buildRelation(document, { fromTableId, toTableId, kind, onDelete, onUpdate }, generateId)` của core, đã lo đặt tên cột, `isUnique` cho 1-1 một cột và index unique cho 1-1 nhiều cột.
+    - `foreignKeyMode: "existing-columns"` → một `addRelation` duy nhất với `columnPairs` của draft và id từ `createRelationId(generateId)`.
+  - Comment: `buildRelation` của core **chỉ** dựng khóa ngoại mới theo khóa chính bảng đích, nên chế độ "Dùng cột có sẵn" phải tự dựng `addRelation`.
+- `create-relation-dialog.tsx` (`"use client"`), props `{ readonly draft: RelationDraft | null; readonly onClose: () => void }`:
+  - `Dialog` mở khi `draft !== null`; `<form>` với Enter xác nhận, Escape hủy; `closeLabel={t("common:actions.close")}`.
+  - Trường: bảng `from` (chỉ hiển thị, có nút "Đổi chiều" hoán đổi hai bảng và dựng lại giá trị mặc định), bảng `to` (`Select`), loại (`RadioGroup` ba lựa chọn), cột được tham chiếu (`Select` nhiều dòng, chỉ hiện với 1-n và 1-1), chế độ khóa ngoại (`RadioGroup` "Tạo cột mới" hoặc "Dùng cột có sẵn"), danh sách cặp cột (chỉ hiện ở chế độ "Dùng cột có sẵn"), tên bảng trung gian (chỉ hiện với n-n).
+  - Lỗi từ `validateRelationDraft` hiện ngay dưới trường tương ứng, nối bằng `aria-describedby`, và nút xác nhận `disabled`.
+  - Xác nhận: `buildRelationOperation` rồi `dispatch` **một lần**; lỗi `Result` thì hiện thông báo `errors:codes.<code>` dưới trường và không đóng. Thành công thì `onClose()`.
+  - Hộp thoại mở từ thao tác kéo không có nút mở, nên `onClose` trả focus về node nguồn (`document.querySelector` theo `data-id` của node, hoặc phần tử `canvas` khi không tìm thấy); Task 29 truyền hàm này xuống.
+- Key `editor.relationDialog` cần có: `title`, `description`, `fromTable`, `toTable`, `swap`, `kindLabel`, `kind.oneToMany`, `kind.oneToOne`, `kind.manyToMany`, `referencedColumns`, `foreignKeyMode.label`, `foreignKeyMode.newColumns`, `foreignKeyMode.existingColumns`, `columnPairs.fromLabel`, `columnPairs.toLabel`, `junctionTableName`, `submit`, `errors.primaryKeyMissing`, `errors.unmatchedColumn`, `errors.duplicateColumn`.
+
+**Test viết trước:**
+
+- `to-relation-draft.test.ts`: `fills the referenced column from the target column handle`; `falls back to the primary key when dropping on the table handle`; `uses existing columns when dragging from a column handle`; `uses new columns when dragging from the table handle`; `suggests a junction table name from both tables`; `returns null for an unparsable handle`; `builds a draft from the add relation button`.
+- `build-relation-operation.test.ts`: `reports a missing primary key on the referenced columns`; `reports an unmatched referenced column`; `reports the same column chosen twice`; `does not block a type mismatch`; `builds one addRelation for existing columns`; `delegates to buildRelation for new columns`; `marks a single new column unique for a one-to-one relation`; `adds a unique index for a composite one-to-one relation`; `delegates to buildManyToMany`; `undoes a many-to-many relation in one step`.
+- `create-relation-dialog.test.tsx`: `prefills the dialog from a connection`; `swaps both tables`; `creates a one-to-many relation with a new foreign key column`; `creates a one-to-one relation`; `creates a junction table for a many-to-many relation`; `blocks confirmation when the target table has no primary key`; `confirms with Enter`; `closes on Escape without dispatching`; `returns focus to the source node when it closes`; `names every field in %s` (`it.each` hai locale); `reports no axe violations in the %s theme`.
+
+**Kiểm tra:** như "Quy ước chung", thêm: thêm một key thừa vào `locales/vi/editor/relation-dialog.ts` → `typecheck` phải fail; hoàn tác.
+
+**Commit:** `feat(frontend): add the create relation dialog`
+
+## Task 29: Ghép editor: bố cục, landmark, skip link, xóa bằng phím, toast hoàn tác, focus
+
+**Mục tiêu:** ghép toolbar, panel trái, canvas và panel phải thành một màn hình có landmark và skip link, nối phím `Delete` với `dispatch`, hiện toast "Hoàn tác" sau khi xóa, và xử lý `focusRequest` của store.
+
+**Loại:** B. **Phụ thuộc:** 20, 22, 23, 24, 25, 26, 27, 28. **Đợt:** 13.
+
+**File sở hữu:**
+
+- Sửa `frontend/src/features/editor/components/editor-workspace.tsx`; tạo `frontend/src/features/editor/components/editor-workspace.test.tsx`.
+- Tạo `frontend/src/features/editor/components/skip-to-panel-link.tsx`.
+- Tạo `frontend/src/features/editor/components/panels/properties-panel.tsx`, `properties-panel.test.tsx`.
+- Tạo `frontend/src/features/editor/hooks/use-delete-selection.ts`, `use-delete-selection.test.tsx`, `use-focus-request.ts`, `use-focus-request.test.tsx`.
+- Sửa `frontend/src/lib/i18n/locales/en/editor/editor-layout.ts`, `locales/vi/editor/editor-layout.ts`.
+
+**Cài đặt** (spec mục 2 "Bố cục editor", mục 3 "Chọn, di chuyển, xóa", mục 4 "Tab Vấn đề", mục 12 "Landmark", "Thứ tự tab", "Quản lý focus"):
+
+- **Mệnh đề `satisfies` của file `vi`.** `locales/vi/editor/editor-layout.ts` hiện là `export const viEditorLayout = {} as const;` (Vấn đề 36). Khi thêm key đầu tiên, thay bằng `as const satisfies LocaleNamespace<typeof enEditorLayout>` và xóa comment placeholder.
+- `use-delete-selection.ts`: `useDeleteSelection(): () => void`.
+  - Đọc `selection` và `document` từ store; `buildDeleteSelectionOperation(selection)` trả `null` thì không làm gì.
+  - Ngược lại: lưu `previousHistoryLength`, `dispatch(operation)`, `setSelection(EMPTY_SELECTION)`, đưa focus về vùng canvas, rồi `notify({ tone: "success", titleKey, values, action: { labelKey: "common:actions.undo", onSelect: () => store.getState().undo() } })`.
+  - `titleKey` là `editor:layout.deleted.one` khi xóa đúng một bảng (values `{ name }`) và `editor:layout.deleted.many` khi nhiều phần tử (values `{ count }`). Hai key hằng, không ghép chuỗi key động.
+- `use-focus-request.ts`: `useFocusRequest(onFocus: (path: DocumentPath) => void): void` — một effect theo dõi `focusRequest` của store; khác `null` thì gọi `onFocus(path)` rồi `requestFocus(null)`. Panel dùng `data-focus-path` (chuỗi `JSON.stringify(path)`) trên phần tử nhập liệu, và hàm `onFocus` mặc định tìm phần tử theo thuộc tính đó rồi gọi `focus()`; không tìm thấy thì không làm gì.
+- `properties-panel.tsx` (`"use client"`): `<aside aria-label={t("propertiesLabel")}>` chọn nội dung theo lựa chọn, đúng bảng của spec mục 2:
+  - Không có lựa chọn → không render `<aside>`.
+  - Đúng một bảng, không có quan hệ → `<TablePanel tableId onCreateRelation onDeleted />`.
+  - Đúng một quan hệ, không có bảng → `<RelationPanel relationId />`.
+  - Nhiều phần tử → `<MultiSelectionPanel selection onDeleted />`.
+  - Panel cuộn bằng `ScrollArea`, không có tiêu đề `sticky` đè lên nội dung (spec mục 12 "Focus không bị che").
+- `skip-to-panel-link.tsx`: link chỉ hiện khi focus (`sr-only focus:not-sr-only`), đưa focus tới panel thuộc tính, hoặc panel trái khi chưa chọn gì. Nội dung `t("skipToPanel")`.
+- `editor-workspace.tsx` (sửa từ Task 22) trở thành bố cục đầy đủ:
+  - `<EditorStoreProvider>` bọc: `<header>` chứa `<EditorToolbar />`; một hàng gồm `<LeftPanel />` (`<aside>`), `<main>` chứa `<SkipToPanelLink />` và `<EditorCanvas />`, rồi `<PropertiesPanel />` (`<aside>`).
+  - Thứ tự tab đúng spec: toolbar → panel trái → canvas → panel phải, bằng chính thứ tự DOM; không dùng `tabIndex` dương.
+  - `useEditorShortcuts({ store, canvasElement, isDialogOpen, platformHint: navigator.platform, onDeleteSelection })` với `canvasElement` lấy từ ref của `<main>`, `isDialogOpen` là state của workspace (hộp thoại tạo quan hệ, đổi tên schema).
+  - `useFocusRequest(...)` và `<CreateRelationDialog draft onClose />`; `onConnect` của canvas gọi `createRelationDraftFromConnection`, nút "Thêm quan hệ" của panel bảng gọi `createRelationDraftFromTable`.
+  - `onDeleted` của panel đưa focus về vùng canvas.
+- Key `editor.layout` cần có: `skipToPanel`, `propertiesLabel`, `canvasLabel`, `deleted.one`, `deleted.many`.
+
+**Test viết trước:**
+
+- `use-delete-selection.test.tsx`: `deletes the selected tables and relations with one dispatch`; `restores everything with a single undo`; `does nothing for an empty selection`; `shows a toast with an undo action`; `names the table in the toast when one table is deleted`; `counts the elements in the toast when several are deleted`; `clears the selection and moves focus back to the canvas`.
+- `use-focus-request.test.tsx`: `focuses the field matching the requested path`; `clears the focus request afterwards`; `does nothing when no field matches`.
+- `properties-panel.test.tsx`: `renders nothing without a selection`; `shows the table panel for a single table`; `shows the relation panel for a single relation`; `shows the multi selection panel for several elements`; `names the panel in %s` (`it.each` hai locale).
+- `editor-workspace.test.tsx`:
+  - `renders the toolbar, both panels and the canvas as landmarks`.
+  - `moves focus to the properties panel through the skip link`.
+  - `deletes the selection with the Delete key when focus is in the canvas`.
+  - `does not delete while focus is in a text field`.
+  - `does not delete while the create relation dialog is open`.
+  - `undoes the deletion from the toast action`.
+  - `opens the create relation dialog prefilled from a connection`.
+  - `opens the create relation dialog from the table panel button`.
+  - `focuses the table name field after adding a table`.
+  - `reports no axe violations in the %s theme` (`it.each` `light`, `dark`).
+
+**Kiểm tra:** như "Quy ước chung", thêm: thêm một key thừa vào `locales/vi/editor/editor-layout.ts` → `typecheck` phải fail; hoàn tác.
+
+**Commit:** `feat(frontend): assemble the editor layout and delete shortcut`
+
+## Task 30: Test hiệu năng và script `perf:snippet`
+
+**Mục tiêu:** chốt bằng test tự động rằng sửa một cột chỉ render lại đúng dòng cột đó và mapper giữ nguyên tham chiếu, và có sẵn công cụ để đo tay trên Chrome.
+
+**Loại:** B. **Phụ thuộc:** 24, 26. **Đợt:** 12.
+
+**File sở hữu:**
+
+- Tạo `frontend/src/testing/large-schema.ts`, `large-schema.test.ts`.
+- Tạo `frontend/src/features/editor/components/canvas/table-node.render-count.test.tsx`.
+- Tạo `frontend/src/features/editor/lib/node-reuse.perf.test.ts`.
+- Tạo `frontend/scripts/print-large-schema-snippet.ts`.
+- Sửa `frontend/package.json` (**chỉ** thêm một script; không đổi dependency, nên `pnpm-lock.yaml` không đổi).
+
+**Cài đặt** (spec mục 13, mục 14 "Coverage"):
+
+- `src/testing/large-schema.ts`:
+
+  ```ts
+  export type LargeSchemaInput = {
+    readonly tables: number;
+    readonly columnsPerTable: number;
+    readonly relations: number;
+  };
+  export const STANDARD_LARGE_SCHEMA: LargeSchemaInput = { tables: 100, columnsPerTable: 15, relations: 150 };
+  export function makeLargeSchema(input: LargeSchemaInput): SchemaDocument;
+  ```
+
+  - Dựng bằng `buildSchema`, `makeTable`, `makeColumn`, `makeRelation`, `createCounterIdGenerator` của `@schemaforge/core/testing` (core không có `makeLargeSchema`, Vấn đề 34).
+  - Tên bảng `table_1`… , cột `column_1`…; cột đầu mỗi bảng là khóa chính `id` kiểu `bigint`; quan hệ thứ `i` nối bảng `i % tables` với bảng `(i + 1) % tables`, dùng một cột khóa ngoại cùng kiểu, nên schema chuẩn **không** phát sinh issue.
+  - Vị trí bảng xếp lưới 10 cột, bước 320 × 220 px.
+  - Hàm thuần, không ngẫu nhiên, không đọc đồng hồ.
+- `table-node.render-count.test.tsx`: dựng store trên `makeLargeSchema(STANDARD_LARGE_SCHEMA)`, render node của hai bảng trong `React.Profiler`, dispatch `updateColumn` đổi tên một cột, rồi khẳng định: `TableNode` của bảng khác **không** render lại, và trong bảng đó chỉ `ColumnRow` của cột bị sửa render lại. Đếm bằng `onRender` của `Profiler` và một `Map` theo `id` của `Profiler`.
+- `node-reuse.perf.test.ts`: `toTableNodes` và `toRelationEdges` trên schema chuẩn, sau khi đổi một bảng thì 99 node còn lại và mọi edge không liên quan giữ nguyên tham chiếu (`toBe`).
+- `scripts/print-large-schema-snippet.ts`: in ra stdout một đoạn JavaScript tự chạy, dùng **API IndexedDB gốc** (không import Dexie), mở database `schemaforge`, ghi một bản ghi `schemas`, `documents` cho fixture chuẩn với `id` cố định, rồi in hướng dẫn tải lại trang. Script không ghi file, không gọi mạng.
+- `frontend/package.json`: thêm `"perf:snippet": "node --experimental-strip-types scripts/print-large-schema-snippet.ts"`. Nếu Node 24 cần cờ khác để chạy TypeScript trực tiếp thì dùng cách chạy thật sự hoạt động và ghi vào báo cáo. Không thêm task vào `turbo.json`.
+
+**Test viết trước:**
+
+- `large-schema.test.ts`: `builds a schema with the requested number of tables, columns and relations`; `gives every table a bigint primary key`; `introduces no validation issue`; `returns the same document for the same input`.
+- `node-reuse.perf.test.ts`: `keeps the node objects of the other tables after one table changed`; `keeps the edge objects that do not touch the changed table`.
+- `table-node.render-count.test.tsx`: `renders no other table node when one column is renamed`; `renders only the changed column row`.
+
+**Kiểm tra:** như "Quy ước chung", thêm:
+
+```bash
+source ~/.nvm/nvm.sh >/dev/null 2>&1; nvm use 24 >/dev/null 2>&1;
+pnpm --filter @schemaforge/frontend perf:snippet | head -5
+git diff --exit-code -- pnpm-lock.yaml
+```
+
+Mong đợi: script in ra đoạn JavaScript; `git diff --exit-code` trên lockfile thoát mã 0.
+
+**Commit:** `test(frontend): add render count tests and the perf snippet script`
+
+## Task 31: Test tích hợp hành trình 1–8
+
+**Mục tiêu:** tám hành trình ở spec mục 14 chạy trên màn hình thật, store thật và `SchemaRepository` thật trên `fake-indexeddb`, thay cho test e2e mà phần 3 không có.
+
+**Loại:** B. **Phụ thuộc:** 21, 29. **Đợt:** 14.
+
+**File sở hữu:**
+
+- Tạo `frontend/src/testing/mount-editor-journey.tsx`.
+- Tạo trong `frontend/src/features/editor/journeys/`: `schema-and-columns.test.tsx` (hành trình 1, 3), `relations.test.tsx` (2), `viewport-theme-language.test.tsx` (4, 5, 6), `keyboard-and-locking.test.tsx` (7, 8).
+- Tạo `frontend/src/features/schema-list/schema-list-journey.test.tsx` (phần danh sách của hành trình 1).
+
+**Cài đặt** (spec mục 14 "Tích hợp: màn hình + store + repository"):
+
+- `mount-editor-journey.tsx`: helper dựng một môi trường hoàn chỉnh trong bộ nhớ.
+
+  ```ts
+  export type JourneyEnvironment = {
+    readonly storage: StorageBundle;
+    readonly database: SchemaforgeDatabase;
+    readonly lockRegistry: FakeLockRegistry;
+    readonly createSchema: (name: string) => Promise<string>;
+    readonly mountEditor: (schemaId: string, options?: { readonly locale?: Locale }) => RenderResult & { readonly user: UserEvent };
+    readonly mountSchemaList: () => RenderResult & { readonly user: UserEvent };
+  };
+  export function createJourneyEnvironment(): JourneyEnvironment;
+  ```
+
+  - Một `SchemaforgeDatabase` trên `new IDBFactory()` của `fake-indexeddb`, một `createFakeLockRegistry()` dùng chung cho mọi `SchemaLockManager` dựng trong cùng môi trường, `clock` là bộ đếm và `generateId` sinh UUID cố định.
+  - `mountEditor` render `<StorageProvider storage>` bọc `<EditorScreen schemaId />` trong `renderWithProviders`. "Tải lại trang" trong test là `unmount()` rồi `mountEditor(...)` lần nữa trên **cùng** database.
+  - `mountSchemaList` tương tự với `<SchemaListScreen />`.
+  - Hành trình 8 tạo hai `SchemaLockManager` từ cùng `lockRegistry` và mount hai editor.
+- Mỗi file test theo đúng bảng hành trình của spec; thao tác bằng `user-event`, truy vấn theo role, label và text. Không mock store, không mock repository.
+- Hành trình 7 chỉ dùng bàn phím: `user.tab()`, `user.keyboard(...)`; không gọi `user.click` ở bất kỳ bước nào.
+
+**Test viết trước** (tên test là tên hành trình, viết bằng tiếng Anh):
+
+- `schema-list-journey.test.tsx`: `creates a schema from the list and opens its editor`; `renames a schema from the list`; `deletes a schema after confirming`.
+- `schema-and-columns.test.tsx`: `adds two tables and edits a column through the panel`; `keeps the schema after the screen is mounted again`; `creates a unique index over two columns`; `uses an enum as a column type`; `stores a comment on a table and a column`; `shows a duplicate table name issue on both nodes and in the issues tab`; `clears the issue after the name is fixed`.
+- `relations.test.tsx`: `creates a one-to-many relation with a new users_id column`; `changes the relation to one-to-one and updates the edge label`; `creates a junction table and two relations for a many-to-many relation`; `undoes the whole many-to-many relation in one step`; `redoes it`; `stores the result in the database`.
+- `viewport-theme-language.test.tsx`: `stores the viewport on move end`; `uses the stored viewport when the editor is mounted again`; `fits the view when there is no stored viewport`; `switches to the dark theme and writes the cookie`; `follows the system color scheme`; `switches to English and keeps the undo history`.
+- `keyboard-and-locking.test.tsx`: `creates a schema, a table, a column and a relation with the keyboard only`; `undoes with Mod+Z outside a text field`; `leaves Mod+Z to the browser inside a text field`; `deletes the selected table and relation with one undo step`; `ignores Delete inside a text field`; `ignores Delete while a dialog is open`; `shows the locked state in the second editor`; `lets the second editor edit after the first one unmounts`; `re-reads the document from the database after the lock is granted`.
+
+**Kiểm tra:** như "Quy ước chung", thêm `pnpm --filter @schemaforge/frontend test` phải đạt ngưỡng coverage 80% số dòng mà không có dòng `ERROR: Coverage for lines`.
+
+**Commit:** `test(frontend): add editor and schema list journey tests`
+
+## Task 32: Tài liệu, kiểm tra toàn repo, checklist kiểm tra tay
+
+**Mục tiêu:** chạy checklist kiểm tra tay trên Chrome, đối chiếu đủ tiêu chí hoàn thành của spec, và cập nhật tài liệu về đúng trạng thái sau phần 3.
+
+**Loại:** B. **Phụ thuộc:** 1–31. **Đợt:** 15.
+
+**File sở hữu:** sửa `document/roadmap.md`, `document/architecture.md`, và mục "Current status" của `CLAUDE.md` (chỉ khi user đã xác nhận, Vấn đề 35).
+
+**Cài đặt:**
+
+1. **Kiểm tra toàn repo** (root, tiền tố Node như "Quy ước chung"): `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm format:check`. Tất cả thoát mã 0 và `pnpm test` không in dòng vi phạm ngưỡng coverage.
+2. **Checklist kiểm tra tay** trên bản production (`pnpm --filter @schemaforge/frontend exec next build && pnpm --filter @schemaforge/frontend start`), Chrome mới nhất, mở qua `http://localhost:3000`. Ghi kết quả từng mục vào báo cáo và vào PR:
+   - Kéo bảng, kéo nối quan hệ ra hộp thoại điền sẵn, kéo nền để pan, bấm và kéo trên minimap.
+   - Zoom bằng con lăn chuột và bằng cuộn hai ngón trên trackpad cho cùng kết quả.
+   - Chọn Tối rồi tải lại trang với CPU chậm 4×: không nháy sai theme.
+   - Tab Network có header `Content-Security-Policy` với nonce ở `/` và `/schemas/<id>`; Console không có vi phạm CSP; file trong `_next/static` không đi qua proxy.
+   - Tạo schema, đóng hẳn trình duyệt, mở lại: dữ liệu còn.
+   - Mở cùng một schema ở hai tab Chrome: tab thứ hai hiện "đang mở ở tab khác", đóng tab đầu thì tab thứ hai mở được.
+   - Độ tương phản bằng công cụ của DevTools trên cả hai theme: chữ thường ≥ 4.5:1; icon, viền, vòng focus ≥ 3:1. Đo đủ các cặp token chữ, nền của toolbar, panel, node, edge, minimap và toast.
+   - Kích thước mục tiêu bấm ≥ 24×24 CSS px: nút icon trên toolbar, checkbox trong panel bảng, nút lên, xuống, xóa trong panel, và vùng bấm của edge. Handle của node và link trong câu dùng ngoại lệ ở spec mục 12.
+   - Focus không bị che: Tab qua node nằm dưới minimap, node nằm ngoài khung nhìn, và khi toast đang hiện; làm lại ở màn hình danh sách.
+   - Đường thay thế kéo bằng bấm: chỉ dùng bấm chuột để di chuyển bảng bằng ô "Vị trí", tạo quan hệ bằng nút "Thêm quan hệ", xem mọi bảng bằng fit view và tab "Bảng".
+   - Số đo hiệu năng trên fixture chuẩn (nạp bằng `pnpm --filter @schemaforge/frontend perf:snippet`), CPU chậm 4×: INP của commit tên cột, undo, redo ≤ 200 ms; kéo một bảng trung bình ≥ 30 fps; mở schema tới lúc tương tác được ≤ 2 s. Không đạt thì bật `onlyRenderVisibleElements` rồi đo lại, và báo cáo cả hai lần đo.
+3. **Đối chiếu tiêu chí hoàn thành:** đi hết danh sách ở spec mục "Tiêu chí hoàn thành", ghi với mỗi dòng là test nào phủ hay mục nào trong checklist đã chạy. Dòng nào chưa phủ thì **dừng và báo**, không tự đánh dấu xong.
+4. **`document/roadmap.md`:** đổi "Trạng thái" của dòng phần 3 từ `Đang làm` thành `Xong`. Không đụng dòng khác, không sửa phần ghi chú thứ tự trừ khi phụ thuộc thật sự đổi.
+5. **`document/architecture.md`:** so bảng "Quyết định đã chốt" với thực tế trong `frontend/package.json` và `package.json` ở root; gói của phần 3 chưa có dòng (ít nhất `sonner`, `axe-core`, `eslint-plugin-i18next`, `eslint-plugin-jsx-a11y-x`, `prettier-plugin-tailwindcss`, `cmdk`) thì thêm một dòng `| Hạng mục | Quyết định | Lý do |`. Quyết định đã có mà nay khác thì **sửa đúng dòng đó**, không thêm bản thứ hai. Mục "Chưa chốt" hiện rỗng: chỉ thêm khi phát sinh lựa chọn mới.
+6. **`CLAUDE.md`:** sửa đoạn "Current status" cho khớp (frontend đã có editor, danh sách schema, lưu local, i18n, theme). Chỉ làm khi user đã xác nhận Vấn đề 35; chưa xác nhận thì ghi nội dung đề xuất vào báo cáo và không sửa file.
+
+**Test viết trước:** task này không thêm test. Thay vào đó chạy lại toàn bộ bộ test của repo (bước 1) và ghi số test cùng phần trăm coverage của từng package vào báo cáo.
+
+**Kiểm tra:** sáu lệnh ở bước 1 cộng `git status --porcelain` chỉ còn các file tài liệu của task. Prettier không format `*.md`, nên kiểm tra tay rằng mọi bảng Markdown đã sửa có hàng phân cách khớp số cột và ký tự `|` trong ô được escape thành `\|`.
+
+**Commit:** `docs: mark the editor mvp as done`

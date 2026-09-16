@@ -31,3 +31,6 @@ coverage/
 # Claude Code local settings
 .claude/settings.local.json
 .claude/worktrees/
+
+# Third-party reference repos (local only)
+document/reference/

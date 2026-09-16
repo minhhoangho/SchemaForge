@@ -1,5 +1,69 @@
-// Placeholder for the task that owns this namespace (see the resource
-// owner table in document/plans/2026-09-14-editor-mvp-plan.md). That task
-// adds `satisfies LocaleNamespace<typeof enEditorTablePanel>` together with the
-// first key: while the object is empty the clause would resolve to `{}`.
-export const viEditorTablePanel = {} as const;
+import type { LocaleNamespace } from "@/lib/i18n/locale-namespace";
+import type { enEditorTablePanel } from "@/lib/i18n/locales/en/editor/table-panel";
+
+export const viEditorTablePanel = {
+  label: "Thuộc tính bảng",
+  nameLabel: "Tên bảng",
+  commentLabel: "Ghi chú bảng",
+  position: {
+    label: "Vị trí",
+    x: "X",
+    y: "Y",
+    hint: "Tính bằng pixel canvas ở mức thu phóng 100%.",
+  },
+  addRelation: "Thêm quan hệ",
+  removeTable: "Xóa bảng",
+  unnamed: "(chưa đặt tên)",
+  columns: {
+    title: "Cột",
+    add: "Thêm cột",
+    nameLabel: "Tên cột",
+    typeLabel: "Kiểu của cột {{column}}",
+    typeGroups: {
+      common: "Kiểu thông dụng",
+      enums: "Enum",
+      custom: "Tự đặt",
+    },
+    customTypeEntry: "Kiểu tự đặt…",
+    customTypeLabel: "Tên kiểu tự đặt",
+    applyCustomType: "Áp dụng",
+    search: "Tìm kiểu",
+    noResult: "Không tìm thấy kiểu nào.",
+    nullable: "Cho phép null",
+    primaryKey: "Khóa chính",
+    unique: "Duy nhất",
+    autoIncrement: "Tự tăng",
+    moveUp: "Chuyển cột {{column}} lên",
+    moveDown: "Chuyển cột {{column}} xuống",
+    remove: "Xóa cột {{column}}",
+    details: "Chi tiết",
+    detailsHasIssues: "Chi tiết (có vấn đề)",
+    currentType: "(đang dùng)",
+    default: {
+      label: "Giá trị mặc định",
+      none: "Không có",
+      literal: "Giá trị",
+      currentTimestamp: "Thời điểm hiện tại",
+      generateUuid: "UUID tự sinh",
+      valueLabel: "Giá trị mặc định cố định",
+    },
+    length: "Độ dài",
+    precision: "Độ chính xác",
+    scale: "Số chữ số thập phân",
+    comment: "Ghi chú cột",
+  },
+  indexes: {
+    title: "Index",
+    add: "Thêm index",
+    nameLabel: "Tên index",
+    unique: "Duy nhất",
+    columnsLabel: "Cột của index",
+    addColumn: "Thêm cột vào index",
+    chooseColumn: "Chọn một cột",
+    moveUp: "Chuyển {{column}} lên trong index {{index}}",
+    moveDown: "Chuyển {{column}} xuống trong index {{index}}",
+    removeColumn: "Bỏ {{column}} khỏi index {{index}}",
+    remove: "Xóa index {{index}}",
+    lastColumn: "Index cần ít nhất một cột.",
+  },
+} as const satisfies LocaleNamespace<typeof enEditorTablePanel>;

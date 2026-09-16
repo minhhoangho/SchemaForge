@@ -19,13 +19,8 @@ describe("createI18nInstance", () => {
     const instance = createI18nInstance("en");
 
     expect(
-      instance.services.interpolator.interpolate(
-        "{{tableName}}",
-        { tableName: "<b>users</b>" },
-        "en",
-        {},
-      ),
-    ).toBe("<b>users</b>");
+      instance.t("issues:table-name-duplicate", { table: "<b>a</b>" }),
+    ).toBe("Another table is already named “<b>a</b>”.");
   });
 
   it("creates independent instances", async () => {

@@ -11,5 +11,11 @@ import { createNotify } from "./notify";
 export function useNotify(): Notify {
   const { t } = useTranslation([...NAMESPACES]);
 
-  return useMemo(() => createNotify((key, values) => t(key, values)), [t]);
+  // `values` is a loose dictionary, but `t(key, values)` makes i18next demand
+  // exactly the interpolation variables the key's message declares, which a
+  // union of every app key cannot satisfy. Passing the key as `defaultValue`
+  // picks i18next's `[key, defaultValue, options]` overload, the one that takes
+  // an open dictionary. It is behaviour-neutral: a missing translation already
+  // falls back to the key itself.
+  return useMemo(() => createNotify((key, values) => t(key, key, values)), [t]);
 }

@@ -66,3 +66,5 @@ Work is split into the sub-projects in `document/roadmap.md`. Each one goes thro
 3. Implementation
 
 When a technical decision or a sub-project's status changes, update `document/architecture.md` or `document/roadmap.md` in the same change.
+
+Commits are pushed to the remote automatically once the checks pass; see `.claude/rules/git.md` for the details.

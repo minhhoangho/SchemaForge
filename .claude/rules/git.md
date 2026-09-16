@@ -28,3 +28,11 @@ docs: add schema operations spec
 
 - Run typecheck, lint, and tests for the packages you changed (once scaffolding adds these commands). Do not commit failing code.
 - Never commit secrets, `.env` files, or build output.
+
+## Pushing
+
+- After a commit succeeds, push it right away with `git push`; no need to ask first. This applies to every branch, including `master`.
+- If the branch has no upstream yet, use `git push -u origin <branch>`.
+- Only push commits that passed the checks in the section above.
+- If a push is rejected because the remote is ahead, stop and tell the user; never resolve it with `--force` or `--force-with-lease` on your own.
+- Force-pushing and deleting a remote branch always need the user's confirmation first.

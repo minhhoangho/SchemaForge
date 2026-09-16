@@ -1,0 +1,81 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import type { UserEvent } from "@testing-library/user-event";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { TooltipProvider } from "@/components/ui/tooltip";
+import type { Locale } from "@/lib/i18n/supported-locales";
+import { THEME_COOKIE_NAME } from "@/lib/preferences/preference-cookies";
+
+import { I18nProvider } from "./i18n-provider";
+import { ThemeProvider } from "./theme-provider";
+import { ThemeSwitch } from "./theme-switch";
+
+const VIETNAMESE_THEME_LABEL = "Giao diện";
+const ENGLISH_THEME_LABEL = "Theme";
+
+function renderThemeSwitch(locale: Locale): void {
+  render(
+    <I18nProvider locale={locale}>
+      <ThemeProvider initialPreference="system">
+        <TooltipProvider>
+          <ThemeSwitch />
+        </TooltipProvider>
+      </ThemeProvider>
+    </I18nProvider>,
+  );
+}
+
+async function openMenu(user: UserEvent): Promise<void> {
+  await user.click(
+    screen.getByRole("button", { name: VIETNAMESE_THEME_LABEL }),
+  );
+  await screen.findByRole("menu");
+}
+
+afterEach(() => {
+  document.documentElement.classList.remove("dark");
+  document.documentElement.style.colorScheme = "";
+  document.cookie = `${THEME_COOKIE_NAME}=; Path=/; Max-Age=0`;
+});
+
+describe("ThemeSwitch", () => {
+  it.each([
+    ["vi", VIETNAMESE_THEME_LABEL],
+    ["en", ENGLISH_THEME_LABEL],
+  ] as const)(
+    "names the trigger with the translated theme label in %s",
+    (locale, label) => {
+      renderThemeSwitch(locale);
+
+      expect(screen.getByRole("button", { name: label })).toBeDefined();
+    },
+  );
+
+  it("marks the current preference as checked", async () => {
+    const user = userEvent.setup();
+    renderThemeSwitch("vi");
+
+    await openMenu(user);
+
+    expect(
+      screen.getByRole("menuitemradio", {
+        name: "Theo hệ thống",
+        checked: true,
+      }),
+    ).toBeDefined();
+  });
+
+  it("switches to dark from the menu", async () => {
+    const user = userEvent.setup();
+    renderThemeSwitch("vi");
+    await openMenu(user);
+
+    await user.click(screen.getByRole("menuitemradio", { name: "Tối" }));
+
+    await waitFor(() => {
+      expect(document.documentElement.classList.contains("dark")).toBe(true);
+    });
+    expect(document.cookie).toContain(`${THEME_COOKIE_NAME}=dark`);
+  });
+});

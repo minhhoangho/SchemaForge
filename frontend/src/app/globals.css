@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@xyflow/react/dist/style.css";
 /* ejected from shadcn@4.21.0 */
 @theme inline {
   @keyframes accordion-down {
@@ -678,6 +679,10 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-canvas-relation: var(--canvas-relation);
+  --color-canvas-relation-selected: var(--canvas-relation-selected);
+  --color-canvas-key: var(--canvas-key);
+  --color-canvas-foreign-key: var(--canvas-foreign-key);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -720,6 +725,11 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --canvas-relation: var(--muted-foreground);
+  --canvas-relation-selected: var(--primary);
+  /* Tailwind amber-600 and teal-600. */
+  --canvas-key: oklch(0.666 0.179 58.318);
+  --canvas-foreign-key: oklch(0.6 0.118 184.704);
 }
 
 .dark {
@@ -754,6 +764,12 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --canvas-relation: var(--muted-foreground);
+  --canvas-relation-selected: var(--primary);
+  /* Tailwind amber-400 and teal-400, lighter so they stay readable on the
+     dark canvas. */
+  --canvas-key: oklch(0.828 0.189 84.429);
+  --canvas-foreign-key: oklch(0.777 0.152 181.912);
 }
 
 @layer base {
@@ -766,4 +782,50 @@
   html {
     @apply font-sans;
   }
+}
+
+/* React Flow reads its colors from these variables, so pointing them at the
+   shadcn/ui tokens keeps the canvas in step with the rest of the app. */
+.react-flow {
+  --xy-background-color: var(--background);
+  --xy-background-pattern-dots-color: var(--border);
+  --xy-node-background-color: var(--card);
+  --xy-node-color: var(--card-foreground);
+  --xy-node-border: 1px solid var(--border);
+  --xy-node-boxshadow-selected: 0 0 0 2px var(--ring);
+  --xy-edge-stroke: var(--canvas-relation);
+  --xy-edge-stroke-selected: var(--canvas-relation-selected);
+  --xy-edge-label-background-color: var(--card);
+  --xy-edge-label-color: var(--card-foreground);
+  --xy-connectionline-stroke: var(--canvas-relation-selected);
+  --xy-handle-background-color: var(--card);
+  --xy-handle-border-color: var(--canvas-relation);
+  --xy-minimap-background-color: var(--card);
+  --xy-minimap-mask-background-color: color-mix(
+    in oklab,
+    var(--background) 60%,
+    transparent
+  );
+  --xy-minimap-node-background-color: var(--muted-foreground);
+  --xy-selection-background-color: color-mix(
+    in oklab,
+    var(--primary) 8%,
+    transparent
+  );
+  --xy-selection-border: 1px solid var(--primary);
+}
+
+.react-flow__node:focus-visible,
+.react-flow__edge:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Sonner injects its own stylesheet at runtime with attribute selectors, which
+   outrank a single class, so its variables need the same specificity. */
+.toaster[data-sonner-toaster][data-theme] {
+  --normal-bg: var(--popover);
+  --normal-text: var(--popover-foreground);
+  --normal-border: var(--border);
+  --border-radius: var(--radius);
 }

@@ -112,7 +112,7 @@ Backend giới hạn tần suất gọi AI (rate limit, ví dụ X request/phút
 | Coverage | `@vitest/coverage-v8`, ngưỡng kiểm tra trong script `test` của từng package | Local và CI kiểm tra cùng một ngưỡng |
 | Môi trường test frontend | jsdom + React Testing Library | Theo hướng dẫn Vitest của Next.js; test query theo role, label, text |
 | Validate env backend | `@nestjs/config` + Zod | Kiểu config suy ra từ schema; Zod đã có trong stack |
-| CI | GitHub Actions; cache kết quả task của Turborepo bằng `actions/cache` | Repo nằm trên GitHub; không cần tài khoản remote cache |
+| CI | GitHub Actions; cache kết quả task của Turborepo bằng `actions/cache`; trong `turbo.json`, task riêng `@schemaforge/frontend#build` phụ thuộc `typecheck` của chính package đó | Repo nằm trên GitHub; không cần tài khoản remote cache. `next build` và `typecheck` của frontend cùng ghi `.next/types`, chạy song song thì typecheck fail ngẫu nhiên |
 | Git hooks | Không dùng | Lint có type và typecheck quá chậm cho mỗi commit; CI là cổng chặn |
 | Chi tiết schema model | Theo spec phần 2: vị trí nằm trong tài liệu; khóa chính là mảng cột; chỉ quan hệ 1-1, 1-n; bộ kiểu chung có custom; id có tiền tố theo loại | Một định dạng chung cho mọi phần, tránh migrate về sau |
 | Validation schema | Bất biến cấu trúc chặn operation; issue ngữ nghĩa chỉ báo; AI không được phát sinh issue mới | Editor chấp nhận trạng thái sửa dở, tham chiếu không bao giờ treo |

@@ -1460,6 +1460,11 @@ Giữ bản clone cho Task 9. Báo cáo output của từng lệnh. Nếu có l�
 
 Mỗi vi phạm dùng một file riêng để lỗi không lẫn nhau.
 
+**Ghi chú sau khi chạy (2026-09-16):** hai điểm lệch so với plan, đã kiểm chứng trên repo ở commit `ab197cb`.
+
+- Với các vi phạm chỉ nằm trong core (import `react`, `window`, `console.log`), `pnpm lint` fail nhưng in lỗi kiểu của bước build core chứ không phải rule lint, vì task `lint` của frontend và backend phụ thuộc `^build`. Chạy `pnpm lint --continue` để thấy đúng rule.
+- Hàm `untestedHelper` bốn dòng không còn kéo coverage của core xuống dưới 90% (core đang ở khoảng 98%). Muốn chạm ngưỡng coverage phải thêm một file không có test lớn hơn nhiều.
+
 ### Bắt buộc (tiêu chí hoàn thành của spec)
 
 Trừ khi ghi khác, file tạm là `packages/core/src/violation.ts`.

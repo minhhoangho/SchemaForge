@@ -61,6 +61,7 @@ User đã chốt khi duyệt spec: không có test chạy trên trình duyệt (
   - Màu chỉ lấy từ theme token (class Tailwind như `bg-background`, `text-muted-foreground`, `border-border`, hoặc `var(--token)`); không mã màu, không class màu cố định như `bg-red-500`, không màu dạng arbitrary value.
   - Không `dangerouslySetInnerHTML`. Không `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`. Không `console` ngoài `src/lib/logger.ts`. Không state có thể thay đổi ở cấp module.
   - `"use client"` đặt ở component thấp nhất cần nó. Hàm dưới khoảng 40 dòng, file dưới khoảng 300 dòng, lồng tối đa 3 cấp.
+- **Bẫy đã gặp ở đợt 8** (chi tiết ở Vấn đề 26, 27, 38, 40): core không export `ok`/`err`, `toNameKey`, `isTableId`, `MAX_NAME_BYTES` (viết bản sao cục bộ kèm comment, không import core bằng đường dẫn tương đối); tra map của core bằng id `string` phải qua helper `lookup` (Vấn đề 27); `DocumentPath` là mảng, không phải union (Vấn đề 38); bọc method trong arrow thay vì truyền `router.refresh` trần; `vi.fn<T>()` thay cho `vi.fn()` trần; xóa `frontend/.vitest/json/output.json` sau khi chạy riêng một file test.
 - **Test.** Import `describe`, `it`, `expect`, `vi` từ `vitest`. Mỗi test một hành vi, tên là câu tiếng Anh. Không vòng lặp hay `if` trong test; dữ liệu dạng bảng dùng `it.each`. Test component truy vấn theo role, label, text; thao tác bằng `userEvent.setup()`. Mock chỉ ở biên (IndexedDB bằng `fake-indexeddb`, Web Locks bằng bản giả, `matchMedia`, `document.cookie`, `next/navigation`, API DOM mà jsdom thiếu). Id và thời gian được truyền vào, không đọc đồng hồ hay sinh ngẫu nhiên trong logic. Không có test chạy trên trình duyệt.
 - **Format.** Trước khi báo xong, chạy `pnpm exec prettier --write <các file của task>` (Prettier không format `*.md`).
 - **Kiểm tra trước khi báo xong** (trừ khi task ghi thêm), chạy ở root repo:
@@ -833,9 +834,9 @@ Các vấn đề dưới đây không đổi quyết định nào của spec; m�
 | 22 | `nextjs.md` yêu cầu module không bao giờ được xuống trình duyệt bắt đầu bằng `import "server-only"`, nhưng gói `server-only` không có trong bảng phiên bản | Phần 3 không có module nào chứa bí mật; `server-translation.ts` chạy được ở cả hai phía. Không thêm `server-only` ở phần 3 | 9 |
 | 23 | **(user đã chốt: làm bù ngay, không chờ đợt 11)** Task 3 đã merge nhưng **không** cài `cmdk` và không thêm component `command`, `popover`, trái với cách xử lý ghi ở Vấn đề 8. Spec mục 2 chốt ô chọn kiểu cột là combobox `Popover` + `Command` có ba nhóm và gõ để lọc, nên Task 26 không làm được với bộ component hiện có | Trước đợt 11, orchestrator chạy **một task cấu hình tuần tự** (không có task nào chạy cùng): `pnpm --filter @schemaforge/frontend add cmdk@^1.1.1`, rồi `pnpm dlx shadcn@4.21.0 add command popover --cwd frontend`, sửa component sinh ra theo bước 7 của Task 3, và kiểm tra `git diff` chỉ chạm `frontend/package.json`, `pnpm-lock.yaml`, `frontend/src/components/ui/command.tsx`, `popover.tsx`. Phiên bản `cmdk` phải được kiểm tra lại bằng `npm view cmdk version time peerDependencies` vào ngày chạy (spec ghi 1.1.1) và phải đủ 24 giờ. Không task B nào tự cài. **Đã làm 2026-09-16:** `cmdk` `^1.1.1` (bản mới nhất, phát hành 2025-03-14, thừa 24 giờ) vào `frontend` dependencies, rồi `pnpm dlx shadcn@4.21.0 add command popover --cwd frontend --overwrite` (`--overwrite` là bắt buộc: CLI hỏi đè `button.tsx` và shell không tương tác nên lần chạy đầu bị hủy giữa chừng). Registry `radix-nova` đã đổi so với lúc Task 3 chạy: nó sinh `import { cn } from "cn"` và tự thêm dependency `cn@^0.3.0` (gói npm không liên quan) — đã sửa import về `@/lib/class-names` và gỡ `cn`; nó cũng đè `button.tsx`, `dialog.tsx`, `input.tsx`, `textarea.tsx` (hoàn tác bằng `git checkout --`) và sinh thêm `input-group.tsx` (đã xóa vì ngoài phạm vi). Hệ quả: `command.tsx` **không** có `CommandDialog` (bản sinh ra gọi `DialogContent` với `showCloseButton`, prop mà Task 3 đã đổi thành `hasCloseButton` kèm `closeLabel` bắt buộc), và `CommandInput` tự dựng khung ô nhập thay cho `InputGroup`. **Task 26 phải biết:** `Command` có prop **bắt buộc** `label: string`, vì cmdk luôn trỏ `aria-labelledby` của ô tìm kiếm vào label ẩn của chính nó, nên `aria-label` lẫn `placeholder` trên `CommandInput` đều không đặt được accessible name cho ô đó | 26 |
 | 24 | Khối "Cấu trúc thư mục" của spec không có file cho: lựa chọn (`Selection`), hàm dựng operation thêm enum, id handle, `ViewportControls`, ô nhập commit, và kho lưu trữ dùng chung của hai màn hình | Plan thêm `features/editor/lib/selection.ts`, `build-add-enum-operation.ts`, `handle-ids.ts`, `viewport-controls.tsx`, `features/editor/components/committed-text-field.tsx`, `committed-text-area.tsx`, `lib/storage/create-browser-storage.ts`, `storage-context.tsx`. Không namespace, không key i18n và không quyết định nào của spec đổi | 15, 16, 19, 23 |
-| 25 | `getIssues` của spec mục 4 cần một `WeakMap` ở cấp module, trái với quy ước "không state có thể thay đổi ở cấp module" của mục "Quy ước chung cho mọi task" | Cho đúng một ngoại lệ trong `features/editor/lib/issue-index.ts`, kèm comment nêu lý do: cache thuần theo tham chiếu object, không có khóa nào sống lâu hơn tài liệu, và mỗi store có tài liệu riêng nên không rò giữa hai schema hay hai request. Test chứng minh hai tài liệu khác nhau cho hai kết quả khác nhau | 17 |
+| 25 | `getIssues` của spec mục 4 cần một `WeakMap` ở cấp module, trái với quy ước "không state có thể thay đổi ở cấp module" của mục "Quy ước chung cho mọi task" | Cho đúng một ngoại lệ trong `features/editor/lib/issue-index.ts`, kèm comment nêu lý do: cache thuần theo tham chiếu object, không có khóa nào sống lâu hơn tài liệu, và mỗi store có tài liệu riêng nên không rò giữa hai schema hay hai request. Test chứng minh hai tài liệu khác nhau cho hai kết quả khác nhau. **Đã làm ở Task 17 (đợt 8); orchestrator chốt sau đợt 8: giữ `WeakMap` cấp module trong `issue-index.ts`, không chuyển vào `createEditorStore`.** Lý do: canvas và ba panel đọc chỉ mục độc lập với nhau; cache chỉ có khóa là tham chiếu tài liệu nên không rò giữa hai schema; hai test `returns the same index object for the same document reference` và `returns a different index for a different document` đã phủ hành vi này. Store (Task 18) không sở hữu, không giữ và không tính lại chỉ mục; component gọi `getIssueIndex(document)` với `document` đọc từ store | 17, 18 |
 | 26 | `packages/core` export `type Result` nhưng **không** export `ok` và `err` | `dispatch` dựng literal `{ isOk: true, value: undefined }` và `{ isOk: false, error }`, đúng hình dạng của `Result`; không tự khai báo lại type | 18 |
-| 27 | `packages/core` không export type guard cho id (`isTableId` có trong `model/ids.ts` nhưng không nằm trong `src/index.ts`; không có `isColumnId`) và không export `toNameKey` | `parseHandleId` trả id dạng `string`; nơi gọi tra `document.tables[id]` hoặc `document.columns[id]` rồi dùng `element.id` đã có nhãn kiểu, nên không cần ép kiểu. Gợi ý tên so sánh bằng `value.toLowerCase()` cục bộ, kèm comment nêu rõ nó phải khớp `toNameKey` của core | 16, 19 |
+| 27 | `packages/core` không export type guard cho id (`isTableId` có trong `model/ids.ts` nhưng không nằm trong `src/index.ts`; không có `isColumnId`) và không export `toNameKey` | `parseHandleId` trả id dạng `string`. **Không** tra thẳng `document.tables[id]` hay `document.columns[id]` với `id: string`: map của core có khóa dạng template literal (`TableId` là `` `tbl_${string}` ``, `ColumnId` là `` `col_${string}` ``, suy ra từ `z.templateLiteral` trong `packages/core/src/model/ids.ts`), nên chỉ số `string` báo `TS7053`. Cách Task 17 đã dùng (trong `features/editor/lib/resolve-issue-target.ts`), không ép kiểu, không khai báo lại type: một helper generic nhận map dưới dạng `Readonly<Record<string, Value>>`, nơi truyền `document.tables` vào được vì `Record` có khóa template literal gán được cho `Record<string, …>`:<br>`function lookup<Value>(elements: Readonly<Record<string, Value>>, elementId: string \| null): Value \| undefined { return elementId === null ? undefined : elements[elementId]; }`<br>Tìm thấy phần tử thì dùng `element.id` (đã mang nhãn kiểu của core) cho mọi bước sau. Helper này không export; task khác cần thì viết bản riêng trong file của mình, cùng hình dạng. Gợi ý tên so sánh bằng `value.toLowerCase()` cục bộ, kèm comment nêu rõ nó phải khớp `toNameKey` của core | 16, 19 |
 | 28 | Plan lượt 1 (Task 8) ghi hook truyền `navigator.userAgentData?.platform ?? navigator.platform`, nhưng `userAgentData` không có trong lib DOM của TypeScript nên phải ép kiểu | `useEditorShortcuts` nhận `platformHint` là tham số; nơi gọi truyền `navigator.platform` (đã lỗi thời nhưng có trong mọi trình duyệt được hỗ trợ và có kiểu sẵn), kèm comment | 20 |
 | 29 | Task 8 đã triển khai trường là `shouldRequireCanvasFocus`, còn spec mục 6 và plan lượt 1 viết `requiresCanvasFocus` | Task 20 dùng đúng tên trong code: `ShortcutContext.shouldRequireCanvasFocus` (quy tắc boolean của `typescript.md`). Ý nghĩa không đổi | 20 |
 | 30 | Spec mục 3 cần thêm câu "Thao tác không được áp dụng" cho toast lỗi dispatch, nhưng spec mục 9 buộc namespace `errors` có `satisfies Record<ErrorCode, string>`, nên không thêm key phẳng được | `errors` có hai nhánh: `codes` (`satisfies Record<ErrorCode, string>`) và `operationNotApplied`. Key dùng trong code là `errors:codes.<code>` và `errors:operationNotApplied`. `issues` vẫn phẳng, `satisfies Record<IssueCode, string>` | 14, 18 |
@@ -845,7 +846,10 @@ Các vấn đề dưới đây không đổi quyết định nào của spec; m�
 | 34 | Spec mục 13 gọi fixture `makeLargeSchema`, nhưng `@schemaforge/core/testing` không có hàm này | Task 30 viết `frontend/src/testing/large-schema.ts` bằng `buildSchema`, `makeTable`, `makeColumn`, `makeRelation`, `createCounterIdGenerator` của `@schemaforge/core/testing`, đúng như khối "Cấu trúc thư mục" của spec | 30 |
 | 35 | **(cần user xác nhận)** Mục "Current status" của `CLAUDE.md` mô tả frontend còn là trang placeholder; xong phần 3 thì mục này sai, nhưng `CLAUDE.md` nằm ngoài `document/` | Task 32 sửa đúng đoạn "Current status" của `CLAUDE.md` cùng với `roadmap.md` và `architecture.md`. User xác nhận trước khi Task 32 chạy; không thì Task 32 chỉ báo cáo nội dung cần sửa | 32 |
 | 36 | **(cần user xác nhận)** Task 9 phải bỏ `as const satisfies LocaleNamespace<typeof en<Tên>>` ở 11 file `vi` rỗng (`issues`, `errors`, `schema-list`, `canvas` và bảy file con của `editor`), vì với object `en` rỗng thì `LocaleNamespace<typeof en<Tên>>` resolve ra `{}` và vướng rule **`@typescript-eslint/no-generated-empty-object-type`** của `strictTypeChecked` (`error: This type resolves to \`{}\`, the empty object type`). Đây **không** phải `no-empty-object-type`: rule đó chỉ bắt `{}` viết trực tiếp dạng type literal hoặc interface, nên option `allowObjectTypes` của nó không áp dụng được ở đây. Dạng khai báo kiểu thay vì `satisfies` (`export const viCanvas: LocaleNamespace<typeof enCanvas> = {};`) cũng bị chính rule đó bắt, nên **không có cách nào** nằm gọn trong file resource. Hệ quả type học: key **thiếu** vẫn bị bắt lúc biên dịch qua `viResources satisfies LocaleNamespace<typeof enResources>` ở `resources.ts`, nhưng key **thừa** thì không, kể cả khi namespace đã có key, vì `canvas: viCanvas` là tham chiếu biến chứ không phải object literal tươi nên excess property check của TypeScript không kích hoạt. Vì vậy mệnh đề `satisfies` ở từng file con là bắt buộc, không phải cho đẹp | Mỗi task B điền một file resource tự thêm lại mệnh đề `satisfies` cho file `vi` của mình khi thêm key đầu tiên (ghi trong mục "Cài đặt" của từng task), và kiểm tra bằng một key thừa tạm thời. Khoảng hở chỉ tồn tại với file còn rỗng. Khuyến nghị: **giữ nguyên hiện trạng, không sửa `eslint.config.mjs`.** Chưa tìm được cách tắt `no-generated-empty-object-type` cho `locales/**` mà không tắt hẳn rule đó cho cả thư mục (rule không có option nào cho phép `{}` sinh ra từ type reference); nếu user muốn chặn triệt để thì phải là một task cấu hình riêng chạy tuần tự trước đợt 8, thêm khối `files: ["frontend/src/lib/i18n/locales/**/*.ts"]` đặt rule về `"off"`, và task đó phải cân nhắc rằng tắt hẳn sẽ bỏ luôn cảnh báo cho mọi type reference rỗng khác trong thư mục | 9, 14, 21, 22, 23, 24, 25, 26, 27, 28, 29 |
-| 37 | **(user đã chốt: sửa `eslint.config.mjs`)** `.claude/rules/typescript.md` bắt hằng cấp module viết `UPPER_SNAKE_CASE`, còn `@typescript-eslint/naming-convention` (Task 2) bắt biến boolean mang tiền tố `is`, `has`, `can`, `should` và so tiền tố có phân biệt hoa thường. Hệ quả: `const IS_ENABLED = false` luôn đỏ lint, còn `const isEnabled = false` thì trái quy ước hằng. Task 12 đã phải bỏ hằng boolean để né | Một task cấu hình tuần tự sửa `eslint.config.mjs` cho phép tiền tố viết hoa `IS_`, `HAS_`, `CAN_`, `SHOULD_` với hằng boolean dạng `UPPER_CASE`; quy tắc này đã ghi vào mục "Quy ước chung cho mọi task", phần **Code**. Task B viết hằng boolean cấp module là `IS_XXX` và không cần tắt rule bằng comment | 2, B |
+| 37 | **(user đã chốt: sửa `eslint.config.mjs`)** `.claude/rules/typescript.md` bắt hằng cấp module viết `UPPER_SNAKE_CASE`, còn `@typescript-eslint/naming-convention` (Task 2) bắt biến boolean mang tiền tố `is`, `has`, `can`, `should` và so tiền tố có phân biệt hoa thường. Hệ quả: `const IS_ENABLED = false` luôn đỏ lint, còn `const isEnabled = false` thì trái quy ước hằng. Task 12 đã phải bỏ hằng boolean để né | Một task cấu hình tuần tự sửa `eslint.config.mjs` cho phép tiền tố viết hoa `IS_`, `HAS_`, `CAN_`, `SHOULD_` với hằng boolean dạng `UPPER_CASE`; quy tắc này đã ghi vào mục "Quy ước chung cho mọi task", phần **Code**. Task B viết hằng boolean cấp module là `IS_XXX` và không cần tắt rule bằng comment. **Đã làm 2026-09-16:** commit `41db6cc` (`build: allow upper-case prefixes for boolean constants`) thêm vào `eslint.config.mjs` | 2, B |
+| 38 | Plan lượt 2 (Task 17) viết "`switch` trên `path[0]`" như thể `DocumentPath` là union có thể vét cạn, nhưng core khai báo `export type DocumentPath = readonly (string \| number)[]` (`packages/core/src/document-path.ts`): `path[0]` chỉ là `string \| number \| undefined`, nên `switch` trên nó không có nhánh nào vét cạn và kiểm tra `never` ở `default` không biên dịch | Task 17 dựng union cục bộ `ElementPrefix` từ mảng `ELEMENT_PREFIXES = ["tables", "columns", "relations", "indexes", "enums", "subjectAreas"] as const` (sáu map phần tử của `SchemaDocument`; `notes` không có issue nên không nằm trong danh sách và rơi về đích `schema`), cùng type guard `isElementPrefix(segment: string): segment is ElementPrefix`. Hàm kiểm tra `typeof prefix !== "string" \|\| !isElementPrefix(prefix)` rồi trả đích `schema` trước, sau đó mới `switch (prefix)` với `default` gán `const unhandledPrefix: never = prefix`. Task sau cần rẽ nhánh theo đoạn đầu của `DocumentPath` làm cùng cách: thu hẹp đoạn đầu về một union cục bộ bằng type guard, không ép kiểu, không khai báo lại `DocumentPath` | 17, B |
+| 39 | Core kiểm tra tên bảng và tên enum trong **một** không gian tên (`findTableAndEnumDuplicates` trong `packages/core/src/validation/rules/names.ts`): bảng trùng tên với enum cũng sinh `table-name-duplicate` và `enum-name-duplicate`. Câu mẫu của Task 14 ("Another table is already named …", "Bảng … trùng tên với một bảng khác") sai trong trường hợp khác loại | Sửa sau đợt 8 trong đúng file của Task 14 (`locales/en/issues.ts`, `locales/vi/issues.ts`): `table-name-duplicate` và `enum-name-duplicate` nói "một bảng hoặc enum khác", en "Another table or enum is already named “{{table}}”." / "… “{{enum}}”.", vi có nghĩa tương đương. Biến nội suy không đổi. Task sau không sửa lại hai câu này | 14 |
+| 40 | Những cái bẫy task đợt 8 đã gặp mà plan chưa ghi (bổ sung cho Vấn đề 26, 27) | (1) `toNameKey`, `isTableId`, `MAX_NAME_BYTES` có trong `packages/core/src/model/` nhưng không nằm trong `src/index.ts`: viết bản sao riêng trong file của task kèm comment "must match … in packages/core", **không bao giờ** import core bằng đường dẫn tương đối hay đường dẫn con. (2) `@typescript-eslint/unbound-method` cấm truyền tham chiếu method trần (`onRefresh={router.refresh}`): bọc bằng arrow `() => { router.refresh(); }`. (3) `vi.fn()` trần không gán được cho port có kiểu: dùng `vi.fn<SchemaRepository["saveDocument"]>()`. (4) jsdom 30 không có constructor `MediaQueryListEvent`: không gọi `new MediaQueryListEvent(…)`; listener nhận object thường, kiểu `Pick<MediaQueryListEvent, "matches">` như `src/testing/match-media-stub.ts`. (5) Chạy riêng một file bằng `pnpm --filter @schemaforge/frontend exec vitest run <path>` sinh `frontend/.vitest/json/output.json`, không bị gitignore và làm `pnpm format:check` đỏ: xóa file đó trước khi báo xong. (6) `saveDocument` kết thúc bình thường khi dòng `schemas` đã bị xóa (Dexie `update` trả 0), nên Task 21, 22 **không** phát hiện "schema bị tab khác xóa" qua lần lưu; dùng khóa tab (`SchemaLockManager`) hoặc live query (`useLiveQuery`) trên `schemas`. (7) `Toaster` của Sonner đăng ký listener `matchMedia` và không gỡ khi unmount: test render `Toaster` (kể cả qua `AppProviders`) không được khẳng định `countListeners()` của `stubMatchMedia` về 0 sau unmount; đo việc gỡ listener trên component riêng, không có `Toaster` | 15, 21, 22, B |
 
 **Rủi ro của spec chuyển cho task B** (spec mục "Rủi ro cần kiểm tra khi triển khai"): React 19.3 render thẻ `<script src="/theme-init.js">` đồng bộ trong `<head>` mà không cảnh báo khi hydrate hay `router.refresh()` (Task 13); `deleteKeyCode={null}`, `onBeforeDelete` và chuỗi sự kiện `onNodesChange` phân biệt kéo chuột với phím mũi tên trong React Flow 12.11 (Task 24, phần nối phím `Delete` ở Task 29); `autoPanOnNodeFocus={false}`, `focusin` nổi lên từ edge SVG, `getBoundingClientRect` của edge và vùng toast đo qua `[data-sonner-toaster]` (Task 24); kiểm tra tay trên trình duyệt thật (Task 32).
 
@@ -968,7 +972,7 @@ Mong đợi: `zod-config` là import đầu tiên của `app-providers.tsx`; ch�
 
 - **Siết test nội suy của Task 9.** Đây là task đầu tiên thêm key có biến `{{…}}`, nên sửa luôn test `does not escape interpolation values` trong `frontend/src/lib/i18n/create-i18n-instance.test.ts`: hiện nó đi qua `instance.services.interpolator.interpolate(...)` vì lúc Task 9 chạy chưa có key nào có biến; nay khẳng định trực tiếp qua `t(key, { … })` với một key thật của `issues`. Đây là ngoại lệ duy nhất mà task này được sửa file của Task 9; không đụng phần còn lại của file đó.
 - Giọng văn: một câu, nêu vấn đề rồi cách sửa, không dùng thuật ngữ nội bộ ("operation", "path"), tên phần tử đặt trong dấu nháy kép cong (`“…”` ở `vi`, `“…”` ở `en`). Ví dụ:
-  - `table-name-duplicate`: vi "Bảng “{{table}}” trùng tên với một bảng khác." / en "Another table is already named “{{table}}”."
+  - `table-name-duplicate`: en "Another table or enum is already named “{{table}}”.", vi có nghĩa tương đương (bảng và enum chung một không gian tên; câu ban đầu "Another table is already named …" đã được sửa sau đợt 8, Vấn đề 39).
   - `column-primary-key-nullable`: vi "Cột “{{column}}” là khóa chính nên không được cho phép NULL." / en "Primary key column “{{column}}” cannot be nullable."
   - `enum-values-empty`: vi "Enum “{{enum}}” chưa có giá trị nào." / en "Enum “{{enum}}” has no values."
 - `errors.codes.*` nói cho người dùng hiểu chuyện gì xảy ra mà không lộ đường dẫn tài liệu, ví dụ `table-not-found`: vi "Không tìm thấy bảng cần thay đổi." / en "The table to change no longer exists."
@@ -1073,6 +1077,60 @@ Mong đợi: `zod-config` là import đầu tiên của `app-providers.tsx`; ch�
   - Không có thì state khởi tạo `pending`, và một effect chạy một lần gọi `createBrowserStorage()` trong `try`/`catch`; lỗi thành `{ kind: "unavailable", errorCode: toStorageErrorCode(error) }`. Cleanup đóng `database` khi provider unmount.
   - `useStorage` ngoài provider trả `{ kind: "pending" }`? **Không**: throw `Error` như `useThemePreference` (lỗi lập trình). Giá trị context được memo.
   - Effect là nơi duy nhất chạm trình duyệt, nên SSR chỉ render `pending` (Vấn đề 32).
+- **Chữ ký đã triển khai (đợt 8).** Task sau viết theo đúng các chữ ký này. Mọi type và hàm export khớp khối ở trên (chỉ khác cách xuống dòng của Prettier); không có export nào khác trong ba file.
+
+  ```ts
+  // schema-repository.ts
+  export type SchemaListEntry =
+    | { readonly kind: "readable"; readonly schema: SchemaRecord }
+    | { readonly kind: "unreadable"; readonly schemaId: string };
+  export type OpenSchemaResult =
+    | { readonly kind: "opened"; readonly document: SchemaDocument }
+    | { readonly kind: "not-found" }
+    | { readonly kind: "unreadable"; readonly errors: readonly StructuralError[] };
+  export type RenameSchemaResult =
+    | { readonly kind: "renamed" }
+    | { readonly kind: "not-found" }
+    | { readonly kind: "unreadable" };
+  export type SchemaRepositoryDependencies = {
+    readonly database: SchemaforgeDatabase;
+    readonly clock: () => number;
+    readonly generateId: () => string;
+  };
+  export type SchemaRepository = {
+    readonly listSchemas: () => Promise<readonly SchemaListEntry[]>;
+    readonly createSchema: (name: string) => Promise<SchemaRecord>;
+    readonly openSchema: (schemaId: string) => Promise<OpenSchemaResult>;
+    readonly saveDocument: (schemaId: string, document: SchemaDocument) => Promise<void>;
+    readonly renameSchema: (schemaId: string, name: string) => Promise<RenameSchemaResult>;
+    readonly deleteSchema: (schemaId: string) => Promise<void>;
+    readonly readViewport: (schemaId: string) => Promise<ViewportRecord | null>;
+    readonly saveViewport: (viewport: ViewportRecord) => Promise<void>;
+  };
+  export function createSchemaRepository(dependencies: SchemaRepositoryDependencies): SchemaRepository;
+
+  // create-browser-storage.ts
+  export type StorageBundle = {
+    readonly repository: SchemaRepository;
+    readonly lockManager: SchemaLockManager;
+    readonly database: SchemaforgeDatabase;
+  };
+  export function createBrowserStorage(): StorageBundle;
+
+  // storage-context.tsx ("use client")
+  export type StorageState =
+    | { readonly kind: "pending" }
+    | { readonly kind: "ready"; readonly storage: StorageBundle }
+    | { readonly kind: "unavailable"; readonly errorCode: StorageErrorCode };
+  export type StorageProviderProps = {
+    readonly storage?: StorageBundle;
+    readonly children: ReactNode;
+  };
+  export function StorageProvider({ storage, children }: StorageProviderProps): JSX.Element;
+  export function useStorage(): StorageState;
+  ```
+
+  Khác biệt hành vi so với mô tả ở trên, cần biết khi dùng: `createSchema` ghi `name: document.name` (tên sau `createEmptySchema`), không phải tham số thô; với prop `storage`, effect vẫn chạy nhưng thoát ngay, giá trị context là `{ kind: "ready", storage }` dựng bằng `useMemo`; `saveDocument` không báo gì khi dòng `schemas` đã bị xóa (Vấn đề 40, mục 6).
 
 **Test viết trước** (mỗi test tạo `new SchemaforgeDatabase({ indexedDB: new IDBFactory(), IDBKeyRange })` của `fake-indexeddb`, `clock` là bộ đếm, `generateId` sinh UUID cố định; `afterEach` đóng database):
 
@@ -1174,6 +1232,59 @@ Mong đợi: `zod-config` là import đầu tiên của `app-providers.tsx`; ch�
   - Id lấy từ `createTableId(generateId)` rồi `createColumnId(generateId)`, đúng thứ tự đó.
 - `build-add-enum-operation.ts`: `buildAddEnumOperation(document, generateId): { readonly operation: Operation; readonly enumId: EnumId }`, một bước `addEnum` với `values: [suggestEnumValue([])]`, tức `["value_1"]`.
 - `build-delete-selection-operation.ts`: `buildDeleteSelectionOperation(selection: Selection): Operation | null`. Lựa chọn rỗng trả `null`. Ngược lại trả `batch` gồm `removeRelation` cho từng `relationIds` (theo thứ tự trong lựa chọn) rồi `removeTable` cho từng `tableIds`. Quan hệ đứng trước nên quan hệ nối với một bảng cũng đang được chọn không bị xóa hai lần.
+- **Chữ ký đã triển khai (đợt 8).** Khớp các khối ở trên, trừ một điểm: `build-add-enum-operation.ts` export thêm type có tên `AddEnumResult` thay cho kiểu trả về viết tại chỗ.
+
+  ```ts
+  // selection.ts
+  export type Selection = {
+    readonly tableIds: readonly TableId[];
+    readonly relationIds: readonly RelationId[];
+  };
+  export const EMPTY_SELECTION: Selection; // { tableIds: [], relationIds: [] }
+  export function countSelection(selection: Selection): number;
+  export function isSelectionEmpty(selection: Selection): boolean;
+  export function filterSelection(selection: Selection, document: SchemaDocument): Selection;
+
+  // name-suggestions.ts
+  export const TABLE_NAME_PREFIX = "table_";
+  export const COLUMN_NAME_PREFIX = "column_";
+  export const ENUM_NAME_PREFIX = "enum_";
+  export const ENUM_VALUE_PREFIX = "value_";
+  export function suggestNumberedName(prefix: string, usedNames: readonly string[]): string;
+  export function suggestTableName(document: SchemaDocument): string;
+  export function suggestColumnName(document: SchemaDocument, tableId: TableId): string;
+  export function suggestEnumName(document: SchemaDocument): string;
+  export function suggestEnumValue(values: readonly string[]): string;
+  export function suggestJunctionTableName(
+    document: SchemaDocument,
+    input: { readonly leftTableName: string; readonly rightTableName: string },
+  ): string;
+
+  // build-add-table-operation.ts
+  export const NEW_TABLE_OFFSET = 24;
+  export type AddTableResult = {
+    readonly operation: Operation;
+    readonly tableId: TableId;
+    readonly primaryKeyColumnId: ColumnId;
+  };
+  export function findFreeTablePosition(document: SchemaDocument, position: Position): Position;
+  export function buildAddTableOperation(
+    document: SchemaDocument,
+    input: { readonly position: Position; readonly generateId: GenerateId },
+  ): AddTableResult;
+
+  // build-add-enum-operation.ts
+  export type AddEnumResult = {
+    readonly operation: Operation;
+    readonly enumId: EnumId;
+  };
+  export function buildAddEnumOperation(document: SchemaDocument, generateId: GenerateId): AddEnumResult;
+
+  // build-delete-selection-operation.ts
+  export function buildDeleteSelectionOperation(selection: Selection): Operation | null;
+  ```
+
+  `filterSelection` so độ dài hai mảng sau khi lọc để quyết định trả lại object cũ. `toNameKey` là hàm cục bộ không export trong `name-suggestions.ts`; `MAX_POSITION_ATTEMPTS` là hằng không export.
 
 **Test viết trước** (dựng schema bằng `buildSchema`, `makeTable`, `makeColumn`, `makeRelation` và `createCounterIdGenerator` của `@schemaforge/core/testing`; áp operation bằng `applyOperation` và `unwrapOk`):
 
@@ -1220,7 +1331,7 @@ Mong đợi: `zod-config` là import đầu tiên của `app-providers.tsx`; ch�
   export function resolveIssueTarget(document: SchemaDocument, path: DocumentPath): IssueTarget;
   ```
 
-  - `switch` trên `path[0]` với nhánh `default` trả `{ kind: "schema", elementId: null, tableId: null, values: {} }` (dùng cho `["name"]` và mọi đường dẫn lạ).
+  - `DocumentPath` là `readonly (string | number)[]`, không phải union (Vấn đề 38). Đoạn đầu `path[0]` không phải chuỗi hoặc không thuộc union cục bộ `ElementPrefix` (sáu map `tables`, `columns`, `relations`, `indexes`, `enums`, `subjectAreas`, kiểm tra bằng type guard `isElementPrefix`) thì trả `{ kind: "schema", elementId: null, tableId: null, values: {} }` (dùng cho `["name"]`, `["notes", …]` và mọi đường dẫn lạ); sau đó mới `switch (prefix)` vét cạn, `default` gán `never`.
   - `["tables", id, …]`: `kind: "table"`, `tableId` là bảng đó, `values.table` là tên bảng.
   - `["columns", id, …]`: `kind: "column"`, `tableId` lấy từ `column.tableId`, `values.column` là tên cột và `values.table` là tên bảng chứa nó.
   - `["relations", id, …]`: `kind: "relation"`, `tableId` là `relation.fromTableId`, `values.table` là tên bảng `from`; có `columnPairs[0]` thì `values.column` là tên cột khóa ngoại đầu tiên.
@@ -1228,7 +1339,7 @@ Mong đợi: `zod-config` là import đầu tiên của `app-providers.tsx`; ch�
   - `["enums", id, …]`: `kind: "enum"`, `values.enum` là tên enum; đường dẫn dạng `["enums", id, "values", n]` với `n` là số thì thêm `values.value` là giá trị tại chỉ số đó.
   - `["subjectAreas", id, …]`: `kind: "subjectArea"`, `elementId` là id, không có biến nào.
   - Phần tử không tồn tại trong tài liệu (đường dẫn cũ) thì `elementId` vẫn là id đọc được, `tableId` là `null` và `values` rỗng. Không throw.
-  - Đọc `path[1]` bằng thu hẹp kiểu (`typeof segment === "string"`), không ép kiểu.
+  - Đọc `path[1]` bằng thu hẹp kiểu (`typeof segment === "string"`), không ép kiểu. Tra phần tử bằng helper không export `lookup<Value>(elements: Readonly<Record<string, Value>>, elementId: string | null): Value | undefined`, vì chỉ số `string` trên map khóa template literal của core báo `TS7053` (Vấn đề 27).
 - `issue-index.ts`:
 
   ```ts
@@ -1247,6 +1358,39 @@ Mong đợi: `zod-config` là import đầu tiên của `app-providers.tsx`; ch�
   - `issuesOfElement` tra theo `IssueTarget.elementId`; `countOfTable` tra theo `IssueTarget.tableId`, nên issue của cột và index cộng vào huy hiệu của bảng.
   - Hai hàm tra cứu đọc từ hai `Map` dựng sẵn lúc tạo chỉ mục; phần tử không có issue trả mảng rỗng **dùng chung một hằng** `NO_ISSUES: readonly Issue[] = []`, để selector trả cùng tham chiếu.
   - `countOfElement` và `countOfTable` trả số, dùng làm selector của Zustand.
+- **Chữ ký đã triển khai (đợt 8).** Export khớp các khối ở trên; không có export nào khác. Phần không export mà task sau nên biết: `ELEMENT_PREFIXES`, `ElementPrefix`, `isElementPrefix`, `lookup` trong `resolve-issue-target.ts`; `NO_ISSUES` và `WeakMap` `indexesByDocument` trong `issue-index.ts`.
+
+  ```ts
+  // resolve-issue-target.ts
+  export type IssueElementKind =
+    "schema" | "table" | "column" | "relation" | "index" | "enum" | "subjectArea";
+  export type IssueValues = {
+    readonly table?: string;
+    readonly column?: string;
+    readonly index?: string;
+    readonly enum?: string;
+    readonly value?: string;
+  };
+  export type IssueTarget = {
+    readonly kind: IssueElementKind;
+    readonly elementId: string | null;
+    readonly tableId: TableId | null;
+    readonly values: IssueValues;
+  };
+  export function resolveIssueTarget(document: SchemaDocument, path: DocumentPath): IssueTarget;
+
+  // issue-index.ts
+  export type IssueIndex = {
+    readonly issues: readonly Issue[];
+    readonly schemaIssues: readonly Issue[];
+    readonly issuesOfElement: (elementId: string) => readonly Issue[];
+    readonly countOfElement: (elementId: string) => number;
+    readonly countOfTable: (tableId: TableId) => number;
+  };
+  export function getIssueIndex(document: SchemaDocument): IssueIndex;
+  ```
+
+  Khác biệt nhỏ so với mô tả: `schemaIssues` gom issue có `elementId === null` (chỉ đích `schema`); issue của `subjectArea` có `elementId` nên nằm trong `issuesOfElement`. Quan hệ có bảng `from` đã mất vẫn mang `tableId: relation.fromTableId`. Cache `WeakMap` ở cấp module được giữ nguyên sau đợt 8 (Vấn đề 25).
 
 **Test viết trước:**
 
@@ -1321,6 +1465,7 @@ Mong đợi: `zod-config` là import đầu tiên của `app-providers.tsx`; ch�
 
   - Dựng bằng `createStore` của `zustand/vanilla`. State ban đầu: `history: createEmptyHistory()`, `selection: EMPTY_SELECTION`, `dragPositions: {}`, `leftPanelTab: "tables"`, `focusRequest: null`, `saveStatus: { kind: "saved" }`, `coalesceKey: null`.
   - `generateId` được giữ trong closure và **không** nằm trong state; component lấy id mới qua các hàm dựng operation, không qua store.
+  - Store **không** sở hữu chỉ mục issue: không có trường `issueIndex`, không gọi `validateSchema` hay `getIssueIndex`. Component tự gọi `getIssueIndex(document)` với `document` đọc từ store; cache `WeakMap` cấp module trong `issue-index.ts` được giữ (Vấn đề 25).
   - `dispatch(operation, options)`:
     1. `const applied = applyOperation(state.document, operation)`.
     2. Lỗi: `logger.error("editor.operation-rejected", { operationType: operation.type, code: applied.error.code, path: applied.error.path })`, rồi `notify({ tone: "error", titleKey: "errors:operationNotApplied", descriptionKey: \`errors:codes.${applied.error.code}\` })`; state giữ nguyên; trả `{ isOk: false, error: applied.error }`.
@@ -1390,7 +1535,7 @@ Mong đợi: `zod-config` là import đầu tiên của `app-providers.tsx`; ch�
   ): { readonly source: HandleSide; readonly target: HandleSide };
   ```
 
-  - Định dạng đúng spec: `column:<columnId>:left`, `table:<tableId>:right`. Tách bằng `split(":")` và chỉ chấp nhận đúng ba phần với phần đầu là `column` hoặc `table` và phần cuối là `left` hoặc `right`; id trong kết quả là `string`, nơi gọi tra `document.columns[columnId]` rồi dùng `column.id` để có lại nhãn kiểu của core (Vấn đề 27).
+  - Định dạng đúng spec: `column:<columnId>:left`, `table:<tableId>:right`. Tách bằng `split(":")` và chỉ chấp nhận đúng ba phần với phần đầu là `column` hoặc `table` và phần cuối là `left` hoặc `right`; id trong kết quả là `string`. Nơi gọi **không** viết `document.columns[columnId]` với `columnId: string` (map của core khóa theo `` `col_${string}` ``, báo `TS7053`); tra bằng helper generic cục bộ cùng hình dạng với `lookup` trong `resolve-issue-target.ts`, `function lookup<Value>(elements: Readonly<Record<string, Value>>, elementId: string | null): Value | undefined`, rồi dùng `column.id` để có lại nhãn kiểu của core. Không ép kiểu, không khai báo lại type (Vấn đề 27).
   - `chooseHandleSides`: `fromPosition.x <= toPosition.x` cho `{ source: "right", target: "left" }`, ngược lại `{ source: "left", target: "right" }`. Quan hệ tự tham chiếu (hai vị trí bằng nhau) rơi vào nhánh đầu, nên cả hai đầu dùng cạnh phải: nơi gọi truyền cùng một `Position` và ép `target: "right"` bằng nhánh riêng `isSelfReference`.
 - `to-table-nodes.ts`:
 

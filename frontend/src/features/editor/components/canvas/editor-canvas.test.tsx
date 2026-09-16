@@ -28,6 +28,7 @@ import { createEditorStore } from "../../state/create-editor-store";
 import type { EditorStore } from "../../state/create-editor-store";
 import { EditorStoreProvider } from "../../state/editor-store-provider";
 import { EditorCanvas } from "./editor-canvas";
+import { EditorFlowProvider } from "./editor-flow-provider";
 
 type FlowProps = ReactFlowProps<TableNode, RelationEdge>;
 
@@ -180,9 +181,11 @@ function renderCanvas(
 ): ReturnType<typeof renderWithProviders> {
   return renderWithProviders(
     <EditorStoreProvider store={store}>
-      <div style={{ width: 1000, height: 800 }}>
-        <EditorCanvas defaultViewport={defaultViewport} {...callbacks} />
-      </div>
+      <EditorFlowProvider>
+        <div style={{ width: 1000, height: 800 }}>
+          <EditorCanvas defaultViewport={defaultViewport} {...callbacks} />
+        </div>
+      </EditorFlowProvider>
     </EditorStoreProvider>,
     { locale: "en" },
   );

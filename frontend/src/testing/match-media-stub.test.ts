@@ -27,6 +27,18 @@ describe("stubMatchMedia", () => {
     expect(query.matches).toBe(true);
   });
 
+  it("counts the change listeners that are attached", () => {
+    const stub = stubMatchMedia({ isDarkPreferred: false });
+    const query = window.matchMedia(DARK_COLOR_SCHEME_QUERY);
+    const handleChange = vi.fn<(event: MediaQueryListEvent) => void>();
+    query.addEventListener("change", handleChange);
+    const countWhileListening = stub.countListeners();
+
+    query.removeEventListener("change", handleChange);
+
+    expect([countWhileListening, stub.countListeners()]).toEqual([1, 0]);
+  });
+
   it("restores the original matchMedia", () => {
     const stub = stubMatchMedia({ isDarkPreferred: true });
 

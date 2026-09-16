@@ -15,6 +15,9 @@ type StubMatchMediaOptions = {
 
 export type MatchMediaStub = {
   readonly setPrefersDark: (isDark: boolean) => void;
+  // How many change listeners are attached right now, so a test can prove a
+  // component removes its listener when it unmounts.
+  readonly countListeners: () => number;
   readonly restore: () => void;
 };
 
@@ -66,6 +69,7 @@ export function stubMatchMedia({
         listener({ matches: isDark });
       });
     },
+    countListeners: (): number => listeners.size,
     restore: (): void => {
       vi.stubGlobal("matchMedia", originalMatchMedia);
     },

@@ -1,30 +1,14 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { screen, waitFor } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { TooltipProvider } from "@/components/ui/tooltip";
-import type { Locale } from "@/lib/i18n/supported-locales";
 import { THEME_COOKIE_NAME } from "@/lib/preferences/preference-cookies";
+import { renderWithProviders } from "@/testing/render-with-providers";
 
-import { I18nProvider } from "./i18n-provider";
-import { ThemeProvider } from "./theme-provider";
 import { ThemeSwitch } from "./theme-switch";
 
 const VIETNAMESE_THEME_LABEL = "Giao diện";
 const ENGLISH_THEME_LABEL = "Theme";
-
-function renderThemeSwitch(locale: Locale): void {
-  render(
-    <I18nProvider locale={locale}>
-      <ThemeProvider initialPreference="system">
-        <TooltipProvider>
-          <ThemeSwitch />
-        </TooltipProvider>
-      </ThemeProvider>
-    </I18nProvider>,
-  );
-}
 
 async function openMenu(user: UserEvent): Promise<void> {
   await user.click(
@@ -34,8 +18,6 @@ async function openMenu(user: UserEvent): Promise<void> {
 }
 
 afterEach(() => {
-  document.documentElement.classList.remove("dark");
-  document.documentElement.style.colorScheme = "";
   document.cookie = `${THEME_COOKIE_NAME}=; Path=/; Max-Age=0`;
 });
 
@@ -46,15 +28,20 @@ describe("ThemeSwitch", () => {
   ] as const)(
     "names the trigger with the translated theme label in %s",
     (locale, label) => {
-      renderThemeSwitch(locale);
+      renderWithProviders(<ThemeSwitch />, {
+        locale,
+        themePreference: "system",
+      });
 
       expect(screen.getByRole("button", { name: label })).toBeDefined();
     },
   );
 
   it("marks the current preference as checked", async () => {
-    const user = userEvent.setup();
-    renderThemeSwitch("vi");
+    const { user } = renderWithProviders(<ThemeSwitch />, {
+      locale: "vi",
+      themePreference: "system",
+    });
 
     await openMenu(user);
 
@@ -67,8 +54,10 @@ describe("ThemeSwitch", () => {
   });
 
   it("switches to dark from the menu", async () => {
-    const user = userEvent.setup();
-    renderThemeSwitch("vi");
+    const { user } = renderWithProviders(<ThemeSwitch />, {
+      locale: "vi",
+      themePreference: "system",
+    });
     await openMenu(user);
 
     await user.click(screen.getByRole("menuitemradio", { name: "Tối" }));

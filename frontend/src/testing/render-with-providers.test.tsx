@@ -19,9 +19,6 @@ function ThemeLabel(): JSX.Element {
 }
 
 afterEach(() => {
-  document.documentElement.classList.remove("dark");
-  document.documentElement.style.colorScheme = "";
-  document.documentElement.removeAttribute("lang");
   vi.unstubAllGlobals();
 });
 

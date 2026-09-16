@@ -5,6 +5,13 @@ const DEFAULT_ELEMENT_SIZE = 1;
 const DEFAULT_SCALE = 1;
 const SCALE_PATTERN = /scale\(([^)]+)\)/;
 
+// Written on <html> by theme-init.js, ThemeProvider, changeLocale, and
+// renderWithProviders. jsdom keeps <html> for the whole file, so a test that
+// leaves the dark theme or a locale behind would decide what the next test
+// renders.
+const ROOT_THEME_CLASS_NAME = "dark";
+const ROOT_ATTRIBUTES = ["lang", "data-theme-preference"];
+
 class ResizeObserverStub {
   observe(): void {
     // jsdom has no layout, so there is nothing to observe.
@@ -95,8 +102,21 @@ function installDomStubs(): void {
   });
 }
 
+function resetDocumentElement(): void {
+  const root = document.documentElement;
+  root.classList.remove(ROOT_THEME_CLASS_NAME);
+  root.style.colorScheme = "";
+  ROOT_ATTRIBUTES.forEach((attribute) => {
+    root.removeAttribute(attribute);
+  });
+}
+
 afterEach(() => {
   cleanup();
+  // Test files that opt into `// @vitest-environment node` have no DOM.
+  if (typeof document !== "undefined") {
+    resetDocumentElement();
+  }
 });
 
 defineIfMissing(globalThis, "ResizeObserver", ResizeObserverStub);

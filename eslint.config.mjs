@@ -36,6 +36,8 @@ const PROCESS_ENV_RESTRICTION = {
 const EXTERNAL_BOOLEAN_NAMES =
   "^(asChild|checked|defaultChecked|defaultOpen|disabled|hidden|inset|modal|open|readOnly|required|selected|dragging|draggable|selectable|deletable|connectable|focusable|animated)$";
 
+const UPPER_SNAKE_CASE_NAME = "^[A-Z0-9_]+$";
+
 const CORE_BOUNDARY =
   "packages/core must stay framework-free and isomorphic (see .claude/rules/core.md).";
 
@@ -219,6 +221,14 @@ export default defineConfig([
           custom: { regex: "^T[A-Z]", match: false },
         },
         { selector: "variable", modifiers: ["destructured"], format: null },
+        {
+          selector: "variable",
+          modifiers: ["const"],
+          types: ["boolean"],
+          format: ["UPPER_CASE"],
+          prefix: ["IS_", "HAS_", "CAN_", "SHOULD_"],
+          filter: { regex: UPPER_SNAKE_CASE_NAME, match: true },
+        },
         {
           selector: [
             "variable",

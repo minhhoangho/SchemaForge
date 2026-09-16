@@ -373,7 +373,7 @@ dispatch(operation)
 Core trả tài liệu có structural sharing: object bảng, cột, quan hệ không đổi thì giữ nguyên tham chiếu. Editor dựa vào điều đó:
 
 - `toTableNodes(tables, selection, dragPositions, previousNodes)` trả mảng node React Flow `{ id, type: 'table', position, selected, data: { tableId } }`. Node của bảng nào có `table`, `selected` và vị trí tạm không đổi thì **dùng lại đúng object node cũ**. Sửa cột của bảng A không tạo node mới cho bảng B.
-- `toRelationEdges(relations, tables, selection, issueIndex, previousEdges)` làm tương tự cho edge. Edge chỉ được tạo lại khi quan hệ, lựa chọn, trạng thái issue của nó, hoặc vị trí của một trong hai bảng đầu (dùng để chọn cạnh handle) thay đổi.
+- `toRelationEdges(relations, tables, selection, issueIndex, previousEdges)` làm tương tự cho edge. Edge chỉ được tạo lại khi quan hệ, lựa chọn, trạng thái issue của nó, hoặc vị trí **đã lưu** (`table.position` trong tài liệu, không phải `dragPositions`) của một trong hai bảng đầu (dùng để chọn cạnh handle) thay đổi. Vì vậy cạnh trái, phải của handle chỉ đổi khi thả bảng; trong lúc kéo, đường edge vẫn bám theo node vì React Flow tính đường từ tọa độ handle. Lý do: không phải dựng lại edge ở mỗi khung hình khi kéo, và chữ ký `toRelationEdges` giữ nguyên, không nhận `dragPositions`.
 - `TableNode` và `RelationEdge` được bọc `memo` (React Flow yêu cầu cho custom node). `data` chỉ chứa id; component tự đọc lát cắt hẹp:
   - `TableNode`: `useEditorStore((s) => s.document.tables[tableId])`.
   - `ColumnRow` (`memo`): `useEditorStore((s) => s.document.columns[columnId])`.

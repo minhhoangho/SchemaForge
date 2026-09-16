@@ -112,10 +112,11 @@ Gói đã xem xét và không dùng:
 | Đang mở | Đang lấy khóa tab, đọc và parse | Skeleton của toolbar và canvas |
 | Không tìm thấy | `schemaId` không phải UUID, hoặc không có bản ghi | "Không tìm thấy schema", link về danh sách |
 | Đang mở ở tab khác | Khóa của schema đang do tab khác giữ | "Schema này đang mở ở một tab khác". Màn hình tự mở khi tab kia đóng hoặc rời schema; có link về danh sách |
-| Không đọc được | `parseSchemaDocument` trả lỗi | `version-unsupported`: "Schema được tạo bởi phiên bản SchemaForge mới hơn, hãy tải lại trang". Mã khác: "Dữ liệu schema bị hỏng". Không bao giờ ghi đè bản đã lưu |
+| Không đọc được | `parseSchemaDocument` trả lỗi | `version-unsupported`: "Schema này được lưu bằng phiên bản SchemaForge mới hơn. Hãy tải lại trang." Mã khác: "Dữ liệu schema bị hỏng". Không bao giờ ghi đè bản đã lưu |
+| Bộ nhớ không dùng được | IndexedDB không mở được, hoặc lỗi lưu trữ bị ném ra khi đọc tài liệu hay viewport (ví dụ `DatabaseClosedError`) | "Không dùng được bộ nhớ trình duyệt", mô tả là thông báo theo `StorageErrorCode` (mục 7); với `unknown` thì dùng câu riêng cho lần đọc "Không đọc được schema từ bộ nhớ trình duyệt. Hãy tải lại trang.", vì thông báo `unknown` của namespace `storage` nói về lần lưu. Có link về danh sách. Không bao giờ ghi đè bản đã lưu |
 | Sẵn sàng, chưa có bảng | `tables` rỗng | Canvas trống, giữa canvas có dòng "Schema chưa có bảng" và nút "Thêm bảng" |
 | Sẵn sàng | | Editor đầy đủ (mục 2) |
-| Lỗi lập trình | Component throw, hoặc `undo`/`redo` throw vì áp nghịch đảo thất bại | `error.tsx`: thông báo đã dịch, nút "Tải lại". Bản đã lưu là trạng thái thành công gần nhất |
+| Lỗi lập trình | Component throw, hoặc `undo`/`redo` throw vì áp nghịch đảo thất bại | `error.tsx`: thông báo đã dịch, nút "Tải lại" và link về danh sách. Bản đã lưu là trạng thái thành công gần nhất |
 
 `schemaId` là tham số route không tin cậy: kiểm tra đúng dạng UUID trước khi truy vấn Dexie.
 
@@ -180,7 +181,7 @@ Nội dung theo lựa chọn:
 
 **Cột.** Mỗi cột một dòng gồm: tên, kiểu, và các checkbox nullable, khóa chính, unique, auto-increment. Nút "Chi tiết" mở phần tham số kiểu (độ dài; precision và scale; tên kiểu custom), giá trị mặc định (không có, literal, `currentTimestamp`, `generateUuid`, chỉ hiện các biểu thức hợp với kiểu) và comment. Nút lên, xuống dispatch `moveColumn`, nút xóa dispatch `removeColumn`. "Thêm cột" dispatch `addColumn` ở cuối, với tên `column_<n>`, kiểu `varchar(255)`, không nullable.
 
-- Chọn kiểu bằng combobox `Popover` + `Command` (cmdk) của shadcn/ui, gõ để lọc, có ba nhóm: 17 kiểu chung, các enum hiện có, "Kiểu custom…".
+- Chọn kiểu bằng combobox `Popover` + `Command` (cmdk) của shadcn/ui, gõ để lọc, có ba nhóm: 17 kiểu chung (nhãn `vi` "Kiểu thông dụng"), các enum hiện có, "Kiểu tự đặt…".
 - Checkbox khóa chính dispatch `setPrimaryKey` với danh sách mới: thêm vào cuối hoặc bỏ ra. Thứ tự khóa chính nhiều cột là thứ tự tick, và node hiện số thứ tự cạnh icon khóa. UI không tự sửa tổ hợp thuộc tính: tick khóa chính trên cột nullable sẽ hiện issue `column-primary-key-nullable`, người dùng tự bỏ nullable.
 
 **Index.** Mỗi index có tên (gợi ý bằng `suggestIndexName`), danh sách cột có thứ tự (chọn thêm cột; nút lên, xuống, bỏ), checkbox unique và nút xóa. Không cho lưu index không có cột: nút bỏ cột cuối cùng bị disable, vì mảng rỗng là bất biến cấu trúc.
@@ -297,7 +298,7 @@ UI chỉ tạo operation hợp lệ: nút bị disable hoặc hộp thoại ch�
 | `['enums', id, …]` | Enum | Dòng enum trong tab "Enum"; ô giá trị theo chỉ số |
 
 - **Trong panel:** trường có issue có `aria-invalid="true"`, thông báo lỗi nằm ngay dưới trường và được nối bằng `aria-describedby`.
-- **Tab "Vấn đề":** mỗi dòng là thông báo đã dịch, có tên phần tử, ví dụ "Bảng “users” trùng tên với bảng khác". Bấm một dòng thì chọn phần tử, đưa vào giữa khung nhìn và focus trường có lỗi (store giữ `focusRequest: DocumentPath | null` để panel xử lý). Thứ tự dòng theo thứ tự `validateSchema` trả về. Không có issue thì hiện "Không có vấn đề nào".
+- **Tab "Vấn đề":** mỗi dòng là thông báo đã dịch, có tên phần tử, ví dụ "Bảng “users” trùng tên với bảng khác". Bấm một dòng thì chọn phần tử, đưa vào giữa khung nhìn và focus trường có lỗi (store giữ `focusRequest: DocumentPath | null` để panel xử lý). **Quy tắc chung cho mọi panel:** mỗi trường có thể có issue mang `data-focus-path` bằng đúng đường dẫn issue mà core trả cho trường đó (ví dụ `['columns', id, 'type', 'length']`), để yêu cầu focus tìm được phần tử. Trường nằm trong phần thu gọn (phần "Chi tiết" của cột) thì phần đó tự mở khi có issue bên trong, và nhãn nút cho biết có vấn đề; nếu người dùng tự đóng lại trong khi issue còn thì yêu cầu focus không tìm thấy trường và không làm gì. Thứ tự dòng theo thứ tự `validateSchema` trả về. Không có issue thì hiện "Không có vấn đề nào".
 - **Toolbar:** nút có icon cảnh báo và số issue; bằng 0 thì hiện icon đạt, không có số.
 - **Dịch:** namespace `issues` có đúng một key cho mỗi `IssueCode`, với biến nội suy `{{table}}`, `{{column}}`, `{{index}}`, `{{enum}}`, `{{value}}`. Giá trị biến lấy từ `resolveIssueTarget`. Namespace `errors` có một key cho mỗi mã trong `ERROR_CODES`. Cách bảo đảm đủ bản dịch nằm ở mục 9.
 - Issue không chặn lưu và không chặn thao tác (chính sách "Editor, thao tác tay" trong spec phần 2).
@@ -507,6 +508,8 @@ Hàm thuần `toStorageErrorCode(error: unknown): StorageErrorCode` ánh xạ l�
 ### Viewport
 
 **Quyết định:** lưu viewport (`x`, `y`, `zoom`) theo schema vào bảng `viewports` ở `onMoveEnd` của React Flow (một lần ghi mỗi khi kết thúc pan hoặc zoom). Khi mở schema: có viewport đã lưu thì dùng làm `defaultViewport`; không có thì `fitView` sau lần đo node đầu tiên. Viewport không nằm trong tài liệu và không undo được (spec phần 2, mục 2).
+
+**Hành vi đã chấp nhận:** khi mở schema, React Flow có thể gọi `onMoveEnd` mà người dùng chưa pan hay zoom, nên viewport được ghi một lần. Lần ghi này vô hại: nó chỉ đụng bảng `viewports`, không đổi tài liệu và không đổi `updatedAt`, nên không cần chặn.
 
 **Lý do:** mở lại một schema lớn thì quay về đúng vùng đang làm, thay vì fit view ở mức zoom quá nhỏ để đọc. Bảng riêng giữ lần ghi viewport nhỏ và không đổi `updatedAt`.
 

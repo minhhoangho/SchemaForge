@@ -10,6 +10,10 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
+    "@schemaforge/frontend#build": {
+      "dependsOn": ["^build", "typecheck"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
     "lint": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/eslint.config.mjs"],

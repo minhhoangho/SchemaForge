@@ -31,4 +31,14 @@ export const enCommon = {
   notifications: {
     label: "Notifications",
   },
+  meta: {
+    title: "{{appName}} – Database schema designer",
+    description:
+      "Design database schemas on a canvas and keep them in your browser.",
+  },
+  notFound: {
+    title: "Page not found",
+    description: "The page you are looking for does not exist or was moved.",
+    backToList: "Back to your schemas",
+  },
 } as const;

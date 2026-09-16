@@ -1,5 +1,25 @@
-// Placeholder for the task that owns this namespace (see the resource
-// owner table in document/plans/2026-09-14-editor-mvp-plan.md). That task
-// adds `satisfies LocaleNamespace<typeof enEditorToolbar>` together with the
-// first key: while the object is empty the clause would resolve to `{}`.
-export const viEditorToolbar = {} as const;
+import type { LocaleNamespace } from "@/lib/i18n/locale-namespace";
+import type { enEditorToolbar } from "@/lib/i18n/locales/en/editor/toolbar";
+
+export const viEditorToolbar = {
+  backToList: "Quay lại danh sách schema",
+  schemaName: {
+    label: "Tên schema",
+    dialogTitle: "Đổi tên schema",
+    submit: "Đổi tên",
+  },
+  addTable: "Thêm bảng",
+  addEnum: "Thêm enum",
+  undo: "Hoàn tác",
+  redo: "Làm lại",
+  zoomIn: "Phóng to",
+  zoomOut: "Thu nhỏ",
+  fitView: "Xem toàn bộ",
+  issues: {
+    // Vietnamese has one plural form, so i18next only reads `count_other`;
+    // `count_one` exists to keep the key set equal to the English one.
+    count_one: "{{count}} vấn đề",
+    count_other: "{{count}} vấn đề",
+    none: "Không có vấn đề",
+  },
+} as const satisfies LocaleNamespace<typeof enEditorToolbar>;

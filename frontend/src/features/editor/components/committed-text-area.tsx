@@ -1,5 +1,6 @@
 "use client";
 
+import type { DocumentPath } from "@schemaforge/core";
 import type { JSX, RefObject } from "react";
 import { useEffect, useState } from "react";
 
@@ -15,6 +16,8 @@ export type CommittedTextAreaProps = {
   readonly errorMessage?: string;
   readonly isLabelHidden?: boolean;
   readonly inputRef?: RefObject<HTMLTextAreaElement | null>;
+  // Rendered as `data-focus-path` so a focus request for this path finds the field.
+  readonly focusPath?: DocumentPath;
 };
 
 /**
@@ -29,6 +32,7 @@ export function CommittedTextArea({
   errorMessage,
   isLabelHidden = false,
   inputRef,
+  focusPath,
 }: CommittedTextAreaProps): JSX.Element {
   const [draft, setDraft] = useState(value);
   const errorId = `${id}-error`;
@@ -53,6 +57,9 @@ export function CommittedTextArea({
       <Textarea
         id={id}
         ref={inputRef}
+        data-focus-path={
+          focusPath === undefined ? undefined : JSON.stringify(focusPath)
+        }
         value={draft}
         aria-invalid={hasError ? true : undefined}
         aria-describedby={hasError ? errorId : undefined}

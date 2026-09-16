@@ -19,6 +19,7 @@ import { renderWithProviders } from "@/testing/render-with-providers";
 import { createEditorStore } from "../../state/create-editor-store";
 import { EditorStoreProvider } from "../../state/editor-store-provider";
 import { EditorCanvas } from "./editor-canvas";
+import { EditorFlowProvider } from "./editor-flow-provider";
 
 const SCHEMA_ID = "0b7d4c1e-2f3a-4b5c-8d6e-7f8091a2b3c4";
 const MEASURED_SIZE = { inlineSize: 1000, blockSize: 800 };
@@ -69,14 +70,16 @@ function renderCanvas(
   });
   return renderWithProviders(
     <EditorStoreProvider store={store}>
-      <div style={{ width: 1000, height: 800 }}>
-        <EditorCanvas
-          defaultViewport={null}
-          onMoveEnd={vi.fn<(viewport: Viewport) => void>()}
-          onAddTable={vi.fn<() => void>()}
-          onConnect={vi.fn<(connection: Connection) => void>()}
-        />
-      </div>
+      <EditorFlowProvider>
+        <div style={{ width: 1000, height: 800 }}>
+          <EditorCanvas
+            defaultViewport={null}
+            onMoveEnd={vi.fn<(viewport: Viewport) => void>()}
+            onAddTable={vi.fn<() => void>()}
+            onConnect={vi.fn<(connection: Connection) => void>()}
+          />
+        </div>
+      </EditorFlowProvider>
     </EditorStoreProvider>,
     { locale: "en", themePreference },
   );

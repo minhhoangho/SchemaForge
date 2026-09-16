@@ -6,8 +6,6 @@ import {
   ConnectionMode,
   MiniMap,
   ReactFlow,
-  ReactFlowProvider,
-  useReactFlow,
 } from "@xyflow/react";
 import type {
   Connection,
@@ -38,13 +36,10 @@ import { RELATION_EDGE_TYPE } from "../../lib/to-relation-edges";
 import type { RelationEdge as RelationFlowEdge } from "../../lib/to-relation-edges";
 import { TABLE_NODE_TYPE } from "../../lib/to-table-nodes";
 import type { TableNode as TableFlowNode } from "../../lib/to-table-nodes";
-import type { ViewportControls } from "../../lib/viewport-controls";
 import {
   FIT_VIEW_PADDING,
   MAX_ZOOM,
   MIN_ZOOM,
-  VIEWPORT_TRANSITION_MS,
-  ViewportControlsProvider,
 } from "../../lib/viewport-controls";
 import { useEditorStoreApi } from "../../state/use-editor-store";
 import { CanvasEmptyState } from "./canvas-empty-state";
@@ -75,44 +70,11 @@ type CanvasHandlers = {
 const NODE_TYPES = { [TABLE_NODE_TYPE]: TableNode } satisfies NodeTypes;
 const EDGE_TYPES = { [RELATION_EDGE_TYPE]: RelationEdge } satisfies EdgeTypes;
 const FIT_VIEW_OPTIONS = { padding: FIT_VIEW_PADDING };
-const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 // Every delete goes through the store's dispatch (spec section 3), never
 // through React Flow.
 function refuseDelete(): Promise<boolean> {
   return Promise.resolve(false);
-}
-
-function getTransitionDuration(): number {
-  return window.matchMedia(REDUCED_MOTION_QUERY).matches
-    ? 0
-    : VIEWPORT_TRANSITION_MS;
-}
-
-function useViewportControlsOfFlow(): ViewportControls {
-  const flow = useReactFlow();
-  // Each command resolves once its transition ends; nothing waits for that.
-  return useMemo(
-    () => ({
-      zoomIn: () => {
-        void flow.zoomIn({ duration: getTransitionDuration() });
-      },
-      zoomOut: () => {
-        void flow.zoomOut({ duration: getTransitionDuration() });
-      },
-      fitView: () => {
-        void flow.fitView({
-          ...FIT_VIEW_OPTIONS,
-          duration: getTransitionDuration(),
-        });
-      },
-      setCenter: (x, y, options) => {
-        void flow.setCenter(x, y, options);
-      },
-      getZoom: () => flow.getZoom(),
-    }),
-    [flow],
-  );
 }
 
 function useCanvasHandlers(
@@ -138,7 +100,12 @@ function useCanvasHandlers(
   );
 }
 
-function CanvasSurface({
+/**
+ * The schema canvas. Only the editor store's dispatch changes the schema.
+ * Must be rendered inside `EditorFlowProvider`, which also gives the toolbar
+ * and panels beside the canvas their viewport controls.
+ */
+export function EditorCanvas({
   defaultViewport,
   onMoveEnd,
   onAddTable,
@@ -194,24 +161,5 @@ function CanvasSurface({
       </ReactFlow>
       {nodes.length === 0 ? <CanvasEmptyState onAddTable={onAddTable} /> : null}
     </div>
-  );
-}
-
-function CanvasWithControls(props: EditorCanvasProps): JSX.Element {
-  const controls = useViewportControlsOfFlow();
-
-  return (
-    <ViewportControlsProvider controls={controls}>
-      <CanvasSurface {...props} />
-    </ViewportControlsProvider>
-  );
-}
-
-/** The schema canvas. Only the editor store's dispatch changes the schema. */
-export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
-  return (
-    <ReactFlowProvider>
-      <CanvasWithControls {...props} />
-    </ReactFlowProvider>
   );
 }

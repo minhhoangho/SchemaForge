@@ -146,7 +146,7 @@ Backend giới hạn tần suất gọi AI (rate limit, ví dụ X request/phút
 | Prisma (phần 4) | Prisma 7.10 với generator `prisma-client` (ESM) và driver adapter `@prisma/adapter-pg`; `prisma generate` là task `generate` riêng của Turborepo | Prisma 7 sinh client ESM hợp với `module: nodenext` của backend; driver adapter bắt buộc với generator `prisma-client` |
 | Hợp đồng API | Package mới `packages/api-contract`: schema Zod của response, type của request và response, mã lỗi, hằng giới hạn; backend DTO `implements` các type này, frontend parse response bằng các schema này | Một nguồn cho mỗi type giữa frontend và backend, không cần bước sinh code như OpenAPI cộng `openapi-typescript` |
 | PostgreSQL local | Container Docker Postgres 16 sẵn có trên máy dev, database `schemaforge_dev`, `schemaforge_test`, `schemaforge_shadow`; CI chạy PostgreSQL 16 thật, cùng major. `prisma dev` là phương án thay thế khi máy không có Docker | Máy dev đã có Docker Desktop và container Postgres đang chạy sẵn; cùng engine PostgreSQL thật với CI, giống production hơn PGlite của `prisma dev` |
-| Ô chọn kiểu cột | Combobox `Popover` + `Command` (cmdk) có gõ để lọc | Nhiều enum và kiểu vẫn chọn nhanh bằng bàn phím |
+| Ô chọn kiểu cột | Combobox `Popover` + `Command` có gõ để lọc; `cmdk` 1.1.1 nằm trong `frontend` dependencies. `components/ui/command.tsx` chỉ giữ phần dùng cho popover: bỏ `CommandDialog` của registry (gọi `DialogContent` với prop `showCloseButton` đã bị đổi) và tự dựng khung ô nhập thay cho component `InputGroup`. Prop `label` của `Command` là bắt buộc | Nhiều enum và kiểu vẫn chọn nhanh bằng bàn phím; cmdk luôn trỏ `aria-labelledby` của ô tìm kiếm vào label ẩn của chính nó, nên `label` là cách duy nhất đặt accessible name cho ô đó |
 
 ## Chưa chốt
 

@@ -34,4 +34,14 @@ export const viCommon = {
   notifications: {
     label: "Thông báo",
   },
+  meta: {
+    title: "{{appName}} – Thiết kế schema cơ sở dữ liệu",
+    description:
+      "Thiết kế schema cơ sở dữ liệu trên canvas và lưu ngay trong trình duyệt.",
+  },
+  notFound: {
+    title: "Không tìm thấy trang",
+    description: "Trang bạn tìm không tồn tại hoặc đã được chuyển đi.",
+    backToList: "Quay lại danh sách schema",
+  },
 } as const satisfies LocaleNamespace<typeof enCommon>;

@@ -35,6 +35,21 @@ describe("useNotify", () => {
     );
   });
 
+  it("shows a toast for a key that takes interpolation values", () => {
+    const { result } = renderHook(() => useNotify(), { wrapper: I18nWrapper });
+
+    result.current({
+      tone: "error",
+      titleKey: "issues:table-name-duplicate",
+      values: { table: "users" },
+    });
+
+    expect(toast.error).toHaveBeenCalledWith(
+      "Bảng “users” trùng tên với một bảng khác.",
+      {},
+    );
+  });
+
   it("returns the same notify function across rerenders", () => {
     const { result, rerender } = renderHook(() => useNotify(), {
       wrapper: I18nWrapper,

@@ -1,1 +1,42 @@
-export const enEditorRelationPanel = {} as const;
+export const enEditorRelationPanel = {
+  label: "Relation",
+  kindLabel: "Relation type",
+  kind: {
+    oneToOne: "One to one",
+    oneToMany: "One to many",
+  },
+  kindHint: "Many-to-many relations are made with a junction table.",
+  fromTable: "From table",
+  toTable: "To table",
+  changeTablesHint:
+    "To connect other tables, remove this relation and create a new one.",
+  columnPairs: {
+    title: "Column pairs",
+    fromHeader: "From column",
+    toHeader: "To column",
+    fromLabel: "From column, pair {{number}}",
+    toLabel: "To column, pair {{number}}",
+    add: "Add column pair",
+    remove: "Remove column pair {{number}}",
+    lastPair: "A relation keeps at least one column pair.",
+  },
+  onDelete: "On delete",
+  onUpdate: "On update",
+  actions: {
+    noAction: "NO ACTION",
+    restrict: "RESTRICT",
+    cascade: "CASCADE",
+    setNull: "SET NULL",
+    setDefault: "SET DEFAULT",
+  },
+  remove: "Remove relation",
+  multiSelection: {
+    label: "Selection",
+    tableCount_one: "{{count}} table",
+    tableCount_other: "{{count}} tables",
+    relationCount_one: "{{count}} relation",
+    relationCount_other: "{{count}} relations",
+    summary: "Selected {{tables}} and {{relations}}",
+    deleteAll: "Delete all",
+  },
+} as const;

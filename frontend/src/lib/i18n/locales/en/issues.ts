@@ -5,8 +5,8 @@ export const enIssues = {
   "name-invalid":
     "The name cannot start or end with a space and cannot contain control characters.",
   "name-too-long": "The name is too long: it has to fit in 63 bytes.",
-  "table-name-duplicate": "Another table is already named “{{table}}”.",
-  "enum-name-duplicate": "Another enum is already named “{{enum}}”.",
+  "table-name-duplicate": "Another table or enum is already named “{{table}}”.",
+  "enum-name-duplicate": "Another table or enum is already named “{{enum}}”.",
   "column-name-duplicate":
     "Table “{{table}}” already has another column named “{{column}}”.",
   "index-name-duplicate": "Another index is already named “{{index}}”.",

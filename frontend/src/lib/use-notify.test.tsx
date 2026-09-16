@@ -45,7 +45,7 @@ describe("useNotify", () => {
     });
 
     expect(toast.error).toHaveBeenCalledWith(
-      "Bảng “users” trùng tên với một bảng khác.",
+      "Bảng “users” trùng tên với một bảng hoặc enum khác.",
       {},
     );
   });

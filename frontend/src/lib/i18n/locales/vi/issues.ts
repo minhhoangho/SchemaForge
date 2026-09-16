@@ -6,8 +6,10 @@ export const viIssues = {
   "name-invalid":
     "Tên không được bắt đầu hay kết thúc bằng khoảng trắng và không được chứa ký tự điều khiển.",
   "name-too-long": "Tên quá dài: tên chỉ được tối đa 63 byte.",
-  "table-name-duplicate": "Bảng “{{table}}” trùng tên với một bảng khác.",
-  "enum-name-duplicate": "Enum “{{enum}}” trùng tên với một enum khác.",
+  "table-name-duplicate":
+    "Bảng “{{table}}” trùng tên với một bảng hoặc enum khác.",
+  "enum-name-duplicate":
+    "Enum “{{enum}}” trùng tên với một bảng hoặc enum khác.",
   "column-name-duplicate":
     "Bảng “{{table}}” đã có một cột khác tên “{{column}}”.",
   "index-name-duplicate": "Index “{{index}}” trùng tên với một index khác.",

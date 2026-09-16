@@ -20,7 +20,7 @@ describe("createI18nInstance", () => {
 
     expect(
       instance.t("issues:table-name-duplicate", { table: "<b>a</b>" }),
-    ).toBe("Another table is already named “<b>a</b>”.");
+    ).toBe("Another table or enum is already named “<b>a</b>”.");
   });
 
   it("creates independent instances", async () => {

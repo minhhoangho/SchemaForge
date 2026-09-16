@@ -160,4 +160,20 @@ describe("CommittedTextField", () => {
       getField(),
     );
   });
+
+  it("exposes the focus path of the field for focus requests", () => {
+    render(
+      <CommittedTextField
+        id="enum-name"
+        label="Name"
+        value="status"
+        focusPath={["enums", "enum_status", "name"]}
+        onCommit={vi.fn<(value: string) => void>()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Name").getAttribute("data-focus-path")).toBe(
+      '["enums","enum_status","name"]',
+    );
+  });
 });

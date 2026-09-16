@@ -84,4 +84,20 @@ describe("CommittedTextArea", () => {
 
     expect(onCommit).not.toHaveBeenCalled();
   });
+
+  it("exposes the focus path of the field for focus requests", () => {
+    render(
+      <CommittedTextArea
+        id="table-comment"
+        label="Comment"
+        value=""
+        focusPath={["tables", "tbl_users", "comment"]}
+        onCommit={vi.fn<(value: string) => void>()}
+      />,
+    );
+
+    expect(
+      screen.getByLabelText("Comment").getAttribute("data-focus-path"),
+    ).toBe('["tables","tbl_users","comment"]');
+  });
 });

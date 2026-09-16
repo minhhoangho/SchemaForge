@@ -1,5 +1,6 @@
 "use client";
 
+import type { DocumentPath } from "@schemaforge/core";
 import type { JSX, KeyboardEvent, RefObject } from "react";
 import { useEffect, useState } from "react";
 
@@ -30,6 +31,8 @@ export type CommittedTextFieldProps = {
   readonly inputMode?: "text" | "numeric";
   readonly isLabelHidden?: boolean;
   readonly inputRef?: RefObject<HTMLInputElement | null>;
+  // Rendered as `data-focus-path` so a focus request for this path finds the field.
+  readonly focusPath?: DocumentPath;
 };
 
 /**
@@ -48,6 +51,7 @@ export function CommittedTextField({
   inputMode = "text",
   isLabelHidden = false,
   inputRef,
+  focusPath,
 }: CommittedTextFieldProps): JSX.Element {
   const [draft, setDraft] = useState(value);
   const errorId = `${id}-error`;
@@ -82,6 +86,9 @@ export function CommittedTextField({
       <Input
         id={id}
         ref={inputRef}
+        data-focus-path={
+          focusPath === undefined ? undefined : JSON.stringify(focusPath)
+        }
         value={draft}
         inputMode={inputMode}
         aria-invalid={hasError ? true : undefined}

@@ -442,12 +442,12 @@ Dùng chung cho `parseSchemaDocument` (đường dẫn trong tài liệu) và `a
 | `id-mismatch` | Khóa map khác `id` của phần tử | IE-04 |
 | `id-already-exists` | Thêm phần tử với id đã có | — |
 | `table-not-found`, `column-not-found`, `relation-not-found`, `index-not-found`, `enum-not-found`, `subject-area-not-found`, `note-not-found` | Tham chiếu tới id không tồn tại | ED-04 (index dùng cột không tồn tại), ED-05 (cột dùng enum không tồn tại) |
-| `column-not-in-table` | Cột trong khóa chính, index hoặc cặp cột quan hệ không thuộc đúng bảng | ED-03, ED-04 |
-| `column-listed-twice` | Một cột xuất hiện hai lần trong khóa chính, index, hoặc cùng một phía của quan hệ | — |
+| `column-not-in-table` | Cột trong khóa chính, index, cặp cột quan hệ hoặc `referencedColumnIds` của `buildRelation` không thuộc đúng bảng | ED-03, ED-04 |
+| `column-listed-twice` | Một cột xuất hiện hai lần trong khóa chính, index, cùng một phía của quan hệ, hoặc `referencedColumnIds` của `buildRelation` | — |
 | `column-ownership-mismatch` | `table.columnIds` không khớp đúng tập cột có `tableId` là bảng đó | IE-04 |
 | `enum-in-use` | Xóa enum mà vẫn còn cột dùng | ED-05 |
 | `insert-position-out-of-range` | Vị trí chèn hoặc di chuyển cột nằm ngoài danh sách | — |
-| `primary-key-missing` | `buildManyToMany` hoặc `buildRelation` được gọi với bảng không có khóa chính (`buildRelation` chỉ xét bảng được tham chiếu). Chỉ có ở hàm dựng, không có ở parse | ED-03 |
+| `primary-key-missing` | `buildManyToMany` hoặc `buildRelation` được gọi với bảng không có khóa chính (`buildRelation` chỉ xét bảng được tham chiếu, và chỉ khi không truyền `referencedColumnIds`). Chỉ có ở hàm dựng, không có ở parse | ED-03 |
 
 ### Danh mục mã issue ngữ nghĩa
 
@@ -630,25 +630,32 @@ function buildRelation(
     readonly kind: Relation['kind'];
     readonly onDelete: ReferentialAction;
     readonly onUpdate: ReferentialAction;
+    /** Cột của bảng đích được tham chiếu, theo thứ tự cặp. Bỏ trống thì dùng khóa chính của bảng đích. */
+    readonly referencedColumnIds?: readonly ColumnId[];
   },
   generateId: GenerateId,
 ): Result<Operation /* luôn là batch */, OperationError>;
 ```
 
-Hộp thoại tạo quan hệ 1-1, 1-n của editor tự tạo cột khóa ngoại khớp khóa chính của bảng được tham chiếu. Hàm dựng trả về một `batch` gồm:
+Hộp thoại tạo quan hệ 1-1, 1-n của editor, ở chế độ "Tạo cột mới", tự tạo một cột khóa ngoại cho mỗi cột được tham chiếu (spec phần 3, mục 3 "Tạo quan hệ"): khóa chính của bảng đích khi thả vào tiêu đề, hoặc đúng cột được thả vào. Trường `referencedColumnIds` được thêm ngày 2026-09-17 khi làm hộp thoại (plan phần 3, Vấn đề 70): bản đầu của hàm dựng luôn dùng khóa chính, trái với spec phần 3, và user chọn sửa core cho khớp spec. Không truyền trường này thì hành vi giữ như cũ. Gọi các cột được dùng (danh sách truyền vào, hoặc khóa chính khi bỏ trống) là cột được tham chiếu. Hàm dựng trả về một `batch` gồm:
 
-1. `addColumn` cho mỗi cột khóa chính của bảng đích, theo thứ tự khóa chính, chèn vào cuối bảng nguồn:
-   - Tên `<tên bảng đích>_<tên cột khóa chính>`; trùng (so không phân biệt hoa thường) với cột có sẵn của bảng nguồn hoặc với tên vừa sinh thì thêm hậu tố `_2`, `_3`… như ở n-n.
+1. `addColumn` cho mỗi cột được tham chiếu, theo đúng thứ tự đã cho (khóa chính thì theo thứ tự khóa chính), chèn vào cuối bảng nguồn:
+   - Tên `<tên bảng đích>_<tên cột được tham chiếu>`; trùng (so không phân biệt hoa thường) với cột có sẵn của bảng nguồn hoặc với tên vừa sinh thì thêm hậu tố `_2`, `_3`… như ở n-n.
    - Kiểu chép từ cột được tham chiếu; không mặc định, không auto-increment, comment rỗng.
-   - Nullable khi `onDelete` hoặc `onUpdate` là `setNull`, ngược lại không nullable.
-   - `isUnique` khi `kind` là `oneToOne` và khóa chính chỉ có một cột.
-2. `addRelation` với các cặp ghép cột mới với cột khóa chính theo thứ tự khóa chính.
-3. Khi `kind` là `oneToOne` và khóa chính có từ hai cột: `addIndex` unique trên bảng nguồn gồm các cột mới, tên lấy từ `suggestIndexName`.
+   - Nullable khi `onDelete` hoặc `onUpdate` là `setNull`, ngược lại không nullable. Đây là hành vi của core; hộp thoại của editor luôn dùng `noAction` nên cột nó tạo không nullable.
+   - `isUnique` khi `kind` là `oneToOne` và chỉ có một cột được tham chiếu.
+2. `addRelation` với các cặp ghép cột mới với cột được tham chiếu theo cùng thứ tự.
+3. Khi `kind` là `oneToOne` và có từ hai cột được tham chiếu: `addIndex` unique trên bảng nguồn gồm các cột mới, tên lấy từ `suggestIndexName`.
 
-- Lỗi, theo thứ tự: `table-not-found` tại `['fromTableId']` rồi tại `['toTableId']`; `primary-key-missing` tại `['toTableId']` khi bảng đích không có khóa chính.
+- Lỗi, theo thứ tự:
+  1. `table-not-found` tại `['fromTableId']` rồi tại `['toTableId']`.
+  2. Không truyền `referencedColumnIds` và bảng đích không có khóa chính: `primary-key-missing` tại `['toTableId']`.
+  3. `referencedColumnIds` là mảng rỗng: `invalid-shape` tại `['referencedColumnIds']`.
+  4. `column-not-found`, `column-not-in-table` (cột không thuộc bảng đích), `column-listed-twice` tại `['referencedColumnIds', i]`, với `i` là vị trí của phần tử lỗi đầu tiên.
+- Khi truyền `referencedColumnIds`, bảng đích không cần có khóa chính. Cột được tham chiếu không phải khóa chính và không unique vẫn tạo được; tài liệu kết quả có issue ngữ nghĩa `relation-target-not-unique`, đúng chính sách hai tầng.
 - Id sinh theo thứ tự: các cột mới, quan hệ, index (nếu có).
 - Quan hệ tự tham chiếu (`fromTableId === toTableId`) hợp lệ.
-- Kết quả không phát sinh issue mới, trừ tên cột quá 63 byte và trường hợp `setDefault`: cột mới chưa có giá trị mặc định nên còn issue `relation-set-default-without-default` cho tới khi người dùng đặt. Hàm dựng không tự bịa giá trị mặc định.
+- Với cột được tham chiếu là khóa chính hoặc unique, kết quả không phát sinh issue mới, trừ tên cột quá 63 byte và trường hợp `setDefault`: cột mới chưa có giá trị mặc định nên còn issue `relation-set-default-without-default` cho tới khi người dùng đặt. Hàm dựng không tự bịa giá trị mặc định.
 - Quan hệ dùng cột khóa ngoại có sẵn vẫn là `addRelation` thường. Chọn hàm dựng thay vì kiểu operation riêng vì cùng lý do với `buildManyToMany`.
 
 ### Lịch sử undo/redo
@@ -859,7 +866,7 @@ fast-check chạy với seed cố định trong CI và in seed khi thất bại,
 - [ ] `batch` lỗi ở một bước thì trả lỗi có `path` bắt đầu bằng `['operations', i]` và không thay đổi schema.
 - [ ] Nghịch đảo của `batch` là `batch` phẳng, độ sâu tối đa 1; `parseOperation` và `applyOperation` từ chối `batch` sâu hơn `MAX_BATCH_DEPTH` bằng `invalid-shape` mà không throw, kể cả với input lồng rất sâu.
 - [ ] `buildManyToMany` tạo bảng trung gian có khóa chính nhiều cột và hai quan hệ 1-n; áp nghịch đảo của batch trả về schema ban đầu.
-- [ ] `buildRelation` tạo cột khóa ngoại khớp khóa chính của bảng đích, quan hệ, và index unique cho 1-1 nhiều cột; trả `primary-key-missing` khi bảng đích không có khóa chính; áp nghịch đảo của batch trả về schema ban đầu.
+- [ ] `buildRelation` tạo cột khóa ngoại khớp khóa chính của bảng đích, hoặc khớp `referencedColumnIds` khi được truyền, cùng quan hệ và index unique cho 1-1 nhiều cột; trả `primary-key-missing` khi không truyền `referencedColumnIds` và bảng đích không có khóa chính, trả lỗi tại `['referencedColumnIds', …]` khi danh sách rỗng hoặc có cột sai; áp nghịch đảo của batch trả về schema ban đầu.
 - [ ] `undo` rồi `redo` trả về đúng schema trước và sau thao tác; ghi mục mới xóa `future`.
 - [ ] `mergeLastEntry` gộp mục cuối thành một mục mà một lần `undo` hoàn tác và một lần `redo` áp lại cả hai thay đổi; gộp xóa `future`; `batch` vẫn phẳng sau nhiều lần gộp.
 - [ ] `findIntroducedIssues` chỉ trả issue mới, không trả issue đã có sẵn.

@@ -1221,6 +1221,7 @@ Mong đợi: `--frozen-lockfile` chạy qua; `ls` in `zod 4.6.x` trong `dependen
 
 - `type RelationInput = { readonly fromTableId: TableId; readonly toTableId: TableId; readonly kind: RelationKind; readonly onDelete: ReferentialAction; readonly onUpdate: ReferentialAction }`.
 - `buildRelation(schema, input: RelationInput, generateId: GenerateId): Result<Operation, OperationError>`.
+- **Đã đổi sau khi làm hộp thoại tạo quan hệ của editor (commit c4efa92, user đã chốt; plan phần 3, Vấn đề 70):** `RelationInput` có thêm trường tùy chọn `readonly referencedColumnIds?: readonly ColumnId[]`. Bỏ trống thì mọi quy tắc dưới đây giữ nguyên (dùng khóa chính của bảng đích). Có truyền thì dựng một cột khóa ngoại cho mỗi id theo đúng thứ tự đã cho, `isUnique` và index unique của 1-1 xét theo số id; bảng đích không cần khóa chính; lỗi sau `table-not-found` là `invalid-shape` tại `["referencedColumnIds"]` khi mảng rỗng, rồi `column-not-found`, `column-not-in-table`, `column-listed-twice` tại `["referencedColumnIds", i]`. Cột được tham chiếu không unique cho issue `relation-target-not-unique`. Chi tiết ở spec phần 2 mục 9 "Tạo quan hệ kèm cột khóa ngoại".
 - Lỗi, theo thứ tự:
   - `table-not-found` tại `["fromTableId"]`, rồi tại `["toTableId"]`.
   - `primary-key-missing` tại `["toTableId"]`.

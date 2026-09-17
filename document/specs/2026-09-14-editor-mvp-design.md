@@ -247,7 +247,7 @@ Enter xác nhận, Escape hủy. Vì các giá trị mặc định đã hợp l�
 Khi xác nhận, hộp thoại dựng một operation và dispatch như một mục lịch sử:
 
 - **1-n, 1-1, dùng cột có sẵn:** `addRelation` với các cặp đã chọn, `onDelete` và `onUpdate` là `noAction`.
-- **1-n, 1-1, tạo cột mới:** một `batch` gồm `addColumn` vào bảng `from` cho mỗi cột được tham chiếu (cùng kiểu, không nullable, không mặc định, không auto-increment, tên `<tên bảng to>_<tên cột>`, thêm hậu tố số nếu trùng) rồi `addRelation`. Với 1-1 thì đánh dấu cột mới `isUnique` nếu khóa ngoại có một cột, hoặc thêm một index unique trên các cột mới nếu có nhiều cột. Như vậy quan hệ mới không phát sinh `relation-one-to-one-not-unique`. Hàm dựng này nên nằm trong core (xem [Vấn đề với spec phần 2](#vấn-đề-với-spec-phần-2), mục 1).
+- **1-n, 1-1, tạo cột mới:** một `batch` gồm `addColumn` vào bảng `from` cho mỗi cột được tham chiếu (cùng kiểu, không nullable, không mặc định, không auto-increment, tên `<tên bảng to>_<tên cột>`, thêm hậu tố số nếu trùng) rồi `addRelation`. Với 1-1 thì đánh dấu cột mới `isUnique` nếu khóa ngoại có một cột, hoặc thêm một index unique trên các cột mới nếu có nhiều cột. Như vậy quan hệ mới không phát sinh `relation-one-to-one-not-unique`. Hàm dựng là `buildRelation` của core, nhận các cột được tham chiếu qua trường `referencedColumnIds` (xem [Vấn đề với spec phần 2](#vấn-đề-với-spec-phần-2), mục 1).
 - **n-n:** `buildManyToMany(schema, { leftTableId, rightTableId, junctionTableName, position }, generateId)`, với `position` ở giữa hai bảng. Batch trả về được dispatch một lần, nên undo một bước là bỏ cả bảng trung gian lẫn hai quan hệ.
 
 Hộp thoại chặn xác nhận và hiện lỗi ngay dưới trường khi:
@@ -685,7 +685,7 @@ Hàm thuần `toStorageErrorCode(error: unknown): StorageErrorCode` ánh xạ l�
 Chọn bảng bằng bàn phím: dòng trong tab "Bảng" ở panel trái, hoặc Tab tới node rồi Enter hoặc Space. Phần 3 không có thao tác kéo nào khác: sắp xếp cột, giá trị enum và cột của index chỉ dùng nút lên, xuống; panel thu gọn bằng nút, không đổi kích thước bằng kéo. Thao tác kéo mới ở các phần sau (vùng thả file ở phần 7, khung subject area và ghi chú ở phần 9) phải có đủ hai đường thay thế trong spec của phần đó.
 
 - **React Flow:** `nodesFocusable`, `edgesFocusable` bật; `ariaLabelConfig` được dựng từ namespace `canvas` cho mọi key có hiển thị: `node.a11yDescription.default`, `node.a11yDescription.keyboardDisabled`, `node.a11yDescription.ariaLiveMessage` (hàm nhận `direction`, `x`, `y`), `edge.a11yDescription.default`, `minimap.ariaLabel`, `handle.ariaLabel`. Node và edge có `ariaLabel` riêng (mục 3).
-- **Hộp thoại:** dùng `Dialog` và `AlertDialog` của shadcn/ui (Radix): giữ focus bên trong, đóng bằng Escape, trả focus về nút đã mở. Hộp thoại "Tạo quan hệ" mở từ thao tác kéo không có nút mở, nên khi đóng thì trả focus về node nguồn.
+- **Hộp thoại:** dùng `Dialog` và `AlertDialog` của shadcn/ui (Radix): giữ focus bên trong, đóng bằng Escape, trả focus về nút đã mở. Hộp thoại "Tạo quan hệ" mở từ thao tác kéo không có nút mở, nên khi đóng thì trả focus về node nguồn; node nguồn không còn thì về vùng canvas (`<main tabIndex={-1}>` bọc canvas).
 - **Quản lý focus:** thêm bảng thì focus ô tên trong panel; thêm cột, index, giá trị enum thì focus ô tên mới; xóa phần tử bằng nút hoặc phím `Delete` thì focus về vùng canvas; bấm issue thì focus trường có lỗi.
 - **Nhìn thấy focus:** dùng token `ring` cho mọi phần tử tương tác, kể cả node, edge (`:focus-visible`) và dòng trong panel.
 - **Không chỉ dựa vào màu:** khóa, khóa ngoại, unique, nullable, issue, loại quan hệ đều có icon hoặc ký hiệu kèm text cho trình đọc màn hình.
@@ -863,7 +863,7 @@ Spec phần 2 đã được duyệt. Năm điểm editor cần được bổ sun
 
 | # | Điểm bổ sung trong plan phần 2 | Editor dùng ở | Dự phòng |
 |---|---|---|---|
-| 1 | Hàm dựng quan hệ 1-n, 1-1 kèm tạo cột khóa ngoại theo khóa chính của bảng đích, dùng chung quy tắc đặt tên và tránh trùng với `buildManyToMany` | Mục 3 | Viết trong `features/editor/lib/build-relation-operation.ts` |
+| 1 | Hàm dựng quan hệ 1-n, 1-1 kèm tạo cột khóa ngoại theo khóa chính của bảng đích, dùng chung quy tắc đặt tên và tránh trùng với `buildManyToMany`. Bản đầu (`buildRelation`) chỉ theo khóa chính; ngày 2026-09-17 user chốt thêm trường `referencedColumnIds` để tạo cột theo đúng cột được tham chiếu của mục 3 (plan phần 3, Vấn đề 70) | Mục 3 | Viết trong `features/editor/lib/build-relation-operation.ts` |
 | 2 | Gộp mục cuối của lịch sử | Mục 6 | Frontend tạo `History` mới từ `past` |
 | 3 | Ghi chú rằng môi trường có CSP phải gọi `z.config({ jitless: true })`, và core không tự gọi | Mục 11 | Frontend vẫn gọi `z.config` như mục 11 |
 | 4 | `applyOperation` trả đúng tham chiếu của input khi operation không thay đổi gì | Mục 5 | Trường nhập liệu so giá trị trước khi dispatch (vẫn làm như vậy) |

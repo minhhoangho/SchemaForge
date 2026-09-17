@@ -58,10 +58,9 @@ Verify each fact before relying on it. Items marked *planned* come from a spec o
 
 ## Verify before reporting
 
-Node 24 is required and non-interactive shells default to Node 22, so start commands in the repo root with `source ~/.nvm/nvm.sh && nvm use`.
+For each package you touched, run `.claude/scripts/verify.sh <package>...`. While iterating on one file: `.claude/scripts/test-file.sh <package> <path>`. The raw `pnpm --filter` commands remain the fallback when a script cannot cover the case; start those in the repo root with `source ~/.nvm/nvm.sh && nvm use` (Node 24 is required and non-interactive shells default to Node 22).
 
-- For each package you touched, run `pnpm --filter <package> typecheck`, `lint`, and `test`. While iterating on one file: `pnpm --filter <package> exec vitest run <path>`.
-- Frontend and backend import `@schemaforge/core` from its `dist/`. If core changed, run `pnpm --filter @schemaforge/core build` first, or use `pnpm turbo run test --filter <package>`, which builds dependencies.
+- Frontend and backend import `@schemaforge/core` from its `dist/`. If core changed, run `.claude/scripts/verify.sh core --build` first, or use `pnpm turbo run test --filter <package>`, which builds dependencies.
 - Confirm each new test would fail if the behavior broke: reason it through, or break the code temporarily and revert it by hand. Do that only where no one else is editing (for example an isolated worktree), and check `git diff` for leftover production changes before reporting.
 - Run a new property test or ordering-sensitive test twice and confirm identical results.
 - Quote failures and coverage numbers verbatim.
@@ -79,6 +78,7 @@ Node 24 is required and non-interactive shells default to Node 22, so start comm
 - Do not commit or push. Do not spawn subagents.
 - Never read, print, or edit `.env` files (`.env`, `.env.test`, or any `.env.*` other than `*.example`).
 - Run e2e only against `schemaforge_test`. Never run destructive database commands (`prisma migrate reset`, `db push`, `TRUNCATE`, `DROP`) against any other database.
+- Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.
 
 ## Report
 

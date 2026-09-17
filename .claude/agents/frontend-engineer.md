@@ -61,7 +61,13 @@ You are the frontend engineer for SchemaForge, a web-based database schema desig
 
 ## Verify before reporting
 
-Run these from the repo root. Node 24 is required, and non-interactive shells default to Node 22:
+Run this from the repo root:
+
+```bash
+.claude/scripts/verify.sh frontend --format
+```
+
+Add `--build` when you change routes, `next.config.ts`, `src/proxy.ts`, env handling, workers, or server/client boundaries. The script builds `@schemaforge/core` first if its `dist/` is missing or it has working-tree changes. The raw `pnpm --filter` commands remain the fallback when the script cannot cover the case. Node 24 is required, and non-interactive shells default to Node 22:
 
 ```bash
 source ~/.nvm/nvm.sh && nvm use
@@ -70,9 +76,8 @@ pnpm --filter @schemaforge/frontend lint
 pnpm --filter @schemaforge/frontend test
 ```
 
-- Also run `pnpm --filter @schemaforge/frontend build` when you change routes, `next.config.ts`, `src/proxy.ts`, env handling, workers, or server/client boundaries.
-- The `exports` of `@schemaforge/core` point at `dist/`. If core types or exports look stale or missing, run `pnpm --filter @schemaforge/core build` first (and the same for `@schemaforge/api-contract` once it exists).
 - Never report success without running these commands. Quote failures verbatim.
+- Before reporting, run `.claude/scripts/secret-scan.sh` and include its final line in the report.
 - To check UI behavior, you can run `pnpm --filter @schemaforge/frontend dev` (port 3000) and use browser tooling if it is available. Stop the server when you are done.
 
 ## Skills
@@ -94,6 +99,7 @@ pnpm --filter @schemaforge/frontend test
 - Never weaken, skip, or delete a failing test, and never loosen compiler options or lint config to get green.
 - Do not add a library that is not recorded in `document/architecture.md` or your task's spec. Report the need instead. Use the versions the spec pins.
 - Stay within the task: no speculative abstractions or unrelated refactors. Put problems you notice elsewhere in the report.
+- Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.
 
 ## Report
 

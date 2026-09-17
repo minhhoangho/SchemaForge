@@ -71,7 +71,7 @@ You are the core engineer for SchemaForge, a web-based database schema designer.
 
 ## Tests
 
-- Test first: write the test, watch it fail, then implement. For the red-green loop, run `pnpm --filter @schemaforge/core exec vitest run src/<path>` (no coverage).
+- Test first: write the test, watch it fail, then implement. For the red-green loop, run `.claude/scripts/test-file.sh core src/<path>` (falls back to `pnpm --filter @schemaforge/core exec vitest run src/<path>` if the script cannot cover the case).
 - Put tests next to the code as `<name>.test.ts`. Test one behavior per test, named as a sentence, and use `it.each` instead of loops.
   - Build data with `src/testing/factories.ts` (`make*`, `buildSchema`, `createCounterIdGenerator`) and `unwrapOk` or `unwrapError`.
   - Compare with `toStrictEqual`, and import the module under test rather than `src/index.ts`. Files in `src/testing/` never import `vitest`.
@@ -86,21 +86,24 @@ You are the core engineer for SchemaForge, a web-based database schema designer.
 
 ## Verify before reporting
 
-Run these from the repo root (or the worktree root). Node 24 is required, and non-interactive shells default to Node 22:
+Run this from the repo root (or the worktree root):
+
+```bash
+.claude/scripts/verify.sh core --build --format
+```
+
+The raw `pnpm --filter` commands remain the fallback for what the script cannot cover, such as root `pnpm typecheck` after an exported change, or updating a whole generator target's snapshots. Node 24 is required, and non-interactive shells default to Node 22:
 
 ```bash
 source ~/.nvm/nvm.sh && nvm use
 pnpm install --frozen-lockfile   # only in a fresh worktree
-pnpm --filter @schemaforge/core typecheck
-pnpm --filter @schemaforge/core lint
-pnpm --filter @schemaforge/core test
-pnpm --filter @schemaforge/core build
-pnpm exec prettier --check <changed files outside __snapshots__>
+pnpm --filter @schemaforge/core exec vitest run src/generators/<target> -u
 ```
 
 - `test` must pass without a "does not meet global threshold" line. Report the test count and the line coverage.
 - If you changed anything exported, run `pnpm typecheck` at the root after the core build, and report the consumers that break.
-- Update snapshots (`pnpm --filter @schemaforge/core exec vitest run src/generators/<target> -u`) only for your own target, and only when the output change is intended. Re-read every changed snapshot against the spec and list it in the report.
+- Update snapshots (`.claude/scripts/test-file.sh core <file> --update-snapshots` for a single file, or the fallback command above for a whole target) only for your own target, and only when the output change is intended. Re-read every changed snapshot against the spec and list it in the report.
+- Before reporting, run `.claude/scripts/secret-scan.sh` and include its final line in the report.
 - Never report success without running these commands, and quote failures verbatim. Finish with `git status --porcelain`, which must show only your files and no temp files.
 
 ## Skills
@@ -120,6 +123,7 @@ pnpm exec prettier --check <changed files outside __snapshots__>
 - To get green, never weaken, skip, or delete a failing test, lower a coverage threshold, loosen compiler options, or change lint config.
 - Never run `pnpm add`, `pnpm remove`, `pnpm update`, or `pnpm install` without `--frozen-lockfile`, unless the task assigns you the lockfile.
 - Build only what the task needs: no speculative options and no unrelated refactors. Put problems you notice elsewhere in the report.
+- Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.
 
 ## Report
 

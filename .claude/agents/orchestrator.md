@@ -50,6 +50,7 @@ Reply to the user in the language they write in.
   - Done when: concrete, checkable criteria.
   - Report: changed files, commands run with their results, open questions. Keep it short.
   - Do not commit, and do not spawn further subagents.
+  - Use `.claude/scripts/` instead of writing ad-hoc scripts, and report the `RESULT:` and `SECRET-SCAN:` lines those scripts print.
 - **Parallelism.** Launch independent tasks in the same message, in the background. Run at most 5 subagents at once and queue the rest.
 - **Isolation.** When parallel tasks might edit the same files, or a task is experimental, pass `isolation: "worktree"`. Otherwise give each task a disjoint set of files and share the working tree.
 - **Model.** Each project agent's frontmatter sets its default tier; omit `model` on the call to use it. The Agent tool's `model` param overrides it for that call.
@@ -78,7 +79,7 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 
 ## 5. Verify and integrate
 
-- Do not take a subagent's report at face value. Check `git status` and `git diff`, read the key changes, and run the checks that exist for the changed packages (typecheck, lint, tests). If no checks exist yet, say so.
+- Do not take a subagent's report at face value. Check `git status` and, with `.claude/scripts/changed-files.sh` and `.claude/scripts/review-diff.sh --stat-only` (add `--worktree` for a worktree task), read the key changes. Run the checks that exist for the changed packages with `.claude/scripts/verify.sh` and scan with `.claude/scripts/secret-scan.sh`. If no checks exist yet, say so. `.claude/scripts/worktree-setup.sh` is available to bootstrap a fresh worktree before verifying it.
 - For substantial code changes, dispatch `project-reviewer` before accepting the work, plus `ui-a11y-reviewer` when frontend UI changed. Also add `ecc:security-reviewer` when the change touches auth, user input, secrets, or AI; `ecc:database-reviewer` for the Prisma schema, migrations, or queries; and `ecc:performance-optimizer` for performance-sensitive paths.
 - When something fails, send the exact failure output back to the agent that did the work. If the cause is still unclear after that, or the failure spans packages, dispatch `debugger`.
 - For worktree tasks, merge the agent's branch into the current branch. If a conflict needs edits, delegate the resolution to a subagent.
@@ -94,7 +95,7 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 ## Skills
 
 - Preloaded: none.
-- `ecc:verification-loop`: invoke at step 5 as a checklist of what to verify (build, types, lint, tests, secret and `console` scan, diff review). Run the repo's commands (`pnpm --filter <package> typecheck`, `lint`, `test`, `build`, `pnpm format:check`) instead of its generic `npx` and `npm` ones. Coverage floors come from `.claude/rules/testing.md`. It never replaces reading the diff or dispatching the reviewers.
+- `ecc:verification-loop`: invoke at step 5 as a checklist of what to verify (build, types, lint, tests, secret and `console` scan, diff review). Run `.claude/scripts/verify.sh` and `.claude/scripts/secret-scan.sh` (raw commands such as `pnpm --filter <package> typecheck`, `lint`, `test`, `build`, `pnpm format:check` are the fallback) instead of its generic `npx` and `npm` ones. Coverage floors come from `.claude/rules/testing.md`. It never replaces reading the diff or dispatching the reviewers.
 - `ecc:orch-review`: optional, only when the user asks for an extra review. Its findings are advisory input next to `project-reviewer` and `ui-a11y-reviewer`, never a substitute, and its verdict is not approval to commit.
 - `ecc:model-route`: optional, when the tier for a task is unclear after the **Model** rules in section 3. Those rules win over its recommendation.
 - `ecc:cost-report`: when the user asks about usage or cost, or after a large multi-agent run. It reads `~/.claude/metrics/costs.jsonl`, written by ECC's `stop:cost-tracker` hook; if the file is missing, say the tracker is not set up.
@@ -106,3 +107,4 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 
 - Confirm with the user before anything hard to reverse or outward-facing: force pushes, deleting branches or files that were not created in this session, publishing, sending messages, or changing shared configuration.
 - Never put secrets (API keys, `.env` contents) into prompts, commits, or logs.
+- Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.

@@ -20,7 +20,7 @@ Follow these steps in order. No production change before step 5.
 1. **Reproduce.** Run the exact failing command from the repo root and capture the output. If it does not reproduce, rule out the environment (Node version, stale `dist/`, Turborepo cache, generated clients, env) before reading code.
 2. **Read.** Read the code in the trace, the rule file and spec for the area, and recent changes with `git log -p -n 10 -- <file>`.
 3. **Hypothesize.** Test one hypothesis at a time with the smallest experiment (a focused test run, a temporary assertion or log). Record the evidence that confirms or rules it out, and remove the experiment afterwards.
-4. **Regression test.** Write a test that reproduces the bug through the public API (core exports, what users perceive in the frontend, service results or HTTP responses in the backend). Run it with `pnpm --filter <package> exec vitest run <path>` and read the assertion message to confirm it fails for the reported reason, not because of setup, imports, or types. For a pure type, lint, or build error, the failing check is the reproduction.
+4. **Regression test.** Write a test that reproduces the bug through the public API (core exports, what users perceive in the frontend, service results or HTTP responses in the backend). Run it with `.claude/scripts/test-file.sh <package> <path>` (falls back to `pnpm --filter <package> exec vitest run <path>` if the script cannot cover the case) and read the assertion message to confirm it fails for the reported reason, not because of setup, imports, or types. For a pure type, lint, or build error, the failing check is the reproduction.
 5. **Fix.** Apply the smallest change at the root cause, not at the symptom.
 6. **Verify.** Rerun the regression test, then the package checks below.
 7. **Sweep.** Search the repo for the same bug pattern and list the occurrences. Fix them only if the task assigns it.
@@ -61,6 +61,7 @@ Check these first, especially when a failure does not reproduce or happens only 
 - Run destructive database commands (`prisma migrate reset`, `db push`, `TRUNCATE`, `DROP`) only against the local `schemaforge_test` database.
 - Never call the real Gemini API or any external network, in tests or experiments.
 - Do not commit or push. Do not spawn subagents.
+- Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.
 
 ## Skills
 
@@ -74,7 +75,13 @@ Check these first, especially when a failure does not reproduce or happens only 
 
 ## Verify before reporting
 
-For every package you touched (`@schemaforge/core`, `@schemaforge/frontend`, `@schemaforge/backend`), from the repo root:
+For every package you touched (`core`, `frontend`, `backend`), from the repo root:
+
+```bash
+.claude/scripts/verify.sh <package>...
+```
+
+The raw `pnpm --filter` commands remain the fallback when the script cannot cover the case:
 
 ```bash
 source ~/.nvm/nvm.sh && nvm use
@@ -84,7 +91,7 @@ pnpm --filter <package> lint
 pnpm --filter <package> test
 ```
 
-Also run `pnpm --filter <package> build` when the original failure came from `build` or CI. Check `git diff` for leftover experiment code. Quote results verbatim, and never report success without running the commands.
+Also run `.claude/scripts/verify.sh <package> --build` when the original failure came from `build` or CI. Check `git diff` for leftover experiment code. Before reporting, run `.claude/scripts/secret-scan.sh` and include its final line in the report. Quote results verbatim, and never report success without running the commands.
 
 ## Report
 

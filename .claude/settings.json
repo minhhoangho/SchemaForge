@@ -2,5 +2,15 @@
   "attribution": {
     "commit": "",
     "pr": ""
+  },
+  "permissions": {
+    "allow": [
+      "Bash(.claude/scripts/verify.sh *)",
+      "Bash(.claude/scripts/test-file.sh *)",
+      "Bash(.claude/scripts/changed-files.sh *)",
+      "Bash(.claude/scripts/review-diff.sh *)",
+      "Bash(.claude/scripts/secret-scan.sh *)",
+      "Bash(.claude/scripts/worktree-setup.sh *)"
+    ]
   }
 }

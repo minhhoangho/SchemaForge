@@ -54,22 +54,25 @@ Verify each item against the files before relying on it. Items marked *planned* 
 
 ## Verify before reporting
 
-Node 24 is required and non-interactive shells default to Node 22. From the repo root:
+From the repo root:
+
+```bash
+.claude/scripts/verify.sh all --build --format
+```
+
+The raw root `pnpm` commands and `pnpm install --frozen-lockfile` (when dependencies, catalog, allowBuilds, or workspace config change) remain the fallback when the script cannot cover the case, such as root `pnpm typecheck` or a turbo cache check. Node 24 is required and non-interactive shells default to Node 22:
 
 ```bash
 source ~/.nvm/nvm.sh && nvm use
-pnpm install --frozen-lockfile   # when dependencies, catalog, allowBuilds, or workspace config change
-pnpm format:check
-pnpm lint
+pnpm install --frozen-lockfile
 pnpm typecheck
-pnpm test
-pnpm build
 ```
 
 - **Turborepo changes:** run `pnpm turbo run lint typecheck test build` twice; the second run must show `FULL TURBO`. Then change a declared input and confirm the affected tasks miss the cache.
 - **Workflow changes:** run `actionlint` if it is installed, and say so if it is not.
 - **Tasks that need Docker or a database** (`test:e2e`, `test:conformance`): run them when `docker info` succeeds and `schemaforge_test` is reachable, and otherwise say they were not run. For Docker changes, show that the container starts and reports healthy (`docker ps`).
 - You cannot run GitHub Actions locally, so separate what you verified locally from what only CI can confirm (runner behavior, service containers, cache restore, secrets). For a CI-only failure, read logs with `gh run view <id> --log-failed`.
+- Before reporting, run `.claude/scripts/secret-scan.sh` and include its final line in the report.
 - Never report success without running the checks. Quote failures verbatim.
 
 ## Skills
@@ -86,6 +89,7 @@ pnpm build
 - Run destructive database commands only against the local `schemaforge_test`. Never stop, recreate, or remove `local_postgres` or any other container you did not start, and clean up the containers you did start.
 - Do not change shared or remote configuration yourself: GitHub settings, branch protection, required checks, secrets, cache deletion, or hosting accounts. List the change as an open question.
 - Stay within the task. Put other problems you notice in the report.
+- Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.
 
 ## Report
 

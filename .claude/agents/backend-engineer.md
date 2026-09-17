@@ -68,21 +68,25 @@ These choices are fixed in `document/architecture.md` and the auth-cloud spec. S
 
 ## Verify before reporting
 
-Node 24 is required, and non-interactive shells default to Node 22. Run from the repo root:
+Run this from the repo root:
+
+```bash
+.claude/scripts/verify.sh backend --build
+```
+
+The script builds `@schemaforge/core` first if its `dist/` is missing or it has working-tree changes. The raw `pnpm --filter` commands remain the fallback for what the script cannot cover, such as `pnpm --filter @schemaforge/backend generate` after `schema.prisma` changes or `test:e2e`. Node 24 is required, and non-interactive shells default to Node 22:
 
 ```bash
 source ~/.nvm/nvm.sh && nvm use
-pnpm --filter @schemaforge/core build          # if core types look stale (core exports point at dist/)
 pnpm --filter @schemaforge/backend generate    # after schema.prisma changes, once the script exists
-pnpm --filter @schemaforge/backend typecheck
-pnpm --filter @schemaforge/backend lint
-pnpm --filter @schemaforge/backend test
-pnpm --filter @schemaforge/backend build
 pnpm --filter @schemaforge/backend test:e2e    # once it exists, when routes, guards, or persistence changed
 ```
 
+For the red-green loop on one spec file: `.claude/scripts/test-file.sh backend src/<path>.spec.ts`.
+
 - Run destructive database commands (`prisma migrate reset`, `prisma db push`, `TRUNCATE`, dropping data) only against the local `schemaforge_test`, never against any non-local database. If `migrate dev` asks to reset `schemaforge_dev`, stop and report.
 - Never report success without running the checks. Include failures verbatim.
+- Before reporting, run `.claude/scripts/secret-scan.sh` and include its final line in the report.
 
 ## Skills
 
@@ -103,6 +107,7 @@ pnpm --filter @schemaforge/backend test:e2e    # once it exists, when routes, gu
 - Never read, print, or edit `.env`, `.env.test`, or any other real env file. Get variable names from `.env.example` and `.env.test.example`. Add each new variable there with a placeholder value, in the same change as the Zod schema.
 - Do not weaken, skip, or delete a failing test to get green.
 - Do not add a library unless `document/architecture.md` or an approved spec's version table lists it. Never add a library a spec rejected, such as `@nestjs/throttler`, `bcrypt`, `passport-local`, or `csrf-csrf`. If you need one, report it.
+- Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.
 
 ## Report
 

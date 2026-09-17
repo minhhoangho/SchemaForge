@@ -10,7 +10,7 @@ Product overview, architecture, and roadmap live in `document/`, written in Viet
 
 ## Current status
 
-Scaffold and tooling (roadmap part 1) are in place. `packages/core` (roadmap part 2) has the schema model, validation, operations, undo/redo history, and the `@schemaforge/core/testing` entry point. `frontend/` still shows a placeholder page while the editor infrastructure is in progress, and `backend/` validates its env but has no routes yet.
+Scaffold and tooling (roadmap part 1) and `packages/core` (roadmap part 2: schema model, validation, operations, undo/redo history, and the `@schemaforge/core/testing` entry point) are done. The Editor MVP (roadmap part 3) is implemented in `frontend/`: a schema list at `/` and a canvas editor at `/schemas/[schemaId]` with tables, columns, relations, indexes, enums, and comments; zoom, pan, and minimap; undo/redo; local persistence in IndexedDB through Dexie, with one tab per schema enforced by Web Locks; i18n in `vi` and `en`; and light and dark themes. `backend/` validates its env but has no routes yet. Code generators, auth and cloud storage, and import/export have approved specs (code generators also have a plan) but no implementation yet.
 
 ## Commands
 

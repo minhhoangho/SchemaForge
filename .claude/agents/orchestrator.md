@@ -57,7 +57,7 @@ Reply to the user in the language they write in.
 - **Isolation.** When parallel tasks might edit the same files, or a task is experimental, pass `isolation: "worktree"`. Otherwise give each task a disjoint set of files and share the working tree.
 - **Model.** Each project agent's frontmatter sets its default tier; omit `model` on the call to use it. The Agent tool's `model` param overrides it for that call.
   - Opus: `core-engineer`, `ai-engineer`, `debugger`, `project-reviewer`, `spec-writer`.
-  - Sonnet: `frontend-engineer`, `backend-engineer`, `test-engineer`, `devops-engineer`, `ui-a11y-reviewer`. ECC plugin agents also pin sonnet; override them to `opus` only for a high-risk review.
+  - Sonnet: `frontend-engineer`, `backend-engineer`, `test-engineer`, `devops-engineer`, `ui-a11y-reviewer`. ECC plugin agents also pin sonnet, use for all cases unless explicitly overridden.
   - Downgrade to `model: "haiku"` for `Explore` searches, mechanical renames or moves, roadmap or status-only doc edits, running existing checks and summarizing the output, and simple lookups. Run `Plan` and `general-purpose` on `sonnet` unless the task is architectural.
   - Upgrade sonnet-default agents to `model: "opus"` when the task touches auth, sessions, CSRF, secrets, Prisma or data migrations, complex canvas or React Flow interaction or state, or cross-package contracts, or when the plan task is ambiguous.
   - Never downgrade `project-reviewer`, `debugger`, `ai-engineer`, or `ecc:security-reviewer` on auth, AI, or secrets changes.

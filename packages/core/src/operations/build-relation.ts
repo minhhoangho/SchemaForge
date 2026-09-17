@@ -1,6 +1,7 @@
 import type { DocumentPath } from "../document-path.js";
 import type { ErrorCode, OperationError } from "../error-codes.js";
 import type { Column } from "../model/column.js";
+import { findColumnListErrors } from "../model/column-list-errors.js";
 import {
   createColumnId,
   createIndexId,
@@ -22,6 +23,9 @@ export type RelationInput = {
   readonly kind: RelationKind;
   readonly onDelete: ReferentialAction;
   readonly onUpdate: ReferentialAction;
+  // Target table columns the foreign key references, in pair order. When
+  // omitted, the target table's primary key is referenced in primary key order.
+  readonly referencedColumnIds?: readonly ColumnId[];
 };
 
 type ForeignKeyColumn = {
@@ -68,12 +72,40 @@ function pickUnusedName(
   return candidate;
 }
 
-// One column per target primary key column, in primary key order. Names are
-// unique against the from table's columns and the names generated before.
+function resolveReferencedColumnIds(
+  schema: SchemaDocument,
+  toTable: Table,
+  referencedColumnIds: RelationInput["referencedColumnIds"],
+): Result<readonly ColumnId[], OperationError> {
+  if (referencedColumnIds === undefined) {
+    return toTable.primaryKeyColumnIds.length === 0
+      ? rejectInput("primary-key-missing", ["toTableId"])
+      : ok(toTable.primaryKeyColumnIds);
+  }
+  if (referencedColumnIds.length === 0) {
+    return rejectInput("invalid-shape", ["referencedColumnIds"]);
+  }
+  const [firstError] = findColumnListErrors(
+    schema.columns,
+    toTable.id,
+    referencedColumnIds,
+  );
+  if (firstError !== undefined) {
+    return rejectInput(firstError.code, [
+      "referencedColumnIds",
+      firstError.index,
+    ]);
+  }
+  return ok(referencedColumnIds);
+}
+
+// One column per referenced column, in the given order. Names are unique
+// against the from table's columns and the names generated before.
 function buildForeignKeyColumns(
   schema: SchemaDocument,
   { fromTable, toTable }: RelationTables,
   input: RelationInput,
+  referencedColumnIds: readonly ColumnId[],
   generateId: GenerateId,
 ): readonly ForeignKeyColumn[] {
   const usedNameKeys = new Set(
@@ -82,8 +114,8 @@ function buildForeignKeyColumns(
   const isNullable =
     input.onDelete === "setNull" || input.onUpdate === "setNull";
   const isUnique =
-    input.kind === "oneToOne" && toTable.primaryKeyColumnIds.length === 1;
-  return toTable.primaryKeyColumnIds.map((referencedColumnId) => {
+    input.kind === "oneToOne" && referencedColumnIds.length === 1;
+  return referencedColumnIds.map((referencedColumnId) => {
     const referenced = findColumn(schema, referencedColumnId);
     const name = pickUnusedName(
       `${toTable.name}${NAME_SEPARATOR}${referenced.name}`,
@@ -161,8 +193,9 @@ function buildRelationStep(
 
 /**
  * Builds a one-to-one or one-to-many relation together with foreign key
- * columns matching the target table's primary key, as one batch so a single
- * undo removes everything. Ids come from `generateId` in a fixed order: the
+ * columns matching the referenced columns (the target table's primary key
+ * unless `referencedColumnIds` is given), as one batch so a single undo
+ * removes everything. Ids come from `generateId` in a fixed order: the
  * new columns, the relation, then the unique index when there is one. The
  * operation is not applied; pass it to `applyOperation`.
  */
@@ -179,13 +212,19 @@ export function buildRelation(
   if (toTable === undefined) {
     return rejectInput("table-not-found", ["toTableId"]);
   }
-  if (toTable.primaryKeyColumnIds.length === 0) {
-    return rejectInput("primary-key-missing", ["toTableId"]);
+  const referenced = resolveReferencedColumnIds(
+    schema,
+    toTable,
+    input.referencedColumnIds,
+  );
+  if (!referenced.isOk) {
+    return referenced;
   }
   const foreignKeyColumns = buildForeignKeyColumns(
     schema,
     { fromTable, toTable },
     input,
+    referenced.value,
     generateId,
   );
   const columnSteps = foreignKeyColumns.map(

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import type { OperationError } from "../error-codes.js";
 import type { Column } from "../model/column.js";
+import type { ColumnId } from "../model/ids.js";
 import type { SchemaDocument } from "../model/schema-document.js";
 import type { Table } from "../model/table.js";
 import {
@@ -50,6 +52,14 @@ const REGIONS_COUNTRY_COLUMN = makeColumn({
   type: { kind: "char", length: 2 },
 });
 
+const USERS_EMAIL_COLUMN = makeColumn({
+  id: "col_users_email",
+  tableId: "tbl_users",
+  name: "email",
+  type: { kind: "varchar", length: 255 },
+  isUnique: true,
+});
+
 const ORDERS_TABLE = makeTable({
   id: "tbl_orders",
   name: "orders",
@@ -79,6 +89,33 @@ const ORDERS_TO_USERS: RelationInput = {
   onUpdate: "noAction",
 };
 
+const REFERENCED_COLUMN_ERROR_CASES: readonly {
+  readonly label: string;
+  readonly referencedColumnIds: readonly ColumnId[];
+  readonly expected: OperationError;
+}[] = [
+  {
+    label: "invalid-shape for an empty list",
+    referencedColumnIds: [],
+    expected: { code: "invalid-shape", path: ["referencedColumnIds"] },
+  },
+  {
+    label: "column-not-found for a missing column",
+    referencedColumnIds: ["col_users_id", "col_missing"],
+    expected: { code: "column-not-found", path: ["referencedColumnIds", 1] },
+  },
+  {
+    label: "column-not-in-table for a column of another table",
+    referencedColumnIds: ["col_orders_total"],
+    expected: { code: "column-not-in-table", path: ["referencedColumnIds", 0] },
+  },
+  {
+    label: "column-listed-twice for a repeated column",
+    referencedColumnIds: ["col_users_email", "col_users_email"],
+    expected: { code: "column-listed-twice", path: ["referencedColumnIds", 1] },
+  },
+];
+
 const NO_ISSUE_CASES: readonly {
   readonly label: string;
   readonly overrides: Partial<RelationInput>;
@@ -107,6 +144,7 @@ function buildShopSchema(
     ],
     columns: [
       USERS_ID_COLUMN,
+      USERS_EMAIL_COLUMN,
       REGIONS_CODE_COLUMN,
       REGIONS_COUNTRY_COLUMN,
       ORDERS_ID_COLUMN,
@@ -383,6 +421,164 @@ describe("buildRelation", () => {
       }),
     );
     expect(after.columns.col_1?.name).toBe("orders_id");
+  });
+
+  it("creates a foreign key column for a referenced non-primary-key column", () => {
+    const operation = buildFromOrders(buildShopSchema(), {
+      referencedColumnIds: ["col_users_email"],
+    });
+
+    expect(operation).toStrictEqual({
+      type: "batch",
+      operations: [
+        {
+          type: "addColumn",
+          column: makeColumn({
+            id: "col_1",
+            tableId: "tbl_orders",
+            name: "users_email",
+            type: { kind: "varchar", length: 255 },
+          }),
+          insertAt: 2,
+        },
+        {
+          type: "addRelation",
+          relation: makeRelation({
+            id: "rel_2",
+            fromTableId: "tbl_orders",
+            toTableId: "tbl_users",
+            columnPairs: [
+              { fromColumnId: "col_1", toColumnId: "col_users_email" },
+            ],
+          }),
+        },
+      ],
+    });
+  });
+
+  it("creates foreign key columns in the order of the referenced column ids", () => {
+    const after = applyFromOrders(buildShopSchema(), {
+      toTableId: "tbl_regions",
+      referencedColumnIds: ["col_regions_code", "col_regions_country"],
+    });
+
+    expect({
+      columnPairs: after.relations.rel_3?.columnPairs,
+      names: [after.columns.col_1?.name, after.columns.col_2?.name],
+    }).toStrictEqual({
+      columnPairs: [
+        { fromColumnId: "col_1", toColumnId: "col_regions_code" },
+        { fromColumnId: "col_2", toColumnId: "col_regions_country" },
+      ],
+      names: ["regions_code", "regions_country"],
+    });
+  });
+
+  it("marks the single foreign key column unique for a one-to-one relation to a referenced column", () => {
+    const after = applyFromOrders(buildShopSchema(), {
+      kind: "oneToOne",
+      referencedColumnIds: ["col_users_email"],
+    });
+
+    expect(after.columns.col_1?.isUnique).toBe(true);
+  });
+
+  it("adds a unique index for a one-to-one relation to several referenced columns", () => {
+    const after = applyFromOrders(buildShopSchema(), {
+      kind: "oneToOne",
+      referencedColumnIds: ["col_users_id", "col_users_email"],
+    });
+
+    expect([
+      after.columns.col_1?.isUnique,
+      after.columns.col_2?.isUnique,
+      after.indexes.idx_4,
+    ]).toStrictEqual([
+      false,
+      false,
+      {
+        id: "idx_4",
+        tableId: "tbl_orders",
+        name: "orders_users_id_users_email_key",
+        columnIds: ["col_1", "col_2"],
+        isUnique: true,
+      },
+    ]);
+  });
+
+  it("references the target primary key in primary key order when referencedColumnIds is omitted", () => {
+    const schema = buildShopSchema();
+
+    const operation = buildFromOrders(schema, { toTableId: "tbl_regions" });
+
+    expect(operation).toStrictEqual(
+      buildFromOrders(schema, {
+        toTableId: "tbl_regions",
+        referencedColumnIds: ["col_regions_country", "col_regions_code"],
+      }),
+    );
+  });
+
+  it("references a column of a target table without a primary key", () => {
+    const tagsLabelColumn = makeColumn({
+      id: "col_tags_label",
+      tableId: "tbl_tags",
+      name: "label",
+      isUnique: true,
+    });
+    const schema = buildShopSchema([], [tagsLabelColumn]);
+
+    const after = applyFromOrders(schema, {
+      toTableId: "tbl_tags",
+      referencedColumnIds: ["col_tags_label"],
+    });
+
+    expect(after.relations.rel_2?.columnPairs).toStrictEqual([
+      { fromColumnId: "col_1", toColumnId: "col_tags_label" },
+    ]);
+  });
+
+  it("suffixes the name of a foreign key column for a referenced column when it already exists", () => {
+    const schema = buildShopSchema(
+      [],
+      [makeOrdersColumn("col_orders_email", "users_email")],
+    );
+
+    const after = applyFromOrders(schema, {
+      referencedColumnIds: ["col_users_email"],
+    });
+
+    expect(after.columns.col_1?.name).toBe("users_email_2");
+  });
+
+  it.each(REFERENCED_COLUMN_ERROR_CASES)(
+    "returns $label in referencedColumnIds",
+    ({ referencedColumnIds, expected }) => {
+      const result = buildRelation(
+        buildShopSchema(),
+        { ...ORDERS_TO_USERS, referencedColumnIds },
+        createCounterIdGenerator(),
+      );
+
+      expect(unwrapError(result)).toStrictEqual(expected);
+    },
+  );
+
+  it("reports a missing target table before invalid referenced columns", () => {
+    const result = buildRelation(
+      buildShopSchema(),
+      {
+        ...ORDERS_TO_USERS,
+        toTableId: "tbl_missing",
+        referencedColumnIds: [],
+      },
+      createCounterIdGenerator(),
+    );
+
+    expect(unwrapError(result)).toStrictEqual({
+      code: "table-not-found",
+      path: ["toTableId"],
+    });
   });
 
   it("returns table-not-found at fromTableId for a missing source table", () => {

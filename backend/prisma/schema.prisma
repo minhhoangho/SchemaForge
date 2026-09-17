@@ -1,0 +1,53 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql" // URL lives in prisma.config.ts (Prisma 7)
+}
+
+model User {
+  id            String         @id @default(uuid(7)) @db.Uuid
+  email         String         @unique @db.VarChar(254)
+  passwordHash  String         @map("password_hash")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  schemas       Schema[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model Schema {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  ownerId   String   @map("owner_id") @db.Uuid
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  document  Json     @db.JsonB
+  revision  Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([ownerId, updatedAt(sort: Desc), id(sort: Desc)])
+  @@map("schemas")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyId  String    @map("family_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  rotatedAt DateTime? @map("rotated_at") @db.Timestamptz(3)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([userId, expiresAt])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}

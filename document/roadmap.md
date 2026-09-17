@@ -2,6 +2,8 @@
 
 Dự án được chia thành các phần tương đối độc lập. Mỗi phần đi qua ba bước: spec → plan → implement (xem quy ước trong [README.md](README.md)).
 
+Trạng thái bám theo ba bước đó: `Chưa bắt đầu` (chưa có spec) → `Xong spec` (spec đã duyệt, chưa có plan) → `Xong plan` (plan đã duyệt, chưa viết code) → `Đang làm` (đang viết code) → `Xong`.
+
 ## Các phần
 
 | # | Phần | Nội dung chính | Phụ thuộc | Trạng thái |
@@ -9,11 +11,11 @@ Dự án được chia thành các phần tương đối độc lập. Mỗi ph�
 | 0 | Foundation | `CLAUDE.md`, `document/`, khung thư mục | — | Xong |
 | 1 | Scaffold & tooling | pnpm workspaces, Turborepo, app Next.js, app NestJS, `packages/core`, lint, format, test, CI | 0 | Xong |
 | 2 | Core schema model | Types cho bảng, cột, quan hệ, index, enum, comment, subject area, ghi chú; validation; operations | 1 | Xong |
-| 3 | Editor MVP | Canvas bảng, cột, quan hệ, index, enum, comment; zoom, pan, minimap; undo/redo; lưu local; dark mode; i18n vi/en | 2 | Đang làm |
-| 4 | Auth + lưu cloud | Đăng ký, đăng nhập, lưu schema lên server, danh sách schema | 1, 2 | Đang làm |
+| 3 | Editor MVP | Canvas bảng, cột, quan hệ, index, enum, comment; zoom, pan, minimap; undo/redo; lưu local; dark mode; i18n vi/en | 2 | Xong |
+| 4 | Auth + lưu cloud | Đăng ký, đăng nhập, lưu schema lên server, danh sách schema | 1, 2 | Xong spec |
 | 5 | AI Assistant | Tích hợp Gemini ở backend; sinh schema từ mô tả; chat nhiều lượt; gợi ý cải thiện; giải thích; phát hiện lỗi thiết kế; sinh dữ liệu mẫu | 2, 3, 4 | Chưa bắt đầu |
-| 6 | Code generators | SQL DDL (PostgreSQL, MySQL, SQL Server), Prisma, Drizzle, TypeScript, Zod, Mock API, OpenAPI, seed data, DBML, Markdown | 2 | Đang làm |
-| 7 | Import / Export | Import SQL, Prisma, DBML, JSON; export file, JSON, PNG/SVG, ZIP | 3, 6 | Đang làm |
+| 6 | Code generators | SQL DDL (PostgreSQL, MySQL, SQL Server), Prisma, Drizzle, TypeScript, Zod, Mock API, OpenAPI, seed data, DBML, Markdown | 2 | Xong plan |
+| 7 | Import / Export | Import SQL, Prisma, DBML, JSON; export file, JSON, PNG/SVG, ZIP | 3, 6 | Xong spec |
 | 8 | Chia sẻ + lịch sử phiên bản | Link public/private; lịch sử phiên bản cơ bản | 4 | Chưa bắt đầu |
 | 9 | Hoàn thiện | Subject area, ghi chú trên canvas, auto-layout, templates, presentation mode, phím tắt | 3 | Chưa bắt đầu |
 

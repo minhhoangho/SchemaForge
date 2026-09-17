@@ -89,7 +89,7 @@ Backend giới hạn tần suất gọi AI (rate limit, ví dụ X request/phút
 | Thư viện canvas | React Flow (`@xyflow/react`) | Node là React component nên dùng được UI kit; có sẵn zoom, pan, minimap và điểm nối |
 | Quản lý state | Zustand | Nhẹ, store nằm ngoài React nên gọi được từ code không phải component; React Flow cũng dùng Zustand |
 | Cơ chế lưu local | IndexedDB qua Dexie (`dexie` `^4.4.6`); màn hình danh sách đọc bằng `useLiveQuery` của `dexie-react-hooks` (`^4.4.0`) | Có bảng, index, query và migration theo version, hợp khi lưu nhiều schema cùng lịch sử operation; `useLiveQuery` cho danh sách tự cập nhật khi tạo, đổi tên, xóa mà không phải tự đăng ký lắng nghe thay đổi |
-| Auth | Passport + JWT | Cách làm chuẩn của NestJS, kiểm soát hoàn toàn luồng auth |
+| Auth | Passport + JWT. JWT chỉ dùng cho access token; refresh token là chuỗi ngẫu nhiên, server lưu SHA-256 của nó ([spec phần 4](specs/2026-09-15-auth-cloud-design.md), mục 1) | Cách làm chuẩn của NestJS, kiểm soát hoàn toàn luồng auth |
 | Cách đăng nhập | Email + mật khẩu. Chưa xác minh email khi đăng ký, chưa có chức năng quên mật khẩu, nên chưa cần dịch vụ gửi email | Lựa chọn của dự án |
 | Đồng bộ local và cloud | Sau khi đăng nhập, bản cloud là bản chính, bản local làm cache | Không phải merge operation; xung đột được phát hiện theo revision |
 | SDK gọi Gemini | Vercel AI SDK (`ai` + `@ai-sdk/google`) | Khai báo tool bằng Zod, có vòng lặp tool call nhiều bước và giao thức stream dùng được với `useChat` ở frontend |

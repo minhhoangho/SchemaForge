@@ -28,7 +28,7 @@ Quyết định của người dùng khi duyệt spec: **phần 3 không có tes
 | 4 | Issue | `validateSchema` được memo theo tham chiếu tài liệu; hiển thị trên node, edge, trường trong panel và tab "Vấn đề". Mã issue dịch qua namespace `issues` |
 | 5 | State | Mỗi schema đang mở có một Zustand store tạo qua React context. Một đường `dispatch(operation)`. Node, edge được suy ra với tái sử dụng object; component đọc lát cắt hẹp theo id |
 | 6 | Undo, redo | Ô nhập commit khi blur hoặc Enter; chỉ gộp các lần di chuyển bằng phím mũi tên. Phím tắt undo, redo và `Delete`, không chạy khi đang gõ hay khi hộp thoại đang mở. Lịch sử không còn sau khi tải lại trang |
-| 7 | Lưu local | Dexie DB `schemaforge` version 1 gồm `schemas`, `documents`, `viewports`. Lưu ngay sau mỗi thay đổi, mỗi lúc chỉ một lần ghi. Mọi lần đọc qua `parseSchemaDocument`. Một schema chỉ sửa được ở một tab nhờ Web Locks. Viewport được lưu theo schema |
+| 7 | Lưu local | Dexie DB `schemaforge` version 1 gồm `schemas`, `documents`, `viewports`. Lưu ngay sau mỗi thay đổi, mỗi lúc chỉ một lần ghi. Mọi lần đọc qua `parseSchemaDocument`. Một schema chỉ sửa được ở một tab nhờ Web Locks. Viewport được lưu theo schema. Phần 4 thêm version 2 (`ownerId`, `cloudRevision`, `syncStatus` trên `schemas`, và bảng `session`), trạng thái cloud trên toolbar, danh sách hai phần khi đã đăng nhập ([spec phần 4](2026-09-15-auth-cloud-design.md), mục 7) |
 | 8 | Theme | Cookie `sf-theme` (`system`, `light`, `dark`; mặc định `system`). Class `.dark` của shadcn/ui được đặt trước khi vẽ bằng một script tĩnh có nonce. Không dùng `next-themes`. React Flow nhận `colorMode` và token qua biến `--xy-*` |
 | 9 | i18n | Cookie `sf-locale`; lần đầu chọn theo `Accept-Language`, không khớp thì `en`. Server và client dùng chung resource TypeScript, key có kiểu, `vi` phải khớp `en` lúc biên dịch. Lint bằng `eslint-plugin-i18next` và `eslint-plugin-jsx-a11y-x` |
 | 10 | Zoom, pan, minimap | Có sẵn trong React Flow; nút zoom và fit view nằm trên toolbar của ứng dụng; `MiniMap` có `pannable`, `zoomable` |
@@ -450,6 +450,7 @@ db.version(1).stores({
 - `document` có kiểu `unknown` trong record, nên code không dùng được tài liệu nếu chưa parse.
 - **Thời gian** lấy từ `clock: () => number` được truyền vào repository.
 - **Đổi cấu trúc DB:** thêm `db.version(n + 1).stores(...)` kèm `.upgrade()`, không sửa version cũ. Mỗi version mới có test mở DB đã tạo ở version trước bằng `fake-indexeddb`. Migration của **định dạng tài liệu** không nằm ở đây: nó chạy trong `parseSchemaDocument`.
+- Nội dung `db.version(1)` ở trên giữ nguyên vì đây là lịch sử đã phát hành. Phần 4 thêm `db.version(2)`: `schemas` có thêm `ownerId`, `cloudRevision`, `syncStatus`, và có bảng `session` mới; toolbar thêm trạng thái cloud; màn hình danh sách có hai phần khi đã đăng nhập ("Schema của bạn", "Chỉ trên trình duyệt này") ([spec phần 4](2026-09-15-auth-cloud-design.md), mục 7).
 
 ### Đọc: luôn qua `parseSchemaDocument`
 
@@ -920,7 +921,7 @@ Tiêu chí ghi "(kiểm tra tay)" được kiểm tra theo checklist ở mục 1
 - [ ] ED-13: Lịch sử chỉ chứa cặp operation và nghịch đảo do core trả về, không chứa bản sao schema; kéo nhiều bảng rồi thả là một mục lịch sử.
 - [ ] ST-01: Schema còn nguyên khi màn hình được mount lại trên cùng database (test tích hợp); còn nguyên sau khi đóng rồi mở lại trình duyệt: kiểm tra tay.
 - [ ] ST-01: Tạo, mở, đổi tên, xóa nhiều schema từ màn hình danh sách mà không cần tài khoản.
-- [ ] ST-01: Không có code gọi mạng: lint cấm `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon` trong `frontend/src/`, và CSP có `connect-src 'self'`.
+- [ ] ST-01: Khách không gọi mạng: lint cấm `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon` trong `frontend/src/`, và CSP có `connect-src 'self'`. Từ phần 4, `src/lib/api/**` là ngoại lệ của lint và `connect-src` thêm origin backend; tiêu chí này được kiểm bằng test tích hợp 7 ([spec phần 4](2026-09-15-auth-cloud-design.md), mục 11): khách không có hint không gọi `fetch` lần nào.
 - [ ] ST-01: Tài liệu đọc từ IndexedDB luôn đi qua `parseSchemaDocument`; bản không parse được không bị ghi đè.
 - [ ] ST-01: Editor thứ hai mở cùng schema hiện "đang mở ở tab khác" và không sửa được (test tích hợp với khóa giả); hai tab Chrome thật: kiểm tra tay.
 - [ ] ST-01: Lỗi hết dung lượng và IndexedDB không dùng được hiện thông báo đã dịch; thay đổi trong bộ nhớ không mất và được thử ghi lại.

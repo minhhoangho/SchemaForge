@@ -181,7 +181,7 @@ Không có chế độ **thay thế** schema hiện tại.
 ### Tạo schema mới
 
 1. Worker chạy importer, rồi `buildImportOperation(createEmptySchema(tên), imported, { mode: 'new' }, generateId)`, rồi áp thử bằng `applyOperation` để lấy số liệu cho bước xem trước (mục 12).
-2. Khi người dùng xác nhận, frontend tạo bản ghi schema với tài liệu rỗng `createEmptySchema(tên)` qua `SchemaRepository`, đặt `{ schemaId, operation }` vào `PendingImportProvider` (state React ở `AppProviders`, còn nguyên khi chuyển trang phía client), rồi chuyển tới `/schemas/<id>`.
+2. Khi người dùng xác nhận, frontend tạo bản ghi schema với tài liệu rỗng `createEmptySchema(tên)` qua `SchemaRepository`, đặt `{ schemaId, operation }` vào `PendingImportProvider` (state React ở `AppProviders`, còn nguyên khi chuyển trang phía client), rồi chuyển tới `/schemas/<id>`. Khi đã đăng nhập, bản ghi này được tạo qua đường "Tạo" của phần 4 (có chủ, `cloudRevision: null`, `pending`, được `CloudPusher` đẩy lên cloud) thay vì bản ghi chỉ-local ([spec phần 4](2026-09-15-auth-cloud-design.md), mục 7).
 3. Editor mount, lấy khóa tab như thường, thấy import đang chờ đúng `schemaId` thì `dispatch(operation)` một lần và xóa mục chờ. Mục lịch sử được ghi và autosave lưu tài liệu như mọi thao tác khác.
 
 - Tên schema: `Project` của DBML, `name` của file JSON; SQL và Prisma không có tên nên dùng tên file bỏ phần mở rộng, dán văn bản thì dùng tên gợi ý đã dịch ("Schema được import"). Người dùng sửa được tên ở bước xem trước.

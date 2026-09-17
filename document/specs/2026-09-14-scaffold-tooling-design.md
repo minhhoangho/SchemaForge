@@ -54,7 +54,7 @@ Phiên bản trong spec được kiểm tra ngày 2026-09-14: package npm bằng
 | 15 | Health endpoint, Helmet, CORS | Làm ở phần 4, cùng endpoint đầu tiên, guard xác thực, `ValidationPipe` và exception filter | Phần 1 chưa có route nào; CORS cần origin của frontend, là cấu hình của phần 4 | Thêm ngay ở phần 1: code chưa có ai dùng, trái `code-quality.md` |
 | 16 | CI | GitHub Actions, một workflow. Kết quả task của Turborepo được cache bằng `actions/cache`. Xem mục [CI](#ci) | Repo nằm trên GitHub; không cần tài khoản hay secret | Vercel Remote Cache: cần tài khoản và token |
 | 17 | Git hooks | Không dùng | Typecheck và lint có type chạy trên cả project, quá chậm cho mỗi commit; lint theo file staged bỏ sót lỗi type ở file khác; CI là cổng chặn, và `git.md` đã yêu cầu chạy kiểm tra trước khi commit | lefthook, hoặc husky + lint-staged, chạy Prettier và ESLint trên file staged |
-| 18 | File env | Chỉ có `backend/.env.example` với giá trị giả cho `NODE_ENV` và `PORT`. Biến của các phần sau được thêm vào schema Zod và `.env.example` trong cùng thay đổi dùng tới nó | Repo không chứa secret; app từ chối khởi động khi env sai | Khai báo trước `DATABASE_URL`, `GEMINI_API_KEY`...: biến chưa dùng, và nếu bắt buộc thì chặn `pnpm dev` |
+| 18 | File env | Chỉ có `backend/.env.example` với giá trị giả cho `NODE_ENV` và `PORT`. Biến của các phần sau được thêm vào schema Zod và `.env.example` trong cùng thay đổi dùng tới nó. Phần 4 thêm `frontend/.env.example` và `backend/.env.test.example`, cùng nguyên tắc chỉ giá trị giả, không commit file `.env` thật ([spec phần 4](2026-09-15-auth-cloud-design.md), mục 9) | Repo không chứa secret; app từ chối khởi động khi env sai | Khai báo trước `DATABASE_URL`, `GEMINI_API_KEY`...: biến chưa dùng, và nếu bắt buộc thì chặn `pnpm dev` |
 
 ### Phiên bản
 
@@ -272,7 +272,7 @@ File `.github/workflows/ci.yml`:
 
 - Chạy khi `push` lên `master` và khi có `pull_request`.
 - `permissions: contents: read`. `concurrency` hủy run cũ của cùng một branch.
-- Một job trên `ubuntu-latest`:
+- Một job `verify` trên `ubuntu-latest`:
   1. `actions/checkout@v7`
   2. `pnpm/action-setup@v6`, đọc phiên bản từ `packageManager`
   3. `actions/setup-node@v7` với `node-version-file: .nvmrc` và `cache: pnpm`
@@ -283,13 +283,15 @@ File `.github/workflows/ci.yml`:
 
 pnpm store được cache qua `setup-node`, kết quả task qua cache của Turborepo. Nhờ vậy commit chỉ sửa frontend không chạy lại lint và test của core.
 
+Phần 4 thêm job `e2e` chạy song song với `verify`, có PostgreSQL service container, cũng là cổng chặn; job `verify` đặt biến `NEXT_PUBLIC_API_URL` giả (domain `.invalid`) trước bước `next build` để build frontend qua được mà không cần backend thật ([spec phần 4](2026-09-15-auth-cloud-design.md), mục 9 và 11).
+
 ## Điểm nối với các phần sau
 
 | Phần | Cắm vào đâu |
 |---|---|
 | 2. Core schema model | `packages/core/src/`; subpath entry point thêm vào `exports`; thay `PRODUCT_NAME` giữ chỗ |
 | 3. Editor MVP | `frontend/src/features/`, `components/`, `lib/`; init Tailwind CSS + shadcn/ui; i18next, Zustand, React Flow, Dexie; lint cho i18n và accessibility; glob coverage cho store; chọn tool test e2e cho `frontend/e2e/` |
-| 4. Auth + lưu cloud | `backend/src/prisma/`, `prisma generate` trước `build` và `typecheck` của backend, thêm Prisma vào `allowBuilds`; biến `DATABASE_URL` và secret của auth trong schema env; Helmet, CORS, `ValidationPipe`, exception filter, guard; e2e trong `backend/test/`; PostgreSQL cho CI; `frontend/src/lib/env.ts` và `NEXT_PUBLIC_*` trong `env` của task `build` |
+| 4. Auth + lưu cloud | `backend/src/prisma/`, thêm Prisma vào `allowBuilds`; task Turborepo `generate` (`prisma generate`), chạy trước cả `build`, `typecheck`, `lint`, `test`, `test:e2e`, `dev` của backend, không chỉ trước `build` và `typecheck` như dự kiến ở đây ([spec phần 4](2026-09-15-auth-cloud-design.md), mục 4); biến `DATABASE_URL` và secret của auth trong schema env; Helmet, CORS, `ValidationPipe`, exception filter, guard; e2e trong `backend/test/`; PostgreSQL cho CI; `frontend/src/lib/env.ts` và `NEXT_PUBLIC_*` trong `env` của task `build` |
 | 5. AI Assistant | `GEMINI_API_KEY`, `GEMINI_MODEL` trong schema env và `.env.example` của backend |
 
 ## Rủi ro cần kiểm tra khi triển khai
@@ -312,7 +314,7 @@ pnpm store được cache qua `setup-node`, kết quả task qua cache của Tur
   - Promise không `await`, `console.log`, `any`, hoặc default export ngoài file framework làm `pnpm lint` fail.
   - Thêm vào core một hàm không có test, kéo coverage dưới 90%, làm `pnpm test` fail.
 - [ ] CI xanh trên GitHub cho commit trên `master` và cho pull request.
-- [ ] Repo chỉ có `backend/.env.example`, không commit file `.env` nào.
+- [ ] Repo chỉ có file `.env.example` mẫu (`backend/.env.example`; phần 4 thêm `frontend/.env.example` và `backend/.env.test.example`, [spec phần 4](2026-09-15-auth-cloud-design.md) mục 9), không commit file `.env` thật nào.
 - [ ] Trong lúc triển khai, `CLAUDE.md` được cập nhật mục "Current status" và danh sách lệnh. Khi xong, `roadmap.md` chuyển phần 1 sang "Xong". Quyết định nào thay đổi thì cập nhật `architecture.md`.
 
 ## Câu hỏi còn mở

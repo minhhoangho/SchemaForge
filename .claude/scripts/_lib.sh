@@ -23,7 +23,7 @@ _lib_script_dir() {
 LIB_SCRIPT_DIR="$(_lib_script_dir)"
 REPO_ROOT="$(cd -- "${LIB_SCRIPT_DIR}/../.." >/dev/null 2>&1 && pwd -P)"
 
-if [ -z "${REPO_ROOT}" ] || [ ! -d "${REPO_ROOT}/.git" ]; then
+if [ -z "${REPO_ROOT}" ] || [ ! -e "${REPO_ROOT}/.git" ]; then
   echo "error: could not resolve repo root from ${LIB_SCRIPT_DIR}" >&2
   exit 1
 fi

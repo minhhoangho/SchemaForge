@@ -15,7 +15,6 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
 import { getIssueIndex } from "../../lib/issue-index";
-import { EMPTY_SELECTION } from "../../lib/selection";
 import { useEditorStore } from "../../state/use-editor-store";
 import { ColumnPairList } from "./column-pair-list";
 import { issuesOfField, relationFieldPath } from "./relation-issue-fields";
@@ -144,16 +143,16 @@ function RelationFields({
 
 type RelationPanelProps = {
   readonly relationId: RelationId;
-  // Called after the relation is removed and the selection cleared. The panel
-  // unmounts with the selection, so the caller moves focus (to the canvas,
-  // spec section 12) instead of leaving it on the removed button.
-  readonly onDeleted: () => void;
+  // Deletes the relation, which is the whole current selection, through the
+  // editor's delete path: one dispatch, focus to the canvas (spec section 12)
+  // instead of the removed button, and an undo toast.
+  readonly onDelete: () => void;
 };
 
 /** Properties of one relation: kind, tables, column pairs, referential actions. */
 export function RelationPanel({
   relationId,
-  onDeleted,
+  onDelete,
 }: RelationPanelProps): JSX.Element | null {
   const { t } = useTranslation("editor");
   const headingId = useId();
@@ -165,22 +164,11 @@ export function RelationPanel({
     getIssueIndex(state.document).issuesOfElement(relationId),
   );
   const dispatch = useEditorStore((state) => state.dispatch);
-  const setSelection = useEditorStore((state) => state.setSelection);
 
   // Between removing the relation and the caller dropping the panel, the
   // store no longer holds it.
   if (relation === undefined) {
     return null;
-  }
-
-  function remove(): void {
-    // A rejected dispatch already reported its error; the relation stays, so
-    // the panel and the selection stay too.
-    if (!dispatch({ type: "removeRelation", relationId }).isOk) {
-      return;
-    }
-    setSelection(EMPTY_SELECTION);
-    onDeleted();
   }
 
   const otherIssues = issuesOfField(issues, null);
@@ -208,7 +196,7 @@ export function RelationPanel({
       <Button
         variant="destructive"
         className="justify-self-start"
-        onClick={remove}
+        onClick={onDelete}
       >
         <Trash2Icon aria-hidden />
         {t("relationPanel.remove")}

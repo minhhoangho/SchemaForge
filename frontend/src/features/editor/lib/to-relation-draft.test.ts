@@ -168,12 +168,23 @@ describe("createRelationDraftFromTable", () => {
     });
   });
 
-  it("returns null when the document has no other table", () => {
+  it("builds a self relation when the document has no other table", () => {
     const document = buildSchema({
       tables: [makeTable({ id: "tbl_users", name: "users" })],
     });
 
-    expect(createRelationDraftFromTable(document, "tbl_users")).toBeNull();
+    expect(createRelationDraftFromTable(document, "tbl_users")).toMatchObject({
+      fromTableId: "tbl_users",
+      toTableId: "tbl_users",
+    });
+  });
+
+  it("returns null for a table the document does not hold", () => {
+    const document = buildSchema({
+      tables: [makeTable({ id: "tbl_users", name: "users" })],
+    });
+
+    expect(createRelationDraftFromTable(document, "tbl_missing")).toBeNull();
   });
 });
 

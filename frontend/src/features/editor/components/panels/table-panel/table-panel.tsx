@@ -8,7 +8,6 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 
-import { EMPTY_SELECTION } from "../../../lib/selection";
 import { useEditorStore } from "../../../state/use-editor-store";
 import { CommittedTextArea } from "../../committed-text-area";
 import { CommittedTextField } from "../../committed-text-field";
@@ -25,7 +24,9 @@ const TABLES_SEGMENT = "tables";
 export type TablePanelProps = {
   readonly tableId: TableId;
   readonly onCreateRelation: (tableId: TableId) => void;
-  readonly onDeleted: () => void;
+  // Deletes the table, which is the whole current selection, through the
+  // editor's delete path: one dispatch, focus to the canvas, an undo toast.
+  readonly onDelete: () => void;
 };
 
 /**
@@ -36,26 +37,17 @@ export type TablePanelProps = {
 export function TablePanel({
   tableId,
   onCreateRelation,
-  onDeleted,
+  onDelete,
 }: TablePanelProps): JSX.Element | null {
   const { t } = useTranslation("editor");
   const schema = useEditorStore((state) => state.document);
   const dispatch = useEditorStore((state) => state.dispatch);
-  const setSelection = useEditorStore((state) => state.setSelection);
   const errorMessageOf = useFieldErrorMessage(schema);
   const baseId = useId();
 
   const table = schema.tables[tableId];
   if (table === undefined) {
     return null;
-  }
-
-  function removeTable(): void {
-    if (!dispatch({ type: "removeTable", tableId }).isOk) {
-      return;
-    }
-    setSelection(EMPTY_SELECTION);
-    onDeleted();
   }
 
   return (
@@ -94,7 +86,7 @@ export function TablePanel({
           <LinkIcon aria-hidden />
           {t("tablePanel.addRelation")}
         </Button>
-        <Button type="button" variant="destructive" onClick={removeTable}>
+        <Button type="button" variant="destructive" onClick={onDelete}>
           <Trash2Icon aria-hidden />
           {t("tablePanel.removeTable")}
         </Button>

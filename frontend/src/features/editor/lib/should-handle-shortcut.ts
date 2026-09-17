@@ -27,6 +27,7 @@ const DELETE_KEYS: readonly string[] = ["Delete", "Backspace"];
 // Some browsers send this key while an IME composes but leave isComposing false.
 const IME_PROCESS_KEY = "Process";
 const FORM_FIELD_SELECTOR = "input, textarea, select";
+const DIALOG_SELECTOR = '[role="dialog"], [role="alertdialog"]';
 // jsdom has no isContentEditable, so editability is read from the attribute.
 const CONTENT_EDITABLE_SELECTOR =
   '[contenteditable]:not([contenteditable="false"])';
@@ -89,7 +90,9 @@ export function shouldHandleShortcut(
     return true;
   }
 
-  if (isEditableTarget(target)) {
+  // A dialog the editor does not track (such as the rename dialog in the
+  // toolbar) still holds focus inside itself while it is open.
+  if (isEditableTarget(target) || target.closest(DIALOG_SELECTOR) !== null) {
     return false;
   }
 

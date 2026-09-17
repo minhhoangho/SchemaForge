@@ -29,7 +29,7 @@ type Harness = RenderResult & {
   readonly onCreateRelation: ReturnType<
     typeof vi.fn<(tableId: TableId) => void>
   >;
-  readonly onDeleted: ReturnType<typeof vi.fn<() => void>>;
+  readonly onDelete: ReturnType<typeof vi.fn<() => void>>;
   readonly notify: ReturnType<typeof vi.fn<Notify>>;
 };
 
@@ -97,18 +97,18 @@ function renderPanel(
   });
   store.getState().setSelection({ tableIds: ["tbl_users"], relationIds: [] });
   const onCreateRelation = vi.fn<(tableId: TableId) => void>();
-  const onDeleted = vi.fn<() => void>();
+  const onDelete = vi.fn<() => void>();
   const result = renderWithProviders(
     <EditorStoreProvider store={store}>
       <TablePanel
         tableId="tbl_users"
         onCreateRelation={onCreateRelation}
-        onDeleted={onDeleted}
+        onDelete={onDelete}
       />
     </EditorStoreProvider>,
     { locale: "en", themePreference },
   );
-  return { ...result, store, onCreateRelation, onDeleted, notify };
+  return { ...result, store, onCreateRelation, onDelete, notify };
 }
 
 describe("TablePanel", () => {
@@ -216,17 +216,12 @@ describe("TablePanel", () => {
     expect(onCreateRelation).toHaveBeenCalledWith("tbl_users");
   });
 
-  it("removes the table", async () => {
-    const { user, store, onDeleted } = renderPanel();
+  it("asks to delete the table", async () => {
+    const { user, onDelete } = renderPanel();
 
     await user.click(screen.getByRole("button", { name: "Delete table" }));
 
-    expect(store.getState().document.tables.tbl_users).toBeUndefined();
-    expect(store.getState().selection).toEqual({
-      tableIds: [],
-      relationIds: [],
-    });
-    expect(onDeleted).toHaveBeenCalledOnce();
+    expect(onDelete).toHaveBeenCalledOnce();
   });
 
   it("shows the Vietnamese labels", () => {
@@ -245,7 +240,7 @@ describe("TablePanel", () => {
         <TablePanel
           tableId="tbl_users"
           onCreateRelation={vi.fn<(tableId: TableId) => void>()}
-          onDeleted={vi.fn<() => void>()}
+          onDelete={vi.fn<() => void>()}
         />
       </EditorStoreProvider>,
       { locale: "vi" },

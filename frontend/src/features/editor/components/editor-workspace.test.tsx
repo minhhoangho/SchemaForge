@@ -1,10 +1,17 @@
 import { createEmptySchema } from "@schemaforge/core";
 import type { SchemaDocument } from "@schemaforge/core";
-import { buildSchema, makeTable } from "@schemaforge/core/testing";
-import { act, screen, waitFor } from "@testing-library/react";
+import { buildSchema, makeColumn, makeTable } from "@schemaforge/core/testing";
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import type * as XYFlow from "@xyflow/react";
 import type { ReactFlowProps } from "@xyflow/react";
 import type { JSX } from "react";
+import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { logger } from "@/lib/logger";
@@ -13,6 +20,7 @@ import type { SchemaRepository } from "@/lib/storage/schema-repository";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
+import { formatColumnHandleId, formatTableHandleId } from "../lib/handle-ids";
 import { EditorWorkspace } from "./editor-workspace";
 
 type FlowProps = ReactFlowProps;
@@ -136,6 +144,72 @@ function renderWorkspace({
   );
 }
 
+// "orders" holds a user_id column that can reference the key of "users".
+function createShopDocument(): SchemaDocument {
+  return buildSchema({
+    name: "shop",
+    tables: [
+      makeTable({
+        id: "tbl_users",
+        name: "users",
+        primaryKeyColumnIds: ["col_users_id"],
+      }),
+      makeTable({
+        id: "tbl_orders",
+        name: "orders",
+        position: { x: 400, y: 0 },
+      }),
+    ],
+    columns: [
+      makeColumn({ id: "col_users_id", tableId: "tbl_users", name: "id" }),
+      makeColumn({
+        id: "col_orders_user_id",
+        tableId: "tbl_orders",
+        name: "user_id",
+      }),
+    ],
+  });
+}
+
+function renderShop(): ReturnType<typeof renderWithProviders> {
+  return renderWorkspace({
+    repository: createRepository(),
+    document: createShopDocument(),
+  });
+}
+
+// Hidden elements count too, so rows stay reachable behind an open dialog.
+function getOutline(): HTMLElement {
+  return screen.getByRole("complementary", {
+    name: "Schema outline",
+    hidden: true,
+  });
+}
+
+// The row's name also holds its column count, so it is matched by prefix.
+function getOutlineRow(tableName: string): HTMLElement {
+  return within(getOutline()).getByRole("button", {
+    name: new RegExp(`^${tableName} `),
+  });
+}
+
+function queryOutlineRow(tableName: string): HTMLElement | null {
+  return within(getOutline()).queryByRole("button", {
+    name: new RegExp(`^${tableName} `),
+    hidden: true,
+  });
+}
+
+function getCanvasRegion(): HTMLElement {
+  return screen.getByRole("main", { name: "Schema canvas", hidden: true });
+}
+
+function focusCanvasRegion(): void {
+  act(() => {
+    getCanvasRegion().focus();
+  });
+}
+
 function getFlowProps(): FlowProps {
   const props = recordFlowProps.mock.lastCall?.[0];
   if (props === undefined) {
@@ -159,6 +233,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Sonner keeps its toasts in module state, which outlives each render.
+  toast.dismiss();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   recordFlowProps.mockClear();
@@ -253,13 +329,236 @@ describe("EditorWorkspace", () => {
     expect(repository.saveViewport).not.toHaveBeenCalled();
   });
 
+  it("renders the toolbar, both panels and the canvas as landmarks", async () => {
+    const { user } = renderShop();
+
+    await user.click(getOutlineRow("users"));
+
+    expect({
+      banner: within(screen.getByRole("banner")).getAllByRole("button", {
+        name: "Add table",
+      }).length,
+      outline: getOutline().tagName,
+      canvas: getCanvasRegion().tagName,
+      properties: screen.getByRole("complementary", { name: "Properties" })
+        .tagName,
+    }).toEqual({
+      banner: 1,
+      outline: "ASIDE",
+      canvas: "MAIN",
+      properties: "ASIDE",
+    });
+  });
+
+  it("renders the canvas region as a focusable main around react flow", () => {
+    const { container } = renderShop();
+
+    const canvasRegion = getCanvasRegion();
+    const flowRoot = container.querySelector(".react-flow");
+
+    expect({
+      tabIndex: canvasRegion.tabIndex,
+      holdsFlow: flowRoot !== null && canvasRegion.contains(flowRoot),
+      closestFocusable: flowRoot?.closest("[tabindex]"),
+    }).toEqual({
+      tabIndex: -1,
+      holdsFlow: true,
+      closestFocusable: canvasRegion,
+    });
+  });
+
+  it("moves focus to the properties panel through the skip link", async () => {
+    const { user } = renderShop();
+    await user.click(getOutlineRow("users"));
+
+    act(() => {
+      screen.getByRole("link", { name: "Skip the canvas" }).focus();
+    });
+    await user.keyboard("{Enter}");
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("complementary", { name: "Properties" }),
+    );
+  });
+
+  it("moves focus to the left panel through the skip link without a selection", async () => {
+    const { user } = renderShop();
+
+    act(() => {
+      screen.getByRole("link", { name: "Skip the canvas" }).focus();
+    });
+    await user.keyboard("{Enter}");
+
+    const { activeElement } = document;
+    expect({
+      isBody: activeElement === document.body,
+      holdsOutline: activeElement?.contains(getOutline()),
+    }).toEqual({ isBody: false, holdsOutline: true });
+  });
+
+  it("does not undo while focus is on a button of the rename dialog", async () => {
+    const { user } = renderShop();
+    await user.click(
+      within(screen.getByRole("banner")).getByRole("button", {
+        name: "Add table",
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Schema name shop" }));
+
+    act(() => {
+      within(screen.getByRole("dialog", { name: "Rename schema" }))
+        .getByRole("button", { name: "Cancel" })
+        .focus();
+    });
+    await user.keyboard("{Control>}z{/Control}");
+
+    expect(queryOutlineRow("table_1")).not.toBeNull();
+  });
+
+  it("deletes the table from the table panel with an undo toast", async () => {
+    const { user } = renderShop();
+    await user.click(getOutlineRow("users"));
+
+    await user.click(screen.getByRole("button", { name: "Delete table" }));
+    const toastRegion = screen.getByRole("region", { name: /Notifications/ });
+    const toastText = await within(toastRegion).findByText(
+      "Deleted table users",
+    );
+    const isRowGone = queryOutlineRow("users") === null;
+    const isCanvasFocused = document.activeElement === getCanvasRegion();
+    await user.click(within(toastRegion).getByRole("button", { name: "Undo" }));
+
+    expect({
+      hasToast: toastText.isConnected,
+      isRowGone,
+      isCanvasFocused,
+      isRestored: queryOutlineRow("users") !== null,
+    }).toEqual({
+      hasToast: true,
+      isRowGone: true,
+      isCanvasFocused: true,
+      isRestored: true,
+    });
+  });
+
+  it("deletes the selection with the Delete key when focus is in the canvas", async () => {
+    const { user } = renderShop();
+    await user.click(getOutlineRow("users"));
+
+    focusCanvasRegion();
+    await user.keyboard("{Delete}");
+
+    expect(await screen.findByText("Deleted table users")).toBeDefined();
+    expect({
+      row: queryOutlineRow("users"),
+      properties: screen.queryByRole("complementary", { name: "Properties" }),
+      activeElement: document.activeElement,
+    }).toEqual({
+      row: null,
+      properties: null,
+      activeElement: getCanvasRegion(),
+    });
+  });
+
+  it("does not delete while focus is in a text field", async () => {
+    const { user } = renderShop();
+    await user.click(getOutlineRow("users"));
+
+    await user.click(screen.getByRole("textbox", { name: "Table name" }));
+    await user.keyboard("{Delete}");
+
+    expect(queryOutlineRow("users")).not.toBeNull();
+  });
+
+  it("does not delete while the create relation dialog is open", async () => {
+    const { user } = renderShop();
+    await user.click(getOutlineRow("orders"));
+    await user.click(screen.getByRole("button", { name: "Add relation" }));
+
+    // Focus is trapped in the dialog, so the key is sent to the canvas itself
+    // to reach the check for an open dialog.
+    fireEvent.keyDown(getCanvasRegion(), { key: "Delete" });
+
+    expect({
+      isDialogOpen: screen.queryByRole("dialog", { name: "Create relation" })
+        ?.isConnected,
+      hasRow: queryOutlineRow("orders") !== null,
+    }).toEqual({ isDialogOpen: true, hasRow: true });
+  });
+
+  it("undoes the deletion from the toast action", async () => {
+    const { user } = renderShop();
+    await user.click(getOutlineRow("users"));
+    focusCanvasRegion();
+    await user.keyboard("{Delete}");
+
+    const toastRegion = screen.getByRole("region", { name: /Notifications/ });
+    await user.click(
+      await within(toastRegion).findByRole("button", { name: "Undo" }),
+    );
+
+    expect(getOutlineRow("users")).toBeDefined();
+  });
+
+  it("opens the create relation dialog prefilled from a connection", () => {
+    renderShop();
+
+    act(() => {
+      getFlowProps().onConnect?.({
+        source: "tbl_orders",
+        target: "tbl_users",
+        sourceHandle: formatColumnHandleId("col_orders_user_id", "right"),
+        targetHandle: formatTableHandleId("tbl_users", "left"),
+      });
+    });
+
+    const dialog = screen.getByRole("dialog", { name: "Create relation" });
+    expect({
+      referencedTable: within(dialog).getByRole("combobox", {
+        name: "Referenced table",
+      }).textContent,
+      foreignKeyColumn: within(dialog).getByRole("combobox", {
+        name: "Foreign key column 1",
+      }).textContent,
+    }).toEqual({ referencedTable: "users", foreignKeyColumn: "user_id" });
+  });
+
+  it("opens the create relation dialog from the table panel button", async () => {
+    const { user } = renderShop();
+    await user.click(getOutlineRow("orders"));
+
+    await user.click(screen.getByRole("button", { name: "Add relation" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Create relation" });
+    expect(
+      within(dialog).getByRole("combobox", { name: "Referenced table" })
+        .textContent,
+    ).toBe("users");
+  });
+
+  it("focuses the table name field after adding a table", async () => {
+    const { user } = renderShop();
+
+    await user.click(
+      within(screen.getByRole("banner")).getByRole("button", {
+        name: "Add table",
+      }),
+    );
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("textbox", { name: "Table name" }),
+    );
+  });
+
   it.each(["light", "dark"] as const)(
     "reports no axe violations in the %s theme",
     async (themePreference) => {
-      const { container } = renderWorkspace({
+      const { container, user } = renderWorkspace({
         repository: createRepository(),
+        document: createShopDocument(),
         themePreference,
       });
+      await user.click(getOutlineRow("users"));
 
       await expectNoAxeViolations(container);
     },

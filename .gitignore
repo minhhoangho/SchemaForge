@@ -17,6 +17,10 @@ next-env.d.ts
 .env
 .env.*
 !.env.example
+!.env.test.example
+
+# Generated Prisma client
+backend/src/generated/
 
 # Logs
 *.log

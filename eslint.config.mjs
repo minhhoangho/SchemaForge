@@ -173,7 +173,13 @@ function frontendImportRestrictions({ canImportToast, forbiddenFeature }) {
 }
 
 export default defineConfig([
-  globalIgnores(["**/dist/", "**/.next/", "**/coverage/", "**/next-env.d.ts"]),
+  globalIgnores([
+    "**/dist/",
+    "**/.next/",
+    "**/coverage/",
+    "**/next-env.d.ts",
+    "backend/src/generated/",
+  ]),
   {
     linterOptions: { reportUnusedDisableDirectives: "error" },
   },
@@ -267,7 +273,7 @@ export default defineConfig([
     rules: { "@typescript-eslint/consistent-type-definitions": "off" },
   },
   {
-    files: ["packages/core/**/*.ts"],
+    files: ["packages/core/**/*.ts", "packages/api-contract/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -370,8 +376,22 @@ export default defineConfig([
     },
   },
   {
+    files: ["frontend/src/lib/api/**/*.ts"],
+    ignores: FRONTEND_TEST_FILES,
+    rules: {
+      "no-restricted-globals": "off",
+      "no-restricted-properties": ["error", PROCESS_ENV_RESTRICTION],
+    },
+  },
+  {
     // Must stay after every block that sets no-restricted-properties.
-    files: ["frontend/src/lib/env.ts", "backend/src/config/**/*.ts"],
+    files: [
+      "frontend/src/lib/env.ts",
+      "backend/src/config/**/*.ts",
+      "backend/prisma.config.ts",
+      "backend/vitest.e2e.config.ts",
+      "backend/test/global-setup.ts",
+    ],
     rules: { "no-restricted-properties": "off" },
   },
   {

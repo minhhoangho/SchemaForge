@@ -12,4 +12,6 @@ catalog:
   zod: ^4.6.4
 
 allowBuilds:
+  "@prisma/engines": true
+  prisma: true
   unrs-resolver: true

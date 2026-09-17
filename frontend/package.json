@@ -12,6 +12,7 @@
     "perf:snippet": "node --experimental-strip-types scripts/print-large-schema-snippet.ts"
   },
   "dependencies": {
+    "@schemaforge/api-contract": "workspace:*",
     "@schemaforge/core": "workspace:*",
     "@xyflow/react": "^12.11.6",
     "class-variance-authority": "^0.7.1",

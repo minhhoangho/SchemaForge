@@ -196,6 +196,19 @@ describe("shouldHandleShortcut", () => {
     ).toBe(false);
   });
 
+  it.each(["dialog", "alertdialog"])(
+    "ignores shortcuts from a button inside a %s element",
+    (role) => {
+      const dialog = appendToBody(document.createElement("div"));
+      dialog.setAttribute("role", role);
+      const button = document.createElement("button");
+      dialog.append(button);
+      const event = createKeyEvent({ key: "z", target: button });
+
+      expect(shouldHandleShortcut(event, createContext())).toBe(false);
+    },
+  );
+
   it("handles a canvas-only shortcut from inside the canvas", () => {
     const canvasElement = appendToBody(document.createElement("div"));
     const node = document.createElement("div");

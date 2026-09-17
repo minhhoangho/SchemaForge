@@ -22,7 +22,6 @@ import type { ThemePreference } from "@/lib/preferences/preference-cookies";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
-import { EMPTY_SELECTION } from "../../lib/selection";
 import { createEditorStore } from "../../state/create-editor-store";
 import type { EditorStore } from "../../state/create-editor-store";
 import { EditorStoreProvider } from "../../state/editor-store-provider";
@@ -100,7 +99,7 @@ function createDocument(options: DocumentOptions = {}): SchemaDocument {
 type Harness = RenderResult & {
   readonly user: UserEvent;
   readonly store: EditorStore;
-  readonly onDeleted: ReturnType<typeof vi.fn<() => void>>;
+  readonly onDelete: ReturnType<typeof vi.fn<() => void>>;
 };
 
 type HarnessOptions = {
@@ -118,17 +117,17 @@ function renderPanel(options: HarnessOptions = {}): Harness {
     logger: { error: vi.fn<Logger["error"]>(), warn: vi.fn<Logger["warn"]>() },
   });
   store.getState().setSelection({ tableIds: [], relationIds: [RELATION_ID] });
-  const onDeleted = vi.fn<() => void>();
+  const onDelete = vi.fn<() => void>();
   const result = renderWithProviders(
     <EditorStoreProvider store={store}>
-      <RelationPanel relationId={RELATION_ID} onDeleted={onDeleted} />
+      <RelationPanel relationId={RELATION_ID} onDelete={onDelete} />
     </EditorStoreProvider>,
     {
       locale: options.locale ?? "en",
       themePreference: options.themePreference ?? "light",
     },
   );
-  return { ...result, store, onDeleted };
+  return { ...result, store, onDelete };
 }
 
 function currentRelation(store: EditorStore): unknown {
@@ -352,15 +351,12 @@ describe("RelationPanel", () => {
     ).toBe(false);
   });
 
-  it("removes the relation and clears the selection", async () => {
-    const { user, store, onDeleted } = renderPanel();
+  it("asks to delete the relation", async () => {
+    const { user, onDelete } = renderPanel();
 
     await user.click(screen.getByRole("button", { name: "Remove relation" }));
 
-    expect(store.getState().document.relations).toStrictEqual({});
-    expect(store.getState().selection).toStrictEqual(EMPTY_SELECTION);
-    expect(store.getState().history.past).toHaveLength(1);
-    expect(onDeleted).toHaveBeenCalledOnce();
+    expect(onDelete).toHaveBeenCalledOnce();
   });
 
   it.each([

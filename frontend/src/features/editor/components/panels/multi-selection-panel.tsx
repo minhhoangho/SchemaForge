@@ -7,43 +7,27 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 
-import { buildDeleteSelectionOperation } from "../../lib/build-delete-selection-operation";
-import { EMPTY_SELECTION } from "../../lib/selection";
 import type { Selection } from "../../lib/selection";
-import { useEditorStore } from "../../state/use-editor-store";
 
 type MultiSelectionPanelProps = {
   readonly selection: Selection;
-  // Called after deleting and clearing the selection. The panel unmounts with
-  // the selection, so the caller moves focus (to the canvas, spec section 12).
-  readonly onDeleted: () => void;
+  // Deletes the whole current selection through the editor's delete path: one
+  // batch, so a single undo restores everything, focus to the canvas (spec
+  // section 12), and an undo toast.
+  readonly onDelete: () => void;
 };
 
 /**
- * Summarises a selection of several elements and deletes them all as one
- * batch, so a single undo restores everything. No confirmation: it can be
- * undone (spec section 3).
+ * Summarises a selection of several elements and deletes them all. No
+ * confirmation: it can be undone (spec section 3).
  */
 export function MultiSelectionPanel({
   selection,
-  onDeleted,
+  onDelete,
 }: MultiSelectionPanelProps): JSX.Element {
   const { t } = useTranslation("editor");
   const headingId = useId();
   const summaryId = useId();
-  const dispatch = useEditorStore((state) => state.dispatch);
-  const setSelection = useEditorStore((state) => state.setSelection);
-
-  function deleteAll(): void {
-    const operation = buildDeleteSelectionOperation(selection);
-    // A rejected batch already reported its error and changed nothing, so the
-    // selection and the panel stay.
-    if (operation === null || !dispatch(operation).isOk) {
-      return;
-    }
-    setSelection(EMPTY_SELECTION);
-    onDeleted();
-  }
 
   const summary = t("relationPanel.multiSelection.summary", {
     tables: t("relationPanel.multiSelection.tableCount", {
@@ -66,7 +50,7 @@ export function MultiSelectionPanel({
         variant="destructive"
         className="justify-self-start"
         aria-describedby={summaryId}
-        onClick={deleteAll}
+        onClick={onDelete}
       >
         <Trash2Icon aria-hidden />
         {t("relationPanel.multiSelection.deleteAll")}

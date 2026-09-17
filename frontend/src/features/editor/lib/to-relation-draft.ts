@@ -128,18 +128,21 @@ export function createRelationDraftFromConnection(
   };
 }
 
-/** Prefills the dialog opened by "Add relation" in the table panel. */
+/**
+ * Prefills the dialog opened by "Add relation" in the table panel. Without
+ * another table the draft is a self relation, so the button (the keyboard and
+ * single-pointer alternative to dragging) always opens the dialog.
+ */
 export function createRelationDraftFromTable(
   document: SchemaDocument,
   fromTableId: TableId,
 ): RelationDraft | null {
   const fromTable = document.tables[fromTableId];
-  const toTable = sortTables(document).find(
-    (table) => table.id !== fromTableId,
-  );
-  if (fromTable === undefined || toTable === undefined) {
+  if (fromTable === undefined) {
     return null;
   }
+  const toTable =
+    sortTables(document).find((table) => table.id !== fromTableId) ?? fromTable;
   return createDefaultDraft(document, fromTable, toTable, "oneToMany");
 }
 

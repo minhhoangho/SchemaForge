@@ -12,7 +12,7 @@ Trạng thái bám theo ba bước đó: `Chưa bắt đầu` (chưa có spec) �
 | 1 | Scaffold & tooling | pnpm workspaces, Turborepo, app Next.js, app NestJS, `packages/core`, lint, format, test, CI | 0 | Xong |
 | 2 | Core schema model | Types cho bảng, cột, quan hệ, index, enum, comment, subject area, ghi chú; validation; operations | 1 | Xong |
 | 3 | Editor MVP | Canvas bảng, cột, quan hệ, index, enum, comment; zoom, pan, minimap; undo/redo; lưu local; dark mode; i18n vi/en | 2 | Xong |
-| 4 | Auth + lưu cloud | Đăng ký, đăng nhập, lưu schema lên server, danh sách schema | 1, 2 | Xong spec |
+| 4 | Auth + lưu cloud | Đăng ký, đăng nhập, lưu schema lên server, danh sách schema | 1, 2 | Xong plan |
 | 5 | AI Assistant | Tích hợp Gemini ở backend; sinh schema từ mô tả; chat nhiều lượt; gợi ý cải thiện; giải thích; phát hiện lỗi thiết kế; sinh dữ liệu mẫu | 2, 3, 4 | Chưa bắt đầu |
 | 6 | Code generators | SQL DDL (PostgreSQL, MySQL, SQL Server), Prisma, Drizzle, TypeScript, Zod, Mock API, OpenAPI, seed data, DBML, Markdown | 2 | Xong plan |
 | 7 | Import / Export | Import SQL, Prisma, DBML, JSON; export file, JSON, PNG/SVG, ZIP | 3, 6 | Xong spec |

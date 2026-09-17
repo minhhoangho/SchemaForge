@@ -15,3 +15,7 @@ Web app for SchemaForge.
 
 - Next.js, TypeScript (strict)
 - Other libraries are chosen in each sub-project's spec. Candidates are listed in `document/architecture.md`.
+
+## Configuration
+
+`NEXT_PUBLIC_API_URL` is the origin of `backend/` (default `http://localhost:3001`); it is embedded into the client bundle at build time and allowed in the frontend's Content Security Policy. If your backend runs at a different address, copy `.env.example` to `.env.local` and set it there.

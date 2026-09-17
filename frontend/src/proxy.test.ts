@@ -3,6 +3,8 @@ import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 
+import { env } from "@/lib/env";
+
 import { config, proxy } from "./proxy";
 
 const PAGE_URL = "http://localhost/schemas/abc";
@@ -51,6 +53,17 @@ describe("proxy", () => {
       isBase64Value: BASE64_VALUE_PATTERN.test(nonce),
       byteLength: atob(nonce).length,
     }).toStrictEqual({ isBase64Value: true, byteLength: NONCE_BYTE_LENGTH });
+  });
+
+  it("sets connect-src to the configured api origin", () => {
+    const headers = runProxy();
+
+    expect(
+      headers
+        .get("Content-Security-Policy")
+        ?.split("; ")
+        .find((directive) => directive.startsWith("connect-src")),
+    ).toBe(`connect-src 'self' ${env.apiOrigin}`);
   });
 
   it("generates a different nonce for each request", () => {

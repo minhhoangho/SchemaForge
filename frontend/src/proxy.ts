@@ -17,6 +17,7 @@ export function proxy(request: NextRequest): NextResponse {
   const policy = buildContentSecurityPolicy({
     nonce,
     isDevelopment: env.isDevelopment,
+    apiOrigin: env.apiOrigin,
   });
 
   // Next.js reads the nonce from the request's CSP header while rendering and

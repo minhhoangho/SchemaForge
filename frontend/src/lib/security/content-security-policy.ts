@@ -13,6 +13,7 @@ const UNSAFE_INLINE = "'unsafe-inline'";
 export type ContentSecurityPolicyInput = {
   readonly nonce: string;
   readonly isDevelopment: boolean;
+  readonly apiOrigin: string;
 };
 
 export function buildContentSecurityPolicy(
@@ -31,7 +32,7 @@ export function buildContentSecurityPolicy(
     `style-src ${SELF} ${UNSAFE_INLINE}`,
     `img-src ${SELF} blob: data:`,
     `font-src ${SELF}`,
-    `connect-src ${SELF}`,
+    `connect-src ${SELF} ${input.apiOrigin}`,
     `object-src ${NONE}`,
     `base-uri ${SELF}`,
     `form-action ${SELF}`,

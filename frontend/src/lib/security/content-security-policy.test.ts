@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildContentSecurityPolicy } from "./content-security-policy";
 
 const NONCE = "bm9uY2UtdmFsdWU=";
+const API_ORIGIN = "https://api.schemaforge.invalid";
 
 function parseDirectives(policy: string): ReadonlyMap<string, string> {
   return new Map(
@@ -20,7 +21,11 @@ function parseDirectives(policy: string): ReadonlyMap<string, string> {
 
 function buildDirectives(isDevelopment: boolean): ReadonlyMap<string, string> {
   return parseDirectives(
-    buildContentSecurityPolicy({ nonce: NONCE, isDevelopment }),
+    buildContentSecurityPolicy({
+      nonce: NONCE,
+      isDevelopment,
+      apiOrigin: API_ORIGIN,
+    }),
   );
 }
 
@@ -43,7 +48,11 @@ describe("buildContentSecurityPolicy", () => {
 
   it("lists the production directives in the order of the spec", () => {
     expect(
-      buildContentSecurityPolicy({ nonce: NONCE, isDevelopment: false }),
+      buildContentSecurityPolicy({
+        nonce: NONCE,
+        isDevelopment: false,
+        apiOrigin: API_ORIGIN,
+      }),
     ).toBe(
       [
         "default-src 'self'",
@@ -51,7 +60,7 @@ describe("buildContentSecurityPolicy", () => {
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' blob: data:",
         "font-src 'self'",
-        "connect-src 'self'",
+        `connect-src 'self' ${API_ORIGIN}`,
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
@@ -90,17 +99,27 @@ describe("buildContentSecurityPolicy", () => {
     );
   });
 
-  it("forbids framing, plugins and cross-origin connections", () => {
+  it("forbids framing and plugins", () => {
     const directives = buildDirectives(false);
 
     expect({
       frameAncestors: directives.get("frame-ancestors"),
       objectSource: directives.get("object-src"),
-      connectSource: directives.get("connect-src"),
     }).toStrictEqual({
       frameAncestors: "'none'",
       objectSource: "'none'",
-      connectSource: "'self'",
     });
+  });
+
+  it("allows connections to the api origin", () => {
+    expect(buildDirectives(false).get("connect-src")).toBe(
+      `'self' ${API_ORIGIN}`,
+    );
+  });
+
+  it("keeps self in connect-src", () => {
+    expect(buildDirectives(false).get("connect-src")?.split(" ")).toContain(
+      "'self'",
+    );
   });
 });

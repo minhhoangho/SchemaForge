@@ -18,6 +18,11 @@ const CANVAS_RECT = new DOMRect(0, 0, 1000, 800);
 const MINIMAP_RECT = new DOMRect(780, 630, 200, 150);
 const HIDDEN_NODE_RECT = new DOMRect(800, 650, 100, 60);
 const VISIBLE_NODE_RECT = new DOMRect(100, 100, 200, 100);
+// Entirely to the right of the canvas rect (canvas right edge is x=1000).
+const OUTSIDE_VIEWPORT_NODE_RECT = new DOMRect(1200, 0, 200, 100);
+const TOAST_RECT = new DOMRect(300, 700, 400, 100);
+// Entirely inside the canvas rect, and entirely inside TOAST_RECT.
+const NODE_UNDER_TOAST_RECT = new DOMRect(400, 720, 100, 60);
 const ZOOM = 2;
 
 function createControls(): ViewportControls {
@@ -43,6 +48,7 @@ function FakeCanvas(): JSX.Element {
         users
       </button>
       <div className="react-flow__minimap" data-testid="minimap" />
+      <div data-sonner-toaster data-testid="toast-area" />
     </div>
   );
 }
@@ -52,11 +58,14 @@ type RenderCanvasOptions = {
   // jsdom never matches :focus-visible when user-event moves focus, so each
   // test gives the browser's answer: true after Tab, false after a click.
   readonly isFocusVisible: boolean;
+  // Left unset when a test does not need the toast area to cover anything;
+  // jsdom's default zero-size rect then never obscures the node.
+  readonly toastRect?: DOMRect;
 };
 
 function renderCanvas(
   controls: ViewportControls,
-  { nodeRect, isFocusVisible }: RenderCanvasOptions,
+  { nodeRect, isFocusVisible, toastRect }: RenderCanvasOptions,
 ): void {
   render(
     <ReactFlowProvider>
@@ -73,6 +82,12 @@ function renderCanvas(
     screen.getByTestId("minimap"),
     "getBoundingClientRect",
   ).mockReturnValue(MINIMAP_RECT);
+  if (toastRect !== undefined) {
+    vi.spyOn(
+      screen.getByTestId("toast-area"),
+      "getBoundingClientRect",
+    ).mockReturnValue(toastRect);
+  }
   const node = screen.getByRole("button", { name: "users" });
   vi.spyOn(node, "getBoundingClientRect").mockReturnValue(nodeRect);
   vi.spyOn(node, "matches").mockImplementation((selectors) =>
@@ -142,6 +157,41 @@ describe("useRevealFocusedElement", () => {
     expect(controls.setCenter).toHaveBeenCalledWith(425, 340, {
       zoom: ZOOM,
       duration: 0,
+    });
+  });
+
+  it("centers the viewport on a focused node entirely outside the canvas rect", async () => {
+    const user = userEvent.setup();
+    const controls = createControls();
+    renderCanvas(controls, {
+      nodeRect: OUTSIDE_VIEWPORT_NODE_RECT,
+      isFocusVisible: true,
+    });
+
+    await user.tab();
+    await user.tab();
+
+    expect(controls.setCenter).toHaveBeenCalledWith(650, 25, {
+      zoom: ZOOM,
+      duration: VIEWPORT_TRANSITION_MS,
+    });
+  });
+
+  it("centers the viewport on a focused node hidden behind the toast area", async () => {
+    const user = userEvent.setup();
+    const controls = createControls();
+    renderCanvas(controls, {
+      nodeRect: NODE_UNDER_TOAST_RECT,
+      isFocusVisible: true,
+      toastRect: TOAST_RECT,
+    });
+
+    await user.tab();
+    await user.tab();
+
+    expect(controls.setCenter).toHaveBeenCalledWith(225, 375, {
+      zoom: ZOOM,
+      duration: VIEWPORT_TRANSITION_MS,
     });
   });
 

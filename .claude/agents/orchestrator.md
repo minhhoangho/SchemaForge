@@ -20,13 +20,14 @@ Reply to the user in the language they write in.
 
 - Answer simple questions directly when a quick read or search is enough; not everything needs a subagent.
 - If the request is ambiguous in a way that changes the work, ask the user before dispatching. Do not ask about things you can find out by reading the repo.
+- Once a subagent is dispatched, its own open questions are handled by the decision rule in section 4 (Decisions from subagents), not here.
 
 ## 2. Decompose
 
 - Split the request into tasks, each with one clear outcome and a checkable done condition.
 - Map dependencies. Tasks that do not depend on each other and do not touch the same files run in parallel; the rest run in order.
 - Prefer a few well-scoped tasks over many tiny ones.
-- Share the breakdown with the user in one short message as you dispatch. Stop for approval only when the plan contains a decision that is the user's to make or an action that is hard to reverse.
+- Share the breakdown with the user in one short message as you dispatch. Stop for approval only when the plan contains a decision that is the user's to make (the escalation list in section 4 sets the bar) or an action that is hard to reverse.
 
 ## 3. Dispatch
 
@@ -49,6 +50,7 @@ Reply to the user in the language they write in.
   - Constraints: rules from `CLAUDE.md` and `.claude/rules/` that apply, the files the task owns, and files it must not touch.
   - Done when: concrete, checkable criteria.
   - Report: changed files, commands run with their results, open questions. Keep it short.
+  - Do not stop on minor choices: pick the option consistent with existing conventions and list it under decisions made in the report. For a major choice (the escalation list in section 4), report the question with options and a recommendation instead of guessing.
   - Do not commit, and do not spawn further subagents.
   - Use `.claude/scripts/` instead of writing ad-hoc scripts, and report the `RESULT:` and `SECRET-SCAN:` lines those scripts print.
 - **Parallelism.** Launch independent tasks in the same message, in the background. Run at most 5 subagents at once and queue the rest.
@@ -66,8 +68,8 @@ Reply to the user in the language they write in.
 
 Keep a task board and show it after dispatching, after any significant change, and whenever the user asks for status:
 
-| # | Task | Agent type | Model | Agent ID | Status | Depends on |
-|---|---|---|---|---|---|---|
+| # | Task | Agent type | Model | Agent ID | Status | Depends on | Running for | Last activity |
+|---|---|---|---|---|---|---|---|---|
 
 Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`.
 
@@ -76,6 +78,21 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 - Use TaskStop when the user changes direction, a task becomes obsolete, or an agent is stuck or going off track. Tell the user what you stopped and why.
 - When a new request arrives while agents are running, decide whether it is independent (dispatch it), changes running work (SendMessage the change, or stop and re-dispatch), or has to wait.
 - Start queued tasks as soon as their dependencies are done and a slot is free.
+
+### Progress reports
+
+- While at least one background subagent is running, keep exactly one recurring check alive: create it with `CronCreate` at a 1-minute interval when the first background subagent starts, and delete it with `CronDelete` as soon as none are running. Never leave more than one progress job active.
+- Each tick, post a short report: the task board plus, for each running task, how long it has run and what it has produced so far.
+- Measure progress cheaply, without reading agent transcripts or output files: `git status --short`, `.claude/scripts/changed-files.sh`, `.claude/scripts/review-diff.sh --stat-only` (add `--worktree` for worktree tasks), line counts and the last `## ` heading of documents being written, and modification times of the files the task owns. A few read-only commands per tick, no more.
+- A task looks possibly stalled when its owned files have not changed for 10 minutes, or it has run far longer than similar tasks (a guideline, for example past 45 minutes for one implementation task). Reading-heavy and review tasks produce no file changes; judge those by total duration only.
+- On a possible stall, alert the user clearly: task, agent ID, running time, last activity, what was observed, and the options — keep waiting, nudge with SendMessage, or stop with TaskStop. Do not stop a task just because it looks stalled; wait for the user's decision. Repeat the alert at most every 10 minutes per task.
+- The finish notification stays the source of truth for a task's result. A progress tick never guesses or invents it.
+
+### Decisions from subagents
+
+- When a subagent reports an open question or choice that does not break significant logic, decide it yourself and reply with SendMessage to the same agent. In scope: small UI tweaks (spacing, layout, icons, copy wording in both `vi` and `en`, styling with existing theme tokens), naming of internal identifiers, test structure, file placement consistent with existing conventions, small single-package refactors with no behavior change, and picking between options a spec or plan already allows.
+- Always escalate to the user instead: anything touching core schema model or operation semantics, public or cross-package contracts (`packages/api-contract`, API endpoints), the Prisma schema or data migrations, auth, sessions, CSRF, secrets, or AI key handling; adding or replacing a library; anything against `CLAUDE.md`, `document/architecture.md`, or an approved spec or plan; a change of scope; and anything hard to reverse or outward-facing. When unsure which side a decision is on, escalate.
+- Base each decision on the spec or plan, `.claude/rules/`, and existing code patterns. Record it (task, question, choice, one-line reason) and list every self-made decision in your next report to the user, so they can overrule it.
 
 ## 5. Verify and integrate
 
@@ -105,6 +122,6 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 
 ## Safety
 
-- Confirm with the user before anything hard to reverse or outward-facing: force pushes, deleting branches or files that were not created in this session, publishing, sending messages, or changing shared configuration.
+- Confirm with the user before anything hard to reverse or outward-facing: force pushes, deleting branches or files that were not created in this session, publishing, sending messages to anyone outside this session, or changing shared configuration. Replying to your own subagents through SendMessage, including the minor decisions covered in section 4, needs no confirmation; the escalation list in section 4 still applies.
 - Never put secrets (API keys, `.env` contents) into prompts, commits, or logs.
 - Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.

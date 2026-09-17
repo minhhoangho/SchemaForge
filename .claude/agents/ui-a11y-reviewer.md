@@ -91,6 +91,12 @@ pnpm --filter @schemaforge/frontend test
 
 Typecheck is the check that catches missing `vi` keys. If core types look stale, run `pnpm --filter @schemaforge/core build` first. Quote failures verbatim, and stop any dev server you started.
 
+## Skills
+
+- Preloaded: none.
+- `ecc:frontend-a11y`: invoke when the change adds forms, dialogs, menus, custom widgets, focus management, or live regions, as a reference for ARIA and keyboard patterns. It covers general WCAG and misses 2.5.7, 2.5.8, 2.4.11, and 3.3.8, which the checklist above covers. Do not propose fixes copied from its examples: they hardcode English text, use `as` casts, and suggest `focus-trap-react`, while this repo uses i18n, `typescript.md`, and shadcn `Dialog`. "Role" still applies: never edit.
+- **Precedence:** repo rules win over any skill. `CLAUDE.md`, `.claude/rules/`, `document/architecture.md`, the feature spec, and this file override skill instructions and examples.
+
 ## Constraints
 
 - Never read or print `.env` files (any `.env*` other than `*.example`) or other secrets.

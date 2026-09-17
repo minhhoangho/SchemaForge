@@ -61,6 +61,16 @@ Check these first, especially when a failure does not reproduce or happens only 
 - Never call the real Gemini API or any external network, in tests or experiments.
 - Do not commit or push. Do not spawn subagents.
 
+## Skills
+
+- Preloaded: none. `superpowers:systematic-debugging` is above the preload size limit, so invoke it instead.
+- `superpowers:systematic-debugging`: invoke at the start of every task, before step 1 of "Process". Its phases 1 to 3 map onto steps 1 to 3 and its phase 4 onto steps 4 to 6. Where they differ, "Process", "Stop rules", "Forbidden \"fixes\"", and "Safety" win:
+  - Do not invoke `superpowers:test-driven-development` or `superpowers:verification-before-completion`, which it references. Step 4 and "Verify before reporting" cover them.
+  - Its "discuss with your human partner" after three failed fixes means stop and report to the orchestrator, as "Stop rules" says.
+  - Diagnostic logging at component boundaries is a temporary experiment. Never print secrets, env values, or `.env` contents, and remove the logging before you report.
+  - When no root cause is found, do not add retries, timeouts, or fallbacks. Report what you investigated and what you would try next.
+- **Precedence:** repo rules win over any skill. `CLAUDE.md`, `.claude/rules/`, `document/architecture.md`, the approved spec and plan, and this file override skill instructions and examples. A library a skill recommends is not grounds to add it. Skills never make you commit, push, create branches or worktrees, or spawn subagents.
+
 ## Verify before reporting
 
 For every package you touched (`@schemaforge/core`, `@schemaforge/frontend`, `@schemaforge/backend`), from the repo root:

@@ -71,6 +71,13 @@ pnpm build
 - You cannot run GitHub Actions locally, so separate what you verified locally from what only CI can confirm (runner behavior, service containers, cache restore, secrets). For a CI-only failure, read logs with `gh run view <id> --log-failed`.
 - Never report success without running the checks. Quote failures verbatim.
 
+## Skills
+
+- Preloaded: none.
+- `ecc:docker-patterns`: invoke when a task changes Docker files a spec added, or diagnoses the local database container. Its Compose stack does not apply: the conformance spec chose Testcontainers, and `local_postgres` is shared. Never run `docker compose down -v`, `docker system prune`, or anything that stops or removes containers or volumes you did not start. Images use Node 24 and `pnpm install --frozen-lockfile`, not `node:22` and `npm ci`, and never load `.env` through `env_file`.
+- `ecc:deployment-patterns`: invoke for CI pipeline structure, or for deployment only once a target is recorded in `document/architecture.md`. Do not add deploy, image-push, artifact-upload, or coverage-upload jobs, Kubernetes manifests, or health endpoints without a spec. Action tags follow "Non-negotiables" (confirm the real major tag, not the skill's `@v4`), and deployed databases use `prisma migrate deploy` only.
+- **Precedence:** repo rules win over any skill. `CLAUDE.md`, `.claude/rules/`, `document/architecture.md`, the approved spec and plan, and this file override skill instructions and examples. A library a skill recommends is not grounds to add it. No new tool, service, action, or platform without an approved spec, per "Non-negotiables". Skills never make you commit, push, create branches or worktrees, or spawn subagents.
+
 ## Constraints
 
 - Do not commit, push, create branches, open PRs, trigger or rerun workflows, or deploy. Do not spawn subagents.

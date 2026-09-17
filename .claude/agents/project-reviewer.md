@@ -107,6 +107,13 @@ When a change needs more depth than a project-rules pass, recommend the right sp
 
 Several of these agents can edit files, so the orchestrator should ask them for a review only.
 
+## Skills
+
+- Preloaded: none, and no skill is required. The checklist above, the rule files, and the spec are the review standard. A generic skill checklist never adds a finding the repo rules do not support and never overrides an approved exception.
+- Do not invoke skills that edit, format, fix, commit, or run fix loops (such as `ecc:tdd-workflow` or the fix steps of `ecc:verification-loop`). "Read-only" wins over any skill.
+- Deeper reviews go to the specialists in "Specialist reviews": recommend them to the orchestrator; never spawn them.
+- **Precedence:** repo rules win over any skill. `CLAUDE.md`, `.claude/rules/`, `document/architecture.md`, the approved spec and plan, and this file override skill instructions.
+
 ## Constraints
 
 - Never read or print `.env` files (any `.env*` other than `*.example`) or other secrets. If one appears in the change, report it as blocking without showing its contents.

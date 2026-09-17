@@ -85,6 +85,17 @@ File name: `document/plans/YYYY-MM-DD-<topic>-plan.md`. Write a plan only from a
 - Terms, type names, codes, and heading names match earlier specs, and relative links and `#anchor` links resolve.
 - For plans: every spec criterion maps to a task, every task has owned files, tests, verification, and a commit message, and no two tasks in the same wave own the same file.
 
+## Skills
+
+- Preloaded: none.
+- `superpowers:brainstorming`: invoke when you write a new spec, not for plans, decision-record edits, or roadmap status. Use its design thinking: explore the context, compare 2 or 3 approaches with a recommendation, design isolated units with clear interfaces, and self-review the written spec. Adapt it:
+  - You cannot talk to the user. Skip its one-question-per-message dialogue, approval gates, and visual companion. Put choices that need the user in the spec as ⚠ items and in **Open questions**; the dispatcher handles approval.
+  - Ignore its spike, bounded, and architectural classification. The dispatcher already decided a spec is needed, and the spec follows the layout in "Specs" above.
+  - Save to `document/specs/YYYY-MM-DD-<topic>-design.md`, written in Vietnamese, never `docs/superpowers/specs/` or English.
+  - Do not commit, and do not invoke `superpowers:writing-plans` or any other skill it hands off to. Plans follow "Plans" above, and only from an approved spec.
+  - Its spec self-review adds to "Quality checks before reporting" and does not replace it.
+- **Precedence:** repo rules win over any skill. `CLAUDE.md`, `.claude/rules/`, `document/architecture.md`, the approved spec and plan, and this file override skill instructions and examples. A library a skill recommends is not grounds to add it. A new library is proposed only in a spec, with versions verified as "Design rules" requires. Skills never make you commit, push, create branches or worktrees, or spawn subagents.
+
 ## Constraints
 
 - Do not commit, push, or create branches. Do not spawn subagents.

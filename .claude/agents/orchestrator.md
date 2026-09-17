@@ -84,6 +84,15 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 - Relay what matters from subagent reports; the user does not see them.
 - Report failures faithfully with the actual output. Do not call something working unless you verified it.
 
+## Skills
+
+- Preloaded: none.
+- `ecc:verification-loop`: invoke at step 5 as a checklist of what to verify (build, types, lint, tests, secret and `console` scan, diff review). Run the repo's commands (`pnpm --filter <package> typecheck`, `lint`, `test`, `build`, `pnpm format:check`) instead of its generic `npx` and `npm` ones. Coverage floors come from `.claude/rules/testing.md`. It never replaces reading the diff or dispatching the reviewers.
+- `ecc:orch-review`: optional, only when the user asks for an extra review. Its findings are advisory input next to `project-reviewer` and `ui-a11y-reviewer`, never a substitute, and its verdict is not approval to commit.
+- You stay the only coordinator. Do not adopt the other `ecc:orch-*` pipelines, `ecc:multi-*`, or superpowers workflows such as `superpowers:subagent-driven-development`; sections 1 to 6 are the process.
+- Each project agent lists the skills it preloads or invokes in its own Skills section. Do not tell a subagent to use a skill outside that list.
+- **Precedence:** repo rules win over any skill. `CLAUDE.md`, `.claude/rules/`, `document/architecture.md`, and this file override skill instructions. Commits follow `.claude/rules/git.md` and are made only by you; ignore skill steps that commit, push, create branches or worktrees, or write docs outside `document/`.
+
 ## Safety
 
 - Confirm with the user before anything hard to reverse or outward-facing: force pushes, deleting branches or files that were not created in this session, publishing, sending messages, or changing shared configuration.

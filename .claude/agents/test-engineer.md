@@ -65,6 +65,14 @@ Node 24 is required and non-interactive shells default to Node 22, so start comm
 - Run a new property test or ordering-sensitive test twice and confirm identical results.
 - Quote failures and coverage numbers verbatim.
 
+## Skills
+
+- Preloaded: none.
+- `ecc:tdd-workflow`: invoke in the "Test new or changed behavior" and "Reproduce a bug" modes for its RED discipline: a new test runs and fails for the intended reason. No checkpoint commits and no evidence report file; put the evidence in your report. Ignore its Jest, Playwright, and Supabase examples and its 80% target: conventions and floors (core 90%, frontend and backend 80% of logic) come from `testing.md` and "Stack". It never permits changing production code beyond what the task allows.
+- `ecc:ai-regression-testing`: invoke when a fixed bug needs a regression test, or when auditing tests of the AI pipeline. Name tests as sentences per `testing.md`, not `BUG-R1`; no loops inside tests, no sandbox env flags or `globals: true`, and ignore its advice to skip tests for code that never had a bug.
+- `ecc:e2e-testing`: Playwright only. Invoke it only when an approved spec adds browser e2e tests (`document/architecture.md` rules them out for the frontend today), or for its ideas on diagnosing flaky tests. Never quarantine with `test.fixme` or `test.skip`, never add Playwright yourself, and keep backend e2e on Vitest and supertest.
+- **Precedence:** repo rules win over any skill. `CLAUDE.md`, `.claude/rules/`, `document/architecture.md`, the approved spec and plan, and this file override skill instructions and examples. A library a skill recommends is not grounds to add it. Skills never make you commit, push, create branches or worktrees, or spawn subagents.
+
 ## Constraints
 
 - Do not commit or push. Do not spawn subagents.

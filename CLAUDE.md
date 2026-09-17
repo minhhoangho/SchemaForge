@@ -8,37 +8,17 @@ SchemaForge is a web-based database schema designer with an AI assistant at its 
 
 Product overview, architecture, and roadmap live in `document/`, written in Vietnamese.
 
-## Current status
-
-Scaffold and tooling (roadmap part 1) and `packages/core` (roadmap part 2: schema model, validation, operations, undo/redo history, and the `@schemaforge/core/testing` entry point) are done. The Editor MVP (roadmap part 3) is implemented in `frontend/`: a schema list at `/` and a canvas editor at `/schemas/[schemaId]` with tables, columns, relations, indexes, enums, and comments; zoom, pan, and minimap; undo/redo; local persistence in IndexedDB through Dexie, with one tab per schema enforced by Web Locks; i18n in `vi` and `en`; and light and dark themes. `backend/` validates its env but has no routes yet. Code generators, auth and cloud storage, and import/export have approved specs (code generators also have a plan) but no implementation yet.
-
 ## Commands
 
 Requires Node.js 24 (`.nvmrc`) and pnpm 12.4.1 (from `packageManager`, via corepack). Non-interactive shells on this machine default to Node 22, so run `source ~/.nvm/nvm.sh && nvm use` in the repo root first.
 
-| Command | What it does |
-|---|---|
-| `pnpm install` | Install dependencies for the whole workspace |
-| `pnpm dev` | Core in watch mode, frontend on port 3000, backend on port 3001 |
-| `pnpm build` | Build every package in dependency order |
-| `pnpm lint` | ESLint in every package |
-| `pnpm typecheck` | TypeScript in every package |
-| `pnpm test` | Vitest with coverage thresholds |
-| `pnpm format` | Format the repo with Prettier |
-| `pnpm format:check` | Check formatting (used in CI) |
+Root scripts are in `package.json`; `pnpm dev` runs the frontend on port 3000 and the backend on port 3001.
 
 Run a script in one package: `pnpm --filter @schemaforge/core test`. Start the built backend: `pnpm --filter @schemaforge/backend start`.
 
 ## Repository layout
 
-| Path | Role | Stack |
-|---|---|---|
-| `frontend/` | Web app: canvas editor, AI chat UI, code generation and import/export panels, local persistence | Next.js, TypeScript |
-| `backend/` | API: auth, cloud storage, share links, version history, AI assistant | NestJS, TypeScript, PostgreSQL, Prisma, Google Gemini |
-| `packages/core/` | Shared schema model, validation, schema operations, code generators, importers | Framework-free TypeScript |
-| `document/` | Product overview, architecture, roadmap, specs, plans | Markdown (Vietnamese) |
-
-Monorepo tooling: pnpm workspaces + Turborepo.
+Monorepo: pnpm workspaces + Turborepo (`frontend/`, `backend/`, `packages/`, `document/`); roles and library choices are in `document/architecture.md`.
 
 ## Architecture principles
 

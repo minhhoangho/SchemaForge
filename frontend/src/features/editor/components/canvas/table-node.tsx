@@ -92,7 +92,7 @@ export const TableNode = memo(function TableNode({
   return (
     <div
       className={cn(
-        "max-w-80 min-w-48 rounded-md border border-border bg-card text-xs text-card-foreground shadow-sm in-focus-visible:ring-2 in-focus-visible:ring-foreground",
+        "max-w-80 min-w-48 rounded-md border border-canvas-node-border bg-card text-xs text-card-foreground shadow-sm in-focus-visible:ring-2 in-focus-visible:ring-foreground",
         selected && "border-primary",
       )}
     >

@@ -683,6 +683,7 @@
   --color-canvas-relation-selected: var(--canvas-relation-selected);
   --color-canvas-key: var(--canvas-key);
   --color-canvas-foreign-key: var(--canvas-foreign-key);
+  --color-canvas-node-border: var(--canvas-node-border);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -708,9 +709,14 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  /* --border is decorative (separators, dividers, grouping boxes) and WCAG
+     1.4.11 does not apply to it, so it keeps its original light value.
+     --input is the control-boundary token every form control already uses,
+     darkened to keep 3:1 against the page, a card and a muted panel; the
+     focus ring is darkened the same way. */
   --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --input: oklch(0.62 0 0);
+  --ring: oklch(0.55 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -730,6 +736,10 @@
   /* Tailwind amber-600 and teal-600. */
   --canvas-key: oklch(0.666 0.179 58.318);
   --canvas-foreign-key: oklch(0.6 0.118 184.704);
+  /* The table node border is a control boundary (it marks the draggable,
+     selectable card), so it follows --input rather than --border. The
+     canvas dot grid is decoration and just uses --border directly. */
+  --canvas-node-border: var(--input);
 }
 
 .dark {
@@ -748,8 +758,10 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  /* Same split as the light theme: --border stays decorative and light,
+     --input is the darkened control boundary, --ring is unchanged. */
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --input: oklch(1 0 0 / 45%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -770,11 +782,12 @@
      dark canvas. */
   --canvas-key: oklch(0.828 0.189 84.429);
   --canvas-foreign-key: oklch(0.777 0.152 181.912);
+  --canvas-node-border: var(--input);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground;
@@ -791,7 +804,7 @@
   --xy-background-pattern-dots-color: var(--border);
   --xy-node-background-color: var(--card);
   --xy-node-color: var(--card-foreground);
-  --xy-node-border: 1px solid var(--border);
+  --xy-node-border: 1px solid var(--canvas-node-border);
   --xy-node-boxshadow-selected: 0 0 0 2px var(--ring);
   --xy-edge-stroke: var(--canvas-relation);
   --xy-edge-stroke-selected: var(--canvas-relation-selected);

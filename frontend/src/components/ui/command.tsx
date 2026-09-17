@@ -36,7 +36,7 @@ function CommandInput({
 }: React.ComponentProps<typeof CommandPrimitive.Input>): JSX.Element {
   return (
     <div data-slot="command-input-wrapper" className="p-1 pb-0">
-      <div className="flex h-8 w-full min-w-0 items-center gap-2 rounded-lg border border-input/30 bg-input/30 px-2 transition-colors outline-none has-[[data-slot=command-input]:focus-visible]:border-ring has-[[data-slot=command-input]:focus-visible]:ring-3 has-[[data-slot=command-input]:focus-visible]:ring-ring/50">
+      <div className="flex h-8 w-full min-w-0 items-center gap-2 rounded-lg border border-input bg-input/30 px-2 transition-colors outline-none has-[[data-slot=command-input]:focus-visible]:border-ring has-[[data-slot=command-input]:focus-visible]:ring-3 has-[[data-slot=command-input]:focus-visible]:ring-ring">
         <SearchIcon className="size-4 shrink-0 opacity-50" />
         <CommandPrimitive.Input
           data-slot="command-input"

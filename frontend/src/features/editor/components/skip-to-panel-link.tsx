@@ -30,7 +30,7 @@ export function SkipToPanelLink({
   return (
     <a
       href={`#${targetId}`}
-      className="sr-only rounded-md bg-background text-sm font-medium text-foreground shadow-md focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-10 focus:px-3 focus:py-2 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring"
+      className="sr-only rounded-md bg-background text-sm font-medium text-foreground shadow-md focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-10 focus:px-3 focus:py-2 focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-1 focus-visible:outline-ring"
       onClick={(event) => {
         // The hash alone would scroll, but not move focus in every browser.
         event.preventDefault();

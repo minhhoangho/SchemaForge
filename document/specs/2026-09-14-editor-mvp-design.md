@@ -272,7 +272,7 @@ Khác kiểu hoặc cột được tham chiếu không unique không bị chặn
 - **Xóa bằng phím `Delete` hoặc `Backspace`:** xóa lựa chọn hiện tại (bảng và quan hệ) bằng **một** operation. Hàm thuần `buildDeleteSelectionOperation(selection)` trả `batch` gồm `removeRelation` cho từng quan hệ được chọn, rồi `removeTable` cho từng bảng được chọn. Quan hệ bị xóa trước, nên quan hệ nối với một bảng cũng đang được chọn không bị xóa hai lần. Batch được dispatch một lần, nên một lần undo khôi phục tất cả. Lựa chọn rỗng thì không làm gì.
   - Phím chỉ có tác dụng khi `shouldHandleShortcut(event, { requiresCanvasFocus: true })` cho phép (mục 6): không khi đang gõ trong ô nhập, `textarea`, phần tử `contenteditable`, không khi IME đang composition, không khi hộp thoại đang mở, và chỉ khi focus nằm trong vùng canvas hoặc ở `body`.
   - **React Flow không tự xóa phần tử.** `deleteKeyCode={null}` tắt bộ xử lý phím xóa của React Flow, vì bộ này chỉ bỏ qua ô nhập mà không biết hộp thoại đang mở. `onBeforeDelete` luôn trả `false`, và thay đổi loại `remove` trong `onNodesChange`, `onEdgesChange` bị bỏ qua, nên mọi đường xóa đều phải đi qua `dispatch`. Plan xác nhận API cuối cùng của React Flow 12.11.
-- **Không hỏi xác nhận** với cả hai cách, vì thao tác undo được. Sau khi xóa hiện toast "Đã xóa bảng posts" (hoặc "Đã xóa 3 phần tử") có nút "Hoàn tác". Focus quay về vùng canvas.
+- **Không hỏi xác nhận** với cả hai cách, vì thao tác undo được. Sau khi xóa hiện toast "Đã xóa bảng posts" (hoặc "Đã xóa 3 phần tử") có nút "Hoàn tác". Focus quay về vùng canvas. Phím xóa và nút xóa bảng, quan hệ, nhiều phần tử trong panel đi qua cùng một hàm (`useDeleteSelection`). Nút "Hoàn tác" chỉ hoàn tác khi thao tác xóa vẫn là mục mới nhất của lịch sử, nên không hoàn tác nhầm thay đổi làm sau đó (plan phần 3, Vấn đề 79, 80).
 - **Xóa schema** từ danh sách thì phải xác nhận (mục 1), vì không undo được.
 
 ### Lỗi cấu trúc khi dispatch
@@ -412,7 +412,7 @@ IME tiếng Việt (Telex, VNI) dùng composition, nên Enter kết thúc compos
 
 - Ở phần 3 chỉ có ba phím tắt này. Các phím tắt còn lại và màn hình xem danh sách phím tắt thuộc UX-03 (phần 9).
 - Hook `useEditorShortcuts(store)` gắn listener `keydown` trên `window` khi editor mount, gỡ khi unmount.
-- Hàm thuần `shouldHandleShortcut(event, { requiresCanvasFocus })` quyết định có xử lý hay không, và có unit test. Bỏ qua khi: `event.defaultPrevented`; `event.isComposing`; target là `input`, `textarea`, `select` hoặc phần tử `contenteditable`; đang có hộp thoại mở. Trong ô nhập, `Ctrl+Z` và `Backspace` giữ hành vi văn bản mặc định của trình duyệt.
+- Hàm thuần `shouldHandleShortcut(event, { requiresCanvasFocus })` quyết định có xử lý hay không, và có unit test. Bỏ qua khi: `event.defaultPrevented`; `event.isComposing`; target là `input`, `textarea`, `select` hoặc phần tử `contenteditable`; đang có hộp thoại mở, tức hộp thoại "Tạo quan hệ" đang mở hoặc target nằm trong phần tử `[role="dialog"]`, `[role="alertdialog"]` (phủ hộp thoại đổi tên schema, có state mở riêng trong toolbar; plan phần 3, Vấn đề 81). Trong ô nhập, `Ctrl+Z` và `Backspace` giữ hành vi văn bản mặc định của trình duyệt.
 - Undo, redo chạy khi focus ở bất kỳ đâu trong editor. Xóa dùng `requiresCanvasFocus: true`, chỉ chạy khi focus nằm trong vùng canvas hoặc ở `body`, để nhấn `Backspace` khi đang focus một nút trong panel không xóa bảng.
 
 ### Lịch sử sau khi tải lại trang

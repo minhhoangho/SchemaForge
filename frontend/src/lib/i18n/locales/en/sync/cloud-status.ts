@@ -1,0 +1,16 @@
+export const enSyncCloudStatus = {
+  guestOnly: "Only saved on this browser",
+  saveToCloud: "Save to cloud",
+  synced: "Saved to the cloud",
+  syncing: "Syncing…",
+  pendingOffline: "Not synced, no network connection",
+  pendingServer: "Not synced, the server is not responding",
+  pendingSessionExpired: "Not synced, sign in again",
+  conflict: "Conflict",
+  resolve: "Resolve",
+  deletedInCloud: "Deleted in the cloud",
+  viewOptions: "View options",
+  failed: "Could not sync",
+  retry: "Retry",
+  versionUnsupported: "The server does not support this data version yet",
+} as const;

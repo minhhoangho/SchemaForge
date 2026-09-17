@@ -1,10 +1,17 @@
+import { API_ERROR_CODES } from "@schemaforge/api-contract";
 import { describe, expect, it } from "vitest";
 
 import { STORAGE_ERROR_CODES } from "@/lib/storage/storage-error";
 
-import { RESOURCES } from "./resources";
+import { NAMESPACES, RESOURCES } from "./resources";
 import type { Locale } from "./supported-locales";
 import { SUPPORTED_LOCALES } from "./supported-locales";
+
+const CLIENT_FAILURE_KINDS = [
+  "network",
+  "timeout",
+  "invalid-response",
+] as const;
 
 type TranslationTree = { readonly [key: string]: string | TranslationTree };
 
@@ -69,5 +76,17 @@ describe("RESOURCES", () => {
     expect(Object.keys(RESOURCES.en.storage).toSorted()).toEqual(
       [...STORAGE_ERROR_CODES].toSorted(),
     );
+  });
+
+  it("has one apiErrors message per API error code plus client failure kinds", () => {
+    expect(Object.keys(RESOURCES.en.apiErrors).toSorted()).toEqual(
+      [...API_ERROR_CODES, ...CLIENT_FAILURE_KINDS].toSorted(),
+    );
+  });
+
+  it("registers the auth, sync and apiErrors namespaces", () => {
+    expect(NAMESPACES).toContain("auth");
+    expect(NAMESPACES).toContain("sync");
+    expect(NAMESPACES).toContain("apiErrors");
   });
 });

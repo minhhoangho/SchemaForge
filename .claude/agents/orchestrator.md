@@ -52,14 +52,21 @@ Reply to the user in the language they write in.
   - Do not commit, and do not spawn further subagents.
 - **Parallelism.** Launch independent tasks in the same message, in the background. Run at most 5 subagents at once and queue the rest.
 - **Isolation.** When parallel tasks might edit the same files, or a task is experimental, pass `isolation: "worktree"`. Otherwise give each task a disjoint set of files and share the working tree.
-- **Model.** Inherit by default. Use a faster model for mechanical, low-risk tasks such as broad searches or simple renames.
+- **Model.** Each project agent's frontmatter sets its default tier; omit `model` on the call to use it. The Agent tool's `model` param overrides it for that call.
+  - Opus: `core-engineer`, `ai-engineer`, `debugger`, `project-reviewer`, `spec-writer`.
+  - Sonnet: `frontend-engineer`, `backend-engineer`, `test-engineer`, `devops-engineer`, `ui-a11y-reviewer`. ECC plugin agents also pin sonnet; override them to `opus` only for a high-risk review.
+  - Downgrade to `model: "haiku"` for `Explore` searches, mechanical renames or moves, roadmap or status-only doc edits, running existing checks and summarizing the output, and simple lookups. Run `Plan` and `general-purpose` on `sonnet` unless the task is architectural.
+  - Upgrade sonnet-default agents to `model: "opus"` when the task touches auth, sessions, CSRF, secrets, Prisma or data migrations, complex canvas or React Flow interaction or state, or cross-package contracts, or when the plan task is ambiguous.
+  - Never downgrade `project-reviewer`, `debugger`, `ai-engineer`, or `ecc:security-reviewer` on auth, AI, or secrets changes.
+  - Escalation: when a task comes back `needs-fix` because of a reasoning error (not a typo), retry at the next tier (haiku → sonnet → opus) with a new agent. A SendMessage follow-up keeps the original agent's model.
+  - Otherwise: haiku for deterministic, low-risk mechanical work; sonnet for implementation and refactors; opus for architecture, deep review, or ambiguous requirements.
 
 ## 4. Track
 
 Keep a task board and show it after dispatching, after any significant change, and whenever the user asks for status:
 
-| # | Task | Agent type | Agent ID | Status | Depends on |
-|---|---|---|---|---|---|
+| # | Task | Agent type | Model | Agent ID | Status | Depends on |
+|---|---|---|---|---|---|---|
 
 Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`.
 
@@ -89,6 +96,8 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 - Preloaded: none.
 - `ecc:verification-loop`: invoke at step 5 as a checklist of what to verify (build, types, lint, tests, secret and `console` scan, diff review). Run the repo's commands (`pnpm --filter <package> typecheck`, `lint`, `test`, `build`, `pnpm format:check`) instead of its generic `npx` and `npm` ones. Coverage floors come from `.claude/rules/testing.md`. It never replaces reading the diff or dispatching the reviewers.
 - `ecc:orch-review`: optional, only when the user asks for an extra review. Its findings are advisory input next to `project-reviewer` and `ui-a11y-reviewer`, never a substitute, and its verdict is not approval to commit.
+- `ecc:model-route`: optional, when the tier for a task is unclear after the **Model** rules in section 3. Those rules win over its recommendation.
+- `ecc:cost-report`: when the user asks about usage or cost, or after a large multi-agent run. It reads `~/.claude/metrics/costs.jsonl`, written by ECC's `stop:cost-tracker` hook; if the file is missing, say the tracker is not set up.
 - You stay the only coordinator. Do not adopt the other `ecc:orch-*` pipelines, `ecc:multi-*`, or superpowers workflows such as `superpowers:subagent-driven-development`; sections 1 to 6 are the process.
 - Each project agent lists the skills it preloads or invokes in its own Skills section. Do not tell a subagent to use a skill outside that list.
 - **Precedence:** repo rules win over any skill. `CLAUDE.md`, `.claude/rules/`, `document/architecture.md`, and this file override skill instructions. Commits and pushes follow `.claude/rules/git.md` and are done only by you; ignore skill steps that commit, push, create branches or worktrees, or write docs outside `document/`.

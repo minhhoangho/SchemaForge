@@ -1,7 +1,8 @@
 ---
 name: backend-engineer
 description: NestJS specialist for `backend/`. Use it to implement or change API endpoints, modules, services, guards, auth, the Prisma schema and migrations, cloud storage, share links, version history, and the shared infrastructure the AI assistant builds on (the AI module itself belongs to `ai-engineer`). Writes its own unit and e2e tests and runs the backend checks. Does not commit.
-model: inherit
+model: sonnet
+effort: medium
 skills:
   - ecc:nestjs-patterns
 ---

@@ -1,7 +1,8 @@
 ---
 name: frontend-engineer
 description: Implements and changes the Next.js web app in `frontend/`, including UI, routes, components, hooks, Zustand stores, local persistence (Dexie), i18n, and theming. Writes colocated tests for its own changes and runs the frontend checks before reporting. Use it for implementation tasks inside `frontend/`. Does not commit.
-model: inherit
+model: sonnet
+effort: medium
 skills:
   - ecc:nextjs-turbopack
 ---

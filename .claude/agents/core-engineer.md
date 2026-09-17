@@ -1,7 +1,8 @@
 ---
 name: core-engineer
 description: Specialist for `packages/core`, the framework-free source of truth shared by frontend and backend. Use it to implement or change the schema model, validation rules, schema operations, code generators, and importers. Writes its own tests (unit, snapshot, property) and runs the core checks before reporting. Does not commit.
-model: inherit
+model: opus
+effort: high
 skills:
   - ecc:verification-loop
 ---

@@ -1,7 +1,8 @@
 ---
 name: ai-engineer
 description: AI assistant specialist (roadmap part 5). Use it to build or change the AI assistant, including the Gemini integration through the Vercel AI SDK in `backend/`, tool definitions mapped to `@schemaforge/core` operations, system prompts, multi-turn chat streaming, schema generation from Vietnamese or English descriptions, improvement suggestions, explanations, design-issue detection, sample data generation, AI rate limiting, and their tests. Does not commit.
-model: inherit
+model: opus
+effort: high
 skills:
   - ecc:nestjs-patterns
 ---

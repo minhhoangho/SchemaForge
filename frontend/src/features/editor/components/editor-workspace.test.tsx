@@ -117,6 +117,16 @@ function createRepository(): SchemaRepository {
     saveViewport: vi
       .fn<SchemaRepository["saveViewport"]>()
       .mockResolvedValue(undefined),
+    readSchemaRecord: vi.fn<SchemaRepository["readSchemaRecord"]>(),
+    listOwnedSchemas: vi.fn<SchemaRepository["listOwnedSchemas"]>(),
+    writeCloudCopy: vi.fn<SchemaRepository["writeCloudCopy"]>(),
+    completePush: vi.fn<SchemaRepository["completePush"]>(),
+    setSyncState: vi.fn<SchemaRepository["setSyncState"]>(),
+    assignOwner: vi.fn<SchemaRepository["assignOwner"]>(),
+    changeSchemaId: vi.fn<SchemaRepository["changeSchemaId"]>(),
+    readSession: vi.fn<SchemaRepository["readSession"]>(),
+    writeSession: vi.fn<SchemaRepository["writeSession"]>(),
+    deleteSession: vi.fn<SchemaRepository["deleteSession"]>(),
   };
 }
 

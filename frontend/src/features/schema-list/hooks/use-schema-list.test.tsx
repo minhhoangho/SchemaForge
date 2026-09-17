@@ -66,7 +66,15 @@ describe("useSchemaList", () => {
         entries: [
           {
             kind: "readable",
-            schema: { id: SCHEMA_ID, name: "shop", createdAt: 1, updatedAt: 1 },
+            schema: {
+              id: SCHEMA_ID,
+              name: "shop",
+              createdAt: 1,
+              updatedAt: 1,
+              ownerId: null,
+              cloudRevision: null,
+              syncStatus: null,
+            },
           },
         ],
       });

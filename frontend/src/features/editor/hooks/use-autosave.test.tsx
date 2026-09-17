@@ -50,6 +50,16 @@ function createFakeRepository(saveDocument: SaveDocument): SchemaRepository {
     deleteSchema: vi.fn<SchemaRepository["deleteSchema"]>(),
     readViewport: vi.fn<SchemaRepository["readViewport"]>(),
     saveViewport: vi.fn<SchemaRepository["saveViewport"]>(),
+    readSchemaRecord: vi.fn<SchemaRepository["readSchemaRecord"]>(),
+    listOwnedSchemas: vi.fn<SchemaRepository["listOwnedSchemas"]>(),
+    writeCloudCopy: vi.fn<SchemaRepository["writeCloudCopy"]>(),
+    completePush: vi.fn<SchemaRepository["completePush"]>(),
+    setSyncState: vi.fn<SchemaRepository["setSyncState"]>(),
+    assignOwner: vi.fn<SchemaRepository["assignOwner"]>(),
+    changeSchemaId: vi.fn<SchemaRepository["changeSchemaId"]>(),
+    readSession: vi.fn<SchemaRepository["readSession"]>(),
+    writeSession: vi.fn<SchemaRepository["writeSession"]>(),
+    deleteSession: vi.fn<SchemaRepository["deleteSession"]>(),
   };
 }
 

@@ -8,6 +8,7 @@ import { createSchemaRepository } from "./schema-repository";
 import type { SchemaRepository } from "./schema-repository";
 
 const ID_PREFIX = "00000000-0000-4000-8000-";
+const OWNER_ID = "5f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
 const ID_SUFFIX_LENGTH = 12;
 
 // The repository never reads the clock or generates an id itself, so both are
@@ -83,6 +84,9 @@ describe("createSchemaRepository", () => {
       name: "Billing",
       createdAt: 1,
       updatedAt: 1,
+      ownerId: null,
+      cloudRevision: null,
+      syncStatus: null,
     });
     await expect(database.documents.get(record.id)).resolves.toEqual({
       schemaId: record.id,
@@ -106,6 +110,9 @@ describe("createSchemaRepository", () => {
           name: "Third",
           createdAt: 3,
           updatedAt: 3,
+          ownerId: null,
+          cloudRevision: null,
+          syncStatus: null,
         },
       },
       {
@@ -115,6 +122,9 @@ describe("createSchemaRepository", () => {
           name: "Second",
           createdAt: 2,
           updatedAt: 2,
+          ownerId: null,
+          cloudRevision: null,
+          syncStatus: null,
         },
       },
       {
@@ -124,6 +134,9 @@ describe("createSchemaRepository", () => {
           name: "First",
           createdAt: 1,
           updatedAt: 1,
+          ownerId: null,
+          cloudRevision: null,
+          syncStatus: null,
         },
       },
     ]);
@@ -136,6 +149,9 @@ describe("createSchemaRepository", () => {
       name: 42,
       createdAt: 1,
       updatedAt: 1,
+      ownerId: null,
+      cloudRevision: null,
+      syncStatus: null,
     });
 
     const entries = await repository.listSchemas();
@@ -150,6 +166,9 @@ describe("createSchemaRepository", () => {
       name: "Legacy",
       createdAt: 1,
       updatedAt: 1,
+      ownerId: null,
+      cloudRevision: null,
+      syncStatus: null,
     });
 
     const entries = await repository.listSchemas();
@@ -239,6 +258,9 @@ describe("createSchemaRepository", () => {
       name: "Invoices",
       createdAt: 1,
       updatedAt: 2,
+      ownerId: null,
+      cloudRevision: null,
+      syncStatus: null,
     });
     await expect(database.documents.get(record.id)).resolves.toEqual({
       schemaId: record.id,
@@ -278,6 +300,9 @@ describe("createSchemaRepository", () => {
       name: "Invoices",
       createdAt: 1,
       updatedAt: 2,
+      ownerId: null,
+      cloudRevision: null,
+      syncStatus: null,
     });
   });
 
@@ -297,6 +322,9 @@ describe("createSchemaRepository", () => {
       name: "Billing",
       createdAt: 1,
       updatedAt: 1,
+      ownerId: null,
+      cloudRevision: null,
+      syncStatus: null,
     });
   });
 
@@ -354,5 +382,119 @@ describe("createSchemaRepository", () => {
     const { repository } = setUp();
 
     await expect(repository.readViewport(schemaIdAt(9))).resolves.toBeNull();
+  });
+  it("creates an owned schema as pending without a cloud revision", async () => {
+    const { database, repository } = setUp();
+
+    const record = await repository.createSchema("Billing", {
+      ownerId: OWNER_ID,
+    });
+
+    const expected = {
+      id: schemaIdAt(1),
+      name: "Billing",
+      createdAt: 1,
+      updatedAt: 1,
+      ownerId: OWNER_ID,
+      cloudRevision: null,
+      syncStatus: "pending",
+    };
+    expect(record).toEqual(expected);
+    await expect(database.schemas.get(record.id)).resolves.toEqual(expected);
+    await expect(database.documents.get(record.id)).resolves.toEqual({
+      schemaId: record.id,
+      document: createEmptySchema("Billing"),
+    });
+  });
+
+  it("marks an owned synced schema as pending when its document is saved", async () => {
+    const { database, repository } = setUp();
+    const record = await repository.createSchema("Billing", {
+      ownerId: OWNER_ID,
+    });
+    await database.schemas.update(record.id, {
+      cloudRevision: 3,
+      syncStatus: "synced",
+    });
+
+    await repository.saveDocument(record.id, createEmptySchema("Invoices"));
+
+    await expect(database.schemas.get(record.id)).resolves.toMatchObject({
+      name: "Invoices",
+      updatedAt: 2,
+      cloudRevision: 3,
+      syncStatus: "pending",
+    });
+  });
+
+  it.each(["conflict", "deleted-in-cloud"] as const)(
+    "keeps a %s status when the document is saved",
+    async (syncStatus) => {
+      const { database, repository } = setUp();
+      const record = await repository.createSchema("Billing", {
+        ownerId: OWNER_ID,
+      });
+      await database.schemas.update(record.id, {
+        cloudRevision: 3,
+        syncStatus,
+      });
+
+      await repository.saveDocument(record.id, createEmptySchema("Invoices"));
+
+      await expect(database.schemas.get(record.id)).resolves.toMatchObject({
+        updatedAt: 2,
+        cloudRevision: 3,
+        syncStatus,
+      });
+    },
+  );
+
+  it("keeps the sync fields of a local schema null when its document is saved", async () => {
+    const { database, repository } = setUp();
+    const record = await repository.createSchema("Billing");
+
+    await repository.saveDocument(record.id, createEmptySchema("Invoices"));
+
+    await expect(database.schemas.get(record.id)).resolves.toMatchObject({
+      updatedAt: 2,
+      ownerId: null,
+      cloudRevision: null,
+      syncStatus: null,
+    });
+  });
+
+  it("marks an owned schema as pending when it is renamed", async () => {
+    const { database, repository } = setUp();
+    const record = await repository.createSchema("Billing", {
+      ownerId: OWNER_ID,
+    });
+    await database.schemas.update(record.id, {
+      cloudRevision: 3,
+      syncStatus: "synced",
+    });
+
+    await repository.renameSchema(record.id, "Invoices");
+
+    await expect(database.schemas.get(record.id)).resolves.toMatchObject({
+      name: "Invoices",
+      cloudRevision: 3,
+      syncStatus: "pending",
+    });
+  });
+
+  it("exposes the cloud cache and session table methods", async () => {
+    const { repository } = setUp();
+    const record = await repository.createSchema("Billing");
+    await repository.writeSession({
+      userId: OWNER_ID,
+      email: "ada@example.com",
+    });
+
+    await expect(repository.readSchemaRecord(record.id)).resolves.toEqual(
+      record,
+    );
+    await expect(repository.readSession()).resolves.toMatchObject({
+      userId: OWNER_ID,
+    });
   });
 });

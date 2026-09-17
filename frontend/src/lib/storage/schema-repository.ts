@@ -5,10 +5,20 @@ import {
 } from "@schemaforge/core";
 import type { SchemaDocument, StructuralError } from "@schemaforge/core";
 
+import { createCloudCache } from "./cloud-cache";
+import type { CloudCache } from "./cloud-cache";
 import type { SchemaforgeDatabase } from "./database";
-import { parseSchemaRecord, parseViewportRecord } from "./records";
+import {
+  isCloudSchemaRecord,
+  parseSchemaRecord,
+  parseViewportRecord,
+} from "./records";
 import type { SchemaRecord, ViewportRecord } from "./records";
 import { isSchemaId } from "./schema-id";
+import { createSessionTable } from "./session-table";
+import type { SessionTable } from "./session-table";
+
+export type { CloudCopy } from "./cloud-cache";
 
 export type SchemaListEntry =
   | { readonly kind: "readable"; readonly schema: SchemaRecord }
@@ -33,9 +43,14 @@ export type SchemaRepositoryDependencies = {
   readonly generateId: () => string;
 };
 
+export type CreateSchemaOptions = { readonly ownerId: string };
+
 export type SchemaRepository = {
   readonly listSchemas: () => Promise<readonly SchemaListEntry[]>;
-  readonly createSchema: (name: string) => Promise<SchemaRecord>;
+  readonly createSchema: (
+    name: string,
+    options?: CreateSchemaOptions,
+  ) => Promise<SchemaRecord>;
   readonly openSchema: (schemaId: string) => Promise<OpenSchemaResult>;
   readonly saveDocument: (
     schemaId: string,
@@ -48,7 +63,8 @@ export type SchemaRepository = {
   readonly deleteSchema: (schemaId: string) => Promise<void>;
   readonly readViewport: (schemaId: string) => Promise<ViewportRecord | null>;
   readonly saveViewport: (viewport: ViewportRecord) => Promise<void>;
-};
+} & CloudCache &
+  SessionTable;
 
 // The tables are typed, but rows written by an older release or a future one
 // are not, so the id is read back from unknown before it is trusted as a key.
@@ -84,16 +100,28 @@ async function listSchemas(
 async function createSchema(
   dependencies: SchemaRepositoryDependencies,
   name: string,
+  options: CreateSchemaOptions | undefined,
 ): Promise<SchemaRecord> {
   const { database, clock, generateId } = dependencies;
   const document = createEmptySchema(name);
   const now = clock();
-  const record: SchemaRecord = {
+  const base = {
     id: generateId(),
     name: document.name,
     createdAt: now,
     updatedAt: now,
   };
+  // An owned schema starts pending with no revision: it does not exist in the
+  // cloud until the first push creates it.
+  const record: SchemaRecord =
+    options === undefined
+      ? { ...base, ownerId: null, cloudRevision: null, syncStatus: null }
+      : {
+          ...base,
+          ownerId: options.ownerId,
+          cloudRevision: null,
+          syncStatus: "pending",
+        };
   await database.transaction(
     "rw",
     database.schemas,
@@ -120,6 +148,25 @@ async function openSchema(
     : { kind: "unreadable", errors: result.error };
 }
 
+// Runs inside the caller's write transaction, so the pending mark commits with
+// the document. conflict and deleted-in-cloud wait for the user and stay.
+async function touchSchemaRecord(
+  database: SchemaforgeDatabase,
+  schemaId: string,
+  changes: { readonly name: string; readonly updatedAt: number },
+): Promise<void> {
+  const record = parseSchemaRecord(await database.schemas.get(schemaId));
+  const shouldMarkPending =
+    record !== null &&
+    isCloudSchemaRecord(record) &&
+    (record.syncStatus === "synced" || record.syncStatus === "pending");
+  // Another tab may have deleted the schema; update then changes no row.
+  await database.schemas.update(
+    schemaId,
+    shouldMarkPending ? { ...changes, syncStatus: "pending" } : changes,
+  );
+}
+
 async function saveDocument(
   dependencies: SchemaRepositoryDependencies,
   schemaId: string,
@@ -132,8 +179,7 @@ async function saveDocument(
     database.schemas,
     async () => {
       await database.documents.put({ schemaId, document });
-      // Another tab may have deleted the schema; update then changes no row.
-      await database.schemas.update(schemaId, {
+      await touchSchemaRecord(database, schemaId, {
         name: document.name,
         updatedAt: clock(),
       });
@@ -173,7 +219,10 @@ function renameSchema(
       }
       const document = renameDocument(parsed.value, name);
       await database.documents.put({ schemaId, document });
-      await database.schemas.update(schemaId, { name, updatedAt: clock() });
+      await touchSchemaRecord(database, schemaId, {
+        name,
+        updatedAt: clock(),
+      });
       return { kind: "renamed" };
     },
   );
@@ -216,7 +265,7 @@ export function createSchemaRepository(
   const { database } = dependencies;
   return {
     listSchemas: () => listSchemas(database),
-    createSchema: (name) => createSchema(dependencies, name),
+    createSchema: (name, options) => createSchema(dependencies, name, options),
     openSchema: (schemaId) => openSchema(database, schemaId),
     saveDocument: (schemaId, document) =>
       saveDocument(dependencies, schemaId, document),
@@ -227,5 +276,7 @@ export function createSchemaRepository(
     saveViewport: async (viewport) => {
       await database.viewports.put(viewport);
     },
+    ...createCloudCache(database),
+    ...createSessionTable(database),
   };
 }

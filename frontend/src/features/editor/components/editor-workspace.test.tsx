@@ -228,6 +228,28 @@ function getEmptyStateAddButton(): HTMLElement {
   return button;
 }
 
+type OpenedRelationDialog = {
+  readonly user: ReturnType<typeof renderShop>["user"];
+  // The table panel button the dialog was opened from, which focus must
+  // return to when it closes.
+  readonly opener: HTMLElement;
+  readonly dialog: HTMLElement;
+};
+
+// Opens the create relation dialog the way a keyboard user does: from the
+// table panel button, with Enter.
+async function openRelationDialogFromTablePanel(): Promise<OpenedRelationDialog> {
+  const { user } = renderShop();
+  await user.click(getOutlineRow("orders"));
+  const opener = screen.getByRole("button", { name: "Add relation" });
+  act(() => {
+    opener.focus();
+  });
+  await user.keyboard("{Enter}");
+  const dialog = screen.getByRole("dialog", { name: "Create relation" });
+  return { user, opener, dialog };
+}
+
 beforeEach(() => {
   vi.stubGlobal("ResizeObserver", MeasuringResizeObserver);
 });
@@ -548,6 +570,32 @@ describe("EditorWorkspace", () => {
     expect(document.activeElement).toBe(
       screen.getByRole("textbox", { name: "Table name" }),
     );
+  });
+
+  it("returns focus to the table panel button when Escape closes the relation dialog", async () => {
+    const { user, opener } = await openRelationDialogFromTablePanel();
+
+    await user.keyboard("{Escape}");
+
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it("returns focus to the table panel button when the relation dialog is dismissed", async () => {
+    const { user, opener, dialog } = await openRelationDialogFromTablePanel();
+
+    await user.click(within(dialog).getByRole("button", { name: "Close" }));
+
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it("returns focus to the table panel button after the relation is created", async () => {
+    const { user, opener, dialog } = await openRelationDialogFromTablePanel();
+
+    await user.click(
+      within(dialog).getByRole("button", { name: "Create relation" }),
+    );
+
+    expect(document.activeElement).toBe(opener);
   });
 
   it.each(["light", "dark"] as const)(

@@ -94,12 +94,13 @@ export function CreateRelationDialog({
           firstInvalid?.focus();
         }}
         onCloseAutoFocus={(event) => {
-          // Opened by a button, Radix returns focus to it. Opened by a drag,
-          // nothing had focus, so the node the drag started from takes it.
-          if (isFocusableOpener(openerRef.current)) {
-            return;
-          }
-          const target = findDragReturnTarget(sourceTableIdRef.current);
+          // Radix only restores focus to a `DialogTrigger`, and this dialog is
+          // opened from state, so the return target is chosen here (WCAG
+          // 2.4.3): the control that opened it, or, when a drag opened it and
+          // nothing had focus, the node the drag started from.
+          const target = isFocusableOpener(openerRef.current)
+            ? openerRef.current
+            : findDragReturnTarget(sourceTableIdRef.current);
           if (target !== undefined) {
             event.preventDefault();
             target.focus();

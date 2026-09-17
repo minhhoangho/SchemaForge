@@ -152,10 +152,10 @@ Số task là định danh; bảng sắp theo đợt. Task 0 không có thân ri
 
 | Task | Nội dung | Agent | Phụ thuộc | Đợt |
 |---|---|---|---|---|
-| 0 | Vấn đề 1–22 đã chốt 2026-09-17 (phương án đề xuất). Còn chốt Vấn đề 23–26 với người dùng, ghi lựa chọn vào spec và plan; chặn Task 4 (Vấn đề 25), 9 (23), 12 (24), 13 (25, 26), 14 (25) | orchestrator, spec-writer | — | 0 (song song đợt 1) |
+| 0 | Vấn đề 1–27 đã chốt 2026-09-17 (phương án đề xuất). Không còn vấn đề nào chờ người dùng; không task nào còn bị chặn | orchestrator, spec-writer | — | 0 (song song đợt 1) |
 | 1 | Package `packages/api-contract`: hằng, mã lỗi, schema response, type request; lockfile | core-engineer | — | 1 |
 | 3 | Cập nhật tài liệu theo "Vấn đề với các spec đã duyệt" 1–6, 9, 10 | spec-writer | — | 1 |
-| 4 | `.claude/rules/nestjs.md` theo vấn đề 7, 8 của spec | backend-engineer | 0 (Vấn đề 6, 14, 25) | 1 |
+| 4 | `.claude/rules/nestjs.md` theo vấn đề 7, 8 của spec | backend-engineer | 0 (Vấn đề 6, 14) | 1 |
 | 7 | Dexie version 2, record có chủ, bảng `session`, method mới của `SchemaRepository` | frontend-engineer | — | 1 |
 | 2 | Dependency backend, frontend; `allowBuilds`; `turbo.json`; `.gitignore`; `.prettierignore`; `eslint.config.mjs`; env CI `verify` | devops-engineer | 0 (Vấn đề 1, 4, 6, 13), 1 | 2 |
 | 5 | Prisma: `schema.prisma`, migration `init_auth_and_schemas`, `prisma.config.ts`, `PrismaModule`, env backend, README database | backend-engineer | 0, 2 | 3 |
@@ -163,17 +163,17 @@ Số task là định danh; bảng sắp theo đợt. Task 0 không có thân ri
 | 11 | `password.policy`, danh sách mật khẩu phổ biến, `PasswordHasher` | backend-engineer | 1, 2 | 3 |
 | 19 | i18n namespace `auth`, `sync`, `apiErrors` | frontend-engineer | 1, 2 | 3 |
 | 22 | Hàm thuần đồng bộ: `decideOpenAction`, `mergeSchemaList`, `documentsEqual` | frontend-engineer | 0 (Vấn đề 20: người dùng duyệt cách xử lý các trường hợp biên trước khi code), 1, 2, 7 | 3 |
-| 9 | Nền backend: `ApiException`, `ApiExceptionFilter`, `ValidationPipe`, `OriginGuard`, decorator, `Clock`, `configureApp`, `main.ts`, `app.module.ts`, health | backend-engineer | 0 (Vấn đề 23), 5 | 4 |
+| 9 | Nền backend: `ApiException`, `ApiExceptionFilter`, `ValidationPipe`, `OriginGuard`, decorator, `Clock`, `configureApp`, `main.ts`, `app.module.ts`, health | backend-engineer | 5 | 4 |
 | 20 | API client, `SessionRefresher`, `AuthLockManager` | frontend-engineer | 1, 2, 6 | 4 |
 | 10 | Rate limit: guard, decorator, chính sách, module; `normalizeEmail` | backend-engineer | 9 | 5 |
-| 12 | Token: `AccessTokenService`, `RefreshTokenRepository`, `RefreshTokenService`, `auth-cookies`, `JwtStrategy`, `JwtAuthGuard` | backend-engineer | 0 (Vấn đề 24), 5, 9 | 5 |
+| 12 | Token: `AccessTokenService`, `RefreshTokenRepository`, `RefreshTokenService`, `auth-cookies`, `JwtStrategy`, `JwtAuthGuard` | backend-engineer | 5, 9 | 5 |
 | 21 | Auth store, cookie `sf-auth-hint`, `BroadcastChannel`, `sanitizeReturnTo` | frontend-engineer | 7, 20 | 5 |
 | 23 | `CloudPusher` và `pushSchemaOnce` | frontend-engineer | 7, 20, 22 | 5 |
 | 25 | `signOut`, `forgetPreviousAccount` | frontend-engineer | 7, 20 | 5 |
-| 13 | Module auth: users repository, mapper, `AuthService`, controller, DTO; đăng ký guard toàn cục | backend-engineer | 0 (Vấn đề 25, 26), 10, 11, 12 | 6 |
+| 13 | Module auth: users repository, mapper, `AuthService`, controller, DTO; đăng ký guard toàn cục | backend-engineer | 10, 11, 12 | 6 |
 | 24 | `uploadLocalSchemas`, `syncPendingSchemas` | frontend-engineer | 23 | 6 |
 | 26 | Provider API client và auth, hint phía server, `AccountMenu`, `SignInPrompt` | frontend-engineer | 19, 21, 25 | 6 |
-| 14 | Module schemas: repository, service, cursor, mapper, DTO, controller | backend-engineer | 0 (Vấn đề 25), 13 | 7 |
+| 14 | Module schemas: repository, service, cursor, mapper, DTO, controller | backend-engineer | 13 | 7 |
 | 15 | Hạ tầng e2e và `auth.e2e-spec.ts` (hành trình 1, 2, 3, 11) | backend-engineer | 13 | 7 |
 | 27 | Màn hình `/sign-in`, `/sign-up` | frontend-engineer | 26 | 7 |
 | 28 | Hộp thoại đưa schema của khách lên, host đồng bộ nền | frontend-engineer | 24, 26 | 7 |
@@ -210,7 +210,7 @@ Nhóm song song theo đợt (tập file rời nhau):
 
 Các task được viết theo phương án đánh dấu **(đề xuất)**. **Task 0** (không có thân riêng): orchestrator trình bảng này cho người dùng, spec-writer ghi lựa chọn vào spec (với vấn đề đổi quyết định của spec) và vào các task bị ảnh hưởng của plan này, rồi orchestrator mới giao các task ở cột "Ảnh hưởng tới task". Người dùng chọn khác đề xuất thì chỉ sửa đúng các task đó.
 
-Cột "Trạng thái": ngày 2026-09-17 người dùng đã chốt phương án đề xuất cho Vấn đề 1–22. Vấn đề 23–26 do người viết các task backend nêu thêm, chưa trình người dùng; Task 4, 9, 12, 13, 14 chờ các vấn đề này (xem cột "Ảnh hưởng tới task").
+Cột "Trạng thái": ngày 2026-09-17 người dùng đã chốt phương án đề xuất cho Vấn đề 1–26 (23–26 do người viết các task backend nêu thêm, trình người dùng cùng ngày) và Vấn đề 27 (nêu thêm khi viết Task 24, 30). Không còn vấn đề nào chờ người dùng; không task nào bị chặn bởi Task 0.
 
 Bằng chứng kiểm tra ngày 2026-09-17 (13:36 UTC) bằng `npm view`, mã nguồn gói tải về bằng `npm pack` vào thư mục tạm (không cài vào repo), Context7 (`/websites/turborepo_dev`, `/prisma/web`, `/vitejs/vite`), GitHub API của SecLists và code hiện có trong repo.
 
@@ -238,10 +238,11 @@ Bằng chứng kiểm tra ngày 2026-09-17 (13:36 UTC) bằng `npm view`, mã ng
 | 20 | **Trường hợp thiếu trong bảng "Mở schema" và "Gộp một id"** | Spec mục 7 không có dòng cho: "Mở schema": cache `conflict` + cloud cùng revision; cache `deleted-in-cloud` + cloud vẫn còn; cache có chủ khi `signed-out`; tài liệu cloud lỗi cấu trúc khác `version-unsupported`. "Gộp một id": cloud còn nhưng cache `deleted-in-cloud`; cache `conflict` khi cloud không còn | (a) **(đề xuất)** Task 22 viết đề xuất xử lý cho từng trường hợp (kèm tên test) và gửi orchestrator trước khi code; người dùng duyệt; orchestrator ghi lựa chọn vào thân Task 22 rồi mới cho Task 22 code. (b) Plan chốt sẵn cách xử lý từng trường hợp ngay bây giờ, không qua bước duyệt | Task 22 (kết quả dùng ở Task 29, 32) | Đã chốt 2026-09-17: phương án đề xuất |
 | 21 | **Hộp thoại đưa schema của khách lên khi không chọn schema nào** | Spec mục 7 "Đưa schema của khách lên cloud" không nói | (a) **(đề xuất)** Nút "Lưu lên cloud" bị `disabled` khi không có checkbox nào được chọn. (b) Bấm được và xử lý như "Để sau" | Task 28 | Đã chốt 2026-09-17: phương án đề xuất |
 | 22 | **API client thiếu `retryAfterSeconds` và `signal`** | Spec mục 7 "Đẩy lên cloud" yêu cầu chờ theo `Retry-After` với `429`, nhưng phác thảo `ApiFailure` ở spec mục 6 không có trường này; danh sách cloud (Task 32) cần hủy lần tải cũ | (a) **(đề xuất)** Failure `http` có `retryAfterSeconds: number \| null` (đọc header `Retry-After` dạng số giây); mọi method của `ApiClient` nhận `options?: { signal?: AbortSignal }`, ghép với timeout bằng `AbortSignal.any`. (b) `CloudPusher` bỏ qua `Retry-After`, chỉ giãn cách theo cấp số: trái spec | Task 20, 23, 32 | Đã chốt 2026-09-17: phương án đề xuất |
-| 23 | **`ApiExceptionFilter` với `HttpException` có sẵn của Nest** | Spec mục 5 "Hình dạng lỗi": lỗi dự kiến là `ApiException`, lỗi khác là `500`. Nhưng `ParseUUIDPipe`, route không tồn tại, body parser và `JwtAuthGuard` mặc định ném `BadRequestException`, `NotFoundException`, `PayloadTooLargeException`, `UnauthorizedException` | (a) **(đề xuất)** Map theo status: 400 → `validation-failed` với `fields: []`; 401 → `unauthenticated`; 404 → `not-found`; 413 → `payload-too-large`; 429 → `too-many-requests`; status khác → `500 internal-error`, log như lỗi không dự kiến. (b) Mọi `HttpException` không phải `ApiException` → `500`: route không tồn tại trả `500` thay vì `404` | Task 9, 17 | Chờ người dùng chốt |
-| 24 | **Hai refresh đồng thời cùng một refresh token** | Spec mục 1 "Access token và refresh token": dùng lại token đã xoay thì thu hồi cả họ; không nói hai request tới gần như cùng lúc (Web Lock không có, mạng gửi lại). `repository.rotate` là update có điều kiện nên chỉ một request thắng | (a) **(đề xuất)** Bên thua (`rotate` trả `false`) xử lý như dùng lại token: thu hồi cả họ, `401 session-expired`. Frontend đã tuần tự hóa refresh giữa các tab (Task 20) nên trường hợp này hiếm. (b) Bên thua trả `401` nhưng không thu hồi họ: ít đăng xuất ngoài ý muốn hơn nhưng yếu hơn khi token bị lộ | Task 12, 15 | Chờ người dùng chốt |
-| 25 | **Field của DTO và rule cấm `!`** | `.claude/rules/typescript.md` cấm non-null `!`; field của DTO do `class-transformer` điền nên không có initializer, và `strict` (`strictPropertyInitialization`) báo lỗi nếu không đánh dấu | (a) **(đề xuất)** Dùng definite assignment `readonly email!: string` chỉ cho field của DTO; Task 4 ghi rõ ngoại lệ này trong `nestjs.md`. (b) Field optional `readonly email?: string`: service phải thu hẹp lại giá trị mà `ValidationPipe` đã bảo đảm | Task 4, 13, 14 | Chờ người dùng chốt |
-| 26 | **Đặt, xóa cookie trong controller auth** | `nestjs.md`: controller gọi đúng một method của service (Vấn đề 14 cho phép đưa kết quả cho helper thuần); cookie cần `AUTH_COOKIE_SECURE` từ `ConfigService`; refresh thất bại phải xóa cookie trước khi trả lỗi | (a) **(đề xuất)** Provider `AuthCookies` (inject `ConfigService`) có `set`, `clear`; controller gọi sau method của service; refresh trả `null` thì `authCookies.clear(response)` rồi ném `401 session-expired`. Task 4 ghi rằng controller được gọi provider dựng response này. (b) Interceptor đặt, xóa cookie dựa trên giá trị trả về và lỗi của handler: controller không đụng `Response`, nhưng thêm một lớp khó test và lệch cấu trúc thư mục của spec | Task 4, 12, 13 | Chờ người dùng chốt |
+| 23 | **`ApiExceptionFilter` với `HttpException` có sẵn của Nest** | Spec mục 5 "Hình dạng lỗi": lỗi dự kiến là `ApiException`, lỗi khác là `500`. Nhưng `ParseUUIDPipe`, route không tồn tại, body parser và `JwtAuthGuard` mặc định ném `BadRequestException`, `NotFoundException`, `PayloadTooLargeException`, `UnauthorizedException` | (a) **(đề xuất)** Map theo status: 400 → `validation-failed` với `fields: []`; 401 → `unauthenticated`; 404 → `not-found`; 413 → `payload-too-large`; 429 → `too-many-requests`; status khác → `500 internal-error`, log như lỗi không dự kiến. (b) Mọi `HttpException` không phải `ApiException` → `500`: route không tồn tại trả `500` thay vì `404` | Task 9, 17 | Đã chốt 2026-09-17: phương án đề xuất |
+| 24 | **Hai refresh đồng thời cùng một refresh token** | Spec mục 1 "Access token và refresh token": dùng lại token đã xoay thì thu hồi cả họ; không nói hai request tới gần như cùng lúc (Web Lock không có, mạng gửi lại). `repository.rotate` là update có điều kiện nên chỉ một request thắng | (a) **(đề xuất)** Bên thua (`rotate` trả `false`) xử lý như dùng lại token: thu hồi cả họ, `401 session-expired`. Frontend đã tuần tự hóa refresh giữa các tab (Task 20) nên trường hợp này hiếm. (b) Bên thua trả `401` nhưng không thu hồi họ: ít đăng xuất ngoài ý muốn hơn nhưng yếu hơn khi token bị lộ | Task 12, 15 | Đã chốt 2026-09-17: phương án đề xuất |
+| 25 | **Field của DTO và rule cấm `!`** | `.claude/rules/typescript.md` cấm non-null `!`; field của DTO do `class-transformer` điền nên không có initializer, và `strict` (`strictPropertyInitialization`) báo lỗi nếu không đánh dấu | (a) **(đề xuất)** Dùng definite assignment `readonly email!: string` chỉ cho field của DTO; Task 4 ghi rõ ngoại lệ này trong `nestjs.md`. (b) Field optional `readonly email?: string`: service phải thu hẹp lại giá trị mà `ValidationPipe` đã bảo đảm | Task 4, 13, 14 | Đã chốt 2026-09-17: phương án đề xuất |
+| 26 | **Đặt, xóa cookie trong controller auth** | `nestjs.md`: controller gọi đúng một method của service (Vấn đề 14 cho phép đưa kết quả cho helper thuần); cookie cần `AUTH_COOKIE_SECURE` từ `ConfigService`; refresh thất bại phải xóa cookie trước khi trả lỗi | (a) **(đề xuất)** Provider `AuthCookies` (inject `ConfigService`) có `set`, `clear`; controller gọi sau method của service; refresh trả `null` thì `authCookies.clear(response)` rồi ném `401 session-expired`. Task 4 ghi rằng controller được gọi provider dựng response này. (b) Interceptor đặt, xóa cookie dựa trên giá trị trả về và lỗi của handler: controller không đụng `Response`, nhưng thêm một lớp khó test và lệch cấu trúc thư mục của spec | Task 4, 12, 13 | Đã chốt 2026-09-17: phương án đề xuất |
+| 27 | **`uploadLocalSchemas` có thể đổi id schema, nơi gọi cần biết id mới** | Task 24 bước 3: `409 schema-id-unavailable` rồi `get` cho `404` thì `generateId()`, đổi id ở ba bảng, `create` lại. `UploadReport` hiện chỉ có `uploadedIds`, `skipped`, `stoppedBy`, `notAttemptedIds`, không có chỗ ghi id mới; Task 30 "Lưu lên cloud" gọi `uploadLocalSchemas` cho đúng schema đang mở trong editor và cần điều hướng sang route mới nếu id đã đổi, nếu không URL vẫn trỏ tới id đã bị xóa cục bộ | (a) **(đề xuất)** `UploadReport` thêm `movedIds: ReadonlyMap<string, string>` (id cũ → id mới), ghi đúng lúc bước 3 đổi id; `uploadedIds` vẫn chứa id mới (id hiện có của schema sau khi upload). Task 30 `onSaveToCloud`: sau khi `uploadLocalSchemas` trả về, `movedIds.get(schemaId)` khác `undefined` thì `router.replace` sang `/schemas/<id mới>` thay vì chỉ đặt `ownerId` state (route cũ không còn là id thật của schema) | Task 24, 30 | Đã chốt 2026-09-17: phương án đề xuất |
 
 ## Task 1: Package `packages/api-contract`
 
@@ -432,26 +433,27 @@ Mong đợi: cả hai lệnh thoát mã 0 (chưa package nào có script `genera
 
 ## Task 4: Cập nhật `.claude/rules/nestjs.md`
 
-**Mục tiêu:** làm thay đổi 7, 8 trong mục "Vấn đề với các spec đã duyệt" của spec phần 4, cộng lựa chọn của Vấn đề 6 và 14, để rule không mâu thuẫn với code của các task backend.
+**Mục tiêu:** làm thay đổi 7, 8 trong mục "Vấn đề với các spec đã duyệt" của spec phần 4, cộng lựa chọn của Vấn đề 6, 14, 25, 26 trong mục "Vấn đề phát hiện khi lập plan", để rule không mâu thuẫn với code của các task backend.
 
 **Agent:** `backend-engineer` (quyền sở hữu file ghi ở đây ghi đè phạm vi mặc định). **Phụ thuộc:** 0 (Vấn đề 6, 14). **Đợt:** 1.
 
 **File sở hữu (sửa):** `.claude/rules/nestjs.md`.
 
-**Cài đặt:** rule viết tiếng Anh, giữ giọng và cấu trúc hiện có; chỉ sửa các dòng dưới đây. Nếu Task 0 chọn phương án khác (a) ở Vấn đề 6 hoặc 14 thì viết theo phương án được chọn.
+**Cài đặt:** rule viết tiếng Anh, giữ giọng và cấu trúc hiện có; chỉ sửa các dòng dưới đây.
 
 | Mục của rule | Hiện ghi | Sửa thành |
 |---|---|---|
 | "DTOs and validation" | "Request DTOs (`CreateSchemaDto`, and `UpdateSchemaDto` built with `PartialType`) are separate from response DTOs." | Request DTO tách khỏi response DTO. `PartialType` chỉ dùng cho cập nhật từng phần (`PATCH`); `PUT` thay toàn bộ tài nguyên có DTO class riêng với mọi trường bắt buộc (spec phần 4, thay đổi 7) |
+| "DTOs and validation", sau câu về "Never return Prisma models from controllers" | — | Field của DTO class do `class-transformer` điền được dùng definite assignment (`readonly email!: string`) để qua `strictPropertyInitialization`; đây là chỗ duy nhất trong codebase được dùng `!` (`typescript.md` cấm ở nơi khác), chỉ giới hạn ở field của DTO class, không dùng để che dấu lỗi kiểu ở chỗ khác (Vấn đề 25) |
 | "Configuration" | "No `process.env` outside `src/config/`. Inject typed config instead." | Giữ câu này, thêm ngoại lệ: file cấu hình của công cụ chạy ngoài app Nest (`prisma.config.ts`, `vitest.e2e.config.ts`) và `test/global-setup.ts` của e2e được đọc `process.env`; ESLint liệt kê đúng các file này (thay đổi 8, Vấn đề 6) |
 | "Structure", sau câu về mẫu `<name>.<kind>.ts` | — | Mẫu áp cho khối của Nest và các loại `repository`, `mapper`, `strategy`, `policy`; helper thuần không có loại dùng `<name>.ts` kebab-case (ví dụ `auth-cookies.ts`); một feature có thể có nhiều repository (Vấn đề 14) |
-| "Layers", gạch đầu dòng về controller | "…then call a single service method. No business logic, no Prisma." | Thêm: controller có thể đưa kết quả của lời gọi service đó cho helper thuần dựng response HTTP, ví dụ đặt cookie (Vấn đề 14) |
+| "Layers", gạch đầu dòng về controller | "…then call a single service method. No business logic, no Prisma." | Thêm: controller có thể đưa kết quả của lời gọi service đó cho helper thuần, được inject, dựng response HTTP cho một mối lo về transport mà service không cần biết, ví dụ đặt hoặc xóa cookie (provider `AuthCookies` với `set`, `clear`, được inject và gọi sau đúng lời gọi service đó); helper này không có business logic, chỉ định hình response (Vấn đề 14, cụ thể hóa thêm ở Vấn đề 26: refresh thất bại thì controller gọi `authCookies.clear(response)` trước khi ném `401 session-expired`) |
 
-**Test viết trước:** không có code. Trước khi sửa, `grep -n "PartialType\|process.env\|<name>.<kind>\|single service method" .claude/rules/nestjs.md` để chắc bốn chỗ còn đúng như cột "Hiện ghi".
+**Test viết trước:** không có code. Trước khi sửa, `grep -n "PartialType\|process.env\|<name>.<kind>\|single service method" .claude/rules/nestjs.md` để chắc các chỗ đổi còn đúng như cột "Hiện ghi".
 
-**Kiểm tra:** `git status --porcelain` chỉ có `.claude/rules/nestjs.md`; `git diff` chỉ chạm bốn chỗ ở bảng. Prettier bỏ qua Markdown.
+**Kiểm tra:** `git status --porcelain` chỉ có `.claude/rules/nestjs.md`; `git diff` chỉ chạm các chỗ ở bảng. Prettier bỏ qua Markdown.
 
-**Xong khi:** hai điểm 7, 8 của mục "Vấn đề với các spec đã duyệt" trong spec phần 4 đã phản ánh vào rule; không rule nào trong file cấm cấu trúc thư mục của spec phần 4.
+**Xong khi:** hai điểm 7, 8 của mục "Vấn đề với các spec đã duyệt" trong spec phần 4, và lựa chọn của Vấn đề 6, 14, 25, 26 trong mục "Vấn đề phát hiện khi lập plan" của plan này, đã phản ánh vào rule; không rule nào trong file cấm cấu trúc thư mục của spec phần 4 hoặc mẫu `AuthCookies` của Task 12, 13.
 
 **Commit:** `docs: clarify nestjs rules for full updates and tool config`
 
@@ -889,8 +891,33 @@ export function loadCommonPasswords(): ReadonlySet<string>;
 
 `common-passwords.txt`:
 
-- Nguồn (spec mục 2 để plan chọn): 3.000 dòng đầu của `Passwords/Common-Credentials/10k-most-common.txt` trong SecLists (`github.com/danielmiessler/SecLists`, giấy phép MIT), commit `913b327317496d062bcc7cace524aaad8a693be2` (2026-09-08). Khi lập plan đã kiểm: 3.000 dòng ASCII, không trùng khi so không phân biệt hoa thường, không dòng nào bắt đầu bằng `#`, không có `\r`.
-- Tải bằng `curl -s https://raw.githubusercontent.com/danielmiessler/SecLists/913b327317496d062bcc7cace524aaad8a693be2/Passwords/Common-Credentials/10k-most-common.txt | head -n 3000`. Đầu file có các dòng `#` ghi nguồn, commit, số dòng lấy và toàn văn thông báo bản quyền MIT của SecLists (`Copyright (c) 2018 Daniel Miessler`, lấy từ file `LICENSE` cùng commit).
+- Nguồn: `Passwords/Common-Credentials/xato-net-10-million-passwords-100000.txt` trong SecLists (`github.com/danielmiessler/SecLists`, giấy phép MIT), commit `913b327317496d062bcc7cace524aaad8a693be2` (2026-09-08), theo Vấn đề 7 (a). File gốc có 100.000 dòng ASCII, một dòng trắng cuối file, không có `\r`.
+- Xử lý (chạy một lần khi tạo file này, không phải mã chạy trong app): tải file gốc, rồi với mỗi dòng không rỗng, chuẩn hóa NFKC, đưa về chữ thường, giữ dòng có độ dài từ 8 đến 128 code point (`[...line].length`), bỏ dòng đã xuất hiện (so sau khi chuẩn hóa và hạ chữ thường), lấy 3.000 dòng đầu tiên đạt điều kiện theo đúng thứ tự xếp hạng của file gốc:
+
+  ```sh
+  curl -s -o xato-net-10-million-passwords-100000.txt \
+    https://raw.githubusercontent.com/danielmiessler/SecLists/913b327317496d062bcc7cace524aaad8a693be2/Passwords/Common-Credentials/xato-net-10-million-passwords-100000.txt
+  node -e '
+    const fs = require("node:fs");
+    const raw = fs.readFileSync("xato-net-10-million-passwords-100000.txt", "utf8");
+    const seen = new Set();
+    const kept = [];
+    for (const line of raw.split(/\r?\n/)) {
+      if (line === "") continue;
+      const normalized = line.normalize("NFKC").toLowerCase();
+      const codePoints = [...normalized].length;
+      if (codePoints < 8 || codePoints > 128) continue;
+      if (seen.has(normalized)) continue;
+      seen.add(normalized);
+      kept.push(normalized);
+      if (kept.length === 3000) break;
+    }
+    fs.writeFileSync("common-passwords-body.txt", kept.join("\n") + "\n");
+  '
+  ```
+
+  Khi lập plan đã chạy đúng bước này: quét 9.454 dòng đầu của file gốc để đủ 3.000 mục qua lọc (6.427 dòng bị loại vì ngắn hơn 8 code point, không dòng nào dài hơn 128, 26 dòng trùng sau khi hạ chữ thường bị loại); 3.000 mục giữ lại đều ASCII, dài 8 đến 16 code point, không trùng, không dòng nào bắt đầu bằng `#`, không có `\r`; mục đầu gồm `password`, `12345678`, `123456789`, `baseball`, `football`.
+- `common-passwords.txt` = các dòng `#` ở đầu, nối với nội dung của `common-passwords-body.txt` ở trên. Dòng `#` ghi: nguồn (`Passwords/Common-Credentials/xato-net-10-million-passwords-100000.txt` của SecLists), commit `913b327317496d062bcc7cace524aaad8a693be2`, quy tắc lọc ("NFKC, chữ thường, 8–128 code point, bỏ trùng, 3.000 mục đầu theo thứ tự xếp hạng gốc"), và toàn văn thông báo bản quyền MIT của SecLists (`Copyright (c) 2018 Daniel Miessler`, lấy từ file `LICENSE` cùng commit). `parseCommonPasswords` bỏ mọi dòng bắt đầu bằng `#` khi nạp.
 
 `nest-cli.json`: `"compilerOptions": { "deleteOutDir": true, "assets": ["modules/auth/common-passwords.txt"] }` (đường dẫn tương đối với `sourceRoot` `src`).
 
@@ -915,7 +942,7 @@ export function loadCommonPasswords(): ReadonlySet<string>;
 
 **Xong khi:**
 
-- Mọi test trên pass; file danh sách có đúng 3.000 mật khẩu kèm ghi nguồn và giấy phép; `dist` có file danh sách sau build.
+- Mọi test trên pass; file danh sách có đúng 3.000 mật khẩu (đã NFKC, chữ thường, 8–128 code point, không trùng) kèm dòng `#` ghi nguồn, commit, quy tắc lọc và giấy phép MIT; `dist` có file danh sách sau build.
 - Tiêu chí ST-02 "mật khẩu quá ngắn, quá dài, hoặc nằm trong danh sách phổ biến bị từ chối" có đủ quy tắc ở mức unit (mã lỗi HTTP ở Task 13, e2e ở Task 15).
 - Kiểm tra của Quy ước chung xanh (tiêu chí "Bảo mật và chung" về lint, typecheck, test, build); `pnpm install --frozen-lockfile` không có cảnh báo build script cho `@node-rs/argon2` (đã do Task 2 xác nhận, task này không đổi lockfile).
 
@@ -2042,6 +2069,7 @@ Mọi đọc, ghi IndexedDB đi qua method của `SchemaRepository` mà Task 7 �
      readonly skipped: readonly { readonly schemaId: string; readonly reason: UploadSkipReason }[];
      readonly stoppedBy: UploadStopReason | null;
      readonly notAttemptedIds: readonly string[];
+     readonly movedIds: ReadonlyMap<string, string>; // id cũ -> id mới, chỉ có mục khi 409 rồi 404 buộc đổi id (Vấn đề 27)
    };
    export function uploadLocalSchemas(input: {
      readonly api: ApiClient;
@@ -2057,8 +2085,8 @@ Mọi đọc, ghi IndexedDB đi qua method của `SchemaRepository` mà Task 7 �
    Lần lượt từng id, đúng các bước spec:
    1. `schemaId === heldLockSchemaId` thì dùng khóa đang có; ngược lại `tryAcquire`, `null` → `skipped` `locked`.
    2. Đọc và `parseSchemaDocument`; lỗi → `unreadable`. Kích thước serialize vượt `MAX_REQUEST_BODY_BYTES` → `too-large`. Record không còn là của khách → bỏ qua không ghi báo cáo.
-   3. `create({ id, document })`: `201` → đổi chủ (`ownerId`, `cloudRevision`, `synced`) trong một transaction. `409 schema-id-unavailable` → `get(id)`: `200` và `documentsEqual` → đổi chủ `synced` với revision cloud; `200` khác → đổi chủ với `cloudRevision` của bản cloud và `conflict`; `404` → `generateId()`, đổi id ở ba bảng trong một transaction, `create` lại đúng một lần (lần này lại `409` thì `skipped` `rejected`). `403 schema-limit-reached` → `stoppedBy`; lỗi mạng, `5xx` và các lỗi tạm thời khác → `stoppedBy` `unavailable`; các id chưa xét vào `notAttemptedIds`, không đổi gì. `413`, `422` → `rejected`.
-   - Bản ghi chỉ đổi chủ sau khi `POST` (hoặc `get` xác nhận) thành công. Toast "Đã lưu N schema lên cloud", "M schema chưa lưu được" là việc của nơi gọi (Task 28, 30, 33) dựa trên `UploadReport`.
+   3. `create({ id, document })`: `201` → đổi chủ (`ownerId`, `cloudRevision`, `synced`) trong một transaction. `409 schema-id-unavailable` → `get(id)`: `200` và `documentsEqual` → đổi chủ `synced` với revision cloud; `200` khác → đổi chủ với `cloudRevision` của bản cloud và `conflict`; `404` → `generateId()`, đổi id ở ba bảng trong một transaction, ghi cặp `(id cũ, id mới)` vào `movedIds`, `create` lại đúng một lần với id mới (lần này lại `409` thì `skipped` `rejected`, xóa cặp vừa ghi khỏi `movedIds`). `403 schema-limit-reached` → `stoppedBy`; lỗi mạng, `5xx` và các lỗi tạm thời khác → `stoppedBy` `unavailable`; các id chưa xét vào `notAttemptedIds`, không đổi gì. `413`, `422` → `rejected`.
+   - Bản ghi chỉ đổi chủ sau khi `POST` (hoặc `get` xác nhận) thành công. `uploadedIds` chứa id hiện có của schema sau khi upload (id mới nếu đã đổi id). Toast "Đã lưu N schema lên cloud", "M schema chưa lưu được" là việc của nơi gọi (Task 28, 30, 33) dựa trên `UploadReport`; nơi gọi cho một schema đang mở (Task 30) đọc `movedIds` để biết có phải điều hướng route hay không.
 2. `sync-pending-schemas.ts`:
 
    ```ts
@@ -2083,7 +2111,7 @@ Mọi đọc, ghi IndexedDB đi qua method của `SchemaRepository` mà Task 7 �
 
 **Test viết trước:**
 
-- `upload-local-schemas.test.ts` (`fake-indexeddb`, repository thật, `createFakeLockRegistry`, `fetchImpl` giả): `uploads a guest schema and makes it owned and synced after 201`; `treats 409 with an equal cloud document as already uploaded`; `marks conflict for 409 with a different cloud document`; `moves the schema to a new id and creates it again after 409 then 404`; `stops the whole run on schema-limit-reached and leaves remaining schemas unchanged`; `stops the whole run on a network failure`; `skips a schema rejected with 413 or 422 and continues` (`it.each`); `skips a schema whose lock is held by another tab`; `uses the lock already held by the editor`; `skips an unreadable document`; `skips a document over the size limit without calling the API`; `keeps the record as a guest schema when the request fails midway`; `releases every lock it acquired`.
+- `upload-local-schemas.test.ts` (`fake-indexeddb`, repository thật, `createFakeLockRegistry`, `fetchImpl` giả): `uploads a guest schema and makes it owned and synced after 201`; `treats 409 with an equal cloud document as already uploaded`; `marks conflict for 409 with a different cloud document`; `moves the schema to a new id and creates it again after 409 then 404`; `reports the old and new id in movedIds when a schema is moved to a new id`; `leaves movedIds empty when no schema is moved`; `stops the whole run on schema-limit-reached and leaves remaining schemas unchanged`; `stops the whole run on a network failure`; `skips a schema rejected with 413 or 422 and continues` (`it.each`); `skips a schema whose lock is held by another tab`; `uses the lock already held by the editor`; `skips an unreadable document`; `skips a document over the size limit without calling the API`; `keeps the record as a guest schema when the request fails midway`; `releases every lock it acquired`.
 - `sync-pending-schemas.test.ts`: `pushes only pending records of the signed-in user`; `ignores guest records and records of other accounts`; `skips a record whose lock is busy`; `marks conflict on revision-conflict without opening a dialog`; `records deleted-in-cloud on 404`; `stops after the session expires`; `continues after a retryable failure`; `shares one run between concurrent calls`.
 
 **Kiểm tra:** như "Quy ước chung" với `frontend`.
@@ -2583,7 +2611,7 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
   - Vùng `role="status"` luôn mount (như `SaveStatusBadge`), chỉ có chữ khi `unsynced`, `unsynced-session-expired`, `conflict`, `deleted-in-cloud`, `failed`; `syncing` và `synced` không được đọc để khỏi ngắt người dùng ở mỗi lần đẩy.
   - Màu chữ chỉ qua token theme (`text-muted-foreground`, `text-destructive`); nút dùng `Button` `size="sm"`, cao tối thiểu 24 CSS px.
 - `editor-toolbar.tsx`: props thêm `cloud: CloudStatusBadgeProps`. `saveStatus.kind` là `failed` thì chỉ hiện `SaveStatusBadge` (lỗi ghi local như phần 3); ngược lại hiện `CloudStatusBadge` ở đúng vị trí của `SaveStatusBadge` (spec mục 7 "Trạng thái trên toolbar"; Vấn đề 16). Gắn `AccountMenu` (Task 26) vào toolbar: đặt trong nhóm `ml-auto`, ngay trước `ThemeSwitch` sẵn có.
-- `editor-workspace.tsx`: props thêm `ownerId: string | null`, `apiClient: ApiClient`. Workspace giữ `ownerId` trong state khởi tạo từ props; gọi `useCloudPusher` cạnh `useAutosave`; giữ state `cloudDialog: { kind: 'conflict' | 'deleted-in-cloud'; trigger: HTMLElement | null } | null` (Task 31 render hộp thoại từ state này; task này chỉ đặt state). `onSaveToCloud`: `requireSignIn('cloudSave')` trả `false` thì dừng; `true` thì `uploadLocalSchemas({ api: apiClient, repository, lockManager, userId, schemaIds: [schemaId], heldLockSchemaId: schemaId, generateId: () => crypto.randomUUID() })` (Task 24; dùng khóa editor đang giữ, spec mục 7 bước 1); `uploadedIds` chứa `schemaId` thì đặt `ownerId` state thành `userId`, nên pusher được tạo; kết quả khác hiện toast `sync:uploadDialog.notUploaded` với `count: 1`.
+- `editor-workspace.tsx`: props thêm `ownerId: string | null`, `apiClient: ApiClient`. Workspace giữ `ownerId` trong state khởi tạo từ props; gọi `useCloudPusher` cạnh `useAutosave`; giữ state `cloudDialog: { kind: 'conflict' | 'deleted-in-cloud'; trigger: HTMLElement | null } | null` (Task 31 render hộp thoại từ state này; task này chỉ đặt state). `onSaveToCloud`: `requireSignIn('cloudSave')` trả `false` thì dừng; `true` thì `uploadLocalSchemas({ api: apiClient, repository, lockManager, userId, schemaIds: [schemaId], heldLockSchemaId: schemaId, generateId: () => crypto.randomUUID() })` (Task 24; dùng khóa editor đang giữ, spec mục 7 bước 1). Đọc `report.movedIds.get(schemaId)` (Vấn đề 27) trước: khác `undefined` (id đã đổi vì `409` rồi `404`) thì `router.replace` (`useRouter` của `next/navigation`) sang `/schemas/<id mới>`, không đặt `ownerId` state ở workspace cũ (unmount do đổi route tự nhả khóa, trang mới tại id mới tự mở và tạo pusher qua `editor-screen.tsx`/`use-open-schema`); `report.uploadedIds` chứa `schemaId` (không đổi id) thì đặt `ownerId` state thành `userId`, nên pusher được tạo; kết quả khác hiện toast `sync:uploadDialog.notUploaded` với `count: 1`.
 - `editor-screen.tsx`: lấy `apiClient` qua `useApiClient()`; truyền `ownerId` suy từ `cloud` của state `opened` (Task 29: `cloud.kind === 'owned'` thì `cloud.userId`, ngược lại `null`) vào `EditorWorkspace`. Không đổi luồng mở của Task 29.
 
 **Test viết trước:**
@@ -2592,7 +2620,7 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
 - `use-cloud-pusher.test.tsx` (`fake-indexeddb`, `fetchImpl` giả qua `createApiClient`, scheduler giả): `does not call the api for a guest schema`; `pushes the document after autosave reports saved`; `sends one more push when a change arrives during a request`; `pushes immediately on the online event`; `resumes pushing when the auth status returns to signed-in`; `retry pushes the latest document`; `exposes resume from the cloud pusher`; `uses the scheduler from RetrySchedulerContext`; `sends nothing after unmount`; `disposes the pusher when the auth status becomes signed-out for an owned schema`.
 - `cloud-status-badge.test.tsx`: `shows a translated label for every cloud status` (`it.each` cho `vi` và `en`); `announces a conflict in the status region`; `does not announce syncing or synced`; `calls onSaveToCloud from Save to cloud`; `calls onOpenCloudDialog with conflict from Resolve`; `calls onOpenCloudDialog with deleted-in-cloud from View options`; `calls onRetry from the failed state`; `has no axe violations in the light and dark themes` (`expectNoAxeViolations`).
 - `editor-toolbar.test.tsx`: `shows the local save failure instead of the cloud status`; `shows the cloud status when the local save succeeded`; `renders the account menu`.
-- `editor-workspace.test.tsx`: `opens the sign-in prompt from Save to cloud when signed out`; `uploads the schema with the held lock when signed in and starts pushing`; `stores the requested cloud dialog kind`.
+- `editor-workspace.test.tsx`: `opens the sign-in prompt from Save to cloud when signed out`; `uploads the schema with the held lock when signed in and starts pushing`; `navigates to the new schema route when the upload moved the schema to a new id`; `stores the requested cloud dialog kind`.
 - `editor-screen.test.tsx`: `passes the owner of the opened schema to the workspace` (kiểm qua hành vi: schema có chủ hiện "Đã lưu lên cloud", schema của khách hiện "Chỉ lưu trên trình duyệt này").
 
 **Kiểm tra:** như "Quy ước chung" với `frontend`. Các test sẵn có của phần 3 trong `features/editor/journeys/` phải pass không sửa.

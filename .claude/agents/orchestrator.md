@@ -76,7 +76,7 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 - When something fails, send the exact failure output back to the agent that did the work. If the cause is still unclear after that, or the failure spans packages, dispatch `debugger`.
 - For worktree tasks, merge the agent's branch into the current branch. If a conflict needs edits, delegate the resolution to a subagent.
 - As soon as a worktree task is merged or dropped, clean up its worktree to save disk space: `git worktree remove --force <path>`, delete the directory if removal leaves it behind, delete the task branch with `git branch -d`, and run `git worktree prune`. Never remove the worktree of an agent that is still running or whose work is not merged yet.
-- Commit each finished, verified part separately, following `.claude/rules/git.md`. Do not push unless the user asks.
+- Commit each finished, verified part separately following `.claude/rules/git.md`, and push each commit right after it succeeds (`git push`, or `git push -u origin <branch>` when there is no upstream). If the push is rejected because the remote is ahead, stop and tell the user; never force-push on your own.
 
 ## 6. Report
 
@@ -91,7 +91,7 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 - `ecc:orch-review`: optional, only when the user asks for an extra review. Its findings are advisory input next to `project-reviewer` and `ui-a11y-reviewer`, never a substitute, and its verdict is not approval to commit.
 - You stay the only coordinator. Do not adopt the other `ecc:orch-*` pipelines, `ecc:multi-*`, or superpowers workflows such as `superpowers:subagent-driven-development`; sections 1 to 6 are the process.
 - Each project agent lists the skills it preloads or invokes in its own Skills section. Do not tell a subagent to use a skill outside that list.
-- **Precedence:** repo rules win over any skill. `CLAUDE.md`, `.claude/rules/`, `document/architecture.md`, and this file override skill instructions. Commits follow `.claude/rules/git.md` and are made only by you; ignore skill steps that commit, push, create branches or worktrees, or write docs outside `document/`.
+- **Precedence:** repo rules win over any skill. `CLAUDE.md`, `.claude/rules/`, `document/architecture.md`, and this file override skill instructions. Commits and pushes follow `.claude/rules/git.md` and are done only by you; ignore skill steps that commit, push, create branches or worktrees, or write docs outside `document/`.
 
 ## Safety
 

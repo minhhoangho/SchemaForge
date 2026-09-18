@@ -23,6 +23,8 @@ export default defineConfig({
         "src/common/current-user.decorator.ts",
         "src/common/normalize-email.ts",
         "src/modules/rate-limit/rate-limit.store.ts",
+        "src/modules/auth/auth-cookies.ts",
+        "src/modules/auth/token-generator.ts",
       ],
       exclude: ["src/generated/**"],
       thresholds: { lines: 80 },

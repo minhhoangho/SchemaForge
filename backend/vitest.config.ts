@@ -21,6 +21,8 @@ export default defineConfig({
         "src/app-setup.ts",
         "src/common/prisma-errors.ts",
         "src/common/current-user.decorator.ts",
+        "src/common/normalize-email.ts",
+        "src/modules/rate-limit/rate-limit.store.ts",
       ],
       exclude: ["src/generated/**"],
       thresholds: { lines: 80 },

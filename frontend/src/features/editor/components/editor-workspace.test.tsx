@@ -124,6 +124,7 @@ function createRepository(): SchemaRepository {
     setSyncState: vi.fn<SchemaRepository["setSyncState"]>(),
     assignOwner: vi.fn<SchemaRepository["assignOwner"]>(),
     changeSchemaId: vi.fn<SchemaRepository["changeSchemaId"]>(),
+    deleteOwnedRowsExcept: vi.fn<SchemaRepository["deleteOwnedRowsExcept"]>(),
     readSession: vi.fn<SchemaRepository["readSession"]>(),
     writeSession: vi.fn<SchemaRepository["writeSession"]>(),
     deleteSession: vi.fn<SchemaRepository["deleteSession"]>(),

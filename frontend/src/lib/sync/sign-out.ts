@@ -77,12 +77,23 @@ async function deleteAccountCache(input: SignOutInput): Promise<void> {
   const outcomes = await Promise.allSettled(
     records.map((record) => deleteOwnedSchema(input, record.id)),
   );
+  // A row that no longer parses never reaches listOwnedSchemas, so it would
+  // outlive the account and surface for the next user of this browser. The
+  // sweep removes what is left of the account by ownerId alone.
+  const sweep = await Promise.allSettled([
+    input.repository.deleteOwnedRowsExcept(
+      input.userId,
+      records.map((record) => record.id),
+    ),
+  ]);
   // The session and the hint are cleared even when a deletion failed: the
   // server session is already gone, so keeping them would claim a sign-in
   // that no longer exists.
   await input.repository.deleteSession();
   input.clearAuthHint();
-  const failure = outcomes.find((outcome) => outcome.status === "rejected");
+  const failure = [...outcomes, ...sweep].find(
+    (outcome) => outcome.status === "rejected",
+  );
   if (failure !== undefined) {
     throw new Error("Deleting the account cache failed during sign-out.", {
       cause: failure.reason,

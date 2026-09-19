@@ -64,6 +64,26 @@ describe("createCloudCache", () => {
     return { database, cloudCache: createCloudCache(database) };
   }
 
+  // A row an older or newer release could have written: it carries an ownerId
+  // but matches neither record shape, so parseSchemaRecord rejects it.
+  async function seedUnparsableRow(
+    database: SchemaforgeDatabase,
+    id: string,
+    ownerId: string | null,
+  ): Promise<void> {
+    await database.table<unknown>("schemas").put({
+      id,
+      name: "Broken",
+      createdAt: 1,
+      updatedAt: 1,
+      ownerId,
+      cloudRevision: null,
+      syncStatus: "unknown",
+    });
+    await database.documents.put({ schemaId: id, document: { broken: true } });
+    await database.viewports.put({ schemaId: id, x: 1, y: 2, zoom: 1 });
+  }
+
   async function seedSchema(
     database: SchemaforgeDatabase,
     record: SchemaRecord,
@@ -131,6 +151,76 @@ describe("createCloudCache", () => {
       .put({ ...createOwnedRecord(FIRST_SCHEMA_ID), cloudRevision: 0 });
 
     await expect(cloudCache.listOwnedSchemas(OWNER_ID)).resolves.toEqual([]);
+  });
+
+  it("deletes the owner's unlisted rows from all three tables", async () => {
+    const { database, cloudCache } = setUp();
+    await seedUnparsableRow(database, FIRST_SCHEMA_ID, OWNER_ID);
+
+    await cloudCache.deleteOwnedRowsExcept(OWNER_ID, []);
+
+    await expect(
+      Promise.all([
+        database.schemas.get(FIRST_SCHEMA_ID),
+        database.documents.get(FIRST_SCHEMA_ID),
+        database.viewports.get(FIRST_SCHEMA_ID),
+      ]),
+    ).resolves.toEqual([undefined, undefined, undefined]);
+  });
+
+  it("keeps the rows whose ids the caller listed", async () => {
+    const { database, cloudCache } = setUp();
+    await seedSchema(database, createOwnedRecord(FIRST_SCHEMA_ID));
+    await seedUnparsableRow(database, SECOND_SCHEMA_ID, OWNER_ID);
+
+    await cloudCache.deleteOwnedRowsExcept(OWNER_ID, [FIRST_SCHEMA_ID]);
+
+    await expect(
+      database.schemas.get(FIRST_SCHEMA_ID),
+    ).resolves.not.toBeUndefined();
+    await expect(
+      database.schemas.get(SECOND_SCHEMA_ID),
+    ).resolves.toBeUndefined();
+  });
+
+  it("keeps a row of another owner that does not parse", async () => {
+    const { database, cloudCache } = setUp();
+    await seedUnparsableRow(database, FIRST_SCHEMA_ID, OTHER_OWNER_ID);
+
+    await cloudCache.deleteOwnedRowsExcept(OWNER_ID, []);
+
+    await expect(
+      Promise.all([
+        database.schemas.get(FIRST_SCHEMA_ID),
+        database.documents.get(FIRST_SCHEMA_ID),
+        database.viewports.get(FIRST_SCHEMA_ID),
+      ]),
+    ).resolves.not.toContain(undefined);
+  });
+
+  it("keeps guest rows that do not parse", async () => {
+    const { database, cloudCache } = setUp();
+    await seedUnparsableRow(database, FIRST_SCHEMA_ID, null);
+
+    await cloudCache.deleteOwnedRowsExcept(OWNER_ID, []);
+
+    await expect(
+      Promise.all([
+        database.schemas.get(FIRST_SCHEMA_ID),
+        database.documents.get(FIRST_SCHEMA_ID),
+        database.viewports.get(FIRST_SCHEMA_ID),
+      ]),
+    ).resolves.not.toContain(undefined);
+  });
+
+  it("does nothing for an owner without rows", async () => {
+    const { database, cloudCache } = setUp();
+    await seedSchema(database, createLocalRecord(FIRST_SCHEMA_ID));
+
+    await cloudCache.deleteOwnedRowsExcept(OWNER_ID, []);
+
+    await expect(database.schemas.count()).resolves.toBe(1);
+    await expect(database.documents.count()).resolves.toBe(1);
   });
 
   it("writes a cloud copy as synced with its revision and document", async () => {

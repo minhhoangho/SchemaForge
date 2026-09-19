@@ -56,6 +56,10 @@ export type CloudCache = {
     schemaId: string,
     newSchemaId: string,
   ) => Promise<"moved" | "not-found" | "id-taken">;
+  readonly deleteOwnedRowsExcept: (
+    ownerId: string,
+    keptSchemaIds: readonly string[],
+  ) => Promise<void>;
 };
 
 async function readSchemaRecord(
@@ -220,8 +224,33 @@ function changeSchemaId(
 }
 
 /**
- * Storage methods for owned schemas. None of them takes a Web Lock: the caller
- * holds the schema lock, as with every other repository write.
+ * Deletes an owner's rows by key, without parseSchemaRecord: a row that no
+ * longer validates still belongs to the account and must leave the browser
+ * with it. Guest rows carry a null ownerId, which IndexedDB does not index, so
+ * they never match. keptSchemaIds are left to the caller, which deletes them
+ * under their schema lock.
+ */
+async function deleteOwnedRowsExcept(
+  database: SchemaforgeDatabase,
+  ownerId: string,
+  keptSchemaIds: readonly string[],
+): Promise<void> {
+  const { schemas, documents, viewports } = database;
+  await database.transaction("rw", schemas, documents, viewports, async () => {
+    const keys = await schemas.where("ownerId").equals(ownerId).primaryKeys();
+    const ids = keys.filter((id) => !keptSchemaIds.includes(id));
+    await Promise.all([
+      schemas.bulkDelete(ids),
+      documents.bulkDelete(ids),
+      viewports.bulkDelete(ids),
+    ]);
+  });
+}
+
+/**
+ * Storage methods for owned schemas. None of them takes a Web Lock: every
+ * write on a single schema runs under the schema lock its caller holds, and
+ * deleteOwnedRowsExcept only touches rows no caller can hold a lock for.
  */
 export function createCloudCache(database: SchemaforgeDatabase): CloudCache {
   return {
@@ -233,5 +262,7 @@ export function createCloudCache(database: SchemaforgeDatabase): CloudCache {
     assignOwner: (schemaId, state) => assignOwner(database, schemaId, state),
     changeSchemaId: (schemaId, newSchemaId) =>
       changeSchemaId(database, schemaId, newSchemaId),
+    deleteOwnedRowsExcept: (ownerId, keptSchemaIds) =>
+      deleteOwnedRowsExcept(database, ownerId, keptSchemaIds),
   };
 }

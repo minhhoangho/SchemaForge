@@ -22,6 +22,9 @@ const USER_ID = "5f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
 const OTHER_USER_ID = "6a2d3e4f-5b6c-4d7e-9f80-a1b2c3d4e5f6";
 const SYNCED_ID = "00000000-0000-4000-8000-000000000101";
 const OTHER_ACCOUNT_ID = "00000000-0000-4000-8000-000000000102";
+const BROKEN_ID = "00000000-0000-4000-8000-000000000103";
+const BROKEN_OTHER_ID = "00000000-0000-4000-8000-000000000104";
+const BROKEN_GUEST_ID = "00000000-0000-4000-8000-000000000105";
 const LOCK_PREFIX = "schemaforge:schema:";
 const NO_CONTENT_STATUS = 204;
 
@@ -94,6 +97,27 @@ function writeCloudCopy(
     createdAt: 1,
     updatedAt: 1,
   });
+}
+
+// A row an older or newer release could have written: it carries an ownerId
+// but matches neither record shape, so parseSchemaRecord rejects it and it
+// never reaches listOwnedSchemas.
+async function seedUnparsableRow(
+  database: SchemaforgeDatabase,
+  id: string,
+  ownerId: string | null,
+): Promise<void> {
+  await database.table<unknown>("schemas").put({
+    id,
+    name: "Broken",
+    createdAt: 1,
+    updatedAt: 1,
+    ownerId,
+    cloudRevision: null,
+    syncStatus: "unknown",
+  });
+  await database.documents.put({ schemaId: id, document: { broken: true } });
+  await database.viewports.put({ schemaId: id, x: 1, y: 2, zoom: 1 });
 }
 
 // A macrotask runs only after every queued microtask and the fake IndexedDB
@@ -197,6 +221,26 @@ describe("sign-out", () => {
     });
   });
 
+  it("does not delete unreadable rows when logout fails", async () => {
+    const fixture = setUp();
+    await seedUnparsableRow(fixture.database, BROKEN_ID, USER_ID);
+
+    const result = await runSignOut(fixture, {
+      fetchImpl: createFailingFetch(),
+    });
+
+    // The cookies may still be valid, so nothing of the account leaves the
+    // browser until the server has confirmed the sign-out.
+    expect(result.isOk).toBe(false);
+    await expect(
+      Promise.all([
+        fixture.database.schemas.get(BROKEN_ID),
+        fixture.database.documents.get(BROKEN_ID),
+        fixture.database.viewports.get(BROKEN_ID),
+      ]),
+    ).resolves.not.toContain(undefined);
+  });
+
   it("does not clear the hint or broadcast when logout fails", async () => {
     const fixture = setUp();
     const clearAuthHint = vi.fn();
@@ -255,6 +299,51 @@ describe("sign-out", () => {
       repository.listOwnedSchemas(OTHER_USER_ID),
     ).resolves.toHaveLength(1);
     await expect(repository.listOwnedSchemas(USER_ID)).resolves.toEqual([]);
+  });
+
+  it("deletes an unreadable row of the account from all three tables", async () => {
+    const fixture = setUp();
+    await seedUnparsableRow(fixture.database, BROKEN_ID, USER_ID);
+
+    await runSignOut(fixture);
+
+    await expect(
+      Promise.all([
+        fixture.database.schemas.get(BROKEN_ID),
+        fixture.database.documents.get(BROKEN_ID),
+        fixture.database.viewports.get(BROKEN_ID),
+      ]),
+    ).resolves.toEqual([undefined, undefined, undefined]);
+  });
+
+  it("keeps an unreadable row that belongs to another account", async () => {
+    const fixture = setUp();
+    await seedUnparsableRow(fixture.database, BROKEN_OTHER_ID, OTHER_USER_ID);
+
+    await runSignOut(fixture);
+
+    await expect(
+      Promise.all([
+        fixture.database.schemas.get(BROKEN_OTHER_ID),
+        fixture.database.documents.get(BROKEN_OTHER_ID),
+        fixture.database.viewports.get(BROKEN_OTHER_ID),
+      ]),
+    ).resolves.not.toContain(undefined);
+  });
+
+  it("keeps an unreadable guest row", async () => {
+    const fixture = setUp();
+    await seedUnparsableRow(fixture.database, BROKEN_GUEST_ID, null);
+
+    await runSignOut(fixture);
+
+    await expect(
+      Promise.all([
+        fixture.database.schemas.get(BROKEN_GUEST_ID),
+        fixture.database.documents.get(BROKEN_GUEST_ID),
+        fixture.database.viewports.get(BROKEN_GUEST_ID),
+      ]),
+    ).resolves.not.toContain(undefined);
   });
 
   it("deletes the session record and clears the hint after a successful logout", async () => {

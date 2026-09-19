@@ -7,7 +7,9 @@
 # <worktree-path> must already exist and be listed in
 # `git worktree list --porcelain` for this repo, and must not be the main
 # worktree. Runs, inside it: ensure_node, `pnpm install --frozen-lockfile`,
-# and `pnpm --filter @schemaforge/core build`, each through run_step.
+# and `pnpm turbo run build` scoped to the workspace packages that
+# frontend/backend depend on (currently @schemaforge/core and
+# @schemaforge/api-contract), each through run_step.
 
 set -euo pipefail
 
@@ -20,9 +22,11 @@ usage() {
 Usage: worktree-setup.sh <worktree-path>
 
 Bootstraps a git worktree of this repo: ensures Node 24, runs
-`pnpm install --frozen-lockfile`, and builds @schemaforge/core. The path
-must be a real, non-main worktree already listed by
-`git worktree list --porcelain`.
+`pnpm install --frozen-lockfile`, and builds the internal workspace
+packages that @schemaforge/frontend and @schemaforge/backend depend on
+(via `pnpm turbo run build --filter '@schemaforge/frontend^...' --filter
+'@schemaforge/backend^...'`). The path must be a real, non-main worktree
+already listed by `git worktree list --porcelain`.
 EOF
 }
 
@@ -48,9 +52,22 @@ if [ ! -d "${WORKTREE_PATH}" ]; then
 fi
 
 WT_ABS="$(cd -- "${WORKTREE_PATH}" >/dev/null 2>&1 && pwd -P)"
-MAIN_ABS="${REPO_ROOT}"
 
-if [ "${WT_ABS}" = "${MAIN_ABS}" ]; then
+# Distinguish the main worktree from a linked one using WORKTREE_PATH's own
+# git metadata, not this script's location: a copy of this file can live
+# inside the very worktree being bootstrapped (every agent worktree carries
+# its own .claude/scripts/), so deriving "main" from ${BASH_SOURCE[0]} would
+# wrongly call that worktree "main". For the main worktree, `--git-dir` and
+# `--git-common-dir` are the same path (both ".git"); for a linked worktree,
+# `--git-dir` points under the main repo's `.git/worktrees/<name>` while
+# `--git-common-dir` points at the shared main `.git` - so they differ.
+if ! WT_GIT_DIR="$(git -C "${WT_ABS}" rev-parse --path-format=absolute --git-dir 2>/dev/null)"; then
+  echo "error: '${WORKTREE_PATH}' is not inside a git working tree" >&2
+  exit 2
+fi
+WT_COMMON_DIR="$(git -C "${WT_ABS}" rev-parse --path-format=absolute --git-common-dir)"
+
+if [ "${WT_GIT_DIR}" = "${WT_COMMON_DIR}" ]; then
   echo "error: '${WORKTREE_PATH}' is the main worktree; refusing to run here" >&2
   exit 2
 fi
@@ -63,7 +80,7 @@ while IFS= read -r line; do
       [ "${wt_line_path}" = "${WT_ABS}" ] && FOUND=1
       ;;
   esac
-done < <(git -C "${REPO_ROOT}" worktree list --porcelain)
+done < <(git -C "${WT_ABS}" worktree list --porcelain)
 
 if [ "${FOUND}" -ne 1 ]; then
   echo "error: '${WORKTREE_PATH}' is not a worktree of this repo" >&2
@@ -84,7 +101,8 @@ if ! run_step "pnpm install --frozen-lockfile" pnpm install --frozen-lockfile; t
   FAILED=1
 fi
 
-if ! run_step "core build" pnpm --filter @schemaforge/core build; then
+if ! run_step "build workspace dependencies" pnpm turbo run build \
+  --filter '@schemaforge/frontend^...' --filter '@schemaforge/backend^...'; then
   FAILED=1
 fi
 

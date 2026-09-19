@@ -57,6 +57,29 @@ The command prints a connection string; put it in `DATABASE_URL` (and `SHADOW_DA
 - Every `schema.prisma` change ships with a migration: `pnpm exec prisma migrate dev --name <snake_case_description>`. Never edit or delete a committed migration; add a new one instead.
 - CI and deployment run `pnpm exec prisma migrate deploy` only (no shadow database needed).
 
+## End-to-end tests
+
+`backend/test/*.e2e-spec.ts` drives the real application over HTTP against a real
+PostgreSQL database. `pnpm test` does not run them, so the unit tests still pass
+on a machine without a database.
+
+```bash
+pnpm --filter @schemaforge/backend test:e2e
+```
+
+Requirements:
+
+- The `schemaforge_test` database of the "Local database" section above.
+- `backend/.env.test` (copied from `.env.test.example`, gitignored) with
+  `DATABASE_URL` pointing at that database. `vitest.e2e.config.ts` loads the file
+  into the environment; variables already set in the environment win, which is how
+  CI supplies them without the file.
+
+The suite requires `NODE_ENV=test` and refuses to start otherwise. Before the run
+it applies the committed migrations with `prisma migrate deploy`, and each test
+truncates every table, so never point `DATABASE_URL` at a database whose contents
+matter.
+
 ## Cookies over `http://localhost`
 
 Auth cookies are `Secure` in every environment (`AUTH_COOKIE_SECURE=true` by default), including local development over plain `http://localhost`. Most browsers still accept a `Secure` cookie on `localhost` because it is treated as a secure context. If a particular browser refuses it, set `AUTH_COOKIE_SECURE=false` in `.env` for local development only; production must keep it `true` (enforced by env validation).

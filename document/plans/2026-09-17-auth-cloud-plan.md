@@ -108,8 +108,10 @@ Báo cáo gồm: file đã tạo hoặc sửa; lệnh đã chạy kèm kết qu�
 | `frontend/src/lib/i18n/resources.ts`, `resources.test.ts`, các file tổng `locales/{en,vi}/auth.ts`, `sync.ts`, `api-errors.ts` | Chỉ Task 19. Task giao diện sau chỉ được thêm key vào **file con** của namespace được ghi trong "File sở hữu" của mình (ví dụ `locales/{en,vi}/sync/conflict-dialog.ts`), không sửa file tổng. Hai task cùng đợt không sở hữu cùng file con |
 | File con i18n `locales/{en,vi}/auth/*`, `sync/*` | Task 19 tạo mọi file con. Chủ thêm key: `auth/account-menu.ts`, `auth/sign-in-prompt.ts` là Task 26; `auth/sign-in.ts`, `auth/sign-up.ts`, `auth/credentials-form.ts` là Task 27; `sync/open-schema.ts` là Task 29; `sync/cloud-status.ts` là Task 30; `sync/upload-dialog.ts` là Task 28; `sync/conflict-dialog.ts`, `sync/deleted-in-cloud-dialog.ts` là Task 31; `sync/schema-list.ts` dùng chung Task 32 (đợt 8) và Task 33 (đợt 9); `sync/sign-out-dialog.ts` là Task 34. Không task nào tạo file con mới |
 | `frontend/src/lib/storage/database.ts`, `records.ts`, `schema-repository.ts` | Chỉ Task 7. Task đồng bộ dùng method của repository; thiếu method thì dừng và báo |
-| `frontend/src/lib/storage/cloud-cache.ts`, `cloud-cache.test.ts` | Task 7 tạo (đợt 1). Task 39 thêm đúng một method `deleteOwnedRows` (đợt 6). Task khác chỉ gọi method có sẵn |
-| `frontend/src/lib/sync/sign-out.ts`, `sign-out.test.ts` | Task 25 tạo (đợt 5). Task 39 thêm lời gọi `deleteOwnedRows` vào `deleteAccountCache` (đợt 6). Task 26, 34 chỉ gọi `signOut`, không sửa file này |
+| `frontend/src/lib/storage/cloud-cache.ts`, `cloud-cache.test.ts` | Task 7 tạo (đợt 1). Task 39 thêm đúng một method `deleteOwnedRowsExcept` (đợt 6). Task 40 chỉ gọi method đó, không sửa file này. Task khác chỉ gọi method có sẵn |
+| `frontend/src/lib/sync/sign-out.ts`, `sign-out.test.ts` | Task 25 tạo (đợt 5). Task 39 thêm lời gọi `deleteOwnedRowsExcept` vào `deleteAccountCache` (đợt 6). Task 26, 34 chỉ gọi `signOut`, không sửa file này |
+| `frontend/src/lib/sync/forget-previous-account.ts`, `forget-previous-account.test.ts` | Task 25 tạo (đợt 5). Task 40 thêm lời gọi `deleteOwnedRowsExcept` (đợt 7). Task 26 chỉ truyền hàm này vào `onAccountChanged`, không sửa file này |
+| Fake `SchemaRepository` dựng bằng object literal trong test của `frontend/src/features/editor/**` | `SchemaRepository` là kiểu giao có `CloudCache`, nên **task nào thêm method vào `CloudCache` phải cập nhật mọi fake dựng bằng object literal trong cùng commit**, thiếu một method là `typecheck` fail. Task 39 sở hữu ba file đó (xem "File sở hữu" của nó); task sau thêm method mới phải rà lại bằng `pnpm --filter @schemaforge/frontend typecheck` |
 | `frontend/src/components/app-providers.tsx`, `app-providers.test.tsx`, `src/app/layout.tsx` | Task 26 (provider auth và API client, hint; đợt 6). Task 28 chỉ thêm hai host vào `AppProviders` và một test vào `app-providers.test.tsx` (đợt 7) |
 | `frontend/src/components/auth-provider.tsx`, `account-menu.tsx` | Task 26 tạo. Task 34 sửa `account-menu.tsx` (hộp thoại đăng xuất) |
 | `frontend/src/features/editor/components/editor-screen.tsx`, `editor-screen-loader.tsx`, `toolbar/editor-toolbar.tsx` | Task 29 sửa `editor-screen-loader.tsx`, `editor-screen.tsx` (luồng mở). Task 30 sửa `editor-screen.tsx`, `editor-toolbar.tsx` (đẩy lên, trạng thái cloud). Task 31 sửa `editor-screen.tsx` (hộp thoại, mount lại store). Ba đợt khác nhau |
@@ -150,7 +152,7 @@ Không cài: `@nestjs/mapped-types` (không DTO nào cần `PickType`, `OmitType
 
 ## Bảng task
 
-Số task là định danh; bảng sắp theo đợt. Task 0 không có thân riêng (xem [Vấn đề phát hiện khi lập plan](#vấn-đề-phát-hiện-khi-lập-plan)). Task 39 thêm ngày 2026-09-19 từ phát hiện lúc hiện thực (người dùng đã duyệt); số của các task cũ giữ nguyên, nên thân của Task 39 nằm cuối danh sách thân task dù chạy ở đợt 6.
+Số task là định danh; bảng sắp theo đợt. Task 0 không có thân riêng (xem [Vấn đề phát hiện khi lập plan](#vấn-đề-phát-hiện-khi-lập-plan)). Task 39 và Task 40 thêm ngày 2026-09-19 từ phát hiện lúc hiện thực (người dùng đã duyệt); số của các task cũ giữ nguyên, nên thân của hai task này nằm cuối danh sách thân task dù chạy ở đợt 6 và đợt 7.
 
 | Task | Nội dung | Agent | Phụ thuộc | Đợt |
 |---|---|---|---|---|
@@ -175,10 +177,11 @@ Số task là định danh; bảng sắp theo đợt. Task 0 không có thân ri
 | 13 | Module auth: users repository, mapper, `AuthService`, controller, DTO; đăng ký guard toàn cục | backend-engineer | 10, 11, 12 | 6 |
 | 24 | `uploadLocalSchemas`, `syncPendingSchemas` | frontend-engineer | 23 | 6 |
 | 26 | Provider API client và auth, hint phía server, `AccountMenu`, `SignInPrompt` | frontend-engineer | 19, 21, 25 | 6 |
-| 39 | Đăng xuất xóa cả row không parse được của tài khoản (`deleteOwnedRows`) | frontend-engineer | 25 | 6 |
+| 39 | Đăng xuất xóa cả row không parse được của tài khoản (`deleteOwnedRowsExcept`) | frontend-engineer | 25 | 6 |
 | 14 | Module schemas: repository, service, cursor, mapper, DTO, controller | backend-engineer | 13 | 7 |
 | 15 | Hạ tầng e2e và `auth.e2e-spec.ts` (hành trình 1, 2, 3, 11) | backend-engineer | 13 | 7 |
 | 27 | Màn hình `/sign-in`, `/sign-up` | frontend-engineer | 26 | 7 |
+| 40 | Đổi tài khoản xóa cả row không parse được của tài khoản trước | frontend-engineer | 26, 39 | 7 |
 | 28 | Hộp thoại đưa schema của khách lên, host đồng bộ nền | frontend-engineer | 24, 26 | 7 |
 | 29 | Editor: luồng mở schema theo `decideOpenAction` | frontend-engineer | 22, 26 | 7 |
 | 16 | `schemas.e2e-spec.ts` (hành trình 4–9, 14) | backend-engineer | 14, 15 | 8 |
@@ -202,18 +205,20 @@ Nhóm song song theo đợt (tập file rời nhau):
 - Đợt 4: backend Task 9; frontend Task 20.
 - Đợt 5: backend Task 10, 12; frontend Task 21, 23, 25.
 - Đợt 6: backend Task 13; frontend Task 24, 26, 39 (Task 39 sở hữu `cloud-cache.ts` và `sign-out.ts`, không trùng file của 24, 26).
-- Đợt 7: backend Task 14, 15; frontend Task 27, 28, 29.
+- Đợt 7: backend Task 14, 15; frontend Task 27, 28, 29, 40 (Task 40 sở hữu `forget-previous-account.ts`, không trùng file của 27, 28, 29).
 - Đợt 8: backend Task 16, 17; devops Task 18; frontend Task 30, 32.
 - Đợt 9: frontend Task 31, 33, 34.
 - Đợt 10–13: Task 35, 36, 37, 38 lần lượt.
 
-Đường tới hạn: Task 1 → 2 → 6 → 20 → 23 → 24 → 26 (cùng đợt 6 với 24, cần 21, 25) → 29 → 30 → 31 → 35 → 36 → 37 → 38. Nhánh backend (1 → 2 → 5 → 9 → 12 → 13 → 14 → 16, 17) xong ở đợt 8, trước nhánh frontend. Task 0 phải xong trước các task nằm trong cột "Ảnh hưởng" của vấn đề tương ứng; task khác không chờ Task 0. Task 39 không nằm trên đường tới hạn: không task nào phụ thuộc nó, nhưng nó phải xong trước Task 37 (checklist kiểm tra tay mục đăng xuất).
+Đường tới hạn: Task 1 → 2 → 6 → 20 → 23 → 24 → 26 (cùng đợt 6 với 24, cần 21, 25) → 29 → 30 → 31 → 35 → 36 → 37 → 38. Nhánh backend (1 → 2 → 5 → 9 → 12 → 13 → 14 → 16, 17) xong ở đợt 8, trước nhánh frontend. Task 0 phải xong trước các task nằm trong cột "Ảnh hưởng" của vấn đề tương ứng; task khác không chờ Task 0. Task 39 và Task 40 không nằm trên đường tới hạn: không task nào phụ thuộc chúng, nhưng cả hai phải xong trước Task 37 (checklist kiểm tra tay mục đăng xuất và đổi tài khoản). Task 40 cần method của Task 39 nên chạy sau, ở đợt 7.
 
 ## Vấn đề phát hiện khi lập plan
 
 Các task được viết theo phương án đánh dấu **(đề xuất)**. **Task 0** (không có thân riêng): orchestrator trình bảng này cho người dùng, spec-writer ghi lựa chọn vào spec (với vấn đề đổi quyết định của spec) và vào các task bị ảnh hưởng của plan này, rồi orchestrator mới giao các task ở cột "Ảnh hưởng tới task". Người dùng chọn khác đề xuất thì chỉ sửa đúng các task đó.
 
-Cột "Trạng thái": ngày 2026-09-17 người dùng đã chốt phương án đề xuất cho Vấn đề 1–26 (23–26 do người viết các task backend nêu thêm, trình người dùng cùng ngày) và Vấn đề 27 (nêu thêm khi viết Task 24, 30). Không còn vấn đề nào chờ người dùng; không task nào bị chặn bởi Task 0.
+Cột "Trạng thái": ngày 2026-09-17 người dùng đã chốt phương án đề xuất cho Vấn đề 1–26 (23–26 do người viết các task backend nêu thêm, trình người dùng cùng ngày) và Vấn đề 27 (nêu thêm khi viết Task 24, 30). Không task nào bị chặn bởi Task 0.
+
+Ngày 2026-09-19, từ phát hiện lúc hiện thực Task 24: Vấn đề 27 được ghi lại rõ hơn (ngữ nghĩa của `movedIds`), Vấn đề 28 được người dùng chốt, Vấn đề 29 là đề xuất của spec-writer đã ghi sẵn vào thân Task 24 và Task 28 — orchestrator xác nhận với người dùng trước khi Task 28 chạy. Ba mục này không mở lại quyết định nào của spec `2026-09-15-auth-cloud-design.md`: spec mục 7 không mô tả hình dạng `UploadReport`.
 
 Bằng chứng kiểm tra ngày 2026-09-17 (13:36 UTC) bằng `npm view`, mã nguồn gói tải về bằng `npm pack` vào thư mục tạm (không cài vào repo), Context7 (`/websites/turborepo_dev`, `/prisma/web`, `/vitejs/vite`), GitHub API của SecLists và code hiện có trong repo.
 
@@ -245,7 +250,9 @@ Bằng chứng kiểm tra ngày 2026-09-17 (13:36 UTC) bằng `npm view`, mã ng
 | 24 | **Hai refresh đồng thời cùng một refresh token** | Spec mục 1 "Access token và refresh token": dùng lại token đã xoay thì thu hồi cả họ; không nói hai request tới gần như cùng lúc (Web Lock không có, mạng gửi lại). `repository.rotate` là update có điều kiện nên chỉ một request thắng | (a) **(đề xuất)** Bên thua (`rotate` trả `false`) xử lý như dùng lại token: thu hồi cả họ, `401 session-expired`. Frontend đã tuần tự hóa refresh giữa các tab (Task 20) nên trường hợp này hiếm. (b) Bên thua trả `401` nhưng không thu hồi họ: ít đăng xuất ngoài ý muốn hơn nhưng yếu hơn khi token bị lộ | Task 12, 15 | Đã chốt 2026-09-17: phương án đề xuất |
 | 25 | **Field của DTO và rule cấm `!`** | `.claude/rules/typescript.md` cấm non-null `!`; field của DTO do `class-transformer` điền nên không có initializer, và `strict` (`strictPropertyInitialization`) báo lỗi nếu không đánh dấu | (a) **(đề xuất)** Dùng definite assignment `readonly email!: string` chỉ cho field của DTO; Task 4 ghi rõ ngoại lệ này trong `nestjs.md`. (b) Field optional `readonly email?: string`: service phải thu hẹp lại giá trị mà `ValidationPipe` đã bảo đảm | Task 4, 13, 14 | Đã chốt 2026-09-17: phương án đề xuất |
 | 26 | **Đặt, xóa cookie trong controller auth** | `nestjs.md`: controller gọi đúng một method của service (Vấn đề 14 cho phép đưa kết quả cho helper thuần); cookie cần `AUTH_COOKIE_SECURE` từ `ConfigService`; refresh thất bại phải xóa cookie trước khi trả lỗi | (a) **(đề xuất)** Provider `AuthCookies` (inject `ConfigService`) có `set`, `clear`; controller gọi sau method của service; refresh trả `null` thì `authCookies.clear(response)` rồi ném `401 session-expired`. Task 4 ghi rằng controller được gọi provider dựng response này. (b) Interceptor đặt, xóa cookie dựa trên giá trị trả về và lỗi của handler: controller không đụng `Response`, nhưng thêm một lớp khó test và lệch cấu trúc thư mục của spec | Task 4, 12, 13 | Đã chốt 2026-09-17: phương án đề xuất |
-| 27 | **`uploadLocalSchemas` có thể đổi id schema, nơi gọi cần biết id mới** | Task 24 bước 3: `409 schema-id-unavailable` rồi `get` cho `404` thì `generateId()`, đổi id ở ba bảng, `create` lại. `UploadReport` hiện chỉ có `uploadedIds`, `skipped`, `stoppedBy`, `notAttemptedIds`, không có chỗ ghi id mới; Task 30 "Lưu lên cloud" gọi `uploadLocalSchemas` cho đúng schema đang mở trong editor và cần điều hướng sang route mới nếu id đã đổi, nếu không URL vẫn trỏ tới id đã bị xóa cục bộ | (a) **(đề xuất)** `UploadReport` thêm `movedIds: ReadonlyMap<string, string>` (id cũ → id mới), ghi đúng lúc bước 3 đổi id; `uploadedIds` vẫn chứa id mới (id hiện có của schema sau khi upload). Task 30 `onSaveToCloud`: sau khi `uploadLocalSchemas` trả về, `movedIds.get(schemaId)` khác `undefined` thì `router.replace` sang `/schemas/<id mới>` thay vì chỉ đặt `ownerId` state (route cũ không còn là id thật của schema) | Task 24, 30 | Đã chốt 2026-09-17: phương án đề xuất |
+| 27 | **`uploadLocalSchemas` có thể đổi id schema, nơi gọi cần biết id mới** | Task 24 bước 3: `409 schema-id-unavailable` rồi `get` cho `404` thì `generateId()`, đổi id ở ba bảng, `create` lại. `UploadReport` hiện chỉ có `uploadedIds`, `skipped`, `stoppedBy`, `notAttemptedIds`, không có chỗ ghi id mới; Task 30 "Lưu lên cloud" gọi `uploadLocalSchemas` cho đúng schema đang mở trong editor và cần điều hướng sang route mới nếu id đã đổi, nếu không URL vẫn trỏ tới id đã bị xóa cục bộ | (a) **(đề xuất)** `UploadReport` thêm `movedIds: ReadonlyMap<string, string>` (id cũ → id mới) mang ngữ nghĩa **trạng thái lưu trữ cục bộ**: ghi cặp ngay khi `changeSchemaId` thành công và không bao giờ xóa, dù lần `create` sau đó ra sao; "có lên được cloud hay không" đã do `uploadedIds`, `skipped`, `stoppedBy`, `notAttemptedIds` diễn đạt. `uploadedIds` vẫn chứa id hiện có của schema sau khi upload (id mới nếu đã đổi id). Task 30 `onSaveToCloud`: sau khi `uploadLocalSchemas` trả về, `movedIds.get(schemaId)` khác `undefined` thì `router.replace` sang `/schemas/<id mới>` thay vì chỉ đặt `ownerId` state (route cũ không còn là id thật của schema) | Task 24, 30 | Đã chốt 2026-09-17: phương án đề xuất. Điều chỉnh 2026-09-19 (phát hiện lúc hiện thực Task 24): `movedIds` là trạng thái lưu trữ cục bộ, **không** xóa cặp đã ghi khi lần `create` thứ hai thất bại, và mọi nhánh thất bại sau khi đổi id đều giữ cặp. Xóa cặp khiến Task 30 ở lại route id cũ trong khi bản ghi đã nằm ở id mới, `useAutosave` ghi một row `documents` mồ côi mà `listSchemas` không thấy, tức mọi chỉnh sửa sau đó biến mất khỏi ứng dụng. Chi tiết ở thân Task 24 và Task 30 |
+| 28 | **`validation-failed` (400) và `origin-not-allowed` (403) chưa có trong phân loại của `uploadLocalSchemas`** | Thân Task 24 bước 3 chỉ ghi "`413`, `422` → `rejected`" và "`403 schema-limit-reached` → `stoppedBy`". `API_ERROR_STATUS` trong `packages/api-contract/src/errors.ts` có `validation-failed` (400) và `origin-not-allowed` (403), nên hai mã này rơi vào nhánh "lỗi tạm thời khác" và dừng cả lượt | (a) **(đề xuất)** `validation-failed` là lỗi của riêng một tài liệu nên phân loại `rejected`: bỏ qua schema đó và chạy tiếp, như `payload-too-large` và `document-invalid`. `origin-not-allowed` là lỗi cấu hình chung của cả trình duyệt nên giữ `unavailable`: schema sau cũng hỏng y hệt, dừng là đúng. (b) Coi cả hai là `unavailable`: một tài liệu hỏng làm hỏng cả lượt đưa lên | Task 24 | Đã chốt 2026-09-19: phương án đề xuất |
+| 29 | **Schema làm dừng lượt không nằm trong nhóm nào của `UploadReport`** | Thân Task 24 ghi "các id chưa xét vào `notAttemptedIds`", đọc sát chữ là `schemaIds.slice(stoppedAtIndex + 1)`. Chọn đúng một schema rồi backend trả `403 schema-limit-reached` thì `uploadedIds`, `skipped`, `notAttemptedIds` đều rỗng; công thức toast của Task 28 (`skipped.length + notAttemptedIds.length`) ra `0`, nên hộp thoại đóng mà không có toast nào — một lỗi im lặng | (a) **(đề xuất)** `notAttemptedIds = schemaIds.slice(stoppedAtIndex)`: schema làm dừng lượt nằm cùng nhóm với các id sau nó, vì nó cũng không lên được cloud. Bất biến "mọi id đã chọn, trừ id mà record không còn là của khách, nằm đúng một trong ba nhóm" thành đúng, và công thức đếm của Task 28, 33 giữ nguyên. (b) Thêm trường `stoppedAtId: string \| null`, ba nơi gọi cộng thêm `stoppedBy === null ? 0 : 1`: tên đúng hơn nhưng quên cộng ở một nơi là lại có lỗi im lặng | Task 24, 28, 33 | Đã chốt 2026-09-19: phương án đề xuất |
 
 ## Task 1: Package `packages/api-contract`
 
@@ -2066,14 +2073,14 @@ Mọi đọc, ghi IndexedDB đi qua method của `SchemaRepository` mà Task 7 �
 1. `upload-local-schemas.ts`:
 
    ```ts
-   export type UploadSkipReason = "locked" | "unreadable" | "too-large" | "rejected"; // rejected: 413, 422
-   export type UploadStopReason = "schema-limit-reached" | "unavailable";            // unavailable: network, timeout, 5xx, 429, invalid-response, 401
+   export type UploadSkipReason = "locked" | "unreadable" | "too-large" | "rejected"; // rejected: validation-failed, payload-too-large, document-invalid
+   export type UploadStopReason = "schema-limit-reached" | "unavailable";            // unavailable: network, timeout, 5xx, 429, invalid-response, 401, origin-not-allowed
    export type UploadReport = {
      readonly uploadedIds: readonly string[];
      readonly skipped: readonly { readonly schemaId: string; readonly reason: UploadSkipReason }[];
      readonly stoppedBy: UploadStopReason | null;
-     readonly notAttemptedIds: readonly string[];
-     readonly movedIds: ReadonlyMap<string, string>; // id cũ -> id mới, chỉ có mục khi 409 rồi 404 buộc đổi id (Vấn đề 27)
+     readonly notAttemptedIds: readonly string[];    // khi stoppedBy khác null: schema làm dừng lượt và mọi id sau nó (Vấn đề 29)
+     readonly movedIds: ReadonlyMap<string, string>; // id cũ -> id mới trong IndexedDB; ghi ngay khi changeSchemaId thành công, không bao giờ xóa (Vấn đề 27)
    };
    export function uploadLocalSchemas(input: {
      readonly api: ApiClient;
@@ -2089,8 +2096,29 @@ Mọi đọc, ghi IndexedDB đi qua method của `SchemaRepository` mà Task 7 �
    Lần lượt từng id, đúng các bước spec:
    1. `schemaId === heldLockSchemaId` thì dùng khóa đang có; ngược lại `tryAcquire`, `null` → `skipped` `locked`.
    2. Đọc và `parseSchemaDocument`; lỗi → `unreadable`. Kích thước serialize vượt `MAX_REQUEST_BODY_BYTES` → `too-large`. Record không còn là của khách → bỏ qua không ghi báo cáo.
-   3. `create({ id, document })`: `201` → đổi chủ (`ownerId`, `cloudRevision`, `synced`) trong một transaction. `409 schema-id-unavailable` → `get(id)`: `200` và `documentsEqual` → đổi chủ `synced` với revision cloud; `200` khác → đổi chủ với `cloudRevision` của bản cloud và `conflict`; `404` → `generateId()`, đổi id ở ba bảng trong một transaction, ghi cặp `(id cũ, id mới)` vào `movedIds`, `create` lại đúng một lần với id mới (lần này lại `409` thì `skipped` `rejected`, xóa cặp vừa ghi khỏi `movedIds`). `403 schema-limit-reached` → `stoppedBy`; lỗi mạng, `5xx` và các lỗi tạm thời khác → `stoppedBy` `unavailable`; các id chưa xét vào `notAttemptedIds`, không đổi gì. `413`, `422` → `rejected`.
-   - Bản ghi chỉ đổi chủ sau khi `POST` (hoặc `get` xác nhận) thành công. `uploadedIds` chứa id hiện có của schema sau khi upload (id mới nếu đã đổi id). Toast "Đã lưu N schema lên cloud", "M schema chưa lưu được" là việc của nơi gọi (Task 28, 30, 33) dựa trên `UploadReport`; nơi gọi cho một schema đang mở (Task 30) đọc `movedIds` để biết có phải điều hướng route hay không.
+   3. `create({ id, document })`, phân loại kết quả theo bảng dưới. Nhánh `409 schema-id-unavailable` → `get(id)`: `200` và `documentsEqual` → đổi chủ `synced` với revision cloud; `200` khác → đổi chủ với `cloudRevision` của bản cloud và `conflict`; `404` → `generateId()`, đổi id ở ba bảng trong một transaction, **ghi ngay cặp `(id cũ, id mới)` vào `movedIds`**, rồi `create` lại đúng một lần với id mới; kết quả lần `create` thứ hai phân loại theo đúng bảng dưới như một lần `create` thường (`201` → `uploadedIds` với id mới; `409` lần nữa → `skipped` `rejected`; lỗi dừng lượt → `stoppedBy`), và **không bao giờ xóa cặp đã ghi vào `movedIds`**.
+
+   | Kết quả của `create` | Phân loại | Ghi vào báo cáo |
+   |---|---|---|
+   | `201` | Đã lên cloud | `uploadedIds`, kèm id hiện có của schema (id mới nếu đã đổi id). Đổi chủ (`ownerId`, `cloudRevision`, `synced`) trong một transaction |
+   | `409 schema-id-unavailable` | Theo nhánh `get(id)` ở trên | `get` cho `200`, **cả khi tài liệu khác nhau**: `uploadedIds`. `get` cho `404` rồi `create` lần hai vẫn `409`: `skipped` `rejected` |
+   | `400 validation-failed` | `rejected` | `skipped`, chạy tiếp schema sau (Vấn đề 28) |
+   | `413 payload-too-large` | `rejected` | `skipped`, chạy tiếp schema sau |
+   | `422 document-invalid` | `rejected` | `skipped`, chạy tiếp schema sau |
+   | `403 schema-limit-reached` | Dừng cả lượt | `stoppedBy` `schema-limit-reached` |
+   | `403 origin-not-allowed` | Dừng cả lượt | `stoppedBy` `unavailable` (Vấn đề 28: lỗi cấu hình chung, schema sau cũng hỏng y hệt) |
+   | `401`, `429`, `5xx`, lỗi mạng, `timeout`, response sai hợp đồng | Dừng cả lượt | `stoppedBy` `unavailable` |
+
+   Khi dừng lượt: `notAttemptedIds = schemaIds.slice(stoppedAtIndex)`, tức **gồm cả schema làm dừng lượt** và mọi id sau nó (Vấn đề 29). Các id sau nó không bị đụng đến trong IndexedDB; riêng schema làm dừng lượt có thể đã đổi id nếu nhánh `404` đã chạy, và cặp id đó nằm trong `movedIds`.
+
+   **Bất biến của `UploadReport`** (nơi gọi ở Task 28, 30, 33 dựa vào):
+   - Mọi id trong `schemaIds`, trừ id mà record không còn là của khách lúc đọc (bước 2), nằm đúng **một** trong ba nhóm `uploadedIds`, `skipped`, `notAttemptedIds`. Nhờ vậy "đã lưu N" cộng "M chưa lưu được" phủ hết danh sách đã chọn, không schema nào biến mất khỏi báo cáo.
+   - `movedIds` **độc lập** với ba nhóm đó: nó chỉ trả lời "id của schema trong IndexedDB đã đổi chưa", còn "có lên được cloud không" do ba nhóm trả lời. Một id có thể vừa có trong `movedIds` vừa nằm trong `skipped` hoặc `notAttemptedIds`.
+   - Id nào nằm ở đâu: `skipped[].schemaId` và `notAttemptedIds` dùng **id nơi gọi truyền vào** (id cũ, đúng phần tử của `schemaIds`); `uploadedIds` dùng **id hiện có sau khi upload** (id mới nếu đã đổi id). Vì vậy nơi gọi tra cứu theo công thức `const currentId = report.movedIds.get(id) ?? id`, rồi `report.uploadedIds.includes(currentId)`.
+   - Bản ghi chỉ đổi chủ sau khi `POST` (hoặc `get` xác nhận) thành công. Toast "Đã lưu N schema lên cloud", "M schema chưa lưu được" là việc của nơi gọi (Task 28, 30, 33) dựa trên `UploadReport`; nơi gọi đang giữ một id trên URL hay trong state (Task 30) đọc `movedIds` để biết có phải điều hướng route hay không.
+
+   **Điều chỉnh 2026-09-19 (phát hiện lúc hiện thực task này, xem Vấn đề 27, 28, 29):** ba điểm trên là thay đổi so với bản plan ngày 2026-09-17. (1) `movedIds` mang ngữ nghĩa trạng thái lưu trữ cục bộ: ghi cặp ngay khi `changeSchemaId` trả về thành công và **không bao giờ xóa**, kể cả khi lần `create` thứ hai trả `409`, rớt mạng hay làm dừng cả lượt. Bản cũ ghi "lần này lại `409` thì xóa cặp vừa ghi khỏi `movedIds`", mà lúc đó `changeSchemaId` đã chạy xong nên id trong IndexedDB **đã** đổi; báo cáo xóa cặp là báo cáo sai sự thật, và nơi gọi (Task 30) ở lại route id cũ trong khi bản ghi nằm ở id mới — `useAutosave` sau đó gọi `repository.saveDocument(<id cũ>, …)` và `frontend/src/lib/storage/schema-repository.ts` tạo một row `documents` mồ côi (không có row `schemas` tương ứng, nên `listSchemas` không bao giờ thấy), tức mọi chỉnh sửa của người dùng từ lúc đó biến mất khỏi ứng dụng. Không có nhánh nào hoàn tác `changeSchemaId`: spec mục 7 bước 3 chỉ nói "đổi sang UUID mới, chuyển bản ghi ở ba bảng trong một transaction, rồi `create` lại một lần", và hoàn tác thêm một transaction nữa cũng có thể hỏng. (2) `notAttemptedIds` gồm cả schema làm dừng lượt. (3) `validation-failed` là `rejected`, `origin-not-allowed` là `unavailable`. (4) `409` mà `get` trả `200` với tài liệu **khác** (bản ghi thành có chủ với `syncStatus: "conflict"`) xếp vào `uploadedIds`, không phải `skipped`: tài liệu đã nằm trên cloud thật, xung đột được xử lý khi mở schema (spec mục 7, bảng "Mở schema"), và xếp vào đây giữ được bất biến "mọi id nằm đúng một nhóm" thay vì đẻ thêm một nhóm thứ tư mà cả ba nơi gọi phải nhớ cộng vào số đếm.
+
 2. `sync-pending-schemas.ts`:
 
    ```ts
@@ -2115,7 +2143,7 @@ Mọi đọc, ghi IndexedDB đi qua method của `SchemaRepository` mà Task 7 �
 
 **Test viết trước:**
 
-- `upload-local-schemas.test.ts` (`fake-indexeddb`, repository thật, `createFakeLockRegistry`, `fetchImpl` giả): `uploads a guest schema and makes it owned and synced after 201`; `treats 409 with an equal cloud document as already uploaded`; `marks conflict for 409 with a different cloud document`; `moves the schema to a new id and creates it again after 409 then 404`; `reports the old and new id in movedIds when a schema is moved to a new id`; `leaves movedIds empty when no schema is moved`; `stops the whole run on schema-limit-reached and leaves remaining schemas unchanged`; `stops the whole run on a network failure`; `skips a schema rejected with 413 or 422 and continues` (`it.each`); `skips a schema whose lock is held by another tab`; `uses the lock already held by the editor`; `skips an unreadable document`; `skips a document over the size limit without calling the API`; `keeps the record as a guest schema when the request fails midway`; `releases every lock it acquired`.
+- `upload-local-schemas.test.ts` (`fake-indexeddb`, repository thật, `createFakeLockRegistry`, `fetchImpl` giả): `uploads a guest schema and makes it owned and synced after 201`; `treats 409 with an equal cloud document as already uploaded`; `marks conflict for 409 with a different cloud document`; `moves the schema to a new id and creates it again after 409 then 404`; `reports the old and new id in movedIds when a schema is moved to a new id`; `keeps the moved id pair in movedIds when the second create is rejected with 409`; `keeps the moved id pair in movedIds when the run stops after the move` (lần `create` thứ hai rớt mạng: `movedIds` có cặp, `notAttemptedIds` chứa id cũ, `uploadedIds` rỗng); `leaves movedIds empty when no schema is moved`; `stops the whole run on schema-limit-reached and leaves remaining schemas unchanged`; `reports the schema that stopped the run in notAttemptedIds` (chỉ chọn một schema, backend trả `403 schema-limit-reached`: `notAttemptedIds` bằng `[thatId]`); `stops the whole run on a network failure`; `stops the whole run on origin-not-allowed`; `skips a schema rejected with validation-failed, payload-too-large or document-invalid and continues` (`it.each` ba mã); `skips a schema whose lock is held by another tab`; `uses the lock already held by the editor`; `skips an unreadable document`; `skips a document over the size limit without calling the API`; `keeps the record as a guest schema when the request fails midway`; `releases every lock it acquired`.
 - `sync-pending-schemas.test.ts`: `pushes only pending records of the signed-in user`; `ignores guest records and records of other accounts`; `skips a record whose lock is busy`; `marks conflict on revision-conflict without opening a dialog`; `records deleted-in-cloud on 404`; `stops after the session expires`; `continues after a retryable failure`; `shares one run between concurrent calls`.
 
 **Kiểm tra:** như "Quy ước chung" với `frontend`.
@@ -2237,7 +2265,7 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
    - `useSignOut` ghép `AuthActions.signOut` của spec: gọi `signOut` (Task 25) với `userId` của trạng thái `signed-in` (hoặc `expired.lastUser`), `clearAuthHint` là `hintCookie.clear`, `broadcastSignedOut` là `channel.post({ type: "signed-out" })`, `createTimeoutSignal` là `AbortSignal.timeout`; ok thì `markSignedOut()`. Không có người dùng thì chỉ `markSignedOut()`.
    - **`signOut` có thể reject, không chỉ trả `Result` lỗi** (ghi nhận khi hiện thực Task 25, người dùng đã duyệt): chữ ký là `Promise<Result<void, SignOutFailure>>`, nhưng chỉ đường "`logout` thất bại" mới trả `Result` lỗi; đường "xóa cache thất bại" (lỗi IndexedDB khi xóa record của tài khoản, xóa bản ghi `session`, hoặc khi đọc danh sách record) thì promise **reject**. Vì vậy nơi gọi phải bọc lời gọi trong `try`/`catch`, không chỉ xử lý nhánh `Result` lỗi.
    - Khi reject: **vẫn gọi `markSignedOut()`**, rồi để lỗi nổi lên cho nơi gọi hiển thị (Task 34). Lý do: mọi đường reject đều nằm sau khi `logout` đã thành công, tức phiên trên server đã bị thu hồi; và ở đường thường gặp (một hay nhiều record xóa hỏng) `signOut` đã xóa bản ghi `session` cùng cookie `sf-auth-hint` trước khi ném lỗi gộp. Giữ auth trong bộ nhớ ở trạng thái `signed-in` khi đó là UI nói dối (vẫn hiện email, vẫn hiện schema của tài khoản) cho tới khi người dùng reload trang.
-   - Hệ quả đã biết, chấp nhận: vì bảng `session` bị xóa kể cả khi xóa cache lỗi, lần đăng nhập sau bằng **tài khoản khác** không còn `previousUserId` để truyền cho `forgetPreviousAccount`, nên record sót lại của tài khoản cũ không bao giờ được dọn bằng đường `onAccountChanged`. Đây là rác tồn đọng trong IndexedDB, không phải rò rỉ ra giao diện: danh sách lọc theo `userId` hiện tại qua `mergeSchemaList` (Task 32), trừ record không parse được mà Task 39 xử lý.
+   - Hệ quả đã biết, chấp nhận: vì bảng `session` bị xóa kể cả khi xóa cache lỗi, lần đăng nhập sau bằng **tài khoản khác** không còn `previousUserId` để truyền cho `forgetPreviousAccount`, nên record sót lại của tài khoản cũ không bao giờ được dọn bằng đường `onAccountChanged`. Đây là rác tồn đọng trong IndexedDB, không phải rò rỉ ra giao diện: danh sách lọc theo `userId` hiện tại qua `mergeSchemaList` (Task 32). Record **không parse được** thì `mergeSchemaList` không lọc được (`isGuestEntry` xếp entry `unreadable` vào nhóm khách); Task 39 xóa chúng trên đường đăng xuất chủ động và Task 40 trên đường đổi tài khoản, nhưng **chỉ trên hai đường đó**: người dùng đóng trình duyệt mà không đăng xuất, hoặc chính lượt quét đó lỗi, thì row hỏng vẫn sống sót và vẫn hiện cho người dùng kế tiếp. Hạn chế đã biết; Task 38 bước 5 ghi nó vào mục "Chưa chốt" của `architecture.md`.
    - Mọi hook ném `Error` khi dùng ngoài `AuthProvider`, như `useStorage`.
    - `AppProviders` import `@/lib/zod-config` đầu tiên (sẵn có), nên schema Zod của `@schemaforge/api-contract` được tạo sau cấu hình `jitless`.
 4. `app-providers.tsx`: nhận thêm prop `hasAuthHint`; thứ tự `I18nProvider` > `ThemeProvider` > `TooltipProvider` > `StorageProvider` > `AuthProvider` > `SignInPromptProvider` > `children`, `AppToaster`. Task 28 thêm hai host sau `children`.
@@ -2401,7 +2429,9 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
    - `isUploading`: hai nút và checkbox `disabled`, `aria-busy` trên form.
 2. `upload-prompt-host.tsx`: `export function UploadPromptHost(): JSX.Element | null`.
    - Theo dõi `activeSignInCount` qua `useAuth` (Task 21, 26). Mỗi lần giá trị tăng và storage `ready`: đọc `repository.listSchemas()`, lấy entry `readable` có `ownerId === null`; có ít nhất một thì mở hộp thoại với các schema đó. Giá trị lúc mount không mở hộp thoại (chỉ lần tăng sau mount). Không có schema của khách đọc được thì không mở.
-   - `onUpload`: `uploadLocalSchemas` (Task 24) với `api` từ `useApiClient`, `repository`, `lockManager` của storage, `userId` của trạng thái `signed-in`, `generateId: () => crypto.randomUUID()`; xong thì đóng và toast qua `useNotify`: `uploadDialog.uploaded` với `count` là số id đã lưu (khi > 0); `uploadDialog.notUploaded` với `count` là `skipped.length + notAttemptedIds.length` (khi > 0). Hộp thoại tự đóng khi auth rời `signed-in`.
+   - `onUpload`: `uploadLocalSchemas` (Task 24) với `api` từ `useApiClient`, `repository`, `lockManager` của storage, `userId` của trạng thái `signed-in`, `generateId: () => crypto.randomUUID()`; xong thì đóng và toast qua `useNotify`: `uploadDialog.uploaded` với `count` là `report.uploadedIds.length` (khi > 0); `uploadDialog.notUploaded` với `count` là `report.skipped.length + report.notAttemptedIds.length` (khi > 0). Hộp thoại tự đóng khi auth rời `signed-in`.
+   - **Điều chỉnh 2026-09-19 (phát hiện lúc hiện thực Task 24, Vấn đề 29):** công thức `report.skipped.length + report.notAttemptedIds.length` chỉ đúng nhờ `notAttemptedIds` của Task 24 nay là `schemaIds.slice(stoppedAtIndex)`, tức gồm cả schema làm dừng lượt. Với bản cũ (`slice(stoppedAtIndex + 1)`), người dùng chọn đúng một schema rồi backend trả `403 schema-limit-reached` thì cả hai số đếm đều bằng `0`: hộp thoại đóng mà không có phản hồi nào. Bất biến để dựa vào (Task 24): mọi id đã chọn, trừ id mà record không còn là của khách, nằm đúng một trong ba nhóm `uploadedIds`, `skipped`, `notAttemptedIds`, nên hai toast luôn phủ hết danh sách đã chọn.
+   - Host **không** đọc `report.movedIds`: danh sách ứng viên được dựng lại từ `repository.listSchemas()` mỗi lần hộp thoại mở, và schema đã đổi id vẫn là chính nó trong IndexedDB. `movedIds` chỉ cần cho nơi gọi đang giữ một id trên URL hay trong state (Task 30).
    - `onLater`: đóng, không gọi API, không ghi IndexedDB.
 3. `background-sync-host.tsx`: `export function BackgroundSyncHost(): null`.
    - Khi auth chuyển sang `signed-in` (kể cả lần `initialize` đầu tiên) và storage `ready`: gọi `syncPendingSchemas` (Task 24) một lần.
@@ -2415,7 +2445,7 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
 - `upload-schemas-dialog.test.tsx`: `lists every candidate with all checkboxes checked`; `uploads only the checked schemas`; `disables Save to cloud when nothing is checked`; `calls onLater without uploading when Later is pressed`; `disables the controls while uploading`; `has no axe violations in light and dark themes`.
 - `upload-prompt-host.test.tsx` (`AuthProvider` và `StorageProvider` với dependencies giả, `fake-indexeddb`, `fetchImpl` giả):
   - `opens after an active sign-in when readable guest schemas exist`; `does not open on initialize or on a signed-in message from another tab`; `does not open when there are no guest schemas`.
-  - `does not call fetch when Later is pressed`; `uploads the selected schemas and shows the uploaded count`; `shows the count of schemas that could not be uploaded`; `keeps unselected schemas as guest schemas`.
+  - `does not call fetch when Later is pressed`; `uploads the selected schemas and shows the uploaded count`; `shows the count of schemas that could not be uploaded`; `shows a not-uploaded toast when the only selected schema stops the run` (backend trả `403 schema-limit-reached` cho schema duy nhất được chọn: toast `uploadDialog.notUploaded` với `count` là `1`, Vấn đề 29); `keeps unselected schemas as guest schemas`.
 - `background-sync-host.test.tsx`: `syncs pending schemas when auth becomes signed-in`; `syncs again on the online event while signed in`; `does not sync while signed out`; `removes the online listener after signing out`.
 - `app-providers.test.tsx`: thêm `mounts the upload prompt and background sync hosts`.
 
@@ -2618,7 +2648,14 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
   - Vùng `role="status"` luôn mount (như `SaveStatusBadge`), chỉ có chữ khi `unsynced`, `unsynced-session-expired`, `conflict`, `deleted-in-cloud`, `failed`; `syncing` và `synced` không được đọc để khỏi ngắt người dùng ở mỗi lần đẩy.
   - Màu chữ chỉ qua token theme (`text-muted-foreground`, `text-destructive`); nút dùng `Button` `size="sm"`, cao tối thiểu 24 CSS px.
 - `editor-toolbar.tsx`: props thêm `cloud: CloudStatusBadgeProps`. `saveStatus.kind` là `failed` thì chỉ hiện `SaveStatusBadge` (lỗi ghi local như phần 3); ngược lại hiện `CloudStatusBadge` ở đúng vị trí của `SaveStatusBadge` (spec mục 7 "Trạng thái trên toolbar"; Vấn đề 16). Gắn `AccountMenu` (Task 26) vào toolbar: đặt trong nhóm `ml-auto`, ngay trước `ThemeSwitch` sẵn có.
-- `editor-workspace.tsx`: props thêm `ownerId: string | null`, `apiClient: ApiClient`. Workspace giữ `ownerId` trong state khởi tạo từ props; gọi `useCloudPusher` cạnh `useAutosave`; giữ state `cloudDialog: { kind: 'conflict' | 'deleted-in-cloud'; trigger: HTMLElement | null } | null` (Task 31 render hộp thoại từ state này; task này chỉ đặt state). `onSaveToCloud`: `requireSignIn('cloudSave')` trả `false` thì dừng; `true` thì `uploadLocalSchemas({ api: apiClient, repository, lockManager, userId, schemaIds: [schemaId], heldLockSchemaId: schemaId, generateId: () => crypto.randomUUID() })` (Task 24; dùng khóa editor đang giữ, spec mục 7 bước 1). Đọc `report.movedIds.get(schemaId)` (Vấn đề 27) trước: khác `undefined` (id đã đổi vì `409` rồi `404`) thì `router.replace` (`useRouter` của `next/navigation`) sang `/schemas/<id mới>`, không đặt `ownerId` state ở workspace cũ (unmount do đổi route tự nhả khóa, trang mới tại id mới tự mở và tạo pusher qua `editor-screen.tsx`/`use-open-schema`); `report.uploadedIds` chứa `schemaId` (không đổi id) thì đặt `ownerId` state thành `userId`, nên pusher được tạo; kết quả khác hiện toast `sync:uploadDialog.notUploaded` với `count: 1`.
+- `editor-workspace.tsx`: props thêm `ownerId: string | null`, `apiClient: ApiClient`. Workspace giữ `ownerId` trong state khởi tạo từ props; gọi `useCloudPusher` cạnh `useAutosave`; giữ state `cloudDialog: { kind: 'conflict' | 'deleted-in-cloud'; trigger: HTMLElement | null } | null` (Task 31 render hộp thoại từ state này; task này chỉ đặt state). `onSaveToCloud`: `requireSignIn('cloudSave')` trả `false` thì dừng; `true` thì `uploadLocalSchemas({ api: apiClient, repository, lockManager, userId, schemaIds: [schemaId], heldLockSchemaId: schemaId, generateId: () => crypto.randomUUID() })` (Task 24; dùng khóa editor đang giữ, spec mục 7 bước 1). Xử lý báo cáo đúng thứ tự sau (Vấn đề 27, điều chỉnh 2026-09-19):
+
+  1. `const currentId = report.movedIds.get(schemaId) ?? schemaId`. `movedIds` là trạng thái lưu trữ cục bộ: có cặp nghĩa là bản ghi trong IndexedDB **đã** nằm ở id mới, bất kể lần đưa lên thành công hay không.
+  2. `const uploaded = report.uploadedIds.includes(currentId)`. `uploadedIds` chứa id hiện có sau khi upload, nên phải tra bằng `currentId`, không phải `schemaId`.
+  3. `uploaded` là `false` thì toast `sync:uploadDialog.notUploaded` với `count: 1`. Toast do `AppToaster` ở `AppProviders` hiển thị nên sống qua lần đổi route ở bước 4.
+  4. `currentId !== schemaId` thì `router.replace` (`useRouter` của `next/navigation`) sang `/schemas/<currentId>` và **không** đặt `ownerId` state ở workspace cũ (unmount do đổi route tự nhả khóa; trang mới tại id mới tự mở và tạo pusher qua `editor-screen.tsx`/`use-open-schema`). `currentId === schemaId` và `uploaded` là `true` thì đặt `ownerId` state thành `userId`, nên pusher được tạo. `currentId === schemaId` và `uploaded` là `false` thì không đổi state gì.
+
+  Bước 4 điều hướng **cả khi** `uploaded` là `false` (ví dụ `409` rồi `404` rồi lần `create` thứ hai rớt mạng). Ở lại route cũ thì URL trỏ tới một id không còn bản ghi `schemas` nào, workspace vẫn giữ `schemaId` cũ, `useAutosave` tiếp tục gọi `repository.saveDocument(<id cũ>, …)` và `frontend/src/lib/storage/schema-repository.ts` tạo một row `documents` mồ côi mà `listSchemas` không bao giờ thấy — mọi chỉnh sửa của người dùng từ lúc đó biến mất khỏi ứng dụng.
 - `editor-screen.tsx`: lấy `apiClient` qua `useApiClient()`; truyền `ownerId` suy từ `cloud` của state `opened` (Task 29: `cloud.kind === 'owned'` thì `cloud.userId`, ngược lại `null`) vào `EditorWorkspace`. Không đổi luồng mở của Task 29.
 
 **Test viết trước:**
@@ -2627,7 +2664,7 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
 - `use-cloud-pusher.test.tsx` (`fake-indexeddb`, `fetchImpl` giả qua `createApiClient`, scheduler giả): `does not call the api for a guest schema`; `pushes the document after autosave reports saved`; `sends one more push when a change arrives during a request`; `pushes immediately on the online event`; `resumes pushing when the auth status returns to signed-in`; `retry pushes the latest document`; `exposes resume from the cloud pusher`; `uses the scheduler from RetrySchedulerContext`; `sends nothing after unmount`; `disposes the pusher when the auth status becomes signed-out for an owned schema`.
 - `cloud-status-badge.test.tsx`: `shows a translated label for every cloud status` (`it.each` cho `vi` và `en`); `announces a conflict in the status region`; `does not announce syncing or synced`; `calls onSaveToCloud from Save to cloud`; `calls onOpenCloudDialog with conflict from Resolve`; `calls onOpenCloudDialog with deleted-in-cloud from View options`; `calls onRetry from the failed state`; `has no axe violations in the light and dark themes` (`expectNoAxeViolations`).
 - `editor-toolbar.test.tsx`: `shows the local save failure instead of the cloud status`; `shows the cloud status when the local save succeeded`; `renders the account menu`.
-- `editor-workspace.test.tsx`: `opens the sign-in prompt from Save to cloud when signed out`; `uploads the schema with the held lock when signed in and starts pushing`; `navigates to the new schema route when the upload moved the schema to a new id`; `stores the requested cloud dialog kind`.
+- `editor-workspace.test.tsx`: `opens the sign-in prompt from Save to cloud when signed out`; `uploads the schema with the held lock when signed in and starts pushing`; `navigates to the new schema route when the upload moved the schema to a new id`; `navigates to the new schema route and warns when the upload fails after moving the schema` (`409`, `404`, rồi lần `create` thứ hai rớt mạng: `router.replace` sang id mới **và** toast `uploadDialog.notUploaded`); `shows the not-uploaded toast and keeps the route when the upload fails without moving the schema`; `stores the requested cloud dialog kind`.
 - `editor-screen.test.tsx`: `passes the owner of the opened schema to the workspace` (kiểm qua hành vi: schema có chủ hiện "Đã lưu lên cloud", schema của khách hiện "Chỉ lưu trên trình duyệt này").
 
 **Kiểm tra:** như "Quy ước chung" với `frontend`. Các test sẵn có của phần 3 trong `features/editor/journeys/` phải pass không sửa.
@@ -2934,7 +2971,7 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
   - `trySync`: `syncing`, chạy `syncPendingSchemas` cho người dùng hiện tại, đếm lại. Còn lớn hơn `0` thì về `confirming` với số mới. Bằng `0` thì về `confirming` với `unsyncedCount: 0`; hộp thoại khi đó đổi sang chữ "Mọi thay đổi đã lưu lên cloud" và nút "Đăng xuất" (Vấn đề 17, đã chốt).
   - `confirm` và bước đăng xuất: `signing-out`, gọi hàm do `useSignOut()` trả về (Task 26, bọc `signOut` của Task 25: `logout`, phát `signed-out`, xóa record của tài khoản ở ba bảng với khóa chờ tối đa 5 giây, xóa `session` và cookie `sf-auth-hint`). Failure mạng thì toast lỗi "Không đăng xuất được, hãy kiểm tra kết nối", trạng thái auth giữ `signed-in`, về `idle` (spec bước 2). Thành công thì về `idle`; điều hướng khỏi editor do `useLeaveOnSignOut` (Task 29) đảm nhận khi trạng thái auth thành `signed-out`.
   - **Bắt cả nhánh reject** (ghi nhận khi hiện thực Task 25, người dùng đã duyệt): hàm do `useSignOut()` trả về khai báo `Promise<Result<void, SignOutFailure>>`, nhưng chỉ đường "`logout` thất bại" mới trả `Result` lỗi; đường "xóa cache thất bại" (lỗi IndexedDB khi đọc danh sách record, khi xóa record của tài khoản, hoặc khi xóa bản ghi `session`) thì promise **reject**, sau khi bản ghi `session` và cookie `sf-auth-hint` đã bị xóa. `confirm` bọc lời gọi trong `try`/`catch`: reject thì coi như đã đăng xuất (Task 26 đã gọi `markSignedOut()` trước khi để lỗi nổi lên), toast lỗi `sync:signOutDialog.cacheCleanupFailed` ("Đã đăng xuất nhưng không xóa hết dữ liệu trên trình duyệt này", key mới trong `sync/sign-out-dialog.ts` có `vi` và `en`), rồi về `idle`. Không để promise reject lọt ra ngoài handler và không giữ trạng thái `signing-out`.
-  - Hệ quả đã biết, chấp nhận: bảng `session` bị xóa kể cả khi xóa cache lỗi, nên lần đăng nhập sau bằng tài khoản khác không còn `previousUserId` cho `forgetPreviousAccount`; record sót lại của tài khoản cũ là rác tồn đọng trong IndexedDB, không hiện ra danh sách (xem Task 26 và Task 39).
+  - Hệ quả đã biết, chấp nhận: bảng `session` bị xóa kể cả khi xóa cache lỗi, nên lần đăng nhập sau bằng tài khoản khác không còn `previousUserId` cho `forgetPreviousAccount`; record sót lại của tài khoản cũ là rác tồn đọng trong IndexedDB, không hiện ra danh sách — trừ row không parse được khi không có lượt quét nào chạy được (xem Task 26, Task 39, Task 40 và hạn chế đã biết ở Task 38 bước 5).
   - `cancel`: về `idle`, không gọi gì.
   - Gọi `start` khi đang không `idle` thì bỏ qua (chống bấm hai lần).
 - `sign-out-dialog.tsx`: `AlertDialog` mở khi `state.kind` là `confirming` hoặc `syncing`. Tiêu đề và mô tả "N schema có thay đổi chưa lưu lên cloud. Đăng xuất sẽ xóa chúng khỏi trình duyệt này." (plural `_one`, `_other`). Ba nút "Thử đồng bộ", "Vẫn đăng xuất" (biến thể `destructive`), "Hủy"; khi `syncing` hoặc `signing-out` thì mọi nút bị disable và vùng `role="status"` báo "Đang đồng bộ…" hoặc "Đang đăng xuất…". `Escape` tương đương "Hủy".
@@ -3177,6 +3214,7 @@ Chỉ dùng `createCloudJourneyEnvironment` và `FakeApiBackend` của Task 35; 
 5. **`document/architecture.md`:**
    - So bảng "Quyết định đã chốt" với `backend/package.json`, `frontend/package.json`, `packages/api-contract/package.json` và `pnpm-workspace.yaml`: gói hay quyết định của phần 4 chưa có dòng (ví dụ Helmet, `class-validator`, `passport-jwt`, `supertest`, cookie gợi ý `sf-auth-hint`, Dexie version 2 và đồng bộ, đăng xuất xóa cache, e2e trên PostgreSQL thật) thì thêm một dòng `| Hạng mục | Quyết định | Lý do |` theo spec. Dòng đã có mà thực tế khác (ví dụ phiên bản Prisma, cách chốt Vấn đề 1 về `@nestjs/throttler`) thì sửa đúng dòng đó.
    - Mục "Luồng dữ liệu" → "Người dùng đã đăng nhập": câu "Chi tiết được chốt trong spec của phần "Auth + lưu cloud"" đổi thành link tới spec.
+   - **Hạn chế đã biết về row IndexedDB không parse được:** thêm vào mục "Chưa chốt" dòng "Dọn row IndexedDB không parse được của tài khoản khi không có lượt đăng xuất hay đổi tài khoản nào chạy", ứng viên "quét theo `ownerId` lúc dựng phiên mới" hoặc "cho `mergeSchemaList` đọc `ownerId` thô của entry `unreadable`", phần sẽ chốt "phần sau, khi có số liệu thật". Lý do: Task 39 và Task 40 chỉ bịt đường đăng xuất chủ động và đường đổi tài khoản; đóng trình duyệt mà không đăng xuất, hoặc lượt quét lỗi, thì row hỏng vẫn còn và `isGuestEntry` vẫn xếp nó vào nhóm khách cho người dùng kế tiếp. Bước 2 đối chiếu tiêu chí phải ghi hạn chế này thay vì đánh dấu ranh giới dữ liệu giữa hai tài khoản là phủ kín mọi đường.
    - **Nơi deploy** (Vấn đề 15, đã chốt phương án (a)). Spec mục 12 để việc chọn nơi deploy cho "một bước sau trong phần 4". Trước bước 4, orchestrator vẫn hỏi lại người dùng như phương án đã chốt. Mặc định: đánh dấu `Xong` cho phần code, và thêm vào "Chưa chốt" dòng "Nơi deploy frontend, backend, PostgreSQL" với ứng viên "gói miễn phí; frontend và backend cùng site (spec phần 4 mục 8, 12)" và phần sẽ chốt "phần 4, bước triển khai". Người dùng chọn giữ `Đang làm` tới khi deploy xong thì bỏ bước 4 và ghi lý do trong báo cáo.
 6. **`CLAUDE.md`, "Current status"** (chỉ khi được giao, xem "File sở hữu"): phần 4 đã xong; `backend/` có auth bằng email và mật khẩu (cookie `HttpOnly`, refresh xoay vòng, rate limit) và API lưu schema trên PostgreSQL qua Prisma; `packages/api-contract` là hợp đồng chung; frontend có đăng nhập, đăng ký, đồng bộ local với cloud; bỏ câu "`backend/` validates its env but has no routes yet" và sửa câu về các spec còn lại cho đúng trạng thái lúc đó. Thêm lệnh e2e (`pnpm --filter @schemaforge/backend test:e2e`, cần PostgreSQL) vào bảng "Commands" nếu người dùng đồng ý.
 7. Prettier không format `*.md`: kiểm tra tay mọi bảng đã sửa có hàng phân cách khớp số cột và `|` trong ô được escape thành `\|`; link tương đối và `#anchor` mở được.
@@ -3198,6 +3236,8 @@ Chỉ dùng `createCloudJourneyEnvironment` và `FakeApiBackend` của Task 35; 
 
 **Mục tiêu:** đăng xuất xóa sạch mọi row thuộc tài khoản trong IndexedDB, kể cả row mà `parseSchemaRecord` không đọc được (ghi bởi phiên bản khác, field bị đổi tên), để trên trình duyệt dùng chung người dùng sau không còn thấy hay đọc được dữ liệu của tài khoản trước (spec mục 7 "Đăng xuất"). Task này phát hiện khi review Task 25; người dùng đã duyệt mở task riêng để sửa ngay, không gộp vào task khác.
 
+**Điều chỉnh 2026-09-19 (sau khi hiện thực, `project-reviewer` đã thẩm định: code đúng, plan sai):** chữ ký là `deleteOwnedRowsExcept(ownerId, keptSchemaIds)` chứ không phải `deleteOwnedRows(ownerId)`. Quét vô điều kiện như bản plan cũ sẽ xóa cả record đọc được mà **không** giữ khóa schema của nó — đúng thứ mà test `waits for a held schema lock before deleting the record` của Task 25 tồn tại để ngăn. Danh sách `keptSchemaIds` là các id mà nơi gọi đã tự xử lý trong khóa, nên method chỉ đụng tới row mà không nơi nào có thể đang giữ khóa. Hai bullet "Trả danh sách id đã xóa" và "Danh sách rỗng thì không mở transaction" của bản cũ cũng bị bỏ, lý do ghi ngay dưới.
+
 **Agent:** frontend-engineer. **Phụ thuộc:** Task 25. **Đợt:** 6.
 
 **Bối cảnh (đã kiểm trong code ngày 2026-09-19):**
@@ -3209,6 +3249,9 @@ Chỉ dùng `createCloudJourneyEnvironment` và `FakeApiBackend` của Task 35; 
 
 - Sửa `frontend/src/lib/storage/cloud-cache.ts`, `cloud-cache.test.ts` (Task 7 tạo).
 - Sửa `frontend/src/lib/sync/sign-out.ts`, `sign-out.test.ts` (Task 25 tạo).
+- Sửa `frontend/src/features/editor/components/editor-workspace.test.tsx`, `frontend/src/features/editor/hooks/use-autosave.test.tsx`, `frontend/src/features/editor/hooks/use-open-schema.test.tsx`: chỉ thêm đúng một dòng `deleteOwnedRowsExcept: vi.fn<SchemaRepository["deleteOwnedRowsExcept"]>()` vào fake repository của mỗi file.
+
+  Ba file này là sửa **bắt buộc**, không phải mở rộng phạm vi: `SchemaRepository` là kiểu giao có `CloudCache`, nên mọi fake dựng bằng object literal phải liệt kê đủ method; thiếu method mới là `pnpm --filter @schemaforge/frontend typecheck` fail. Task sau thêm method vào `CloudCache` cũng phải rà lại đúng kiểu này (xem "Điểm nóng khi làm song song").
 
 Không sửa `schema-repository.ts` (chỉ `CloudCache` mở rộng, `SchemaRepository` nhận method mới qua giao của kiểu), không sửa `merge-schema-list.ts` (`isGuestEntry` giữ nguyên: row không parse được của khách vẫn thuộc nhóm khách).
 
@@ -3217,23 +3260,28 @@ Không sửa `schema-repository.ts` (chỉ `CloudCache` mở rộng, `SchemaRepo
 1. `cloud-cache.ts`, thêm vào type `CloudCache` và vào object của `createCloudCache`:
 
    ```ts
-   readonly deleteOwnedRows: (ownerId: string) => Promise<readonly string[]>;
+   readonly deleteOwnedRowsExcept: (
+     ownerId: string,
+     keptSchemaIds: readonly string[],
+   ) => Promise<void>;
    ```
 
-   - Lấy khóa chính bằng `database.schemas.where("ownerId").equals(ownerId).primaryKeys()`, **không** đi qua `parseSchemaRecord`, nên row hỏng cũng được nhận. IndexedDB không index `null` (ghi chú ở `database.ts` version 2), nên row của khách không bao giờ nằm trong kết quả; row của `ownerId` khác cũng không.
-   - Xóa trong **một** transaction `rw` trên ba bảng `schemas`, `documents`, `viewports` bằng `bulkDelete` với đúng danh sách khóa đó (cùng khuôn transaction của `deleteSchema` trong `schema-repository.ts`).
-   - Trả danh sách id đã xóa, theo thứ tự `primaryKeys()` trả về. Danh sách rỗng thì không mở transaction.
+   - Mở **một** transaction `rw` trên ba bảng `schemas`, `documents`, `viewports` (cùng khuôn transaction của `deleteSchema` trong `schema-repository.ts`), và đọc **bên trong** transaction đó: `schemas.where("ownerId").equals(ownerId).primaryKeys()`, bỏ các id có trong `keptSchemaIds`, rồi `bulkDelete` danh sách còn lại trên cả ba bảng. Đọc rồi xóa nguyên tử trong một transaction là lý do luôn mở transaction, kể cả khi cuối cùng không có id nào để xóa.
+   - `primaryKeys()` **không** đi qua `parseSchemaRecord`, nên row hỏng cũng được nhận. IndexedDB không index `null` (ghi chú ở `database.ts` version 2), nên row của khách không bao giờ nằm trong kết quả; row của `ownerId` khác cũng không.
+   - `keptSchemaIds` là các id mà nơi gọi đã tự xử lý **trong khóa schema của từng id**. Nhờ đó method không bao giờ xóa một row mà tab khác có thể đang giữ khóa: row còn lại đều là row không parse được, mà `openSchema` trả `unreadable` nên không tab nào đang soạn thảo.
+   - Trả `Promise<void>`: không nơi gọi nào cần danh sách id đã xóa, và không trả về thì id schema không lọt ra ngoài method — hợp với chính yêu cầu "không log tên schema hay nội dung row" ngay dưới.
    - Không log tên schema hay nội dung row.
 
-2. `sign-out.ts`, trong `deleteAccountCache`: sau khi `Promise.allSettled` xóa từng record đọc được (có khóa) và **trước** `repository.deleteSession()`, gọi `await input.repository.deleteOwnedRows(input.userId)` một lần để quét nốt row còn sót. Lỗi của lời gọi này để propagate như các lỗi xóa khác (hàm vẫn xóa `session` và gọi `clearAuthHint()` trước khi ném, xem Task 26). Bước 1 không đổi: `logout` thất bại thì không xóa gì.
+2. `sign-out.ts`, trong `deleteAccountCache`: sau khi `Promise.allSettled` xóa từng record đọc được (có khóa) và **trước** `repository.deleteSession()`, gọi `deleteOwnedRowsExcept(input.userId, records.map((record) => record.id))` một lần để quét nốt row còn sót, với `records` đúng là danh sách `listOwnedSchemas` vừa dùng ở trên. Lỗi của lời gọi này để propagate như các lỗi xóa khác (hàm vẫn xóa `session` và gọi `clearAuthHint()` trước khi ném, xem Task 26). Bước 1 không đổi: `logout` thất bại thì không xóa gì.
    - Không chờ khóa cho bước quét: row không parse được thì `openSchema` trả `unreadable`, không tab nào đang soạn thảo nó, nên không có khóa để chờ. Record đọc được vẫn đi qua đường có khóa ở trên.
 
 **Test viết trước:**
 
 Row hỏng dựng bằng helper cục bộ trong từng file test (`database.table<unknown>(name).put(row)`, cùng khuôn `putRawRow` của `schema-repository.test.ts`; helper của file test khác không được import).
 
-- `cloud-cache.test.ts` (thêm): `deletes the rows of an owner from the three tables`; `deletes a row of the owner that does not parse`; `keeps a row of another owner that does not parse`; `keeps guest rows that do not parse`; `returns the ids it deleted`; `does nothing for an owner without rows`.
-- `sign-out.test.ts` (thêm): `deletes an unreadable row of the account from the three tables`; `keeps an unreadable row of another account`; `keeps an unreadable guest row`; `does not delete unreadable rows when logout fails`.
+- `cloud-cache.test.ts` (thêm): `deletes the owner's unlisted rows from all three tables`; `keeps the rows whose ids the caller listed`; `keeps a row of another owner that does not parse`; `keeps guest rows that do not parse`; `does nothing for an owner without rows`.
+- `sign-out.test.ts` (thêm): `deletes an unreadable row of the account from all three tables`; `keeps an unreadable row that belongs to another account`; `keeps an unreadable guest row`; `does not delete unreadable rows when logout fails`.
+- Các test sẵn có của Task 25 phải xanh **không sửa**, đặc biệt `waits for a held schema lock before deleting the record` và `does not swallow a lock error that is not the timeout`: chúng là lý do method nhận `keptSchemaIds`.
 
 **Kiểm tra:** như "Quy ước chung" với `frontend`.
 
@@ -3245,6 +3293,55 @@ Row hỏng dựng bằng helper cục bộ trong từng file test (`database.tab
 - Row của khách (`ownerId === null`) và row của tài khoản khác giữ nguyên ở cả ba bảng.
 - ST-02 "Đăng nhập và đăng xuất …", phần "đăng xuất xóa dữ liệu của tài khoản khỏi trình duyệt" (cùng Task 25, 34; tích hợp 6 ở Task 36).
 
+## Task 40: Đổi tài khoản xóa cả row không parse được của tài khoản trước
+
+**Mục tiêu:** khi một tài khoản khác đăng nhập trên trình duyệt còn cache của tài khoản trước, row của tài khoản trước mà `parseSchemaRecord` không đọc được cũng bị xóa, để người dùng mới không thấy và không đọc được chúng (spec mục 7 "Phiên hết hạn và đổi tài khoản", "Đăng xuất"). Task này thêm ngày 2026-09-19 từ phát hiện lúc hiện thực Task 39; người dùng đã duyệt mở task riêng thay vì gộp vào Task 39.
+
+**Agent:** frontend-engineer. **Phụ thuộc:** Task 26 (nơi gọi `onAccountChanged`), Task 39 (method `deleteOwnedRowsExcept`). **Đợt:** 7.
+
+**Bối cảnh (đã kiểm trong code ngày 2026-09-19):**
+
+- `forgetPreviousAccount` (`frontend/src/lib/sync/forget-previous-account.ts`) chỉ duyệt kết quả `listOwnedSchemas(previousUserId)`, mà `listOwnedSchemas` bỏ mọi row `parseSchemaRecord` trả `null`. Row hỏng của tài khoản trước vì thế sống sót y hệt lỗ mà Task 39 vừa bịt trên đường đăng xuất.
+- `isGuestEntry` (`frontend/src/lib/sync/merge-schema-list.ts`) xếp entry `unreadable` vào **nhóm khách**, nên row đó hiện trong danh sách của tài khoản vừa đăng nhập, kèm tài liệu còn nguyên trong bảng `documents`.
+- Đường này **không** trùng Task 39: `signOut` xóa mọi row của tài khoản, còn `forgetPreviousAccount` theo spec chỉ xóa record `synced` và **giữ ẩn** record còn thay đổi chưa đẩy. Vì vậy không gộp được hai task.
+
+**File sở hữu:**
+
+- Sửa `frontend/src/lib/sync/forget-previous-account.ts`, `forget-previous-account.test.ts` (Task 25 tạo).
+
+Không sửa `cloud-cache.ts` (dùng `deleteOwnedRowsExcept` của Task 39 nguyên trạng), không sửa `sign-out.ts`, không sửa `merge-schema-list.ts` (`isGuestEntry` giữ nguyên), không sửa `auth-provider.tsx` (chữ ký `forgetPreviousAccount` không đổi nên Task 26 không phải sửa gì).
+
+**Chữ ký và hành vi:**
+
+Chữ ký, kiểu đầu vào và kiểu trả về giữ đúng như Task 25. Thêm **đúng một** bước ở cuối `forgetPreviousAccount`, sau khi đã tính `removedIds` và `keptIds` và trước khi trả báo cáo:
+
+```ts
+await input.repository.deleteOwnedRowsExcept(input.previousUserId, keptIds);
+```
+
+- `keptIds` là mọi id đọc được của `previousUserId` trừ các id vừa xóa, nên lời gọi này xóa **đúng** phần còn lại: row có `ownerId === previousUserId` mà `listOwnedSchemas` không trả về, tức row không parse được. Record `pending`, `conflict`, `deleted-in-cloud` và record có khóa bận đều nằm trong `keptIds` nên vẫn được giữ ẩn đúng như spec mục 7.
+- Vì sao row hỏng **không** được giữ ẩn như record `pending`: entry `unreadable` không mở được, không sửa được và không đẩy lên cloud được, nên "giữ tới khi tài khoản đó đăng nhập lại trên trình duyệt này" không đem lại gì cho chủ nó, trong khi `isGuestEntry` lại để lộ nó cho người dùng mới. Đây là lý do truyền `keptIds` chứ không phải danh sách rỗng và cũng không phải toàn bộ id đã liệt kê.
+- Lỗi của lời gọi để propagate: `forgetPreviousAccount` vốn không bắt lỗi của `deleteSchema`, nơi gọi (Task 26, `onAccountChanged`) xử lý như trước.
+- `removedIds` **không** thêm id nào từ bước quét: `deleteOwnedRowsExcept` trả `void` (Task 39), và `removedIds` giữ nguyên nghĩa "record `synced` đọc được đã xóa trong khóa".
+- Cửa sổ giữa `listOwnedSchemas` và lượt quét: một record của tài khoản trước được tạo trong khoảng đó sẽ không có trong `keptIds` và bị xóa mà không qua khóa. Chấp nhận, vì `onAccountChanged` chỉ chạy khi một tài khoản **khác** vừa đăng nhập ở tab này, tức phiên của tài khoản trước đã kết thúc và không tab nào còn tạo schema cho nó. Ghi lại ở đây để lần sau đổi luồng thì biết phải xem lại.
+
+**Test viết trước:**
+
+Row hỏng dựng bằng helper cục bộ trong chính file test (`database.table<unknown>(name).put(row)`, cùng khuôn `putRawRow` của `schema-repository.test.ts`; helper của file test khác không được import).
+
+- `forget-previous-account.test.ts` (thêm): `deletes a row of the previous account that does not parse`; `deletes the document and the viewport of an unreadable row`; `keeps an unreadable row that belongs to another account`; `keeps an unreadable guest row`; `keeps a pending record of the previous account while deleting its unreadable rows`; `keeps a synced record whose lock is held while deleting unreadable rows`.
+- Bốn test sẵn có của Task 25 (`removes synced records of the previous account`, `keeps pending, conflict and deleted-in-cloud records`, `keeps a synced record whose lock is held`, `leaves guest records untouched`) phải xanh **không sửa**.
+
+**Kiểm tra:** như "Quy ước chung" với `frontend`.
+
+**Commit:** `fix(frontend): delete unparsable rows on account switch`
+
+**Xong khi:**
+
+- Mọi test trên xanh; sau `forgetPreviousAccount`, không còn row nào của `previousUserId` ở cả ba bảng ngoài đúng các id trong `keptIds`.
+- Row của khách (`ownerId === null`) và row của tài khoản khác giữ nguyên ở cả ba bảng, dù parse được hay không.
+- ST-02 "Đăng nhập và đăng xuất …", phần ranh giới dữ liệu giữa hai tài khoản trên cùng trình duyệt (cùng Task 25, 32, 39; hạn chế còn lại ghi ở Task 38 bước 5).
+
 ## Đối chiếu tiêu chí hoàn thành
 
 Mỗi dòng là một checkbox trong mục "Tiêu chí hoàn thành" của spec, theo đúng thứ tự. Cột "Task" liệt kê task cài đặt và task kiểm chứng (e2e, tích hợp, kiểm tra tay). Task 38 bước 2 xác nhận từng dòng có bằng chứng.
@@ -3252,7 +3349,7 @@ Mỗi dòng là một checkbox trong mục "Tiêu chí hoàn thành" của spec,
 | # | Nhóm | Tiêu chí (rút gọn) | Bằng chứng theo spec | Task |
 |---|---|---|---|---|
 | 1 | ST-02 | Đăng ký dùng được ngay; cookie `HttpOnly`, `Secure`, `SameSite=Strict`, đúng `Path` | e2e 1 | 12, 13, 15, 27; 37 (mục 1) |
-| 2 | ST-02 | Đăng nhập, đăng xuất; sau đăng xuất `me` trả `401`, refresh token cũ không dùng được | e2e 1, 3 | 12, 13, 15, 25, 34, 39; 36 (tích hợp 6) |
+| 2 | ST-02 | Đăng nhập, đăng xuất; sau đăng xuất `me` trả `401`, refresh token cũ không dùng được | e2e 1, 3 | 12, 13, 15, 25, 34, 39, 40; 36 (tích hợp 6) |
 | 3 | ST-02 | Sai email hoặc sai mật khẩu cùng response; mật khẩu quá ngắn, quá dài, phổ biến bị từ chối với thông báo đã dịch | e2e 2; test component | 11, 13, 15, 19, 27 |
 | 4 | ST-02 | Lần đăng nhập thứ 11 và lần đăng ký thứ 6 trả `429` kèm `Retry-After` | e2e 11 | 10, 13, 15 |
 | 5 | ST-02 | Refresh xoay token, dùng lại thì thu hồi cả họ; hai tab cùng gặp access token hết hạn không bị đăng xuất | e2e 3; unit `session-refresher`; kiểm tra tay | 12, 15, 20; 37 (mục 4) |

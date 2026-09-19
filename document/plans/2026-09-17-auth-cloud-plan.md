@@ -108,6 +108,8 @@ Báo cáo gồm: file đã tạo hoặc sửa; lệnh đã chạy kèm kết qu�
 | `frontend/src/lib/i18n/resources.ts`, `resources.test.ts`, các file tổng `locales/{en,vi}/auth.ts`, `sync.ts`, `api-errors.ts` | Chỉ Task 19. Task giao diện sau chỉ được thêm key vào **file con** của namespace được ghi trong "File sở hữu" của mình (ví dụ `locales/{en,vi}/sync/conflict-dialog.ts`), không sửa file tổng. Hai task cùng đợt không sở hữu cùng file con |
 | File con i18n `locales/{en,vi}/auth/*`, `sync/*` | Task 19 tạo mọi file con. Chủ thêm key: `auth/account-menu.ts`, `auth/sign-in-prompt.ts` là Task 26; `auth/sign-in.ts`, `auth/sign-up.ts`, `auth/credentials-form.ts` là Task 27; `sync/open-schema.ts` là Task 29; `sync/cloud-status.ts` là Task 30; `sync/upload-dialog.ts` là Task 28; `sync/conflict-dialog.ts`, `sync/deleted-in-cloud-dialog.ts` là Task 31; `sync/schema-list.ts` dùng chung Task 32 (đợt 8) và Task 33 (đợt 9); `sync/sign-out-dialog.ts` là Task 34. Không task nào tạo file con mới |
 | `frontend/src/lib/storage/database.ts`, `records.ts`, `schema-repository.ts` | Chỉ Task 7. Task đồng bộ dùng method của repository; thiếu method thì dừng và báo |
+| `frontend/src/lib/storage/cloud-cache.ts`, `cloud-cache.test.ts` | Task 7 tạo (đợt 1). Task 39 thêm đúng một method `deleteOwnedRows` (đợt 6). Task khác chỉ gọi method có sẵn |
+| `frontend/src/lib/sync/sign-out.ts`, `sign-out.test.ts` | Task 25 tạo (đợt 5). Task 39 thêm lời gọi `deleteOwnedRows` vào `deleteAccountCache` (đợt 6). Task 26, 34 chỉ gọi `signOut`, không sửa file này |
 | `frontend/src/components/app-providers.tsx`, `app-providers.test.tsx`, `src/app/layout.tsx` | Task 26 (provider auth và API client, hint; đợt 6). Task 28 chỉ thêm hai host vào `AppProviders` và một test vào `app-providers.test.tsx` (đợt 7) |
 | `frontend/src/components/auth-provider.tsx`, `account-menu.tsx` | Task 26 tạo. Task 34 sửa `account-menu.tsx` (hộp thoại đăng xuất) |
 | `frontend/src/features/editor/components/editor-screen.tsx`, `editor-screen-loader.tsx`, `toolbar/editor-toolbar.tsx` | Task 29 sửa `editor-screen-loader.tsx`, `editor-screen.tsx` (luồng mở). Task 30 sửa `editor-screen.tsx`, `editor-toolbar.tsx` (đẩy lên, trạng thái cloud). Task 31 sửa `editor-screen.tsx` (hộp thoại, mount lại store). Ba đợt khác nhau |
@@ -148,7 +150,7 @@ Không cài: `@nestjs/mapped-types` (không DTO nào cần `PickType`, `OmitType
 
 ## Bảng task
 
-Số task là định danh; bảng sắp theo đợt. Task 0 không có thân riêng (xem [Vấn đề phát hiện khi lập plan](#vấn-đề-phát-hiện-khi-lập-plan)).
+Số task là định danh; bảng sắp theo đợt. Task 0 không có thân riêng (xem [Vấn đề phát hiện khi lập plan](#vấn-đề-phát-hiện-khi-lập-plan)). Task 39 thêm ngày 2026-09-19 từ phát hiện lúc hiện thực (người dùng đã duyệt); số của các task cũ giữ nguyên, nên thân của Task 39 nằm cuối danh sách thân task dù chạy ở đợt 6.
 
 | Task | Nội dung | Agent | Phụ thuộc | Đợt |
 |---|---|---|---|---|
@@ -173,6 +175,7 @@ Số task là định danh; bảng sắp theo đợt. Task 0 không có thân ri
 | 13 | Module auth: users repository, mapper, `AuthService`, controller, DTO; đăng ký guard toàn cục | backend-engineer | 10, 11, 12 | 6 |
 | 24 | `uploadLocalSchemas`, `syncPendingSchemas` | frontend-engineer | 23 | 6 |
 | 26 | Provider API client và auth, hint phía server, `AccountMenu`, `SignInPrompt` | frontend-engineer | 19, 21, 25 | 6 |
+| 39 | Đăng xuất xóa cả row không parse được của tài khoản (`deleteOwnedRows`) | frontend-engineer | 25 | 6 |
 | 14 | Module schemas: repository, service, cursor, mapper, DTO, controller | backend-engineer | 13 | 7 |
 | 15 | Hạ tầng e2e và `auth.e2e-spec.ts` (hành trình 1, 2, 3, 11) | backend-engineer | 13 | 7 |
 | 27 | Màn hình `/sign-in`, `/sign-up` | frontend-engineer | 26 | 7 |
@@ -198,13 +201,13 @@ Nhóm song song theo đợt (tập file rời nhau):
 - Đợt 3: backend Task 5, 11; frontend Task 6, 19, 22.
 - Đợt 4: backend Task 9; frontend Task 20.
 - Đợt 5: backend Task 10, 12; frontend Task 21, 23, 25.
-- Đợt 6: backend Task 13; frontend Task 24, 26.
+- Đợt 6: backend Task 13; frontend Task 24, 26, 39 (Task 39 sở hữu `cloud-cache.ts` và `sign-out.ts`, không trùng file của 24, 26).
 - Đợt 7: backend Task 14, 15; frontend Task 27, 28, 29.
 - Đợt 8: backend Task 16, 17; devops Task 18; frontend Task 30, 32.
 - Đợt 9: frontend Task 31, 33, 34.
 - Đợt 10–13: Task 35, 36, 37, 38 lần lượt.
 
-Đường tới hạn: Task 1 → 2 → 6 → 20 → 23 → 24 → 26 (cùng đợt 6 với 24, cần 21, 25) → 29 → 30 → 31 → 35 → 36 → 37 → 38. Nhánh backend (1 → 2 → 5 → 9 → 12 → 13 → 14 → 16, 17) xong ở đợt 8, trước nhánh frontend. Task 0 phải xong trước các task nằm trong cột "Ảnh hưởng" của vấn đề tương ứng; task khác không chờ Task 0.
+Đường tới hạn: Task 1 → 2 → 6 → 20 → 23 → 24 → 26 (cùng đợt 6 với 24, cần 21, 25) → 29 → 30 → 31 → 35 → 36 → 37 → 38. Nhánh backend (1 → 2 → 5 → 9 → 12 → 13 → 14 → 16, 17) xong ở đợt 8, trước nhánh frontend. Task 0 phải xong trước các task nằm trong cột "Ảnh hưởng" của vấn đề tương ứng; task khác không chờ Task 0. Task 39 không nằm trên đường tới hạn: không task nào phụ thuộc nó, nhưng nó phải xong trước Task 37 (checklist kiểm tra tay mục đăng xuất).
 
 ## Vấn đề phát hiện khi lập plan
 
@@ -1146,7 +1149,8 @@ Kiểu trả về của `register`, `login`, `me` là type response `{ user }` c
 
 `auth.module.ts`:
 
-- `imports: [PassportModule, JwtModule.registerAsync({ inject: [ConfigService], useFactory: (config: ConfigService<Env, true>) => ({ secret: config.get("JWT_ACCESS_SECRET", { infer: true }), signOptions: { algorithm: "HS256" }, verifyOptions: { algorithms: ["HS256"] } }) })]`.
+- `imports: [PrismaModule, PassportModule, JwtModule.registerAsync({ inject: [ConfigService], useFactory: (config: ConfigService<Env, true>) => ({ secret: config.get("JWT_ACCESS_SECRET", { infer: true }), signOptions: { algorithm: "HS256" }, verifyOptions: { algorithms: ["HS256"] } }) })]`.
+- `PrismaModule` bắt buộc: `backend/src/prisma/prisma.module.ts` là `@Module` thường (chỉ `exports: [PrismaService]`), không `@Global()`, nên mọi module có provider inject `PrismaService` phải tự import nó. Ở đây là `UsersRepository` và `RefreshTokenRepository`; thiếu `PrismaModule` thì đồ thị DI không resolve được và app không khởi động. Ngược lại `ClockModule` (`backend/src/common/clock.module.ts`) **có** `@Global()`, nên module tính năng không import lại. Mọi module tính năng backend sau này theo đúng quy tắc này (xem Task 14).
 - `controllers: [AuthController]`; `providers: [AuthService, UsersRepository, AccessTokenService, RefreshTokenService, RefreshTokenRepository, AuthCookies, JwtStrategy, { provide: PasswordHasher, useClass: Argon2PasswordHasher }, { provide: TokenGenerator, useClass: CryptoTokenGenerator }, { provide: COMMON_PASSWORDS, useFactory: loadCommonPasswords }]`. Không export gì (phần 5, 8 cần thì export sau).
 
 `app.module.ts`: thêm `RateLimitModule`, `AuthModule` vào `imports`; mảng `providers` có ba `APP_GUARD` theo đúng thứ tự `OriginGuard`, `JwtAuthGuard`, `RateLimitGuard` (spec mục 8), rồi `APP_PIPE`, `APP_FILTER` như Task 9.
@@ -1265,7 +1269,7 @@ remove(ownerId: string, id: string): Promise<void>;
 | `update` | `@Put(":id")` | `@Param("id", ParseUUIDPipe) id`, `@Body() dto: UpdateSchemaDto` |
 | `remove` | `@Delete(":id")`, `@HttpCode(204)` | `@Param("id", ParseUUIDPipe) id` |
 
-`schemas.module.ts`: `controllers: [SchemasController]`, `providers: [SchemasService, SchemasRepository]`, không export.
+`schemas.module.ts`: `imports: [PrismaModule]` (vì `SchemasRepository` inject `PrismaService` và `PrismaModule` không `@Global()`, như Task 13 đã ghi), `controllers: [SchemasController]`, `providers: [SchemasService, SchemasRepository]`, không export.
 
 **Test viết trước:**
 
@@ -2231,6 +2235,9 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
    - Nằm bên trong `StorageProvider` (phần 3). Dựng một lần mỗi tab (trong effect, không chạy trên server): `createRawAuthCalls`, `createSessionRefresher`, `createApiClient` với `baseUrl` là URL backend Task 6 thêm vào `src/lib/env.ts`, `onSessionExpired` gọi `markSessionExpired` của store qua biến đóng; `createAuthStore` với `createAuthHintCookie({ cookieJar, isSecure: env.isProduction })`, `createAuthChannel(openChannel)`, `SessionStore` với `read` là `repository.readSession()` và `write` là `repository.writeSession({ userId, email })` (Task 7), `onAccountChanged` gọi `forgetPreviousAccount` (Task 25). Gọi `initialize()` sau khi dựng. Unmount: `channel.close()`.
    - Storage `pending`: chưa dựng store, `useAuth` thấy trạng thái `unknown`. Storage `unavailable`: `SessionStore` đọc trả `null`, ghi không làm gì, `onAccountChanged` không làm gì.
    - `useSignOut` ghép `AuthActions.signOut` của spec: gọi `signOut` (Task 25) với `userId` của trạng thái `signed-in` (hoặc `expired.lastUser`), `clearAuthHint` là `hintCookie.clear`, `broadcastSignedOut` là `channel.post({ type: "signed-out" })`, `createTimeoutSignal` là `AbortSignal.timeout`; ok thì `markSignedOut()`. Không có người dùng thì chỉ `markSignedOut()`.
+   - **`signOut` có thể reject, không chỉ trả `Result` lỗi** (ghi nhận khi hiện thực Task 25, người dùng đã duyệt): chữ ký là `Promise<Result<void, SignOutFailure>>`, nhưng chỉ đường "`logout` thất bại" mới trả `Result` lỗi; đường "xóa cache thất bại" (lỗi IndexedDB khi xóa record của tài khoản, xóa bản ghi `session`, hoặc khi đọc danh sách record) thì promise **reject**. Vì vậy nơi gọi phải bọc lời gọi trong `try`/`catch`, không chỉ xử lý nhánh `Result` lỗi.
+   - Khi reject: **vẫn gọi `markSignedOut()`**, rồi để lỗi nổi lên cho nơi gọi hiển thị (Task 34). Lý do: mọi đường reject đều nằm sau khi `logout` đã thành công, tức phiên trên server đã bị thu hồi; và ở đường thường gặp (một hay nhiều record xóa hỏng) `signOut` đã xóa bản ghi `session` cùng cookie `sf-auth-hint` trước khi ném lỗi gộp. Giữ auth trong bộ nhớ ở trạng thái `signed-in` khi đó là UI nói dối (vẫn hiện email, vẫn hiện schema của tài khoản) cho tới khi người dùng reload trang.
+   - Hệ quả đã biết, chấp nhận: vì bảng `session` bị xóa kể cả khi xóa cache lỗi, lần đăng nhập sau bằng **tài khoản khác** không còn `previousUserId` để truyền cho `forgetPreviousAccount`, nên record sót lại của tài khoản cũ không bao giờ được dọn bằng đường `onAccountChanged`. Đây là rác tồn đọng trong IndexedDB, không phải rò rỉ ra giao diện: danh sách lọc theo `userId` hiện tại qua `mergeSchemaList` (Task 32), trừ record không parse được mà Task 39 xử lý.
    - Mọi hook ném `Error` khi dùng ngoài `AuthProvider`, như `useStorage`.
    - `AppProviders` import `@/lib/zod-config` đầu tiên (sẵn có), nên schema Zod của `@schemaforge/api-contract` được tạo sau cấu hình `jitless`.
 4. `app-providers.tsx`: nhận thêm prop `hasAuthHint`; thứ tự `I18nProvider` > `ThemeProvider` > `TooltipProvider` > `StorageProvider` > `AuthProvider` > `SignInPromptProvider` > `children`, `AppToaster`. Task 28 thêm hai host sau `children`.
@@ -2254,7 +2261,7 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
 **Test viết trước:**
 
 - `request-auth-hint.test.ts` (mock `next/headers` như `request-locale.test.ts`): `returns true when the hint cookie is 1`; `returns false when the cookie is missing or has another value`.
-- `auth-provider.test.tsx` (dependencies giả, `fetchImpl` `vi.fn`, `fake-indexeddb`): `does not call fetch when there is no hint cookie`; `calls me once when the hint cookie is present`; `marks the session expired when a schema request cannot refresh`; `signs out, clears the hint and becomes signed-out`; `keeps the signed-in state when logout fails`; `throws when useAuth is used outside the provider`.
+- `auth-provider.test.tsx` (dependencies giả, `fetchImpl` `vi.fn`, `fake-indexeddb`): `does not call fetch when there is no hint cookie`; `calls me once when the hint cookie is present`; `marks the session expired when a schema request cannot refresh`; `signs out, clears the hint and becomes signed-out`; `keeps the signed-in state when logout fails`; `becomes signed-out when clearing the cache rejects`; `throws when useAuth is used outside the provider`.
 - `account-menu.test.tsx`: `shows a sign-in link at once for a guest while auth is unknown`; `shows a sized placeholder without text while a hinted session loads`; `shows the email and a sign-out item when signed in`; `shows a sign-in-again link with the return path when the session expired`; `shows an error toast when signing out fails`.
 - `sign-in-prompt.test.tsx`: `opens the dialog and returns false when signed out`; `links sign-in and sign-up with the current path as returnTo`; `returns true without opening when signed in`; `closes on Later without calling fetch`; `returns focus to the trigger after closing`; `has no axe violations in light and dark themes` (`expectNoAxeViolations`).
 - `app-providers.test.tsx`: thêm `provides the auth context to children`.
@@ -2764,6 +2771,7 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
   - Chỉ gọi mạng khi `authStatus` là `signed-in`. Tải lần lượt từng trang (`limit` là `SCHEMA_LIST_MAX_LIMIT` của `@schemaforge/api-contract`, `signal` qua `options` của `ApiClient.schemas.list`) tới khi `nextCursor` là `null`, rồi `isComplete: true`. Một trang lỗi thì `failed`; không giữ kết quả dở dang.
   - Tải lại khi: hook mount hoặc `authStatus` chuyển sang `signed-in`; `document` phát `visibilitychange` với `visibilityState === 'visible'`; `window` phát `online`; `reload()` (Task 33 gọi sau tạo, đổi tên, xóa). Listener gỡ trong cleanup. Lần tải mới hủy lần đang chạy qua `AbortController`; kết quả của lần đã hủy bị bỏ.
 - `use-schema-list.ts`: giữ đọc cache live như phần 3 (`useLiveQuery`), rồi gọi `mergeSchemaList({ auth, cachedEntries, cloudItems, isCloudListComplete })` (tên tham số theo Task 22; `auth` là `ListAuthContext` dựng từ `useAuth`: `expired.lastUser?.id` thành `lastUserId`; khi auth `unknown` không gọi `mergeSchemaList` mà giữ danh sách của phần 3). Kiểu trả về thêm kết quả gộp; `getSchemaListEntryId` giữ nguyên chữ ký. Lỗi đọc IndexedDB vẫn ra `failed` với `StorageErrorCode` như phần 3.
+  - **Bắt buộc, là ranh giới dữ liệu giữa hai tài khoản, không phải chuyện hiển thị:** sau task này màn hình danh sách phải lấy dữ liệu qua `mergeSchemaList` (lọc theo `userId` hiện tại), không được render thẳng kết quả `repository.listSchemas()` như hiện nay (`frontend/src/features/schema-list/hooks/use-schema-list.ts` đang trả nguyên `listSchemas()`, và `mergeSchemaList` của Task 22 chưa có nơi nào trong `frontend/src` gọi). Trước khi nối, record có `ownerId` của tài khoản đã đăng xuất vẫn hiện nguyên tên trong danh sách cho người dùng kế tiếp trên cùng trình duyệt, phá cam kết của spec mục 7 "Đăng xuất" ("trên máy dùng chung, người dùng sau không đọc được schema của tài khoản trước"). Task này không được báo xong khi còn đường đọc thẳng `listSchemas()` vào giao diện.
 - `remove-stale-cache.ts`:
 
   ```ts
@@ -2799,7 +2807,7 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
 - `remove-stale-cache.test.ts` (`fake-indexeddb`, khóa giả): `removes a stale schema from the three tables`; `skips a schema whose lock is taken`; `goes on with the next id after a failure`.
 - `use-schema-list.test.tsx`: `passes the cached records and cloud items to mergeSchemaList`; `keeps reporting a storage read failure`.
 - `schema-list-sections.test.tsx`: `shows the sign-in invitation and the guest schemas while signed out`; `shows your schemas and this browser only sections while signed in`; `shows the session expired banner with the cached schemas of the last user`; `shows a skeleton in your schemas while the cloud list loads`; `shows the cached schemas and a retry banner when the cloud list fails`; `retries the cloud list from the banner`; `shows the status label of each row` (`it.each` bốn nhãn); `has no axe violations in the light and dark themes`.
-- `schema-list-screen.test.tsx` (thêm): `removes stale cached schemas after a complete cloud list`; `runs the background sync when the screen mounts while signed in`; `renders the account menu in the header`.
+- `schema-list-screen.test.tsx` (thêm): `removes stale cached schemas after a complete cloud list`; `runs the background sync when the screen mounts while signed in`; `renders the account menu in the header`; `does not show a cached schema owned by another account`; `does not show a cached schema of an account while signed out` (hai test này dựng cache có record `ownerId` khác, khẳng định tên schema đó không có trong DOM).
 
 **Kiểm tra:** như "Quy ước chung" với `frontend`.
 
@@ -2807,6 +2815,7 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
 
 **Xong khi:**
 
+- **Bắt buộc:** màn hình danh sách lấy dữ liệu qua `mergeSchemaList` (lọc theo `userId` hiện tại), không còn đường đọc thẳng `listSchemas()` vào giao diện; hai test `does not show a cached schema owned by another account` và `does not show a cached schema of an account while signed out` xanh. Đây là ranh giới dữ liệu giữa hai tài khoản trên cùng trình duyệt (spec mục 7 "Đăng xuất"), nên chưa có thì task chưa xong.
 - ST-04 "Màn hình danh sách gộp schema trên cloud với cache, có nhãn trạng thái, và vẫn hiện cache khi không tải được danh sách cloud" (test component ở task này; phần phân trang keyset của backend thuộc Task 14, 16).
 - ST-03 "Mở được schema đã lưu từ thiết bị khác … danh sách có schema từ cloud": phần danh sách; tích hợp 4 ở Task 35.
 - Bảo mật và chung "Mọi chuỗi mới có `vi` và `en`": key của `sync/schema-list`.
@@ -2924,6 +2933,8 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
   - `start`: `counting`, `countUnsyncedSchemas({ repository, userId })`. `0` thì chạy thẳng bước đăng xuất; lớn hơn `0` thì `confirming` với số đếm (spec bước 1).
   - `trySync`: `syncing`, chạy `syncPendingSchemas` cho người dùng hiện tại, đếm lại. Còn lớn hơn `0` thì về `confirming` với số mới. Bằng `0` thì về `confirming` với `unsyncedCount: 0`; hộp thoại khi đó đổi sang chữ "Mọi thay đổi đã lưu lên cloud" và nút "Đăng xuất" (Vấn đề 17, đã chốt).
   - `confirm` và bước đăng xuất: `signing-out`, gọi hàm do `useSignOut()` trả về (Task 26, bọc `signOut` của Task 25: `logout`, phát `signed-out`, xóa record của tài khoản ở ba bảng với khóa chờ tối đa 5 giây, xóa `session` và cookie `sf-auth-hint`). Failure mạng thì toast lỗi "Không đăng xuất được, hãy kiểm tra kết nối", trạng thái auth giữ `signed-in`, về `idle` (spec bước 2). Thành công thì về `idle`; điều hướng khỏi editor do `useLeaveOnSignOut` (Task 29) đảm nhận khi trạng thái auth thành `signed-out`.
+  - **Bắt cả nhánh reject** (ghi nhận khi hiện thực Task 25, người dùng đã duyệt): hàm do `useSignOut()` trả về khai báo `Promise<Result<void, SignOutFailure>>`, nhưng chỉ đường "`logout` thất bại" mới trả `Result` lỗi; đường "xóa cache thất bại" (lỗi IndexedDB khi đọc danh sách record, khi xóa record của tài khoản, hoặc khi xóa bản ghi `session`) thì promise **reject**, sau khi bản ghi `session` và cookie `sf-auth-hint` đã bị xóa. `confirm` bọc lời gọi trong `try`/`catch`: reject thì coi như đã đăng xuất (Task 26 đã gọi `markSignedOut()` trước khi để lỗi nổi lên), toast lỗi `sync:signOutDialog.cacheCleanupFailed` ("Đã đăng xuất nhưng không xóa hết dữ liệu trên trình duyệt này", key mới trong `sync/sign-out-dialog.ts` có `vi` và `en`), rồi về `idle`. Không để promise reject lọt ra ngoài handler và không giữ trạng thái `signing-out`.
+  - Hệ quả đã biết, chấp nhận: bảng `session` bị xóa kể cả khi xóa cache lỗi, nên lần đăng nhập sau bằng tài khoản khác không còn `previousUserId` cho `forgetPreviousAccount`; record sót lại của tài khoản cũ là rác tồn đọng trong IndexedDB, không hiện ra danh sách (xem Task 26 và Task 39).
   - `cancel`: về `idle`, không gọi gì.
   - Gọi `start` khi đang không `idle` thì bỏ qua (chống bấm hai lần).
 - `sign-out-dialog.tsx`: `AlertDialog` mở khi `state.kind` là `confirming` hoặc `syncing`. Tiêu đề và mô tả "N schema có thay đổi chưa lưu lên cloud. Đăng xuất sẽ xóa chúng khỏi trình duyệt này." (plural `_one`, `_other`). Ba nút "Thử đồng bộ", "Vẫn đăng xuất" (biến thể `destructive`), "Hủy"; khi `syncing` hoặc `signing-out` thì mọi nút bị disable và vùng `role="status"` báo "Đang đồng bộ…" hoặc "Đang đăng xuất…". `Escape` tương đương "Hủy".
@@ -2931,7 +2942,7 @@ Không import `src/lib/auth/**` (Task 21 chạy cùng đợt): xóa cookie gợi
 
 **Test viết trước:**
 
-- `use-sign-out-flow.test.tsx` (`fake-indexeddb`, `fetchImpl` giả, khóa giả, `BroadcastChannel` giả): `signs out without a dialog when every schema is synced`; `asks for confirmation when unsynced schemas remain`; `counts again after trying to sync`; `offers a plain sign out when trying to sync leaves nothing unsynced`; `keeps the user signed in and the cache intact when logout fails with a network error`; `signs out and removes only the account cache after confirming`; `does nothing on cancel`; `ignores a second start while signing out`.
+- `use-sign-out-flow.test.tsx` (`fake-indexeddb`, `fetchImpl` giả, khóa giả, `BroadcastChannel` giả): `signs out without a dialog when every schema is synced`; `asks for confirmation when unsynced schemas remain`; `counts again after trying to sync`; `offers a plain sign out when trying to sync leaves nothing unsynced`; `keeps the user signed in and the cache intact when logout fails with a network error`; `signs out and removes only the account cache after confirming`; `shows an error toast and ends up signed out when clearing the cache rejects`; `does nothing on cancel`; `ignores a second start while signing out`.
 - `sign-out-dialog.test.tsx`: `shows the number of unsynced schemas`; `disables every button while syncing`; `calls confirm from Sign out anyway`; `calls cancel on Escape`; `has no axe violations in the light and dark themes`.
 - `account-menu.test.tsx` (thêm): `starts the sign out flow from the menu`; `returns focus to the menu button after cancelling`; `shows the sign-in link after signing out`.
 
@@ -3183,6 +3194,57 @@ Chỉ dùng `createCloudJourneyEnvironment` và `FakeApiBackend` của Task 35; 
 - Bảo mật và chung "`architecture.md`, `roadmap.md` và danh sách tính năng (cách viết ST-03) được cập nhật …" (bước 4, 5; danh sách tính năng đã sửa ở Task 3, bước 2 xác nhận).
 - Mọi dòng của bảng đối chiếu có bằng chứng (bước 2).
 
+## Task 39: Đăng xuất xóa cả row không parse được của tài khoản
+
+**Mục tiêu:** đăng xuất xóa sạch mọi row thuộc tài khoản trong IndexedDB, kể cả row mà `parseSchemaRecord` không đọc được (ghi bởi phiên bản khác, field bị đổi tên), để trên trình duyệt dùng chung người dùng sau không còn thấy hay đọc được dữ liệu của tài khoản trước (spec mục 7 "Đăng xuất"). Task này phát hiện khi review Task 25; người dùng đã duyệt mở task riêng để sửa ngay, không gộp vào task khác.
+
+**Agent:** frontend-engineer. **Phụ thuộc:** Task 25. **Đợt:** 6.
+
+**Bối cảnh (đã kiểm trong code ngày 2026-09-19):**
+
+- `listOwnedSchemas` (`frontend/src/lib/storage/cloud-cache.ts`) truy vấn đúng theo index `ownerId`, nhưng `flatMap(toCloudRecords)` bỏ mọi row mà `parseSchemaRecord` trả `null`. Một row có `ownerId === userId` mà không parse được vì thế **không** bị `signOut` (Task 25) xóa, và tài liệu của nó còn nguyên trong bảng `documents`.
+- `isGuestEntry` (`frontend/src/lib/sync/merge-schema-list.ts`) xếp entry `unreadable` vào **nhóm khách**, nên row sót lại đó vẫn hiện trong danh sách của người dùng kế tiếp: phần nối `mergeSchemaList` của Task 32 không che được lỗ này.
+
+**File sở hữu:**
+
+- Sửa `frontend/src/lib/storage/cloud-cache.ts`, `cloud-cache.test.ts` (Task 7 tạo).
+- Sửa `frontend/src/lib/sync/sign-out.ts`, `sign-out.test.ts` (Task 25 tạo).
+
+Không sửa `schema-repository.ts` (chỉ `CloudCache` mở rộng, `SchemaRepository` nhận method mới qua giao của kiểu), không sửa `merge-schema-list.ts` (`isGuestEntry` giữ nguyên: row không parse được của khách vẫn thuộc nhóm khách).
+
+**Chữ ký và hành vi:**
+
+1. `cloud-cache.ts`, thêm vào type `CloudCache` và vào object của `createCloudCache`:
+
+   ```ts
+   readonly deleteOwnedRows: (ownerId: string) => Promise<readonly string[]>;
+   ```
+
+   - Lấy khóa chính bằng `database.schemas.where("ownerId").equals(ownerId).primaryKeys()`, **không** đi qua `parseSchemaRecord`, nên row hỏng cũng được nhận. IndexedDB không index `null` (ghi chú ở `database.ts` version 2), nên row của khách không bao giờ nằm trong kết quả; row của `ownerId` khác cũng không.
+   - Xóa trong **một** transaction `rw` trên ba bảng `schemas`, `documents`, `viewports` bằng `bulkDelete` với đúng danh sách khóa đó (cùng khuôn transaction của `deleteSchema` trong `schema-repository.ts`).
+   - Trả danh sách id đã xóa, theo thứ tự `primaryKeys()` trả về. Danh sách rỗng thì không mở transaction.
+   - Không log tên schema hay nội dung row.
+
+2. `sign-out.ts`, trong `deleteAccountCache`: sau khi `Promise.allSettled` xóa từng record đọc được (có khóa) và **trước** `repository.deleteSession()`, gọi `await input.repository.deleteOwnedRows(input.userId)` một lần để quét nốt row còn sót. Lỗi của lời gọi này để propagate như các lỗi xóa khác (hàm vẫn xóa `session` và gọi `clearAuthHint()` trước khi ném, xem Task 26). Bước 1 không đổi: `logout` thất bại thì không xóa gì.
+   - Không chờ khóa cho bước quét: row không parse được thì `openSchema` trả `unreadable`, không tab nào đang soạn thảo nó, nên không có khóa để chờ. Record đọc được vẫn đi qua đường có khóa ở trên.
+
+**Test viết trước:**
+
+Row hỏng dựng bằng helper cục bộ trong từng file test (`database.table<unknown>(name).put(row)`, cùng khuôn `putRawRow` của `schema-repository.test.ts`; helper của file test khác không được import).
+
+- `cloud-cache.test.ts` (thêm): `deletes the rows of an owner from the three tables`; `deletes a row of the owner that does not parse`; `keeps a row of another owner that does not parse`; `keeps guest rows that do not parse`; `returns the ids it deleted`; `does nothing for an owner without rows`.
+- `sign-out.test.ts` (thêm): `deletes an unreadable row of the account from the three tables`; `keeps an unreadable row of another account`; `keeps an unreadable guest row`; `does not delete unreadable rows when logout fails`.
+
+**Kiểm tra:** như "Quy ước chung" với `frontend`.
+
+**Commit:** `fix(frontend): delete unparsable account rows on sign out`
+
+**Xong khi:**
+
+- Mọi test trên xanh; `signOut` không để lại row nào có `ownerId` của tài khoản vừa đăng xuất ở cả ba bảng, dù row parse được hay không.
+- Row của khách (`ownerId === null`) và row của tài khoản khác giữ nguyên ở cả ba bảng.
+- ST-02 "Đăng nhập và đăng xuất …", phần "đăng xuất xóa dữ liệu của tài khoản khỏi trình duyệt" (cùng Task 25, 34; tích hợp 6 ở Task 36).
+
 ## Đối chiếu tiêu chí hoàn thành
 
 Mỗi dòng là một checkbox trong mục "Tiêu chí hoàn thành" của spec, theo đúng thứ tự. Cột "Task" liệt kê task cài đặt và task kiểm chứng (e2e, tích hợp, kiểm tra tay). Task 38 bước 2 xác nhận từng dòng có bằng chứng.
@@ -3190,7 +3252,7 @@ Mỗi dòng là một checkbox trong mục "Tiêu chí hoàn thành" của spec,
 | # | Nhóm | Tiêu chí (rút gọn) | Bằng chứng theo spec | Task |
 |---|---|---|---|---|
 | 1 | ST-02 | Đăng ký dùng được ngay; cookie `HttpOnly`, `Secure`, `SameSite=Strict`, đúng `Path` | e2e 1 | 12, 13, 15, 27; 37 (mục 1) |
-| 2 | ST-02 | Đăng nhập, đăng xuất; sau đăng xuất `me` trả `401`, refresh token cũ không dùng được | e2e 1, 3 | 12, 13, 15, 25, 34; 36 (tích hợp 6) |
+| 2 | ST-02 | Đăng nhập, đăng xuất; sau đăng xuất `me` trả `401`, refresh token cũ không dùng được | e2e 1, 3 | 12, 13, 15, 25, 34, 39; 36 (tích hợp 6) |
 | 3 | ST-02 | Sai email hoặc sai mật khẩu cùng response; mật khẩu quá ngắn, quá dài, phổ biến bị từ chối với thông báo đã dịch | e2e 2; test component | 11, 13, 15, 19, 27 |
 | 4 | ST-02 | Lần đăng nhập thứ 11 và lần đăng ký thứ 6 trả `429` kèm `Retry-After` | e2e 11 | 10, 13, 15 |
 | 5 | ST-02 | Refresh xoay token, dùng lại thì thu hồi cả họ; hai tab cùng gặp access token hết hạn không bị đăng xuất | e2e 3; unit `session-refresher`; kiểm tra tay | 12, 15, 20; 37 (mục 4) |

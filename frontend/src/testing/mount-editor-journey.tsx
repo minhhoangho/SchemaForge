@@ -60,6 +60,25 @@ function createCounter(): () => number {
 const SIMULATED_ROW_HEIGHT = 20;
 const LIST_ROW_SELECTOR = "li";
 
+// Journeys mount the whole editor screen and drive it through several
+// sequential async interactions (dialogs, drag-and-drop, panel edits), so a
+// single test does much more real work than a unit test. Under CPU
+// contention from other processes on the same machine, that work is slower
+// to get scheduled, which can push a journey past Vitest's default 5s test
+// timeout even though every step still succeeds. Unit tests keep that
+// default as a safety net against real hangs; only journeys get the extra
+// headroom, applied once per file so it is set before any test starts.
+const JOURNEY_TEST_TIMEOUT_MS = 20_000;
+
+/**
+ * Raises the test timeout for the whole current journey file. Call this at
+ * module scope (not inside a `describe` or `it`), so it takes effect before
+ * the first test starts.
+ */
+export function setJourneyTestTimeout(): void {
+  vi.setConfig({ testTimeout: JOURNEY_TEST_TIMEOUT_MS });
+}
+
 // jsdom has no layout, and setup-tests sizes every element from its inline
 // style, so a table node keeps the same height when a column is added. Here
 // an element without an inline height grows with its list rows, the way a

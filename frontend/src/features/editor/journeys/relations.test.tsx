@@ -13,8 +13,11 @@ import {
   createRelatedShopDocument,
   createShopDocument,
   openJourneyEditor,
+  setJourneyTestTimeout,
 } from "@/testing/mount-editor-journey";
 import type { OpenedJourneyEditor } from "@/testing/mount-editor-journey";
+
+setJourneyTestTimeout();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({

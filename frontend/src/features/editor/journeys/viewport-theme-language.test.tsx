@@ -11,8 +11,13 @@ import {
   THEME_COOKIE_NAME,
 } from "@/lib/preferences/preference-cookies";
 import { stubMatchMedia } from "@/testing/match-media-stub";
-import { createJourneyEnvironment } from "@/testing/mount-editor-journey";
+import {
+  createJourneyEnvironment,
+  setJourneyTestTimeout,
+} from "@/testing/mount-editor-journey";
 import type { JourneyEnvironment } from "@/testing/mount-editor-journey";
+
+setJourneyTestTimeout();
 
 // React Flow cannot pan or zoom in jsdom, which has no layout, so the real
 // component renders while its props are recorded; a test calls `onMoveEnd`

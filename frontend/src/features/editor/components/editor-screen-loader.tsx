@@ -11,6 +11,8 @@ import type { JSX } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useAuth } from "@/components/auth-provider";
+
 import { EditorSkeleton } from "./editor-skeleton";
 
 // React Flow, Dexie and the editor store load only when an editor opens, and
@@ -33,13 +35,20 @@ export function EditorScreenLoader({
 }: EditorScreenLoaderProps): JSX.Element {
   const { t } = useTranslation("editor");
   const [isOpening, setIsOpening] = useState(true);
+  // The open decision depends on who is signed in, so the editor waits for
+  // auth; the status keeps saying "opening" meanwhile.
+  const isAuthUnknown = useAuth((state) => state.auth.status === "unknown");
 
   return (
     <>
       <p role="status" className="sr-only">
-        {isOpening ? t("screen.loading") : null}
+        {isAuthUnknown || isOpening ? t("screen.loading") : null}
       </p>
-      <EditorScreen schemaId={schemaId} onOpeningChange={setIsOpening} />
+      {isAuthUnknown ? (
+        <EditorSkeleton />
+      ) : (
+        <EditorScreen schemaId={schemaId} onOpeningChange={setIsOpening} />
+      )}
     </>
   );
 }

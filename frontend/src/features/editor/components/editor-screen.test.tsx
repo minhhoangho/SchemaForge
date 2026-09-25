@@ -1,4 +1,5 @@
 import { createEmptySchema, CURRENT_SCHEMA_VERSION } from "@schemaforge/core";
+import { createSampleSchema } from "@schemaforge/core/testing";
 import { act, screen, waitFor } from "@testing-library/react";
 import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
 import {
@@ -11,6 +12,7 @@ import {
   vi,
 } from "vitest";
 
+import type { AuthProviderDependencies } from "@/components/auth-provider";
 import { createBrowserStorage } from "@/lib/storage/create-browser-storage";
 import type { StorageBundle } from "@/lib/storage/create-browser-storage";
 import { SchemaforgeDatabase } from "@/lib/storage/database";
@@ -18,7 +20,6 @@ import type { SchemaRecord } from "@/lib/storage/records";
 import { createSchemaLockManager } from "@/lib/storage/schema-lock-manager";
 import type { SchemaLock } from "@/lib/storage/schema-lock-manager";
 import { createSchemaRepository } from "@/lib/storage/schema-repository";
-import { StorageProvider } from "@/lib/storage/storage-context";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { createFakeLockRegistry } from "@/testing/fake-lock-registry";
 import { renderWithProviders } from "@/testing/render-with-providers";
@@ -37,6 +38,9 @@ vi.mock("@/lib/storage/create-browser-storage", () => ({
 
 const SCHEMA_ID = "0b7d4c1e-2f3a-4b5c-8d6e-7f8091a2b3c4";
 const MISSING_SCHEMA_ID = "0b7d4c1e-2f3a-4b5c-8d6e-000000000000";
+const USER_ID = "5f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
+const TIMESTAMP = "2026-09-18T00:00:00.000Z";
+const HINT_COOKIE = "sf-auth-hint=1";
 const MEASURED_SIZE = { inlineSize: 1000, blockSize: 800 };
 
 // jsdom's ResizeObserver stub never reports, so React Flow would keep every
@@ -114,13 +118,13 @@ describe("EditorScreen", () => {
     storage: StorageBundle | undefined,
     schemaId: string = SCHEMA_ID,
     themePreference: "light" | "dark" = "light",
+    authDependencies: Partial<AuthProviderDependencies> = {},
   ): ReturnType<typeof renderWithProviders> {
-    return renderWithProviders(
-      <StorageProvider storage={storage}>
-        <EditorScreenLoader schemaId={schemaId} />
-      </StorageProvider>,
-      { locale: "en", themePreference },
-    );
+    return renderWithProviders(<EditorScreenLoader schemaId={schemaId} />, {
+      locale: "en",
+      themePreference,
+      auth: { storage, dependencies: authDependencies },
+    });
   }
 
   function createSchema(
@@ -239,6 +243,7 @@ describe("EditorScreen", () => {
 
   it("shows the unsupported version message for a newer document", async () => {
     const storage = createStorage();
+    await createSchema(storage);
     await putRawDocument(storage, {
       ...createEmptySchema("Billing"),
       version: CURRENT_SCHEMA_VERSION + 1,
@@ -256,6 +261,7 @@ describe("EditorScreen", () => {
 
   it("shows the unreadable message for a corrupt document", async () => {
     const storage = createStorage();
+    await createSchema(storage);
     await putRawDocument(storage, {
       ...createEmptySchema("Billing"),
       name: 42,
@@ -274,6 +280,7 @@ describe("EditorScreen", () => {
   it("never overwrites a document it could not read", async () => {
     const storage = createStorage();
     const brokenDocument = { version: CURRENT_SCHEMA_VERSION };
+    await createSchema(storage);
     await putRawDocument(storage, brokenDocument);
 
     const { unmount } = renderScreen(storage);
@@ -334,4 +341,126 @@ describe("EditorScreen", () => {
       await expectNoAxeViolations(container);
     },
   );
+
+  describe("with an account", () => {
+    function jsonResponse(body: unknown, status = 200): Response {
+      return new Response(JSON.stringify(body), {
+        status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    function userResponse(): Response {
+      return jsonResponse({
+        user: { id: USER_ID, email: "user@example.com", createdAt: TIMESTAMP },
+      });
+    }
+
+    function detailResponse(): Response {
+      return jsonResponse({
+        id: SCHEMA_ID,
+        name: "Cloud",
+        revision: 1,
+        createdAt: TIMESTAMP,
+        updatedAt: TIMESTAMP,
+        document: { ...createSampleSchema(), name: "Cloud" },
+      });
+    }
+
+    // The API client always calls fetch with a URL.
+    function requestPath(input: RequestInfo | URL): string {
+      if (!(input instanceof URL)) {
+        throw new Error("Expected the API client to call fetch with a URL.");
+      }
+      return input.pathname;
+    }
+
+    it("keeps the skeleton while auth is unknown", async () => {
+      const storage = createStorage();
+      await createSchema(storage);
+      // The session check never answers, so auth stays unknown.
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockReturnValue(new Promise<Response>(() => undefined));
+
+      renderScreen(storage, SCHEMA_ID, "light", {
+        fetchImpl,
+        cookieJar: { cookie: HINT_COOKIE },
+      });
+      await waitFor(() => {
+        expect(fetchImpl).toHaveBeenCalled();
+      });
+      await act(() => Promise.resolve());
+
+      expect({
+        statusText: screen.getByRole("status").textContent,
+        hasEditor: screen.queryByRole("button", { name: "Zoom in" }) !== null,
+        hasHeading: screen.queryByRole("heading", { level: 1 }) !== null,
+      }).toEqual({
+        statusText: "Opening the schema…",
+        hasEditor: false,
+        hasHeading: false,
+      });
+    });
+
+    it("shows needs-network and opens after retry succeeds", async () => {
+      const storage = createStorage();
+      const schemaAnswers = [
+        () => Promise.reject(new TypeError("Failed to fetch")),
+        () => Promise.resolve(detailResponse()),
+      ];
+      const fetchImpl = vi.fn<typeof fetch>((input) => {
+        if (requestPath(input) === "/auth/me") {
+          return Promise.resolve(userResponse());
+        }
+        const answer = schemaAnswers.shift();
+        if (answer === undefined) {
+          throw new Error("The schema was fetched more often than expected.");
+        }
+        return answer();
+      });
+      const { user } = renderScreen(storage, SCHEMA_ID, "light", {
+        fetchImpl,
+        cookieJar: { cookie: HINT_COOKIE },
+      });
+
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "You need a network connection to open this schema",
+      });
+      await user.click(screen.getByRole("button", { name: "Retry" }));
+
+      expect(
+        await screen.findByRole("button", { name: "Schema name Cloud" }),
+      ).toBeDefined();
+    });
+
+    it("keeps announcing the heading when retry fails again", async () => {
+      const storage = createStorage();
+      const fetchImpl = vi.fn<typeof fetch>((input) =>
+        requestPath(input) === "/auth/me"
+          ? Promise.resolve(userResponse())
+          : Promise.reject(new TypeError("Failed to fetch")),
+      );
+      const { user } = renderScreen(storage, SCHEMA_ID, "light", {
+        fetchImpl,
+        cookieJar: { cookie: HINT_COOKIE },
+      });
+      const headingName = "You need a network connection to open this schema";
+      await screen.findByRole("heading", { level: 1, name: headingName });
+
+      await user.click(screen.getByRole("button", { name: "Retry" }));
+
+      await waitFor(() => {
+        expect(fetchImpl).toHaveBeenCalledTimes(3);
+      });
+      const heading = await screen.findByRole("heading", {
+        level: 1,
+        name: headingName,
+      });
+      await waitFor(() => {
+        expect(document.activeElement).toBe(heading);
+      });
+    });
+  });
 });

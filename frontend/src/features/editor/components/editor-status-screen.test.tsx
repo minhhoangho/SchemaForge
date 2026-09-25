@@ -1,5 +1,5 @@
 import { screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { renderWithProviders } from "@/testing/render-with-providers";
@@ -105,6 +105,75 @@ describe("EditorStatusScreen", () => {
     async (themePreference) => {
       const { container } = renderWithProviders(
         <EditorStatusScreen variant="locked" />,
+        { locale: "en", themePreference },
+      );
+
+      await expectNoAxeViolations(container);
+    },
+  );
+
+  it("shows a retry button for needs-network and calls onRetry", async () => {
+    const handleRetry = vi.fn<() => void>();
+    const { user } = renderWithProviders(
+      <EditorStatusScreen variant="needs-network" onRetry={handleRetry} />,
+      { locale: "en" },
+    );
+
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect({
+      title: screen.getByRole("heading", { level: 1 }).textContent,
+      retryCount: handleRetry.mock.calls.length,
+    }).toEqual({
+      title: "You need a network connection to open this schema",
+      retryCount: 1,
+    });
+  });
+
+  it("shows the deleted elsewhere title", () => {
+    renderWithProviders(<EditorStatusScreen variant="deleted-elsewhere" />, {
+      locale: "vi",
+    });
+
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      "Schema đã bị xóa ở thiết bị khác",
+    );
+  });
+
+  it("shows a sign-in link with returnTo on not-found when offered", () => {
+    renderWithProviders(
+      <EditorStatusScreen
+        variant="not-found"
+        signInHref="/sign-in?returnTo=%2Fschemas%2Fabc"
+      />,
+      { locale: "en" },
+    );
+
+    expect(
+      screen
+        .getByRole("link", {
+          name: "Sign in to see this schema if it is stored in the cloud",
+        })
+        .getAttribute("href"),
+    ).toBe("/sign-in?returnTo=%2Fschemas%2Fabc");
+  });
+
+  it.each([
+    ["needs-network", "light"],
+    ["needs-network", "dark"],
+    ["deleted-elsewhere", "light"],
+    ["deleted-elsewhere", "dark"],
+    ["not-found", "light"],
+    ["not-found", "dark"],
+  ] as const)(
+    "has no axe violations for the %s variant in the %s theme",
+    async (variant, themePreference) => {
+      const { container } = renderWithProviders(
+        <EditorStatusScreen
+          variant={variant}
+          onRetry={vi.fn<() => void>()}
+          signInHref="/sign-in?returnTo=%2F"
+        />,
         { locale: "en", themePreference },
       );
 

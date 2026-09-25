@@ -18,7 +18,6 @@ import type { StorageBundle } from "@/lib/storage/create-browser-storage";
 import { SchemaforgeDatabase } from "@/lib/storage/database";
 import { createSchemaLockManager } from "@/lib/storage/schema-lock-manager";
 import { createSchemaRepository } from "@/lib/storage/schema-repository";
-import { StorageProvider } from "@/lib/storage/storage-context";
 
 import { createFakeLockRegistry } from "./fake-lock-registry";
 import type { FakeLockRegistry } from "./fake-lock-registry";
@@ -164,7 +163,9 @@ function ignoreOpeningChange(): void {
  * real `SchemaRepository` over its own fake IndexedDB, a counter clock, fixed
  * UUIDs, and one fake Web Locks registry shared by every screen it mounts.
  * Each mounted editor takes its own `SchemaLockManager`, the way each tab
- * does, so two editors of one schema compete for the same lock. "Reloading
+ * does, so two editors of one schema compete for the same lock. Every screen
+ * mounts under a signed-out AuthProvider that never calls fetch, the way a
+ * guest without an auth hint uses the app. "Reloading
  * the page" is `unmount()` followed by mounting again on the same database.
  *
  * Stubs `ResizeObserver` and table node heights for React Flow; the test file
@@ -204,22 +205,21 @@ export function createJourneyEnvironment(): JourneyEnvironment {
         lockManager: createSchemaLockManager(lockRegistry.request),
       };
       return renderWithProviders(
-        <StorageProvider storage={tabStorage}>
-          <EditorScreen
-            schemaId={schemaId}
-            onOpeningChange={ignoreOpeningChange}
-          />
-        </StorageProvider>,
-        { locale: options.locale ?? DEFAULT_JOURNEY_LOCALE },
+        <EditorScreen
+          schemaId={schemaId}
+          onOpeningChange={ignoreOpeningChange}
+        />,
+        {
+          locale: options.locale ?? DEFAULT_JOURNEY_LOCALE,
+          auth: { storage: tabStorage },
+        },
       );
     },
     mountSchemaList: () =>
-      renderWithProviders(
-        <StorageProvider storage={storage}>
-          <SchemaListScreen />
-        </StorageProvider>,
-        { locale: DEFAULT_JOURNEY_LOCALE },
-      ),
+      renderWithProviders(<SchemaListScreen />, {
+        locale: DEFAULT_JOURNEY_LOCALE,
+        auth: { storage },
+      }),
   };
 }
 

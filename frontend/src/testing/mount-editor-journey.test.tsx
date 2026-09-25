@@ -59,6 +59,20 @@ describe("createJourneyEnvironment", () => {
     expect(isHeldWhileMounted).toBe(true);
   });
 
+  it("opens a guest schema under a signed-out auth provider without a request", async () => {
+    const globalFetch = vi.fn<typeof fetch>();
+    vi.stubGlobal("fetch", globalFetch);
+    const environment = createJourneyEnvironment();
+    const schemaId = await environment.createSchema("shop");
+
+    environment.mountEditor(schemaId);
+
+    expect(
+      await screen.findByRole("button", { name: "Schema name shop" }),
+    ).toBeDefined();
+    expect(globalFetch).not.toHaveBeenCalled();
+  });
+
   it("mounts the editor in the requested locale", async () => {
     const environment = createJourneyEnvironment();
     const schemaId = await environment.createSchema("shop");

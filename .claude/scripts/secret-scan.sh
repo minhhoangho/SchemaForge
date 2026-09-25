@@ -173,6 +173,22 @@ is_excluded_path() {
   esac
 }
 
+# Known-safe test fixture: `export const TEST_PASSWORD = "..."` under
+# backend/test/**, mandated by document/plans/2026-09-17-auth-cloud-plan.md
+# Task 15 as a placeholder e2e password, never a real secret. Scoped to this
+# exact declaration line, not the whole directory, so a real secret dropped
+# anywhere else under backend/test/** still triggers.
+is_allowlisted_test_password_line() {
+  local file="$1" lineno="$2"
+  case "${file}" in
+    */backend/test/*|backend/test/*) ;;
+    *) return 1 ;;
+  esac
+  local line
+  line="$(sed -n "${lineno}p" -- "${file}" 2>/dev/null || true)"
+  printf '%s' "${line}" | grep -Eq '^export const TEST_PASSWORD[[:space:]]*='
+}
+
 report_matches() {
   # report_matches <file> <rule> <pattern> [case-insensitive: 0|1]
   local file="$1" rule="$2" pattern="$3" ci="${4:-0}"
@@ -205,6 +221,9 @@ report_matches() {
   local lineno
   while IFS= read -r lineno; do
     [ -n "${lineno}" ] || continue
+    if [ "${rule}" = "generic-secret-assignment" ] && is_allowlisted_test_password_line "${file}" "${lineno}"; then
+      continue
+    fi
     echo "${rule} ${file}:${lineno}"
     FINDINGS=$((FINDINGS + 1))
   done < <(printf '%s\n' "${output}" | cut -d: -f1 | sort -un || true)

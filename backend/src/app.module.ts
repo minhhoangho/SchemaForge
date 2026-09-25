@@ -12,6 +12,7 @@ import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { RateLimitGuard } from "./modules/rate-limit/rate-limit.guard.js";
 import { RateLimitModule } from "./modules/rate-limit/rate-limit.module.js";
+import { SchemasModule } from "./modules/schemas/schemas.module.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
 
 @Module({
@@ -22,6 +23,7 @@ import { PrismaModule } from "./prisma/prisma.module.js";
     HealthModule,
     RateLimitModule,
     AuthModule,
+    SchemasModule,
   ],
   providers: [
     // Guards run in registration order (spec section 8): OriginGuard, then

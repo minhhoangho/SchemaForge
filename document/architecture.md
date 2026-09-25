@@ -153,6 +153,12 @@ Backend giới hạn tần suất gọi AI (rate limit, ví dụ X request/phút
 | Ô chọn kiểu cột | Combobox `Popover` + `Command` có gõ để lọc; `cmdk` 1.1.1 nằm trong `frontend` dependencies. `components/ui/command.tsx` chỉ giữ phần dùng cho popover: bỏ `CommandDialog` của registry (gọi `DialogContent` với prop `showCloseButton` đã bị đổi) và tự dựng khung ô nhập thay cho component `InputGroup`. Prop `label` của `Command` là bắt buộc | Nhiều enum và kiểu vẫn chọn nhanh bằng bàn phím; cmdk luôn trỏ `aria-labelledby` của ô tìm kiếm vào label ẩn của chính nó, nên `label` là cách duy nhất đặt accessible name cho ô đó |
 | Toast | Sonner (`sonner` `^2.0.8`) qua component `Toaster` của shadcn/ui, vị trí `bottom-center`. Mọi toast đi qua `createNotify`, `useNotify` (`frontend/src/lib/notify.ts`, `use-notify.ts`), chỉ nhận key i18n có kiểu; `no-restricted-imports` cấm import `toast` từ `sonner` ngoài `notify.ts` | Component toast mà shadcn/ui dùng. Rule `i18next/no-literal-string` ở chế độ `jsx-only` không bắt chuỗi truyền vào hàm, nên wrapper nhận key là cách chặn chuỗi hardcode trong toast; `bottom-center` nổi trên canvas thay vì đè lên panel thuộc tính |
 
+## Hạn chế đã biết
+
+| Hạng mục | Mô tả |
+|---|---|
+| Khe hẹp giữa đăng xuất và mở schema lần đầu | Khi một tab mở một schema **chưa từng có cache cục bộ** đúng lúc một tab khác đăng xuất, có một khe thời gian cực hẹp: nếu `GET` tới cloud trả về trước khi tab đang mở nhận được broadcast `signed-out` (thay vì sau, như luồng bình thường), tab đó vẫn ghi bản cloud vào IndexedDB dù tài khoản vừa đăng xuất. Khác với lỗi rò dữ liệu đã sửa ở Task 29 (đọc bị hủy vẫn ghi khi đã có cache và tab kia đợi khóa), khe hẹp này không có cơ chế khóa nào chặn được vì record chưa tồn tại lúc tab đăng xuất liệt kê để xóa. Rủi ro thấp (không phải rò dữ liệu xuyên người dùng, chỉ là dữ liệu của chính người dùng đó còn sót lại một khoảnh khắc sau khi đăng xuất trên đúng trình duyệt đó) và cực khó xảy ra trên thực tế (yêu cầu đúng thứ tự tới mili-giây giữa broadcast và response mạng). Đóng hoàn toàn cần thêm kiểm tra trong transaction ghi (ví dụ xác nhận bản ghi `session` vẫn thuộc đúng người dùng ngay trước khi ghi) — chưa làm, để lại cho sau nếu cần. |
+
 ## Chưa chốt
 
 Hiện không còn hạng mục nào. Khi phát sinh lựa chọn kỹ thuật mới, liệt kê ở đây hạng mục, các ứng viên và phần sẽ chốt. Quyết định cuối cùng nằm trong spec của phần tương ứng, sau đó được chuyển lên bảng "Quyết định đã chốt".

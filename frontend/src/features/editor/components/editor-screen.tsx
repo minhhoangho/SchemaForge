@@ -1,11 +1,16 @@
 "use client";
 
 import type { JSX } from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
+import { useApiClient, useAuth } from "@/components/auth-provider";
+import type { AuthState } from "@/lib/auth/auth-store";
+import { buildAuthHref } from "@/lib/auth/sanitize-return-to";
 import type { StorageBundle } from "@/lib/storage/create-browser-storage";
 import { useStorage } from "@/lib/storage/storage-context";
+import type { OpenAuthContext } from "@/lib/sync/decide-open-action";
 
+import { useLeaveOnSignOut } from "../hooks/use-leave-on-sign-out";
 import { useOpenSchema } from "../hooks/use-open-schema";
 import { useSchemaLock } from "../hooks/use-schema-lock";
 import { EditorSkeleton } from "./editor-skeleton";
@@ -22,6 +27,26 @@ type LockedEditorProps = EditorScreenProps & {
   readonly storage: StorageBundle;
 };
 
+const SIGNED_OUT: OpenAuthContext = { status: "signed-out" };
+
+// Unknown auth has no open decision yet; the caller waits instead.
+function toOpenAuthContext(auth: AuthState): OpenAuthContext | null {
+  switch (auth.status) {
+    case "unknown":
+      return null;
+    case "signed-out":
+      return SIGNED_OUT;
+    case "signed-in":
+      return { status: "signed-in", userId: auth.user.id };
+    case "expired":
+      return { status: "expired", lastUserId: auth.lastUser?.id ?? null };
+    default: {
+      const unhandled: never = auth;
+      return unhandled;
+    }
+  }
+}
+
 // Holds the tab lock first, then reads the schema; nothing is read while
 // another tab may still be writing it (spec section 7).
 function LockedEditor({
@@ -30,9 +55,23 @@ function LockedEditor({
   onOpeningChange,
 }: LockedEditorProps): JSX.Element {
   const { repository, lockManager } = storage;
+  const api = useApiClient();
+  const openAuth = toOpenAuthContext(useAuth((state) => state.auth));
+  const [attempt, setAttempt] = useState(0);
   const lockState = useSchemaLock({ schemaId, lockManager });
   const grantId = lockState.kind === "held" ? lockState.grantId : null;
-  const openState = useOpenSchema({ repository, schemaId, grantId });
+  const openState = useOpenSchema({
+    repository,
+    api,
+    auth: openAuth ?? SIGNED_OUT,
+    schemaId,
+    // No read starts before auth is known.
+    grantId: openAuth === null ? null : grantId,
+    attempt,
+  });
+  // Task 30 hands this to the workspace; here it only drives leaving.
+  const cloud = openState.kind === "opened" ? openState.cloud : null;
+  useLeaveOnSignOut({ cloud });
   const isOpening =
     lockState.kind !== "blocked" && openState.kind === "opening";
 
@@ -48,7 +87,27 @@ function LockedEditor({
     case "opening":
       return <EditorSkeleton />;
     case "not-found":
-      return <EditorStatusScreen variant="not-found" />;
+      return (
+        <EditorStatusScreen
+          variant="not-found"
+          signInHref={
+            openState.shouldOfferSignIn
+              ? buildAuthHref("/sign-in", `/schemas/${schemaId}`)
+              : undefined
+          }
+        />
+      );
+    case "needs-network":
+      return (
+        <EditorStatusScreen
+          variant="needs-network"
+          onRetry={() => {
+            setAttempt((current) => current + 1);
+          }}
+        />
+      );
+    case "deleted-elsewhere":
+      return <EditorStatusScreen variant="deleted-elsewhere" />;
     case "unreadable":
       return (
         <EditorStatusScreen

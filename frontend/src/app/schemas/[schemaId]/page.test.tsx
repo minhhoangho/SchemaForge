@@ -2,7 +2,6 @@ import { screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { getRequestLocale } from "@/lib/i18n/request-locale";
-import { StorageProvider } from "@/lib/storage/storage-context";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
 import EditorPage, { generateMetadata } from "./page";
@@ -52,9 +51,7 @@ describe("EditorPage", () => {
   it("renders the editor loader for a valid id", async () => {
     const page = await EditorPage({ params: toParams(SCHEMA_ID) });
 
-    renderWithProviders(<StorageProvider>{page}</StorageProvider>, {
-      locale: "en",
-    });
+    renderWithProviders(page, { locale: "en", auth: {} });
 
     expect(
       await screen.findByRole("heading", {

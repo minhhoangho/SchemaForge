@@ -84,7 +84,7 @@ describe("CreateSchemaDto", () => {
     expect(dto).toEqual({ id: SCHEMA_ID, document: DOCUMENT });
   });
 
-  it("keeps a __proto__ key as own data without changing the prototype", async () => {
+  it("drops a __proto__ key without changing the prototype", async () => {
     const document: unknown = JSON.parse(
       '{"version":1,"__proto__":{"polluted":true}}',
     );
@@ -94,8 +94,9 @@ describe("CreateSchemaDto", () => {
       document,
     });
 
-    expect(Object.hasOwn(documentOf(dto), "__proto__")).toBe(true);
+    expect(Object.hasOwn(documentOf(dto), "__proto__")).toBe(false);
     expect(Object.getPrototypeOf(documentOf(dto))).toBe(Object.prototype);
+    expect(Object.hasOwn(Object.prototype, "polluted")).toBe(false);
   });
 });
 

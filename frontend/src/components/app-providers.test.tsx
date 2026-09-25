@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { JSX } from "react";
 import { renderToString } from "react-dom/server";
 import { useTranslation } from "react-i18next";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import {
@@ -16,6 +16,15 @@ import { useThemePreference } from "@/lib/theme/use-theme-preference";
 
 import { AppProviders } from "./app-providers";
 import { useAuth } from "./auth-provider";
+
+// The hosts need a signed-in session and IndexedDB to do anything visible, and
+// their own tests cover that; here they only have to be mounted.
+vi.mock("./upload-prompt-host", () => ({
+  UploadPromptHost: () => <p>upload-prompt-host</p>,
+}));
+vi.mock("./background-sync-host", () => ({
+  BackgroundSyncHost: () => <p>background-sync-host</p>,
+}));
 
 // AppProviders is rendered with plain render: renderWithProviders already
 // wraps the i18n, theme, tooltip and toast providers, which would double up.
@@ -120,5 +129,16 @@ describe("AppProviders", () => {
     );
 
     expect(html).toContain("storage-pending");
+  });
+
+  it("mounts the upload prompt and background sync hosts", () => {
+    render(
+      <AppProviders locale="en" themePreference="light" hasAuthHint={false}>
+        <ThemeLabel />
+      </AppProviders>,
+    );
+
+    expect(screen.getByText("upload-prompt-host")).toBeDefined();
+    expect(screen.getByText("background-sync-host")).toBeDefined();
   });
 });

@@ -8,11 +8,13 @@ import type { JSX, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AuthProvider } from "@/components/auth-provider";
+import { BackgroundSyncHost } from "@/components/background-sync-host";
 import { I18nProvider } from "@/components/i18n-provider";
 import { SignInPromptProvider } from "@/components/sign-in-prompt";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { UploadPromptHost } from "@/components/upload-prompt-host";
 import type { Locale } from "@/lib/i18n/supported-locales";
 import type { ThemePreference } from "@/lib/preferences/preference-cookies";
 import { StorageProvider } from "@/lib/storage/storage-context";
@@ -46,6 +48,8 @@ export function AppProviders({
             <AuthProvider hasAuthHint={hasAuthHint}>
               <SignInPromptProvider>
                 {children}
+                <UploadPromptHost />
+                <BackgroundSyncHost />
                 <AppToaster />
               </SignInPromptProvider>
             </AuthProvider>

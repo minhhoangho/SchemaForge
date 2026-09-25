@@ -1289,7 +1289,7 @@ remove(ownerId: string, id: string): Promise<void>;
   - Đọc: `returns the parsed document of a schema`; `fails with internal-error and logs the schema id when the stored document cannot be parsed`; `rejects a schema of another user with not-found`.
   - Danh sách: `returns a next cursor when more rows exist`; `returns a null next cursor on the last page`; `rejects an undecodable cursor with validation-failed`.
   - Xóa: `rejects deleting another user's schema with not-found`.
-- `schema-dtos.spec.ts` (`createValidationPipe().transform` với từng `metatype`): `rejects a non-uuid id`; `rejects a document that is not an object` (`it.each`: chuỗi, mảng, `null`); `rejects expectedRevision below 1 or not an integer` (`it.each`); `defaults limit to 50`; `converts a limit query string to a number`; `rejects limit 101`; `rejects a cursor longer than 200 characters`; `keeps the document deep-equal after the pipe`; `keeps a __proto__ key as own data without changing the prototype`.
+- `schema-dtos.spec.ts` (`createValidationPipe().transform` với từng `metatype`): `rejects a non-uuid id`; `rejects a document that is not an object` (`it.each`: chuỗi, mảng, `null`); `rejects expectedRevision below 1 or not an integer` (`it.each`); `defaults limit to 50`; `converts a limit query string to a number`; `rejects limit 101`; `rejects a cursor longer than 200 characters`; `keeps the document deep-equal after the pipe`; `drops a __proto__ key without changing the prototype` (`class-transformer` bỏ own key `__proto__`; hành vi đã chấp nhận ngày 2026-09-25, xem điểm 11 mục "Vấn đề với các spec đã duyệt" của spec).
 
 **Kiểm tra:** như Quy ước chung cho `backend`. Nếu hai test cuối của `schema-dtos.spec.ts` không pass: dừng và báo (rủi ro "`class-transformer` với `transform: true`" của spec); không tự đổi cách transform.
 
@@ -1441,6 +1441,7 @@ export async function registerUser(client: HttpClient, label: string): Promise<{
 
 - Mỗi test: `beforeEach` tạo `TestApp` và một `HttpClient` cho người dùng A (`registerUser(client, "alice")`); test cần người dùng B tạo client thứ hai trên cùng app (jar cookie riêng).
 - Tài liệu dựng bằng `@schemaforge/core/testing` (`createSampleSchema`, `buildSchema`, `makeTable`); id schema là `randomUUID()` của `node:crypto` (như client của phần 3).
+- Dữ liệu test của các khẳng định so sánh sâu không chứa khóa `__proto__`: `ValidationPipe` bỏ khóa này nên tài liệu không round-trip (điểm 11 mục "Vấn đề với các spec đã duyệt" của spec; Task 14 đã phủ hành vi này ở mức unit).
 - Hàm cục bộ ngoài `it`: `createSchema(client, document, id?)` gửi `POST /schemas` và trả response; `createSchemas(client, count)` tạo tuần tự `count` schema, kiểm từng response là `201` (dùng cho hành trình 8, 14, để thân test không có vòng lặp).
 - Tài liệu sai cấu trúc: bản của `createSampleSchema()` với một trường bắt buộc bị thay bằng kiểu sai (ví dụ `tables` là chuỗi). Test chỉ khẳng định `documentErrors` khác rỗng và mỗi phần tử có `code` là chuỗi, `path` là mảng; không chép mã lỗi của core vào test.
 - Body quá lớn: `rawBody` là JSON hợp lệ `{"id":"…","document":{"name":"<chuỗi dài>"}}` có độ dài byte bằng `MAX_REQUEST_BODY_BYTES + 1` (import từ `@schemaforge/api-contract`). JSON hỏng: `rawBody` là `{"id":`.

@@ -1215,6 +1215,7 @@ Spec này không sửa tài liệu khác. Các điểm sau cần cập nhật kh
 | 8 | `.claude/rules/nestjs.md` | "No `process.env` outside `src/config/`" | `backend/prisma.config.ts` (cấu hình của Prisma CLI) đọc `process.env`. Rule nên nêu ngoại lệ cho file cấu hình tool |
 | 9 | `architecture.md`, "Auth: Passport + JWT" | — | Không mâu thuẫn; ghi rõ JWT chỉ dùng cho access token, còn refresh token là chuỗi ngẫu nhiên lưu hash |
 | 10 | Spec phần 7 (đang viết) | Import tạo schema mới | Khi đã đăng nhập, schema import được tạo qua đường "Tạo" ở mục 7 (có chủ, `pending`, được đẩy lên cloud) |
+| 11 | Spec này, mục "Rủi ro cần kiểm tra khi triển khai", dòng `class-transformer` (phát hiện khi làm Task 14 của plan, chốt 2026-09-25) | `document` đi qua `ValidationPipe` không bị đổi, "không mất trường"; nếu bị đổi thì loại `document` khỏi bước transform | `class-transformer` (`transform: true`) deep-clone `document` và âm thầm bỏ own key `__proto__` trước khi service thấy payload, nên backend không trả `invalid-shape` như `parseSchemaDocument` của core mà lưu tài liệu đã mất khóa đó. Chấp nhận, không loại `document` khỏi transform: prototype không bị đổi (không có prototype pollution), tài liệu lưu xuống vẫn hợp lệ, chỉ dữ liệu của chính người gửi bị ảnh hưởng và phải bỏ qua frontend mới gửi được khóa này. Test `drops a __proto__ key without changing the prototype` trong `backend/src/modules/schemas/dto/schema-dtos.spec.ts` khẳng định hành vi |
 
 ## Rủi ro cần kiểm tra khi triển khai
 
@@ -1224,7 +1225,7 @@ Spec này không sửa tài liệu khác. Các điểm sau cần cập nhật kh
 - **Metadata của `P2002` với driver adapter:** với `@prisma/adapter-pg`, thông tin trường vi phạm có thể không nằm ở `meta.target` như khi dùng query engine cũ. Plan xác nhận filter tìm được model và trường để chọn mã lỗi.
 - **Kiểu `Json` của Prisma và `SchemaDocument` readonly:** gán vào `InputJsonValue` có thể cần một hàm chuyển có kiểu, không dùng `as` (`typescript.md`).
 - **`prisma dev`:** giới hạn một kết nối với pool của `PrismaPg`; connection string của instance có tên có thật sự cố định qua các lần khởi động không; `migrate dev` với `SHADOW_DATABASE_URL`; dependency lồng như `@prisma/dev` có cần mục trong `allowBuilds` không.
-- **`class-transformer` với `transform: true`:** `document` phải đi qua `ValidationPipe` không bị đổi (không mất trường, không đổi prototype, khóa như `__proto__` không gây hại). e2e so sánh sâu tài liệu gửi lên và tài liệu đọc lại; nếu bị đổi thì loại `document` khỏi bước transform.
+- **`class-transformer` với `transform: true`:** `document` phải đi qua `ValidationPipe` không bị đổi (không mất trường, không đổi prototype, khóa như `__proto__` không gây hại). e2e so sánh sâu tài liệu gửi lên và tài liệu đọc lại; nếu bị đổi thì loại `document` khỏi bước transform. Kết quả khi triển khai: own key `__proto__` bị bỏ, được chấp nhận, xem điểm 11 của mục "Vấn đề với các spec đã duyệt".
 - **Lỗi của body parser trong NestJS 12 và Express 5:** xác nhận `entity.too.large` và `entity.parse.failed` tới được `ApiExceptionFilter`, và `useBodyParser` hoạt động với `bodyParser: false`.
 - **`Cross-Origin-Resource-Policy: same-site` với fetch CORS:** xác nhận frontend ở origin khác đọc được response.
 - **Safari và cookie `Secure` trên `http://localhost`:** nếu không nhận thì hướng dẫn `AUTH_COOKIE_SECURE=false` trong README (mục 8).

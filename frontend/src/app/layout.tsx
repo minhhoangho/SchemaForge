@@ -5,6 +5,7 @@ import type { JSX, ReactNode } from "react";
 
 import { AppProviders } from "@/components/app-providers";
 import { APP_NAME } from "@/lib/app-name";
+import { getRequestAuthHint } from "@/lib/auth/request-auth-hint";
 import {
   getRequestLocale,
   getRequestNonce,
@@ -29,10 +30,11 @@ type RootLayoutProps = {
 export default async function RootLayout({
   children,
 }: RootLayoutProps): Promise<JSX.Element> {
-  const [locale, themePreference, nonce] = await Promise.all([
+  const [locale, themePreference, nonce, hasAuthHint] = await Promise.all([
     getRequestLocale(),
     getRequestThemePreference(),
     getRequestNonce(),
+    getRequestAuthHint(),
   ]);
 
   // theme-init.js sets the dark class before the first paint, so the script
@@ -49,7 +51,11 @@ export default async function RootLayout({
         <script src="/theme-init.js" nonce={nonce ?? undefined} />
       </head>
       <body>
-        <AppProviders locale={locale} themePreference={themePreference}>
+        <AppProviders
+          locale={locale}
+          themePreference={themePreference}
+          hasAuthHint={hasAuthHint}
+        >
           {children}
         </AppProviders>
       </body>

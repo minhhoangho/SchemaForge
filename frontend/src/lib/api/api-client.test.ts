@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { logger } from "@/lib/logger";
 
 import {
+  browserFetch,
   createApiClient,
   createRawAuthCalls,
   REQUEST_TIMEOUT_MS,
@@ -546,5 +547,23 @@ describe("createRawAuthCalls", () => {
         retryAfterSeconds: 12,
       },
     });
+  });
+});
+
+describe("browserFetch", () => {
+  it("forwards the request to the global fetch", async () => {
+    const globalFetch = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response(null, { status: 204 })),
+    );
+    vi.stubGlobal("fetch", globalFetch);
+    onTestFinished(() => {
+      vi.unstubAllGlobals();
+    });
+    const url = new URL("/auth/me", BASE_URL);
+
+    const response = await browserFetch(url, { method: "GET" });
+
+    expect(response.status).toBe(204);
+    expect(globalFetch).toHaveBeenCalledWith(url, { method: "GET" });
   });
 });

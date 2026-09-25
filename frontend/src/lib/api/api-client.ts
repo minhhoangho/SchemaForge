@@ -125,6 +125,11 @@ async function withAutoRefresh<T>(
   return refreshResult;
 }
 
+// The browser fetch the app hands to the client. The wrapper keeps `this` as
+// the global object: calling an unbound `fetch` stored on another object
+// throws "Illegal invocation".
+export const browserFetch: typeof fetch = (input, init) => fetch(input, init);
+
 export function createRawAuthCalls(input: {
   readonly baseUrl: string;
   readonly fetchImpl: typeof fetch;

@@ -7,7 +7,9 @@ import "@/lib/zod-config";
 import type { JSX, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
+import { AuthProvider } from "@/components/auth-provider";
 import { I18nProvider } from "@/components/i18n-provider";
+import { SignInPromptProvider } from "@/components/sign-in-prompt";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +20,7 @@ import { StorageProvider } from "@/lib/storage/storage-context";
 type AppProvidersProps = {
   readonly locale: Locale;
   readonly themePreference: ThemePreference;
+  readonly hasAuthHint: boolean;
   readonly children: ReactNode;
 };
 
@@ -32,6 +35,7 @@ function AppToaster(): JSX.Element {
 export function AppProviders({
   locale,
   themePreference,
+  hasAuthHint,
   children,
 }: AppProvidersProps): JSX.Element {
   return (
@@ -39,8 +43,12 @@ export function AppProviders({
       <ThemeProvider initialPreference={themePreference}>
         <TooltipProvider>
           <StorageProvider>
-            {children}
-            <AppToaster />
+            <AuthProvider hasAuthHint={hasAuthHint}>
+              <SignInPromptProvider>
+                {children}
+                <AppToaster />
+              </SignInPromptProvider>
+            </AuthProvider>
           </StorageProvider>
         </TooltipProvider>
       </ThemeProvider>

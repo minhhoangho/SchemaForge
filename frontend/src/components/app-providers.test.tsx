@@ -15,6 +15,7 @@ import { useStorage } from "@/lib/storage/storage-context";
 import { useThemePreference } from "@/lib/theme/use-theme-preference";
 
 import { AppProviders } from "./app-providers";
+import { useAuth } from "./auth-provider";
 
 // AppProviders is rendered with plain render: renderWithProviders already
 // wraps the i18n, theme, tooltip and toast providers, which would double up.
@@ -31,6 +32,12 @@ function ThemePreferenceLabel(): JSX.Element {
   return <span>{preference}</span>;
 }
 
+function AuthStatusLabel(): JSX.Element {
+  const auth = useAuth((state) => state.auth);
+
+  return <span>{`auth-${auth.status}`}</span>;
+}
+
 function StorageStateLabel(): JSX.Element {
   const { kind } = useStorage();
 
@@ -44,7 +51,7 @@ describe("AppProviders", () => {
 
   it("renders children translated in the given locale", () => {
     render(
-      <AppProviders locale="vi" themePreference="light">
+      <AppProviders locale="vi" themePreference="light" hasAuthHint={false}>
         <ThemeLabel />
       </AppProviders>,
     );
@@ -54,7 +61,7 @@ describe("AppProviders", () => {
 
   it("applies the initial theme preference", () => {
     render(
-      <AppProviders locale="en" themePreference="dark">
+      <AppProviders locale="en" themePreference="dark" hasAuthHint={false}>
         <ThemePreferenceLabel />
       </AppProviders>,
     );
@@ -64,7 +71,7 @@ describe("AppProviders", () => {
 
   it("renders a toast region with a translated label", () => {
     render(
-      <AppProviders locale="vi" themePreference="light">
+      <AppProviders locale="vi" themePreference="light" hasAuthHint={false}>
         <ThemeLabel />
       </AppProviders>,
     );
@@ -78,7 +85,7 @@ describe("AppProviders", () => {
   it("renders tooltips without a missing provider error", async () => {
     const user = userEvent.setup();
     render(
-      <AppProviders locale="en" themePreference="light">
+      <AppProviders locale="en" themePreference="light" hasAuthHint={false}>
         <Tooltip>
           <TooltipTrigger>Undo</TooltipTrigger>
           <TooltipContent>Undo the last change</TooltipContent>
@@ -91,11 +98,23 @@ describe("AppProviders", () => {
     expect(await screen.findByRole("tooltip")).toBeDefined();
   });
 
+  it("provides the auth context to children", () => {
+    // Server rendering runs no effect, so the auth store is not built yet and
+    // children read the unknown state instead of a missing provider error.
+    const html = renderToString(
+      <AppProviders locale="en" themePreference="light" hasAuthHint={false}>
+        <AuthStatusLabel />
+      </AppProviders>,
+    );
+
+    expect(html).toContain("auth-unknown");
+  });
+
   it("renders storage-dependent children while storage is still pending", () => {
     // Server rendering runs no effects, so storage stays pending exactly as it
     // does in the HTML the root layout sends.
     const html = renderToString(
-      <AppProviders locale="en" themePreference="light">
+      <AppProviders locale="en" themePreference="light" hasAuthHint={false}>
         <StorageStateLabel />
       </AppProviders>,
     );

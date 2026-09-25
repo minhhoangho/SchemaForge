@@ -17,8 +17,11 @@ import {
   createJourneyEnvironment,
   createRelatedShopDocument,
   openJourneyEditor,
+  setJourneyTestTimeout,
 } from "@/testing/mount-editor-journey";
 import type { OpenedJourneyEditor } from "@/testing/mount-editor-journey";
+
+setJourneyTestTimeout();
 
 const { push } = vi.hoisted(() => ({
   push: vi.fn<(href: string) => void>(),

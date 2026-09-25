@@ -9,8 +9,13 @@ import {
   getOutlineRow,
   readDocument,
 } from "@/testing/journey-queries";
-import { openJourneyEditor } from "@/testing/mount-editor-journey";
+import {
+  openJourneyEditor,
+  setJourneyTestTimeout,
+} from "@/testing/mount-editor-journey";
 import type { OpenedJourneyEditor } from "@/testing/mount-editor-journey";
+
+setJourneyTestTimeout();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({

@@ -3,13 +3,18 @@
 import type { RefObject } from "react";
 import { useRef, useState } from "react";
 
-import type { SchemaRecord } from "@/lib/storage/records";
-import type { SchemaListEntry } from "@/lib/storage/schema-repository";
+import type { SchemaActionTarget } from "@/features/schema-list/hooks/use-schema-actions";
 
+// A cloud-only row has no record, so the dialogs work from the row's target.
 export type SchemaListDialogTarget =
   | { readonly kind: "create" }
-  | { readonly kind: "rename"; readonly schema: SchemaRecord }
-  | { readonly kind: "delete"; readonly entry: SchemaListEntry };
+  | { readonly kind: "rename"; readonly schema: SchemaActionTarget }
+  | {
+      readonly kind: "delete";
+      readonly schema: SchemaActionTarget;
+      // An unreadable row has no name of its own to show.
+      readonly isReadable: boolean;
+    };
 
 export type SchemaListDialogs = {
   // The target outlives isOpen so a closing dialog keeps its text while Radix

@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCloudSchemaList } from "@/features/schema-list/hooks/use-cloud-schema-list";
 import type { CloudSchemaListState } from "@/features/schema-list/hooks/use-cloud-schema-list";
 import { useSchemaActions } from "@/features/schema-list/hooks/use-schema-actions";
+import type { SchemaActionTarget } from "@/features/schema-list/hooks/use-schema-actions";
 import {
   getSchemaListEntryId,
   useSchemaList,
@@ -118,9 +119,14 @@ function StorageMessage({ errorCode }: StorageMessageProps): JSX.Element {
 type SchemaEntriesProps = {
   readonly entries: readonly SchemaListEntry[];
   readonly dialogs: SchemaListDialogsState;
+  readonly onUploadToCloud: (target: SchemaActionTarget) => void;
 };
 
-function SchemaEntries({ entries, dialogs }: SchemaEntriesProps): JSX.Element {
+function SchemaEntries({
+  entries,
+  dialogs,
+  onUploadToCloud,
+}: SchemaEntriesProps): JSX.Element {
   const { t } = useTranslation("schemaList");
 
   if (entries.length === 0) {
@@ -148,9 +154,13 @@ function SchemaEntries({ entries, dialogs }: SchemaEntriesProps): JSX.Element {
           onRename={(schema, trigger) => {
             dialogs.open({ kind: "rename", schema }, trigger);
           }}
-          onDelete={(deleted, trigger) => {
-            dialogs.open({ kind: "delete", entry: deleted }, trigger);
+          onDelete={(schema, trigger) => {
+            dialogs.open(
+              { kind: "delete", schema, isReadable: entry.kind === "readable" },
+              trigger,
+            );
           }}
+          onUploadToCloud={onUploadToCloud}
         />
       ))}
     </ul>
@@ -174,11 +184,13 @@ function CloudListSkeleton(): JSX.Element {
 type OwnedSectionProps = {
   readonly rows: Extract<MergedSchemaList["owned"], { kind: "rows" }>["rows"];
   readonly isCloudLoading: boolean;
+  readonly dialogs: SchemaListDialogsState;
 };
 
 function OwnedSection({
   rows,
   isCloudLoading,
+  dialogs,
 }: OwnedSectionProps): JSX.Element {
   const { t } = useTranslation("sync");
 
@@ -187,7 +199,20 @@ function OwnedSection({
       {rows.length === 0 ? null : (
         <ul className="flex flex-col gap-3">
           {rows.map((row) => (
-            <SchemaListRow key={row.id} kind="owned" row={row} />
+            <SchemaListRow
+              key={row.id}
+              kind="owned"
+              row={row}
+              onRename={(schema, trigger) => {
+                dialogs.open({ kind: "rename", schema }, trigger);
+              }}
+              onDelete={(schema, trigger) => {
+                dialogs.open(
+                  { kind: "delete", schema, isReadable: true },
+                  trigger,
+                );
+              }}
+            />
           ))}
         </ul>
       )}
@@ -202,6 +227,7 @@ type SchemaSectionsProps = {
   readonly cloud: CloudSchemaListState;
   readonly onRetryCloud: () => void;
   readonly dialogs: SchemaListDialogsState;
+  readonly onUploadToCloud: (target: SchemaActionTarget) => void;
 };
 
 // Which parts show for each auth state: auth-cloud spec section 7, "Danh
@@ -212,6 +238,7 @@ function SchemaSections({
   cloud,
   onRetryCloud,
   dialogs,
+  onUploadToCloud,
 }: SchemaSectionsProps): JSX.Element {
   const { t } = useTranslation("sync");
   const ownedRows =
@@ -232,13 +259,25 @@ function SchemaSections({
       ) : null}
       {auth.status === "signed-out" ? <SignInInvite /> : null}
       {ownedRows === null || isEmpty ? (
-        <SchemaEntries entries={list.guest} dialogs={dialogs} />
+        <SchemaEntries
+          entries={list.guest}
+          dialogs={dialogs}
+          onUploadToCloud={onUploadToCloud}
+        />
       ) : (
         <>
-          <OwnedSection rows={ownedRows} isCloudLoading={isCloudLoading} />
+          <OwnedSection
+            rows={ownedRows}
+            isCloudLoading={isCloudLoading}
+            dialogs={dialogs}
+          />
           {list.guest.length === 0 ? null : (
             <SchemaListSection title={t("schemaList.guestSection")}>
-              <SchemaEntries entries={list.guest} dialogs={dialogs} />
+              <SchemaEntries
+                entries={list.guest}
+                dialogs={dialogs}
+                onUploadToCloud={onUploadToCloud}
+              />
             </SchemaListSection>
           )}
         </>
@@ -307,7 +346,7 @@ function ReadySchemaList({
     auth,
     cloud: cloud.state,
   });
-  const actions = useSchemaActions(storage);
+  const actions = useSchemaActions(storage, cloud);
   const dialogs = useSchemaListDialogs(headingRef);
   useCloudHousekeeping({
     storage,
@@ -339,6 +378,10 @@ function ReadySchemaList({
           cloud={cloud.state}
           onRetryCloud={cloud.reload}
           dialogs={dialogs}
+          onUploadToCloud={(target) => {
+            // uploadToCloud reports its own outcome and never rejects.
+            void actions.uploadToCloud(target);
+          }}
         />
       )}
       <SchemaListDialogs dialogs={dialogs} actions={actions} />

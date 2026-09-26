@@ -19,6 +19,8 @@ type DeleteSchemaDialogProps = {
   readonly open: boolean;
   // null for a row whose metadata cannot be read, so it has no name to show.
   readonly schemaName: string | null;
+  // A cloud schema is deleted from the account too, so the text says so.
+  readonly isCloudSchema: boolean;
   readonly onOpenChange: (open: boolean) => void;
   // Closes the dialog itself once the delete has finished.
   readonly onConfirm: () => Promise<void>;
@@ -28,11 +30,12 @@ type DeleteSchemaDialogProps = {
 export function DeleteSchemaDialog({
   open,
   schemaName,
+  isCloudSchema,
   onOpenChange,
   onConfirm,
   onReturnFocus,
 }: DeleteSchemaDialogProps): JSX.Element {
-  const { t } = useTranslation(["schemaList", "common"]);
+  const { t } = useTranslation(["schemaList", "sync", "common"]);
   const [isConfirming, setIsConfirming] = useState(false);
 
   async function handleConfirm(): Promise<void> {
@@ -61,7 +64,9 @@ export function DeleteSchemaDialog({
               : t("delete.title", { name: schemaName })}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {t("delete.description")}
+            {isCloudSchema
+              ? t("sync:schemaList.deleteCloudDescription")
+              : t("delete.description")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

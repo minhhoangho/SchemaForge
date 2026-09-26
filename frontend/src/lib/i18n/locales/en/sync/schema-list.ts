@@ -15,4 +15,7 @@ export const enSyncSchemaList = {
   signInAgain: "Sign in again",
   deleteNeedsNetwork:
     "You need a network connection to delete this schema from the cloud",
+  saveToCloud: "Save to cloud",
+  deleteCloudDescription:
+    "The schema is deleted from your account in the cloud and from this browser. You cannot undo this.",
 } as const;

@@ -17,4 +17,7 @@ export const viSyncSchemaList = {
   loadingCloud: "Đang tải danh sách trên cloud…",
   signInAgain: "Đăng nhập lại",
   deleteNeedsNetwork: "Cần kết nối mạng để xóa schema trên cloud",
+  saveToCloud: "Lưu lên cloud",
+  deleteCloudDescription:
+    "Schema bị xóa khỏi tài khoản trên cloud và khỏi trình duyệt này. Không hoàn tác được.",
 } as const satisfies LocaleNamespace<typeof enSyncSchemaList>;

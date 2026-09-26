@@ -1,3 +1,4 @@
+import { createSampleSchema } from "@schemaforge/core/testing";
 import { screen, waitFor, within } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
 import { Dexie } from "dexie";
@@ -657,5 +658,179 @@ describe("SchemaListScreen with an account", () => {
     });
     await screen.findByRole("link", { name: "scratch" });
     expect(screen.queryByText("owned-secret")).toBeNull();
+  });
+});
+
+const CLOUD_ONLY_ID = `${ID_PREFIX}000000000099`;
+
+function cloudSummary(
+  id: string,
+  name: string,
+  revision = 1,
+): Readonly<Record<string, string | number>> {
+  return { id, name, revision, createdAt: TIMESTAMP, updatedAt: TIMESTAMP };
+}
+
+// A signed-in account whose cloud list holds `listed`; extra handlers answer
+// the requests a test is about.
+function createCloudFetch(
+  listed: readonly unknown[],
+  handlers: Readonly<Record<string, () => Promise<Response>>>,
+): FetchStub {
+  const all: Readonly<Record<string, () => Promise<Response>>> = {
+    "GET /auth/me": () =>
+      jsonResponse({
+        user: { id: USER_ID, email: EMAIL, createdAt: TIMESTAMP },
+      }),
+    "GET /schemas": () => jsonResponse({ items: listed, nextCursor: null }),
+    ...handlers,
+  };
+  return vi.fn<typeof fetch>((input, init) => {
+    const handler = all[requestKey(input, init)];
+    return handler === undefined
+      ? jsonResponse({ statusCode: 404, code: "not-found" }, 404)
+      : handler();
+  });
+}
+
+describe("SchemaListScreen cloud actions", () => {
+  const databases = new Set<SchemaforgeDatabase>();
+
+  beforeAll(() => {
+    Dexie.dependencies.indexedDB = new IDBFactory();
+    Dexie.dependencies.IDBKeyRange = IDBKeyRange;
+  });
+
+  afterEach(() => {
+    databases.forEach((database) => {
+      database.close();
+    });
+    databases.clear();
+    vi.restoreAllMocks();
+  });
+
+  function setUp(): StorageBundle {
+    const database = new SchemaforgeDatabase({
+      indexedDB: new IDBFactory(),
+      IDBKeyRange,
+    });
+    databases.add(database);
+    const nextId = createCounter();
+    return {
+      database,
+      lockManager: createSchemaLockManager(createFakeLockRegistry().request),
+      repository: createSchemaRepository({
+        database,
+        clock: createCounter(),
+        generateId: () =>
+          `${ID_PREFIX}${String(nextId()).padStart(ID_SUFFIX_LENGTH, "0")}`,
+      }),
+    };
+  }
+
+  async function createCachedSchema(storage: StorageBundle): Promise<void> {
+    await storage.repository.createSchema("billing", { ownerId: USER_ID });
+    await storage.repository.setSyncState(FIRST_SCHEMA_ID, {
+      cloudRevision: 1,
+      syncStatus: "synced",
+    });
+  }
+
+  function renderSignedIn(
+    storage: StorageBundle,
+    fetchImpl: FetchStub,
+  ): ReturnType<typeof renderWithProviders> {
+    return renderWithProviders(<SchemaListScreen />, {
+      locale: "en",
+      auth: {
+        storage,
+        hasAuthHint: true,
+        dependencies: { fetchImpl, cookieJar: { cookie: "sf-auth-hint=1" } },
+      },
+    });
+  }
+
+  async function chooseRowAction(
+    user: UserEvent,
+    name: string,
+    action: string,
+  ): Promise<void> {
+    await user.click(
+      await screen.findByRole("button", { name: `Actions for ${name}` }),
+    );
+    await user.click(await screen.findByRole("menuitem", { name: action }));
+  }
+
+  it("describes the cloud delete in the confirmation dialog", async () => {
+    const storage = setUp();
+    await createCachedSchema(storage);
+    const { user } = renderSignedIn(
+      storage,
+      createCloudFetch([cloudSummary(FIRST_SCHEMA_ID, "billing")], {}),
+    );
+
+    await chooseRowAction(user, "billing", "Delete");
+
+    const confirmation = await screen.findByRole("alertdialog", {
+      name: "Delete “billing”?",
+    });
+    expect(
+      within(confirmation).getByText(
+        "The schema is deleted from your account in the cloud and from this browser. You cannot undo this.",
+      ),
+    ).toBeDefined();
+  });
+
+  it("returns focus to the row menu after renaming a cloud-only schema", async () => {
+    const storage = setUp();
+    const { user } = renderSignedIn(
+      storage,
+      createCloudFetch([cloudSummary(CLOUD_ONLY_ID, "billing")], {
+        [`GET /schemas/${CLOUD_ONLY_ID}`]: () =>
+          jsonResponse({
+            ...cloudSummary(CLOUD_ONLY_ID, "billing", 2),
+            document: createSampleSchema(),
+          }),
+        [`PUT /schemas/${CLOUD_ONLY_ID}`]: () =>
+          jsonResponse(cloudSummary(CLOUD_ONLY_ID, "orders", 3)),
+      }),
+    );
+
+    await chooseRowAction(user, "billing", "Rename");
+    const field = await screen.findByLabelText("Name");
+    await user.clear(field);
+    await user.type(field, "orders{Enter}");
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(
+        screen.getByRole("button", { name: "Actions for orders" }),
+      );
+    });
+  });
+
+  it("moves focus to the heading after a cloud schema is deleted", async () => {
+    const storage = setUp();
+    await createCachedSchema(storage);
+    const { user } = renderSignedIn(
+      storage,
+      createCloudFetch([cloudSummary(FIRST_SCHEMA_ID, "billing")], {
+        [`DELETE /schemas/${FIRST_SCHEMA_ID}`]: () =>
+          Promise.resolve(new Response(null, { status: 204 })),
+      }),
+    );
+
+    await chooseRowAction(user, "billing", "Delete");
+    await user.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", {
+        name: "Delete",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(
+        screen.getByRole("heading", { level: 1 }),
+      );
+    });
+    expect(await storage.repository.listSchemas()).toEqual([]);
   });
 });

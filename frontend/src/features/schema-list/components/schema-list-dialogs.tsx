@@ -3,7 +3,6 @@
 import type { JSX } from "react";
 
 import type { SchemaActions } from "@/features/schema-list/hooks/use-schema-actions";
-import { getSchemaListEntryId } from "@/features/schema-list/hooks/use-schema-list";
 import type { SchemaListDialogs as SchemaListDialogsState } from "@/features/schema-list/hooks/use-schema-list-dialogs";
 
 import { CreateSchemaDialog } from "./create-schema-dialog";
@@ -37,7 +36,7 @@ export function SchemaListDialogs({
           if (target.kind !== "rename") {
             return;
           }
-          await actions.renameSchema(target.schema.id, name);
+          await actions.renameSchema(target.schema, name);
           setOpen(false);
         }}
         onReturnFocus={returnFocus}
@@ -45,9 +44,12 @@ export function SchemaListDialogs({
       <DeleteSchemaDialog
         open={isOpen && target.kind === "delete"}
         schemaName={
-          target.kind === "delete" && target.entry.kind === "readable"
-            ? target.entry.schema.name
+          target.kind === "delete" && target.isReadable
+            ? target.schema.name
             : null
+        }
+        isCloudSchema={
+          target.kind === "delete" && target.schema.source !== "guest"
         }
         onOpenChange={setOpen}
         onConfirm={async () => {
@@ -58,9 +60,7 @@ export function SchemaListDialogs({
           // trigger if the row survives, and only the outcome tells us that.
           // The live list may still show a deleted row for a moment, so
           // isConnected alone would send focus to an element about to vanish.
-          const isDeleted = await actions.deleteSchema(
-            getSchemaListEntryId(target.entry),
-          );
+          const isDeleted = await actions.deleteSchema(target.schema);
           if (isDeleted) {
             dialogs.closeToHeading();
             return;

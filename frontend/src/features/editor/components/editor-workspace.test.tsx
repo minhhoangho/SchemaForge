@@ -221,6 +221,7 @@ function renderWorkspace({
       repository={repository}
       ownerId={ownerId}
       apiClient={apiClient}
+      onReplaceDocument={vi.fn<(document: SchemaDocument) => void>()}
     />,
     { locale: "en", themePreference, auth },
   );
@@ -895,6 +896,187 @@ describe("EditorWorkspace", () => {
       ).toBeDefined();
       expect(replace).not.toHaveBeenCalled();
       expect(screen.getByText("Only saved on this browser")).toBeDefined();
+    });
+
+    describe("with a conflict", () => {
+      const CONFLICT_TITLE = "This schema was changed somewhere else";
+
+      function detailResponse(): Response {
+        return jsonResponse({
+          id: SCHEMA_ID,
+          name: "Cloud",
+          revision: 2,
+          createdAt: TIMESTAMP,
+          updatedAt: TIMESTAMP,
+          document: createEmptySchema("Cloud"),
+        });
+      }
+
+      const answerDetail = (): Promise<Response> =>
+        Promise.resolve(detailResponse());
+
+      // An owned schema at revision 1 whose lock the editor screen holds.
+      async function renderOwnedSchema(
+        syncStatus: "synced" | "conflict" | "deleted-in-cloud",
+        schemaAnswers: (() => Promise<Response>)[],
+      ): Promise<CloudSetup> {
+        const storage = createStorage();
+        await storage.repository.createSchema("Billing", { ownerId: USER_ID });
+        await storage.repository.setSyncState(SCHEMA_ID, {
+          cloudRevision: 1,
+          syncStatus,
+        });
+        await storage.lockManager.tryAcquire(SCHEMA_ID);
+        const { fetchImpl, schemaCalls } = createBackend(schemaAnswers);
+        const { user } = renderWorkspace({
+          repository: storage.repository,
+          ownerId: USER_ID,
+          apiClient: createTestApiClient(fetchImpl),
+          auth: {
+            storage,
+            hasAuthHint: true,
+            dependencies: { fetchImpl, cookieJar: { cookie: HINT_COOKIE } },
+          },
+        });
+        return { storage, schemaCalls, user };
+      }
+
+      async function countStoredTables(
+        repository: SchemaRepository,
+      ): Promise<number | null> {
+        const opened = await repository.openSchema(SCHEMA_ID);
+        return opened.kind === "opened"
+          ? Object.keys(opened.document.tables).length
+          : null;
+      }
+
+      function findConflictDialog(): Promise<HTMLElement> {
+        return screen.findByRole("alertdialog", { name: CONFLICT_TITLE });
+      }
+
+      async function closeOpenedDialog(
+        user: CloudSetup["user"],
+      ): Promise<void> {
+        await findConflictDialog();
+        await user.keyboard("{Escape}");
+        await waitFor(() => {
+          expect(screen.queryByRole("alertdialog")).toBeNull();
+        });
+      }
+
+      it("opens the conflict dialog when the schema opens with a conflict", async () => {
+        await renderOwnedSchema("conflict", [answerDetail]);
+
+        expect(await findConflictDialog()).toBeDefined();
+      });
+
+      it("opens the deleted in cloud dialog when the schema opens deleted in the cloud", async () => {
+        await renderOwnedSchema("deleted-in-cloud", []);
+
+        expect(
+          await screen.findByRole("alertdialog", {
+            name: "This schema was deleted in the cloud",
+          }),
+        ).toBeDefined();
+      });
+
+      it("opens the conflict dialog when a push detects a conflict", async () => {
+        const { user } = await renderOwnedSchema("synced", [
+          () =>
+            Promise.resolve(
+              jsonResponse(
+                {
+                  statusCode: 409,
+                  code: "revision-conflict",
+                  currentRevision: 2,
+                },
+                409,
+              ),
+            ),
+          answerDetail,
+          answerDetail,
+        ]);
+        await screen.findByText("Saved to the cloud");
+
+        await user.click(getEmptyStateAddButton());
+
+        expect(await findConflictDialog()).toBeDefined();
+      });
+
+      it("returns focus to Resolve after the dialog closes", async () => {
+        const { user } = await renderOwnedSchema("conflict", [
+          answerDetail,
+          answerDetail,
+        ]);
+        await closeOpenedDialog(user);
+        const resolve = screen.getByRole("button", { name: "Resolve" });
+        await user.click(resolve);
+        await findConflictDialog();
+
+        await user.keyboard("{Escape}");
+
+        await waitFor(() => {
+          expect(document.activeElement).toBe(resolve);
+        });
+      });
+
+      it("moves focus to the canvas region when the trigger is gone", async () => {
+        const { user } = await renderOwnedSchema("conflict", [
+          answerDetail,
+          answerDetail,
+        ]);
+        await closeOpenedDialog(user);
+        await user.click(screen.getByRole("button", { name: "Resolve" }));
+        const dialog = await findConflictDialog();
+        const keepLocal = within(dialog).getByRole("button", {
+          name: "Keep the version on this device",
+        });
+        await waitFor(() => {
+          expect(keepLocal.hasAttribute("disabled")).toBe(false);
+        });
+
+        await user.click(keepLocal);
+
+        await screen.findByText("Saved to the cloud");
+        await waitFor(() => {
+          expect(document.activeElement).toBe(getCanvasRegion());
+        });
+        expect(screen.queryByRole("button", { name: "Resolve" })).toBeNull();
+      });
+
+      it("reopens the dialog from Resolve after it was closed", async () => {
+        const { user } = await renderOwnedSchema("conflict", [
+          answerDetail,
+          answerDetail,
+        ]);
+        await closeOpenedDialog(user);
+
+        await user.click(screen.getByRole("button", { name: "Resolve" }));
+
+        expect(await findConflictDialog()).toBeDefined();
+      });
+
+      it("keeps saving edits to the cache while the conflict is unresolved", async () => {
+        const { user, storage, schemaCalls } = await renderOwnedSchema(
+          "conflict",
+          [answerDetail],
+        );
+        await closeOpenedDialog(user);
+
+        await user.click(getEmptyStateAddButton());
+
+        await waitFor(async () => {
+          expect(await countStoredTables(storage.repository)).toBe(1);
+        });
+        expect({
+          syncStatus: (await storage.repository.readSchemaRecord(SCHEMA_ID))
+            ?.syncStatus,
+          schemaCalls,
+        }).toEqual({
+          syncStatus: "conflict",
+          schemaCalls: [{ method: "GET", path: `/schemas/${SCHEMA_ID}` }],
+        });
+      });
     });
   });
 });

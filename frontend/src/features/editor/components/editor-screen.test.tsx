@@ -1,6 +1,6 @@
 import { createEmptySchema, CURRENT_SCHEMA_VERSION } from "@schemaforge/core";
 import { createSampleSchema } from "@schemaforge/core/testing";
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { Dexie } from "dexie";
 import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
 import {
@@ -510,6 +510,81 @@ describe("EditorScreen", () => {
       });
       await waitFor(() => {
         expect(document.activeElement).toBe(heading);
+      });
+    });
+
+    describe("with a conflict", () => {
+      // An owned schema edited here while the cloud moved on; every schema
+      // request answers with the cloud version "Cloud".
+      async function renderConflictedSchema(): Promise<
+        ReturnType<typeof renderWithProviders>
+      > {
+        const storage = createStorage();
+        await storage.repository.createSchema("Billing", { ownerId: USER_ID });
+        await storage.repository.setSyncState(SCHEMA_ID, {
+          cloudRevision: 1,
+          syncStatus: "conflict",
+        });
+        const fetchImpl = vi.fn<typeof fetch>((input) =>
+          Promise.resolve(
+            requestPath(input) === "/auth/me"
+              ? userResponse()
+              : detailResponse(),
+          ),
+        );
+        return renderScreen(storage, SCHEMA_ID, "light", {
+          fetchImpl,
+          cookieJar: { cookie: HINT_COOKIE },
+        });
+      }
+
+      async function useCloudVersion(
+        user: ReturnType<typeof renderWithProviders>["user"],
+      ): Promise<void> {
+        const dialog = await screen.findByRole("alertdialog", {
+          name: "This schema was changed somewhere else",
+        });
+        const useCloud = within(dialog).getByRole("button", {
+          name: "Use the cloud version",
+        });
+        await waitFor(() => {
+          expect(useCloud.hasAttribute("disabled")).toBe(false);
+        });
+        await user.click(useCloud);
+      }
+
+      function getToolbarButton(name: string): HTMLElement {
+        return within(screen.getByRole("banner")).getByRole("button", {
+          name,
+        });
+      }
+
+      it("mounts a new editor store with the cloud document and an empty undo history", async () => {
+        const { user } = await renderConflictedSchema();
+        await screen.findByRole("alertdialog");
+        await user.keyboard("{Escape}");
+        await user.click(getToolbarButton("Add table"));
+        await waitFor(() => {
+          expect(getToolbarButton("Undo").hasAttribute("disabled")).toBe(false);
+        });
+        await user.click(getToolbarButton("Resolve"));
+
+        await useCloudVersion(user);
+
+        expect(
+          await screen.findByRole("button", { name: "Schema name Cloud" }),
+        ).toBeDefined();
+        expect(getToolbarButton("Undo").hasAttribute("disabled")).toBe(true);
+      });
+
+      it("shows a toast after switching to the cloud version", async () => {
+        const { user } = await renderConflictedSchema();
+
+        await useCloudVersion(user);
+
+        expect(
+          await screen.findByText("Switched to the cloud version"),
+        ).toBeDefined();
       });
     });
   });

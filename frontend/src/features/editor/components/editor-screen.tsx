@@ -1,5 +1,6 @@
 "use client";
 
+import type { SchemaDocument } from "@schemaforge/core";
 import type { JSX } from "react";
 import { useEffect, useState } from "react";
 
@@ -25,6 +26,16 @@ export type EditorScreenProps = {
 
 type LockedEditorProps = EditorScreenProps & {
   readonly storage: StorageBundle;
+};
+
+// The cloud version the user switched to. Each switch mounts a new
+// workspace, and with it a new store whose undo history starts empty (spec
+// section 7); its autosave only writes later changes. The schema id keeps a
+// replacement from following the route to another schema.
+type Replacement = {
+  readonly schemaId: string;
+  readonly document: SchemaDocument;
+  readonly generation: number;
 };
 
 const SIGNED_OUT: OpenAuthContext = { status: "signed-out" };
@@ -58,6 +69,7 @@ function LockedEditor({
   const api = useApiClient();
   const openAuth = toOpenAuthContext(useAuth((state) => state.auth));
   const [attempt, setAttempt] = useState(0);
+  const [replacement, setReplacement] = useState<Replacement | null>(null);
   const lockState = useSchemaLock({ schemaId, lockManager });
   const grantId = lockState.kind === "held" ? lockState.grantId : null;
   const openState = useOpenSchema({
@@ -124,20 +136,29 @@ function LockedEditor({
           storageErrorCode={openState.errorCode}
         />
       );
-    case "opened":
+    case "opened": {
+      const current = replacement?.schemaId === schemaId ? replacement : null;
       return (
         <EditorWorkspace
-          key={schemaId}
+          key={`${schemaId}:${String(current?.generation ?? 0)}`}
           schemaId={schemaId}
-          document={openState.document}
+          document={current?.document ?? openState.document}
           viewport={openState.viewport}
           repository={repository}
           ownerId={
             openState.cloud.kind === "owned" ? openState.cloud.userId : null
           }
           apiClient={api}
+          onReplaceDocument={(document) => {
+            setReplacement({
+              schemaId,
+              document,
+              generation: (current?.generation ?? 0) + 1,
+            });
+          }}
         />
       );
+    }
     default: {
       const unhandledState: never = openState;
       return unhandledState;

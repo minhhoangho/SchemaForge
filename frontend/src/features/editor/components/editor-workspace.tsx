@@ -3,7 +3,7 @@
 import type { SchemaDocument, TableId } from "@schemaforge/core";
 import type { Connection, Viewport } from "@xyflow/react";
 import { useRouter } from "next/navigation";
-import type { JSX } from "react";
+import type { JSX, RefObject } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -22,6 +22,10 @@ import { useNotify } from "@/lib/use-notify";
 
 import { useAutosave } from "../hooks/use-autosave";
 import { useCloudPusher } from "../hooks/use-cloud-pusher";
+import {
+  useCloudResolution,
+  useLocalVersionSummary,
+} from "../hooks/use-cloud-resolution";
 import { useSchemaCommands } from "../hooks/use-schema-commands";
 import { useWorkspaceKeyboard } from "../hooks/use-workspace-keyboard";
 import {
@@ -29,12 +33,15 @@ import {
   createRelationDraftFromTable,
 } from "../lib/to-relation-draft";
 import type { RelationDraft } from "../lib/to-relation-draft";
+import type { CloudStatusView } from "../lib/to-cloud-status-view";
 import { createEditorStore } from "../state/create-editor-store";
 import { EditorStoreProvider } from "../state/editor-store-provider";
 import { useEditorStoreApi } from "../state/use-editor-store";
 import { EditorCanvas } from "./canvas/editor-canvas";
 import { EditorFlowProvider } from "./canvas/editor-flow-provider";
+import { ConflictDialog } from "./dialogs/conflict-dialog";
 import { CreateRelationDialog } from "./dialogs/create-relation-dialog";
+import { DeletedInCloudDialog } from "./dialogs/deleted-in-cloud-dialog";
 import { LeftPanel } from "./panels/left-panel";
 import { PropertiesPanel } from "./panels/properties-panel";
 import { SkipToPanelLink } from "./skip-to-panel-link";
@@ -51,12 +58,24 @@ export type EditorWorkspaceProps = {
   readonly repository: SchemaRepository;
   readonly ownerId: string | null;
   readonly apiClient: ApiClient;
+  /** Remounts the editor with this document ("Use the cloud version"). */
+  readonly onReplaceDocument: (document: SchemaDocument) => void;
 };
 
+// The last dialog stays in state after it closes, so focus can still go back
+// to its trigger.
 type CloudDialogState = {
   readonly kind: CloudDialogKind;
   readonly trigger: HTMLElement | null;
+  readonly isOpen: boolean;
 } | null;
+
+type CloudDialogControls = {
+  readonly openKind: CloudDialogKind | null;
+  readonly trigger: HTMLElement | null;
+  readonly open: (kind: CloudDialogKind, trigger: HTMLElement) => void;
+  readonly close: () => void;
+};
 
 // Regions that take focus from the skip link or after a delete show a ring
 // for keyboard users (WCAG 2.4.7). Their children paint opaque backgrounds
@@ -183,6 +202,46 @@ function useSaveToCloud({
   };
 }
 
+function isCloudDialogKind(
+  kind: CloudStatusView["kind"],
+): kind is CloudDialogKind {
+  return kind === "conflict" || kind === "deleted-in-cloud";
+}
+
+/**
+ * Opens the dialog of a conflict or deleted-in-cloud status on its own when
+ * the status arrives (on mount too), and closes it once the status leaves.
+ * A dialog the user closed stays closed until the status comes back; the
+ * toolbar can always reopen it.
+ */
+function useCloudDialog(
+  statusKind: CloudStatusView["kind"],
+): CloudDialogControls {
+  const [dialog, setDialog] = useState<CloudDialogState>(null);
+  const [seenKind, setSeenKind] = useState<CloudStatusView["kind"] | null>(
+    null,
+  );
+  if (statusKind !== seenKind) {
+    setSeenKind(statusKind);
+    setDialog((current) =>
+      isCloudDialogKind(statusKind)
+        ? { kind: statusKind, trigger: null, isOpen: true }
+        : current && { ...current, isOpen: false },
+    );
+  }
+
+  return {
+    openKind: dialog?.isOpen === true ? dialog.kind : null,
+    trigger: dialog?.trigger ?? null,
+    open: (kind, trigger) => {
+      setDialog({ kind, trigger, isOpen: true });
+    },
+    close: () => {
+      setDialog((current) => current && { ...current, isOpen: false });
+    },
+  };
+}
+
 type RelationDialogState = {
   readonly draft: RelationDraft | null;
   readonly closeDialog: () => void;
@@ -227,6 +286,8 @@ type WorkspaceLayoutProps = {
   readonly onMoveEnd: (viewport: Viewport) => void;
   readonly onRetrySave: () => void;
   readonly cloud: CloudStatusBadgeProps;
+  readonly canvasRegionRef: RefObject<HTMLElement | null>;
+  readonly isCloudDialogOpen: boolean;
 };
 
 /**
@@ -240,11 +301,23 @@ function WorkspaceLayout({
   onMoveEnd,
   onRetrySave,
   cloud,
+  canvasRegionRef,
+  isCloudDialogOpen,
 }: WorkspaceLayoutProps): JSX.Element {
   const { t } = useTranslation("editor");
   const { addTable } = useSchemaCommands();
   const dialog = useRelationDialog();
-  const keyboard = useWorkspaceKeyboard(dialog.draft !== null);
+  const keyboard = useWorkspaceKeyboard(
+    dialog.draft !== null || isCloudDialogOpen,
+  );
+  const { setCanvasRegion } = keyboard;
+  const setCanvasRegionRef = useCallback(
+    (element: HTMLElement | null) => {
+      canvasRegionRef.current = element;
+      setCanvasRegion(element);
+    },
+    [canvasRegionRef, setCanvasRegion],
+  );
   const leftPanelId = useId();
   const propertiesPanelId = useId();
   const defaultViewport =
@@ -268,7 +341,7 @@ function WorkspaceLayout({
         </div>
         {/* The focusable canvas region (plan issue 73). */}
         <main
-          ref={keyboard.setCanvasRegion}
+          ref={setCanvasRegionRef}
           tabIndex={-1}
           aria-label={t("layout.canvasLabel")}
           className={cn("min-w-0 flex-1", FOCUS_TARGET_CLASS_NAME)}
@@ -307,15 +380,15 @@ export function EditorWorkspace({
   repository,
   ownerId: initialOwnerId,
   apiClient,
+  onReplaceDocument,
 }: EditorWorkspaceProps): JSX.Element {
   const notify = useNotify();
+  const router = useRouter();
   const [store] = useState(() =>
     createEditorStore({ schemaId, document, generateId, notify, logger }),
   );
   // A guest schema gets an owner here once "Save to cloud" uploads it.
   const [ownerId, setOwnerId] = useState(initialOwnerId);
-  // Task 31 renders the conflict and deleted-in-cloud dialogs from this.
-  const [, setCloudDialog] = useState<CloudDialogState>(null);
   const autosave = useAutosave({ store, repository });
   const cloudPusher = useCloudPusher({
     store,
@@ -331,6 +404,36 @@ export function EditorWorkspace({
     onUploaded: setOwnerId,
   });
   const saveViewport = useSaveViewport(repository, schemaId);
+  const cloudDialog = useCloudDialog(cloudPusher.status.kind);
+  const isConflictOpen = cloudDialog.openKind === "conflict";
+  const resolution = useCloudResolution({
+    schemaId,
+    isConflictOpen,
+    repository,
+    apiClient,
+    pusher: cloudPusher,
+    onReplaceDocument,
+    navigate: (href) => {
+      router.replace(href);
+    },
+  });
+  const localVersion = useLocalVersionSummary({
+    repository,
+    schemaId,
+    isConflictOpen,
+  });
+  const canvasRegionRef = useRef<HTMLElement | null>(null);
+  // WCAG 2.4.3: back to the button that opened the dialog while it is still
+  // there, otherwise (opened on its own, or the button left with the
+  // status) to the canvas region.
+  const returnFocus = (): void => {
+    const { trigger } = cloudDialog;
+    if (trigger?.isConnected === true) {
+      trigger.focus();
+      return;
+    }
+    canvasRegionRef.current?.focus();
+  };
 
   return (
     <EditorStoreProvider store={store}>
@@ -343,10 +446,23 @@ export function EditorWorkspace({
             status: cloudPusher.status,
             onRetry: cloudPusher.retry,
             onSaveToCloud: saveToCloud,
-            onOpenCloudDialog: (kind, trigger) => {
-              setCloudDialog({ kind, trigger });
-            },
+            onOpenCloudDialog: cloudDialog.open,
           }}
+          canvasRegionRef={canvasRegionRef}
+          isCloudDialogOpen={cloudDialog.openKind !== null}
+        />
+        <ConflictDialog
+          open={isConflictOpen}
+          localVersion={localVersion}
+          resolution={resolution}
+          onClose={cloudDialog.close}
+          onReturnFocus={returnFocus}
+        />
+        <DeletedInCloudDialog
+          open={cloudDialog.openKind === "deleted-in-cloud"}
+          resolution={resolution}
+          onClose={cloudDialog.close}
+          onReturnFocus={returnFocus}
         />
       </EditorFlowProvider>
     </EditorStoreProvider>

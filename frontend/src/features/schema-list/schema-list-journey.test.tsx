@@ -14,6 +14,7 @@ const { push } = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh: vi.fn<() => void>() }),
+  usePathname: () => "/",
 }));
 
 async function openRowMenu(user: UserEvent, name: string): Promise<void> {

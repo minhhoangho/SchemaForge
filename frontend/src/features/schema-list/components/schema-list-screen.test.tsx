@@ -14,6 +14,7 @@ import {
   vi,
 } from "vitest";
 
+import { AuthProvider } from "@/components/auth-provider";
 import { I18nProvider } from "@/components/i18n-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +28,7 @@ import { createSchemaLockManager } from "@/lib/storage/schema-lock-manager";
 import { createSchemaRepository } from "@/lib/storage/schema-repository";
 import { StorageProvider } from "@/lib/storage/storage-context";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
+import { createFakeAuthLockManager } from "@/testing/fake-auth-lock-manager";
 import { createFakeLockRegistry } from "@/testing/fake-lock-registry";
 import type { FakeLockRegistry } from "@/testing/fake-lock-registry";
 import { renderWithProviders } from "@/testing/render-with-providers";
@@ -40,6 +42,7 @@ const { push, refresh } = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
+  usePathname: () => "/",
 }));
 
 // Only the unavailable-storage tests render StorageProvider without a storage
@@ -119,7 +122,7 @@ describe("SchemaListScreen", () => {
       <StorageProvider storage={storage}>
         <SchemaListScreen />
       </StorageProvider>,
-      { locale: "en", ...options },
+      { locale: "en", ...options, auth: { storage } },
     );
   }
 
@@ -152,7 +155,22 @@ describe("SchemaListScreen", () => {
           <ThemeProvider initialPreference="light">
             <TooltipProvider>
               <StorageProvider>
-                <SchemaListScreen />
+                <AuthProvider
+                  hasAuthHint={false}
+                  dependencies={{
+                    fetchImpl: vi.fn<typeof fetch>(),
+                    authLockManager: createFakeAuthLockManager().lockManager,
+                    openChannel: () => ({
+                      postMessage: () => undefined,
+                      addEventListener: () => undefined,
+                      removeEventListener: () => undefined,
+                      close: () => undefined,
+                    }),
+                    cookieJar: { cookie: "" },
+                  }}
+                >
+                  <SchemaListScreen />
+                </AuthProvider>
               </StorageProvider>
             </TooltipProvider>
           </ThemeProvider>
@@ -326,7 +344,10 @@ describe("SchemaListScreen", () => {
     const trigger = await screen.findByRole("button", {
       name: "Actions for shop",
     });
-    // Theme, language, "Create schema", the schema link, then the row menu.
+    // Sign in, theme, language, "Create schema", the sign-in invitation, the
+    // schema link, then the row menu.
+    await user.tab();
+    await user.tab();
     await user.tab();
     await user.tab();
     await user.tab();
@@ -385,8 +406,11 @@ describe("SchemaListScreen", () => {
       .put({ id: FIRST_SCHEMA_ID, name: 42, createdAt: 1, updatedAt: 1 });
     const { user } = renderScreen(storage);
 
-    expect(await screen.findByText("Unreadable schema")).toBeDefined();
-    expect(screen.queryByRole("link")).toBeNull();
+    const unreadable = await screen.findByText("Unreadable schema");
+    // The header and the sign-in invitation hold links of their own.
+    expect(
+      within(unreadable.closest("ul") ?? document.body).queryByRole("link"),
+    ).toBeNull();
     await openRowMenu(user, "Unreadable schema");
 
     expect(
@@ -455,4 +479,183 @@ describe("SchemaListScreen", () => {
       await expectNoAxeViolations(container);
     },
   );
+});
+
+const USER_ID = "5f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
+const OTHER_USER_ID = "6a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
+const EMAIL = "user@example.com";
+const TIMESTAMP = "2026-09-18T00:00:00.000Z";
+
+type FetchStub = ReturnType<typeof vi.fn<typeof fetch>>;
+
+function jsonResponse(body: unknown, status = 200): Promise<Response> {
+  return Promise.resolve(
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+}
+
+function requestKey(input: RequestInfo | URL, init?: RequestInit): string {
+  if (!(input instanceof URL)) {
+    throw new Error("Expected the API client to call fetch with a URL.");
+  }
+  return `${init?.method ?? "GET"} ${input.pathname}`;
+}
+
+// A signed-in account whose cloud list is empty; a push creates the schema.
+function createSignedInFetch(): FetchStub {
+  const handlers: Readonly<Record<string, () => Promise<Response>>> = {
+    "GET /auth/me": () =>
+      jsonResponse({
+        user: { id: USER_ID, email: EMAIL, createdAt: TIMESTAMP },
+      }),
+    "GET /schemas": () => jsonResponse({ items: [], nextCursor: null }),
+    "POST /schemas": () =>
+      jsonResponse(
+        {
+          id: FIRST_SCHEMA_ID,
+          name: "billing",
+          revision: 1,
+          createdAt: TIMESTAMP,
+          updatedAt: TIMESTAMP,
+        },
+        201,
+      ),
+  };
+  return vi.fn<typeof fetch>((input, init) => {
+    const handler = handlers[requestKey(input, init)];
+    return handler === undefined
+      ? jsonResponse({ statusCode: 404, code: "not-found" }, 404)
+      : handler();
+  });
+}
+
+describe("SchemaListScreen with an account", () => {
+  const databases = new Set<SchemaforgeDatabase>();
+
+  beforeAll(() => {
+    Dexie.dependencies.indexedDB = new IDBFactory();
+    Dexie.dependencies.IDBKeyRange = IDBKeyRange;
+  });
+
+  afterEach(() => {
+    databases.forEach((database) => {
+      database.close();
+    });
+    databases.clear();
+    vi.restoreAllMocks();
+  });
+
+  function setUp(): StorageBundle {
+    const database = new SchemaforgeDatabase({
+      indexedDB: new IDBFactory(),
+      IDBKeyRange,
+    });
+    databases.add(database);
+    const nextId = createCounter();
+    return {
+      database,
+      lockManager: createSchemaLockManager(createFakeLockRegistry().request),
+      repository: createSchemaRepository({
+        database,
+        clock: createCounter(),
+        generateId: () =>
+          `${ID_PREFIX}${String(nextId()).padStart(ID_SUFFIX_LENGTH, "0")}`,
+      }),
+    };
+  }
+
+  function renderAs(
+    storage: StorageBundle,
+    fetchImpl: FetchStub | null,
+  ): ReturnType<typeof renderWithProviders> {
+    return renderWithProviders(<SchemaListScreen />, {
+      locale: "en",
+      auth: {
+        storage,
+        hasAuthHint: fetchImpl !== null,
+        dependencies: {
+          fetchImpl: fetchImpl ?? vi.fn<typeof fetch>(),
+          cookieJar: { cookie: fetchImpl === null ? "" : "sf-auth-hint=1" },
+        },
+      },
+    });
+  }
+
+  async function createSyncedSchema(
+    storage: StorageBundle,
+    name: string,
+    ownerId: string,
+  ): Promise<string> {
+    const { id } = await storage.repository.createSchema(name, { ownerId });
+    await storage.repository.setSyncState(id, {
+      cloudRevision: 1,
+      syncStatus: "synced",
+    });
+    return id;
+  }
+
+  it("removes stale cached schemas after a complete cloud list", async () => {
+    const storage = setUp();
+    const id = await createSyncedSchema(storage, "billing", USER_ID);
+
+    renderAs(storage, createSignedInFetch());
+
+    await waitFor(async () => {
+      expect(await storage.repository.readSchemaRecord(id)).toBeNull();
+    });
+  });
+
+  it("runs the background sync when the screen mounts while signed in", async () => {
+    const storage = setUp();
+    await storage.repository.createSchema("billing", { ownerId: USER_ID });
+    const fetchImpl = createSignedInFetch();
+
+    renderAs(storage, fetchImpl);
+
+    await waitFor(() => {
+      expect(
+        fetchImpl.mock.calls.map(([input, init]) => requestKey(input, init)),
+      ).toContain("POST /schemas");
+    });
+  });
+
+  it("renders the account menu in the header", async () => {
+    renderAs(setUp(), createSignedInFetch());
+
+    const header = screen.getByRole("banner");
+    expect(
+      await within(header).findByRole("button", {
+        name: `Account ${EMAIL}`,
+      }),
+    ).toBeDefined();
+  });
+
+  it("does not show a cached schema owned by another account", async () => {
+    const storage = setUp();
+    await createSyncedSchema(storage, "other-secret", OTHER_USER_ID);
+    await storage.repository.createSchema("scratch");
+
+    renderAs(storage, createSignedInFetch());
+
+    await screen.findByRole("region", { name: "Your schemas" });
+    await screen.findByRole("link", { name: "scratch" });
+    expect(screen.queryByText("other-secret")).toBeNull();
+  });
+
+  it("does not show a cached schema of an account while signed out", async () => {
+    const storage = setUp();
+    await createSyncedSchema(storage, "owned-secret", USER_ID);
+    await storage.repository.createSchema("scratch");
+
+    renderAs(storage, null);
+
+    await screen.findByRole("link", {
+      name: "Sign in to save schemas to the cloud",
+    });
+    await screen.findByRole("link", { name: "scratch" });
+    expect(screen.queryByText("owned-secret")).toBeNull();
+  });
 });

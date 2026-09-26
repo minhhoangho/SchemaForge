@@ -13,5 +13,8 @@ export const viSyncSchemaList = {
   },
   sessionExpiredBanner: "Phiên đăng nhập đã hết",
   cloudListFailed: "Không tải được danh sách trên cloud",
+  retry: "Thử lại",
+  loadingCloud: "Đang tải danh sách trên cloud…",
+  signInAgain: "Đăng nhập lại",
   deleteNeedsNetwork: "Cần kết nối mạng để xóa schema trên cloud",
 } as const satisfies LocaleNamespace<typeof enSyncSchemaList>;

@@ -15,6 +15,7 @@ import HomePage, { generateMetadata } from "./page";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  usePathname: () => "/",
 }));
 
 // next/headers only works inside a request, so the locale the request would
@@ -62,7 +63,7 @@ describe("HomePage", () => {
       <StorageProvider storage={storage}>
         <HomePage />
       </StorageProvider>,
-      { locale: "en" },
+      { locale: "en", auth: { storage } },
     );
 
     expect(

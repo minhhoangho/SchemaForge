@@ -22,6 +22,8 @@ vi.mock("next/navigation", () => ({
     push: vi.fn<(href: string) => void>(),
     refresh: vi.fn<() => void>(),
   }),
+  // The toolbar's account menu links back to the current page.
+  usePathname: () => "/schemas",
 }));
 
 const DUPLICATE_NAME_MESSAGE =

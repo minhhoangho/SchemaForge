@@ -29,6 +29,8 @@ const { push } = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh: vi.fn<() => void>() }),
+  // The toolbar's account menu links back to the current page.
+  usePathname: () => "/schemas",
 }));
 
 // More stops than any screen here has, so a missing control fails the test

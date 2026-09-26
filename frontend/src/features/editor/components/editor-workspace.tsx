@@ -2,18 +2,26 @@
 
 import type { SchemaDocument, TableId } from "@schemaforge/core";
 import type { Connection, Viewport } from "@xyflow/react";
+import { useRouter } from "next/navigation";
 import type { JSX } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useAuth } from "@/components/auth-provider";
+import { useSignInPrompt } from "@/components/sign-in-prompt";
+import type { ApiClient } from "@/lib/api/api-client";
 import { cn } from "@/lib/class-names";
 import { logger } from "@/lib/logger";
 import type { ViewportRecord } from "@/lib/storage/records";
+import type { SchemaLockManager } from "@/lib/storage/schema-lock-manager";
 import type { SchemaRepository } from "@/lib/storage/schema-repository";
+import { useStorage } from "@/lib/storage/storage-context";
 import { getStorageErrorName } from "@/lib/storage/storage-error";
+import { uploadLocalSchemas } from "@/lib/sync/upload-local-schemas";
 import { useNotify } from "@/lib/use-notify";
 
 import { useAutosave } from "../hooks/use-autosave";
+import { useCloudPusher } from "../hooks/use-cloud-pusher";
 import { useSchemaCommands } from "../hooks/use-schema-commands";
 import { useWorkspaceKeyboard } from "../hooks/use-workspace-keyboard";
 import {
@@ -30,6 +38,10 @@ import { CreateRelationDialog } from "./dialogs/create-relation-dialog";
 import { LeftPanel } from "./panels/left-panel";
 import { PropertiesPanel } from "./panels/properties-panel";
 import { SkipToPanelLink } from "./skip-to-panel-link";
+import type {
+  CloudDialogKind,
+  CloudStatusBadgeProps,
+} from "./toolbar/cloud-status-badge";
 import { EditorToolbar } from "./toolbar/editor-toolbar";
 
 export type EditorWorkspaceProps = {
@@ -37,7 +49,14 @@ export type EditorWorkspaceProps = {
   readonly document: SchemaDocument;
   readonly viewport: ViewportRecord | null;
   readonly repository: SchemaRepository;
+  readonly ownerId: string | null;
+  readonly apiClient: ApiClient;
 };
+
+type CloudDialogState = {
+  readonly kind: CloudDialogKind;
+  readonly trigger: HTMLElement | null;
+} | null;
 
 // Regions that take focus from the skip link or after a delete show a ring
 // for keyboard users (WCAG 2.4.7). Their children paint opaque backgrounds
@@ -86,6 +105,84 @@ function useSaveViewport(
   );
 }
 
+type SaveToCloudInput = {
+  readonly repository: SchemaRepository;
+  readonly apiClient: ApiClient;
+  readonly schemaId: string;
+  readonly onUploaded: (userId: string) => void;
+};
+
+/**
+ * "Save to cloud" for a guest schema (spec section 7). The upload reuses the
+ * lock this editor holds. A record that moved to a new id is only reachable
+ * there, so the route follows it even when the upload itself failed (plan,
+ * Vấn đề 27); staying would write every later change to an orphan row.
+ */
+function useSaveToCloud({
+  repository,
+  apiClient,
+  schemaId,
+  onUploaded,
+}: SaveToCloudInput): () => void {
+  const { requireSignIn } = useSignInPrompt();
+  const auth = useAuth((state) => state.auth);
+  const storage = useStorage();
+  const router = useRouter();
+  const notify = useNotify();
+
+  async function upload(
+    userId: string,
+    lockManager: SchemaLockManager,
+  ): Promise<void> {
+    const report = await uploadLocalSchemas({
+      api: apiClient,
+      repository,
+      lockManager,
+      userId,
+      schemaIds: [schemaId],
+      heldLockSchemaId: schemaId,
+      generateId,
+    });
+    const currentId = report.movedIds.get(schemaId) ?? schemaId;
+    const isUploaded = report.uploadedIds.includes(currentId);
+    if (!isUploaded) {
+      notify({
+        tone: "error",
+        titleKey: "sync:uploadDialog.notUploaded",
+        values: { count: 1 },
+      });
+    }
+    if (currentId !== schemaId) {
+      router.replace(`/schemas/${currentId}`);
+      return;
+    }
+    if (isUploaded) {
+      onUploaded(userId);
+    }
+  }
+
+  return () => {
+    if (!requireSignIn("cloudSave")) {
+      return;
+    }
+    if (auth.status !== "signed-in" || storage.kind !== "ready") {
+      return;
+    }
+    upload(auth.user.id, storage.storage.lockManager).catch(
+      (error: unknown) => {
+        logger.error("editor.cloud-upload-failed", {
+          errorName: getStorageErrorName(error),
+        });
+        notify({
+          tone: "error",
+          titleKey: "sync:uploadDialog.notUploaded",
+          values: { count: 1 },
+        });
+      },
+    );
+  };
+}
+
 type RelationDialogState = {
   readonly draft: RelationDraft | null;
   readonly closeDialog: () => void;
@@ -129,6 +226,7 @@ type WorkspaceLayoutProps = {
   readonly viewport: ViewportRecord | null;
   readonly onMoveEnd: (viewport: Viewport) => void;
   readonly onRetrySave: () => void;
+  readonly cloud: CloudStatusBadgeProps;
 };
 
 /**
@@ -141,6 +239,7 @@ function WorkspaceLayout({
   viewport,
   onMoveEnd,
   onRetrySave,
+  cloud,
 }: WorkspaceLayoutProps): JSX.Element {
   const { t } = useTranslation("editor");
   const { addTable } = useSchemaCommands();
@@ -156,7 +255,7 @@ function WorkspaceLayout({
   return (
     <div className="flex h-dvh flex-col">
       <header>
-        <EditorToolbar onRetrySave={onRetrySave} />
+        <EditorToolbar onRetrySave={onRetrySave} cloud={cloud} />
       </header>
       <div className="flex min-h-0 flex-1">
         {/* The skip link's target while nothing is selected. */}
@@ -206,12 +305,31 @@ export function EditorWorkspace({
   document,
   viewport,
   repository,
+  ownerId: initialOwnerId,
+  apiClient,
 }: EditorWorkspaceProps): JSX.Element {
   const notify = useNotify();
   const [store] = useState(() =>
     createEditorStore({ schemaId, document, generateId, notify, logger }),
   );
+  // A guest schema gets an owner here once "Save to cloud" uploads it.
+  const [ownerId, setOwnerId] = useState(initialOwnerId);
+  // Task 31 renders the conflict and deleted-in-cloud dialogs from this.
+  const [, setCloudDialog] = useState<CloudDialogState>(null);
   const autosave = useAutosave({ store, repository });
+  const cloudPusher = useCloudPusher({
+    store,
+    repository,
+    apiClient,
+    schemaId,
+    ownerId,
+  });
+  const saveToCloud = useSaveToCloud({
+    repository,
+    apiClient,
+    schemaId,
+    onUploaded: setOwnerId,
+  });
   const saveViewport = useSaveViewport(repository, schemaId);
 
   return (
@@ -221,6 +339,14 @@ export function EditorWorkspace({
           viewport={viewport}
           onMoveEnd={saveViewport}
           onRetrySave={autosave.retry}
+          cloud={{
+            status: cloudPusher.status,
+            onRetry: cloudPusher.retry,
+            onSaveToCloud: saveToCloud,
+            onOpenCloudDialog: (kind, trigger) => {
+              setCloudDialog({ kind, trigger });
+            },
+          }}
         />
       </EditorFlowProvider>
     </EditorStoreProvider>

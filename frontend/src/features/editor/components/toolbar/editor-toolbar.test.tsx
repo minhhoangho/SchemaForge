@@ -6,27 +6,45 @@ import {
   makeTable,
 } from "@schemaforge/core/testing";
 import { act, screen, within } from "@testing-library/react";
+import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
 import type { RenderResult } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Locale } from "@/lib/i18n/supported-locales";
 import type { Logger } from "@/lib/logger";
 import type { Notify } from "@/lib/notify";
 import type { ThemePreference } from "@/lib/preferences/preference-cookies";
+import type { StorageBundle } from "@/lib/storage/create-browser-storage";
+import { SchemaforgeDatabase } from "@/lib/storage/database";
+import { createSchemaLockManager } from "@/lib/storage/schema-lock-manager";
+import { createSchemaRepository } from "@/lib/storage/schema-repository";
+import { createFakeLockRegistry } from "@/testing/fake-lock-registry";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
+import type { CloudStatusView } from "../../lib/to-cloud-status-view";
 import type { ViewportControls } from "../../lib/viewport-controls";
 import { ViewportControlsProvider } from "../../lib/viewport-controls";
 import { createEditorStore } from "../../state/create-editor-store";
 import type { EditorStore } from "../../state/create-editor-store";
 import { EditorStoreProvider } from "../../state/editor-store-provider";
+import type { CloudStatusBadgeProps } from "./cloud-status-badge";
 import { EditorToolbar } from "./editor-toolbar";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn<() => void>() }),
+  usePathname: () => "/schemas/0b7d4c1e-2f3a-4b5c-8d6e-7f8091a2b3c4",
 }));
+
+const databases = new Set<SchemaforgeDatabase>();
+
+afterEach(() => {
+  databases.forEach((database) => {
+    database.close();
+  });
+  databases.clear();
+});
 
 type Controls = {
   readonly zoomIn: ReturnType<typeof vi.fn<ViewportControls["zoomIn"]>>;
@@ -41,13 +59,37 @@ type Harness = RenderResult & {
   readonly store: EditorStore;
   readonly controls: Controls;
   readonly onRetrySave: ReturnType<typeof vi.fn<() => void>>;
+  readonly onSaveToCloud: ReturnType<
+    typeof vi.fn<CloudStatusBadgeProps["onSaveToCloud"]>
+  >;
 };
 
 type HarnessOptions = {
   readonly document?: SchemaDocument;
   readonly locale?: Locale;
   readonly themePreference?: ThemePreference;
+  readonly cloudStatus?: CloudStatusView;
 };
+
+// The account menu reads auth, which lives on top of storage.
+function createAuthStorage(): { readonly storage: StorageBundle } {
+  const database = new SchemaforgeDatabase({
+    indexedDB: new IDBFactory(),
+    IDBKeyRange,
+  });
+  databases.add(database);
+  return {
+    storage: {
+      database,
+      lockManager: createSchemaLockManager(createFakeLockRegistry().request),
+      repository: createSchemaRepository({
+        database,
+        clock: () => 1,
+        generateId: () => "00000000-0000-4000-8000-000000000001",
+      }),
+    },
+  };
+}
 
 function createValidDocument(): SchemaDocument {
   return buildSchema({
@@ -92,18 +134,29 @@ function renderToolbar(options: HarnessOptions = {}): Harness {
     getZoom: vi.fn<ViewportControls["getZoom"]>(() => 1),
   };
   const onRetrySave = vi.fn<() => void>();
+  const onSaveToCloud = vi.fn<CloudStatusBadgeProps["onSaveToCloud"]>();
   const result = renderWithProviders(
     <EditorStoreProvider store={store}>
       <ViewportControlsProvider controls={controls}>
-        <EditorToolbar onRetrySave={onRetrySave} />
+        <EditorToolbar
+          onRetrySave={onRetrySave}
+          cloud={{
+            status: options.cloudStatus ?? { kind: "local-only" },
+            onRetry: vi.fn<CloudStatusBadgeProps["onRetry"]>(),
+            onSaveToCloud,
+            onOpenCloudDialog:
+              vi.fn<CloudStatusBadgeProps["onOpenCloudDialog"]>(),
+          }}
+        />
       </ViewportControlsProvider>
     </EditorStoreProvider>,
     {
       locale: options.locale ?? "en",
       themePreference: options.themePreference ?? "light",
+      auth: createAuthStorage(),
     },
   );
-  return { ...result, store, controls, onRetrySave };
+  return { ...result, store, controls, onRetrySave, onSaveToCloud };
 }
 
 describe("EditorToolbar", () => {
@@ -285,20 +338,50 @@ describe("EditorToolbar", () => {
     expect(onRetrySave).toHaveBeenCalledOnce();
   });
 
+  // While saving works, the cloud status sits in the save status's place.
   it("announces a failed save but not saving or saved", () => {
-    const { store } = renderToolbar();
-    const liveRegion = screen.getByRole("status");
+    const { store } = renderToolbar({ cloudStatus: { kind: "syncing" } });
 
     act(() => {
       store.getState().setSaveStatus({ kind: "saving" });
     });
-    const textWhileSaving = liveRegion.textContent;
+    const textWhileSaving = screen.getByRole("status").textContent;
     act(() => {
       store.getState().setSaveStatus({ kind: "failed", errorCode: "unknown" });
     });
 
     expect(textWhileSaving).toBe("");
-    expect(liveRegion.textContent).toBe("Not saved");
+    expect(screen.getByRole("status").textContent).toBe("Not saved");
+  });
+
+  it("shows the local save failure instead of the cloud status", () => {
+    const { store } = renderToolbar({
+      cloudStatus: { kind: "synced" },
+    });
+
+    act(() => {
+      store.getState().setSaveStatus({ kind: "failed", errorCode: "unknown" });
+    });
+
+    expect({
+      hasLocalFailure: screen.getByRole("status").textContent === "Not saved",
+      hasCloudStatus: screen.queryByText("Saved to the cloud") !== null,
+    }).toEqual({ hasLocalFailure: true, hasCloudStatus: false });
+  });
+
+  it("shows the cloud status when the local save succeeded", async () => {
+    const { user, onSaveToCloud } = renderToolbar();
+
+    await user.click(screen.getByRole("button", { name: "Save to cloud" }));
+
+    expect(screen.getByText("Only saved on this browser")).toBeDefined();
+    expect(onSaveToCloud).toHaveBeenCalledOnce();
+  });
+
+  it("renders the account menu", async () => {
+    renderToolbar();
+
+    expect(await screen.findByRole("link", { name: "Sign in" })).toBeDefined();
   });
 
   it.each(["light", "dark"] as const)(

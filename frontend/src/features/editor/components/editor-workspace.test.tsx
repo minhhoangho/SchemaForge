@@ -10,15 +10,33 @@ import {
 } from "@testing-library/react";
 import type * as XYFlow from "@xyflow/react";
 import type { ReactFlowProps } from "@xyflow/react";
+import { Dexie } from "dexie";
+import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
 import type { JSX } from "react";
 import { toast } from "sonner";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
+import { createApiClient } from "@/lib/api/api-client";
+import type { ApiClient } from "@/lib/api/api-client";
 import { logger } from "@/lib/logger";
+import type { StorageBundle } from "@/lib/storage/create-browser-storage";
+import { SchemaforgeDatabase } from "@/lib/storage/database";
 import type { ViewportRecord } from "@/lib/storage/records";
+import { createSchemaLockManager } from "@/lib/storage/schema-lock-manager";
+import { createSchemaRepository } from "@/lib/storage/schema-repository";
 import type { SchemaRepository } from "@/lib/storage/schema-repository";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
+import { createFakeLockRegistry } from "@/testing/fake-lock-registry";
 import { renderWithProviders } from "@/testing/render-with-providers";
+import type { TestAuthOptions } from "@/testing/render-with-providers";
 
 import { formatColumnHandleId, formatTableHandleId } from "../lib/handle-ids";
 import { EditorWorkspace } from "./editor-workspace";
@@ -27,13 +45,15 @@ type FlowProps = ReactFlowProps;
 
 // React Flow cannot lay out or animate in jsdom, so the real component renders
 // while its props and the calls into its instance are recorded.
-const { recordFlowProps, recordFlowCall } = vi.hoisted(() => ({
+const { recordFlowProps, recordFlowCall, replace } = vi.hoisted(() => ({
   recordFlowProps: vi.fn<(props: FlowProps) => void>(),
   recordFlowCall: vi.fn<(method: string) => void>(),
+  replace: vi.fn<(href: string) => void>(),
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: vi.fn<() => void>() }),
+  useRouter: () => ({ refresh: vi.fn<() => void>(), replace }),
+  usePathname: () => "/schemas/0b7d4c1e-2f3a-4b5c-8d6e-7f8091a2b3c4",
 }));
 
 vi.mock("@xyflow/react", async (importOriginal) => {
@@ -131,11 +151,57 @@ function createRepository(): SchemaRepository {
   };
 }
 
+const databases = new Set<SchemaforgeDatabase>();
+
+function createStorage(): StorageBundle {
+  const database = new SchemaforgeDatabase({
+    indexedDB: new IDBFactory(),
+    IDBKeyRange,
+  });
+  databases.add(database);
+  return {
+    database,
+    lockManager: createSchemaLockManager(createFakeLockRegistry().request),
+    repository: createSchemaRepository({
+      database,
+      clock: () => 1,
+      generateId: () => SCHEMA_ID,
+    }),
+  };
+}
+
+function rejectFetch(): never {
+  throw new Error("This test does not expect a network request.");
+}
+
+function createTestApiClient(fetchImpl: typeof fetch = rejectFetch): ApiClient {
+  return createApiClient({
+    baseUrl: "https://api.schemaforge.invalid",
+    fetchImpl,
+    sessionRefresher: {
+      refresh: () =>
+        Promise.resolve({
+          isOk: false,
+          error: {
+            kind: "http",
+            status: 401,
+            body: { statusCode: 401, code: "session-expired" },
+            retryAfterSeconds: null,
+          },
+        }),
+    },
+    onSessionExpired: vi.fn<() => void>(),
+  });
+}
+
 type RenderInput = {
   readonly repository: SchemaRepository;
   readonly document?: SchemaDocument;
   readonly viewport?: ViewportRecord | null;
   readonly themePreference?: "light" | "dark";
+  readonly ownerId?: string | null;
+  readonly apiClient?: ApiClient;
+  readonly auth?: TestAuthOptions;
 };
 
 function renderWorkspace({
@@ -143,6 +209,9 @@ function renderWorkspace({
   document = createEmptySchema("Billing"),
   viewport = null,
   themePreference = "light",
+  ownerId = null,
+  apiClient = createTestApiClient(),
+  auth = { storage: createStorage() },
 }: RenderInput): ReturnType<typeof renderWithProviders> {
   return renderWithProviders(
     <EditorWorkspace
@@ -150,8 +219,10 @@ function renderWorkspace({
       document={document}
       viewport={viewport}
       repository={repository}
+      ownerId={ownerId}
+      apiClient={apiClient}
     />,
-    { locale: "en", themePreference },
+    { locale: "en", themePreference, auth },
   );
 }
 
@@ -261,6 +332,13 @@ async function openRelationDialogFromTablePanel(): Promise<OpenedRelationDialog>
   return { user, opener, dialog };
 }
 
+beforeAll(() => {
+  // liveQuery skips every query while Dexie finds no global IndexedDB, and
+  // the cloud status reads the schema record live.
+  Dexie.dependencies.indexedDB = new IDBFactory();
+  Dexie.dependencies.IDBKeyRange = IDBKeyRange;
+});
+
 beforeEach(() => {
   vi.stubGlobal("ResizeObserver", MeasuringResizeObserver);
 });
@@ -270,6 +348,11 @@ afterEach(() => {
   toast.dismiss();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  replace.mockClear();
+  databases.forEach((database) => {
+    database.close();
+  });
+  databases.clear();
   recordFlowProps.mockClear();
   recordFlowCall.mockClear();
 });
@@ -622,4 +705,196 @@ describe("EditorWorkspace", () => {
       await expectNoAxeViolations(container);
     },
   );
+
+  describe("in the cloud", () => {
+    const USER_ID = "5f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
+    const MOVED_ID = "0b7d4c1e-2f3a-4b5c-8d6e-7f8091a2b3c5";
+    const TIMESTAMP = "2026-09-18T00:00:00.000Z";
+    const HINT_COOKIE = "sf-auth-hint=1";
+
+    type SchemaCall = { readonly method: string; readonly path: string };
+
+    function jsonResponse(body: unknown, status = 200): Response {
+      return new Response(JSON.stringify(body), {
+        status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    function summaryResponse(id: string): Response {
+      return jsonResponse({
+        id,
+        name: "Billing",
+        revision: 1,
+        createdAt: TIMESTAMP,
+        updatedAt: TIMESTAMP,
+      });
+    }
+
+    function errorResponse(status: number, code: string): Response {
+      return jsonResponse({ statusCode: status, code }, status);
+    }
+
+    function requestPath(input: RequestInfo | URL): string {
+      if (!(input instanceof URL)) {
+        throw new Error("Expected the API client to call fetch with a URL.");
+      }
+      return input.pathname;
+    }
+
+    // A create names the id in its body, an update in its path.
+    function requestedId(path: string, init: RequestInit | undefined): string {
+      const body: unknown =
+        typeof init?.body === "string" ? JSON.parse(init.body) : null;
+      if (
+        typeof body === "object" &&
+        body !== null &&
+        "id" in body &&
+        typeof body.id === "string"
+      ) {
+        return body.id;
+      }
+      return path.split("/").at(-1) ?? "";
+    }
+
+    // /auth/me signs the user in; schema calls are recorded and take the
+    // queued answers in order, then succeed.
+    function createBackend(schemaAnswers: (() => Promise<Response>)[]): {
+      readonly fetchImpl: typeof fetch;
+      readonly schemaCalls: SchemaCall[];
+    } {
+      const schemaCalls: SchemaCall[] = [];
+      const fetchImpl = vi.fn<typeof fetch>((input, init) => {
+        const path = requestPath(input);
+        if (path === "/auth/me") {
+          return Promise.resolve(
+            jsonResponse({
+              user: {
+                id: USER_ID,
+                email: "user@example.com",
+                createdAt: TIMESTAMP,
+              },
+            }),
+          );
+        }
+        schemaCalls.push({ method: init?.method ?? "GET", path });
+        const answer = schemaAnswers.shift();
+        return answer === undefined
+          ? Promise.resolve(summaryResponse(requestedId(path, init)))
+          : answer();
+      });
+      return { fetchImpl, schemaCalls };
+    }
+
+    type CloudSetup = {
+      readonly storage: StorageBundle;
+      readonly schemaCalls: SchemaCall[];
+      readonly user: ReturnType<typeof renderWithProviders>["user"];
+    };
+
+    // A guest schema whose lock the editor screen holds, as when it opened.
+    async function renderGuestSchema(
+      schemaAnswers: (() => Promise<Response>)[],
+      isSignedIn = true,
+    ): Promise<CloudSetup> {
+      const storage = createStorage();
+      await storage.repository.createSchema("Billing");
+      await storage.lockManager.tryAcquire(SCHEMA_ID);
+      const { fetchImpl, schemaCalls } = createBackend(schemaAnswers);
+      const { user } = renderWorkspace({
+        repository: storage.repository,
+        apiClient: createTestApiClient(fetchImpl),
+        auth: {
+          storage,
+          hasAuthHint: isSignedIn,
+          dependencies: {
+            fetchImpl,
+            cookieJar: { cookie: isSignedIn ? HINT_COOKIE : "" },
+          },
+        },
+      });
+      await screen.findByRole("button", {
+        name: isSignedIn ? "Account user@example.com" : "Save to cloud",
+      });
+      return { storage, schemaCalls, user };
+    }
+
+    const moveThenFail = [
+      () => Promise.resolve(errorResponse(409, "schema-id-unavailable")),
+      () => Promise.resolve(errorResponse(404, "not-found")),
+      () => Promise.reject(new TypeError("Failed to fetch")),
+    ];
+
+    it("opens the sign-in prompt from Save to cloud when signed out", async () => {
+      const { user, schemaCalls } = await renderGuestSchema([], false);
+
+      await user.click(screen.getByRole("button", { name: "Save to cloud" }));
+
+      expect(
+        await screen.findByRole("dialog", {
+          name: "This feature needs an account",
+        }),
+      ).toBeDefined();
+      expect(schemaCalls).toEqual([]);
+    });
+
+    it("uploads the schema with the held lock when signed in and starts pushing", async () => {
+      const { user, storage, schemaCalls } = await renderGuestSchema([]);
+
+      await user.click(screen.getByRole("button", { name: "Save to cloud" }));
+      await screen.findByText("Saved to the cloud");
+      await user.click(getEmptyStateAddButton());
+
+      await waitFor(() => {
+        expect(schemaCalls).toEqual([
+          { method: "POST", path: "/schemas" },
+          { method: "PUT", path: `/schemas/${SCHEMA_ID}` },
+        ]);
+      });
+      expect(
+        (await storage.repository.readSchemaRecord(SCHEMA_ID))?.ownerId,
+      ).toBe(USER_ID);
+    });
+
+    it("navigates to the new schema route when the upload moved the schema to a new id", async () => {
+      vi.spyOn(crypto, "randomUUID").mockReturnValue(MOVED_ID);
+      const { user } = await renderGuestSchema([
+        () => Promise.resolve(errorResponse(409, "schema-id-unavailable")),
+        () => Promise.resolve(errorResponse(404, "not-found")),
+      ]);
+
+      await user.click(screen.getByRole("button", { name: "Save to cloud" }));
+
+      await waitFor(() => {
+        expect(replace).toHaveBeenCalledExactlyOnceWith(`/schemas/${MOVED_ID}`);
+      });
+      expect(screen.queryByText("1 schema could not be saved")).toBeNull();
+    });
+
+    it("navigates to the new schema route and warns when the upload fails after moving the schema", async () => {
+      vi.spyOn(crypto, "randomUUID").mockReturnValue(MOVED_ID);
+      const { user } = await renderGuestSchema([...moveThenFail]);
+
+      await user.click(screen.getByRole("button", { name: "Save to cloud" }));
+
+      expect(
+        await screen.findByText("1 schema could not be saved"),
+      ).toBeDefined();
+      expect(replace).toHaveBeenCalledExactlyOnceWith(`/schemas/${MOVED_ID}`);
+    });
+
+    it("shows the not-uploaded toast and keeps the route when the upload fails without moving the schema", async () => {
+      const { user } = await renderGuestSchema([
+        () => Promise.reject(new TypeError("Failed to fetch")),
+      ]);
+
+      await user.click(screen.getByRole("button", { name: "Save to cloud" }));
+
+      expect(
+        await screen.findByText("1 schema could not be saved"),
+      ).toBeDefined();
+      expect(replace).not.toHaveBeenCalled();
+      expect(screen.getByText("Only saved on this browser")).toBeDefined();
+    });
+  });
 });

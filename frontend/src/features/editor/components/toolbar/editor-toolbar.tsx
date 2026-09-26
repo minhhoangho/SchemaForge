@@ -14,6 +14,7 @@ import Link from "next/link";
 import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
 
+import { AccountMenu } from "@/components/account-menu";
 import { LanguageSwitch } from "@/components/language-switch";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,8 @@ import {
 import { useSchemaCommands } from "../../hooks/use-schema-commands";
 import { useViewportControls } from "../../lib/viewport-controls";
 import { useEditorStore } from "../../state/use-editor-store";
+import { CloudStatusBadge } from "./cloud-status-badge";
+import type { CloudStatusBadgeProps } from "./cloud-status-badge";
 import { IssueCountButton } from "./issue-count-button";
 import { SaveStatusBadge } from "./save-status-badge";
 import { SchemaNameButton } from "./schema-name-button";
@@ -160,7 +163,32 @@ function BackToListLink(): JSX.Element {
   );
 }
 
-export type EditorToolbarProps = { readonly onRetrySave: () => void };
+type SyncStatusSlotProps = {
+  readonly onRetrySave: () => void;
+  readonly cloud: CloudStatusBadgeProps;
+};
+
+// A failed local save matters more than the cloud: nothing new can reach the
+// cloud until it is written here (spec section 7, "Trạng thái trên toolbar").
+function SyncStatusSlot({
+  onRetrySave,
+  cloud,
+}: SyncStatusSlotProps): JSX.Element {
+  const isSaveFailed = useEditorStore(
+    (state) => state.saveStatus.kind === "failed",
+  );
+
+  return isSaveFailed ? (
+    <SaveStatusBadge onRetrySave={onRetrySave} />
+  ) : (
+    <CloudStatusBadge {...cloud} />
+  );
+}
+
+export type EditorToolbarProps = {
+  readonly onRetrySave: () => void;
+  readonly cloud: CloudStatusBadgeProps;
+};
 
 /**
  * The editor's top bar, in the order of spec section 2. Its controls are
@@ -169,6 +197,7 @@ export type EditorToolbarProps = { readonly onRetrySave: () => void };
  */
 export function EditorToolbar({
   onRetrySave,
+  cloud,
 }: EditorToolbarProps): JSX.Element {
   return (
     <div className="flex h-12 items-center gap-1 overflow-x-auto border-b border-border bg-background px-2">
@@ -182,8 +211,9 @@ export function EditorToolbar({
       <ViewportButtons />
       <ToolbarSeparator />
       <IssueCountButton />
-      <SaveStatusBadge onRetrySave={onRetrySave} />
+      <SyncStatusSlot onRetrySave={onRetrySave} cloud={cloud} />
       <div className="ml-auto flex items-center gap-1">
+        <AccountMenu />
         <ThemeSwitch />
         <LanguageSwitch />
       </div>

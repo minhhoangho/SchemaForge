@@ -69,7 +69,6 @@ function LockedEditor({
     grantId: openAuth === null ? null : grantId,
     attempt,
   });
-  // Task 30 hands this to the workspace; here it only drives leaving.
   const cloud = openState.kind === "opened" ? openState.cloud : null;
   useLeaveOnSignOut({ cloud });
   const isOpening =
@@ -133,6 +132,10 @@ function LockedEditor({
           document={openState.document}
           viewport={openState.viewport}
           repository={repository}
+          ownerId={
+            openState.cloud.kind === "owned" ? openState.cloud.userId : null
+          }
+          apiClient={api}
         />
       );
     default: {

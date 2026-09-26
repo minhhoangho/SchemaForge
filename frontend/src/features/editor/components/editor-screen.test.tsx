@@ -1,6 +1,7 @@
 import { createEmptySchema, CURRENT_SCHEMA_VERSION } from "@schemaforge/core";
 import { createSampleSchema } from "@schemaforge/core/testing";
 import { act, screen, waitFor } from "@testing-library/react";
+import { Dexie } from "dexie";
 import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
 import {
   afterEach,
@@ -27,7 +28,11 @@ import { renderWithProviders } from "@/testing/render-with-providers";
 import { EditorScreenLoader } from "./editor-screen-loader";
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: vi.fn<() => void>() }),
+  useRouter: () => ({
+    refresh: vi.fn<() => void>(),
+    replace: vi.fn<(href: string) => void>(),
+  }),
+  usePathname: () => "/schemas/0b7d4c1e-2f3a-4b5c-8d6e-7f8091a2b3c4",
 }));
 
 // Only the unavailable-storage test renders StorageProvider without a storage
@@ -135,6 +140,10 @@ describe("EditorScreen", () => {
   }
 
   beforeAll(async () => {
+    // liveQuery skips every query while Dexie finds no global IndexedDB, and
+    // the toolbar's cloud status reads the schema record live.
+    Dexie.dependencies.indexedDB = new IDBFactory();
+    Dexie.dependencies.IDBKeyRange = IDBKeyRange;
     // The screen renders through its loader, which imports the editor screen
     // on demand. Loading it once up front keeps that import from outlasting a
     // findBy timeout while the module graph is transformed.
@@ -315,6 +324,15 @@ describe("EditorScreen", () => {
     ).toBeDefined();
   });
 
+  it("shows a guest schema as saved on this browser only", async () => {
+    const storage = createStorage();
+    await createSchema(storage);
+
+    renderScreen(storage);
+
+    expect(await screen.findByText("Only saved on this browser")).toBeDefined();
+  });
+
   it("renders the toolbar and the canvas once the schema is open", async () => {
     const storage = createStorage();
     await createSchema(storage);
@@ -374,6 +392,38 @@ describe("EditorScreen", () => {
       }
       return input.pathname;
     }
+
+    it("passes the owner of the opened schema to the workspace", async () => {
+      const storage = createStorage();
+      const created = await storage.repository.createSchema("Billing", {
+        ownerId: USER_ID,
+      });
+      await storage.repository.completePush(SCHEMA_ID, {
+        revision: 1,
+        sentUpdatedAt: created.updatedAt,
+      });
+      const fetchImpl = vi.fn<typeof fetch>((input) =>
+        Promise.resolve(
+          requestPath(input) === "/auth/me"
+            ? userResponse()
+            : jsonResponse({
+                id: SCHEMA_ID,
+                name: "Billing",
+                revision: 1,
+                createdAt: TIMESTAMP,
+                updatedAt: TIMESTAMP,
+                document: createEmptySchema("Billing"),
+              }),
+        ),
+      );
+
+      renderScreen(storage, SCHEMA_ID, "light", {
+        fetchImpl,
+        cookieJar: { cookie: HINT_COOKIE },
+      });
+
+      expect(await screen.findByText("Saved to the cloud")).toBeDefined();
+    });
 
     it("keeps the skeleton while auth is unknown", async () => {
       const storage = createStorage();

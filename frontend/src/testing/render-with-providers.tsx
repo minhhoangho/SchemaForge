@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { AuthProvider } from "@/components/auth-provider";
 import type { AuthProviderDependencies } from "@/components/auth-provider";
 import { I18nProvider } from "@/components/i18n-provider";
+import { SignInPromptProvider } from "@/components/sign-in-prompt";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -94,7 +95,7 @@ function TestAuthProviders({
         hasAuthHint={auth.hasAuthHint ?? false}
         dependencies={dependencies}
       >
-        {children}
+        <SignInPromptProvider>{children}</SignInPromptProvider>
       </AuthProvider>
     </StorageProvider>
   );
@@ -140,7 +141,8 @@ type RenderWithProvidersOptions = {
  * read the same translations, theme tokens and toast region as the real
  * screens. Returns the React Testing Library result plus a `user` bound to
  * this render; `rerender` keeps the providers in place. With `auth`, the
- * element also renders inside StorageProvider and AuthProvider.
+ * element also renders inside StorageProvider, AuthProvider and
+ * SignInPromptProvider, in the order AppProviders mounts them.
  */
 export function renderWithProviders(
   ui: ReactElement,

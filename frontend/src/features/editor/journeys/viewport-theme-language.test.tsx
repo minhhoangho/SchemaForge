@@ -41,6 +41,8 @@ const { refresh } = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn<(href: string) => void>(), refresh }),
+  // The toolbar's account menu links back to the current page.
+  usePathname: () => "/schemas",
 }));
 
 type OpenedEditor = {

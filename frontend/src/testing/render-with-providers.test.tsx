@@ -5,12 +5,14 @@ import { useTranslation } from "react-i18next";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useAuth } from "@/components/auth-provider";
+import { useSignInPrompt } from "@/components/sign-in-prompt";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import type { StorageBundle } from "@/lib/storage/create-browser-storage";
 import { SchemaforgeDatabase } from "@/lib/storage/database";
 import { createSchemaLockManager } from "@/lib/storage/schema-lock-manager";
 import { createSchemaRepository } from "@/lib/storage/schema-repository";
@@ -29,6 +31,43 @@ function AuthStatus(): JSX.Element {
   const status = useAuth((state) => state.auth.status);
 
   return <span>{`status:${status}`}</span>;
+}
+
+function SaveToCloudButton(): JSX.Element {
+  const { requireSignIn } = useSignInPrompt();
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        requireSignIn("cloudSave");
+      }}
+    >
+      Save to cloud
+    </button>
+  );
+}
+
+function createTestStorage(): {
+  readonly database: SchemaforgeDatabase;
+  readonly storage: StorageBundle;
+} {
+  const database = new SchemaforgeDatabase({
+    indexedDB: new IDBFactory(),
+    IDBKeyRange,
+  });
+  return {
+    database,
+    storage: {
+      database,
+      lockManager: createSchemaLockManager(createFakeLockRegistry().request),
+      repository: createSchemaRepository({
+        database,
+        clock: () => 1,
+        generateId: () => "00000000-0000-4000-8000-000000000001",
+      }),
+    },
+  };
 }
 
 afterEach(() => {
@@ -115,6 +154,19 @@ describe("renderWithProviders", () => {
 
     expect(await screen.findByText("status:signed-out")).toBeDefined();
     expect(globalFetch).not.toHaveBeenCalled();
+    database.close();
+  });
+
+  it("provides the sign-in prompt inside the auth provider", async () => {
+    const { database, storage } = createTestStorage();
+    const { user } = renderWithProviders(<SaveToCloudButton />, {
+      locale: "en",
+      auth: { storage },
+    });
+
+    await user.click(screen.getByRole("button", { name: "Save to cloud" }));
+
+    expect(await screen.findByRole("dialog")).toBeDefined();
     database.close();
   });
 });

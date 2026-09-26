@@ -24,6 +24,8 @@ vi.mock("next/navigation", () => ({
     push: vi.fn<(href: string) => void>(),
     refresh: vi.fn<() => void>(),
   }),
+  // The toolbar's account menu links back to the current page.
+  usePathname: () => "/schemas",
 }));
 
 const ONE_TO_MANY_EDGE_NAME = "orders.users_id → users.id, one-to-many";

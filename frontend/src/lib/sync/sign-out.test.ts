@@ -84,19 +84,36 @@ function createClient(fetchImpl: typeof fetch) {
   });
 }
 
-function writeCloudCopy(
-  repository: SchemaRepository,
-  id: string,
-  ownerId: string,
-): Promise<void> {
-  return repository.writeCloudCopy({
+function cloudCopyOf(id: string, ownerId: string) {
+  return {
     id,
     ownerId,
     document: createSampleSchema(),
     revision: 1,
     createdAt: 1,
     updatedAt: 1,
+  };
+}
+
+// A cloud copy only reaches the cache while its account is signed in on this
+// browser, so the session row names that account for the write and is then put
+// back the way the test found it.
+async function writeCloudCopy(
+  repository: SchemaRepository,
+  id: string,
+  ownerId: string,
+): Promise<void> {
+  const previous = await repository.readSession();
+  await repository.writeSession({
+    userId: ownerId,
+    email: "owner@example.com",
   });
+  await repository.writeCloudCopy(cloudCopyOf(id, ownerId));
+  if (previous === null) {
+    await repository.deleteSession();
+    return;
+  }
+  await repository.writeSession(previous);
 }
 
 // A row an older or newer release could have written: it carries an ownerId
@@ -158,11 +175,12 @@ describe("sign-out", () => {
       readonly broadcastSignedOut?: () => void;
       readonly createTimeoutSignal?: (ms: number) => AbortSignal;
       readonly lockManager?: SchemaLockManager;
+      readonly repository?: SchemaRepository;
     },
   ) {
     return signOut({
       api: createClient(overrides?.fetchImpl ?? createFetch(NO_CONTENT_STATUS)),
-      repository: fixture.repository,
+      repository: overrides?.repository ?? fixture.repository,
       lockManager: overrides?.lockManager ?? fixture.lockManager,
       userId: USER_ID,
       clearAuthHint: overrides?.clearAuthHint ?? vi.fn(),
@@ -196,6 +214,32 @@ describe("sign-out", () => {
     await expect(
       countUnsyncedSchemas({ repository, userId: USER_ID }),
     ).resolves.toBe(2);
+  });
+
+  // The race: another tab opens a schema that has no local cache, and its cloud
+  // answer lands after this sign-out has already swept the account's rows.
+  // Nothing of the account may stay behind in this browser.
+  it("keeps nothing when a cloud copy of the account arrives after the sweep", async () => {
+    const fixture = setUp();
+    await fixture.repository.writeSession({
+      userId: USER_ID,
+      email: "user@example.com",
+    });
+    const repository: SchemaRepository = {
+      ...fixture.repository,
+      deleteOwnedRowsExcept: async (ownerId, keptSchemaIds) => {
+        await fixture.repository.deleteOwnedRowsExcept(ownerId, keptSchemaIds);
+        await fixture.repository.writeCloudCopy(
+          cloudCopyOf(SYNCED_ID, USER_ID),
+        );
+      },
+    };
+
+    const result = await runSignOut(fixture, { repository });
+
+    expect(result.isOk).toBe(true);
+    await expect(fixture.database.schemas.count()).resolves.toBe(0);
+    await expect(fixture.database.documents.count()).resolves.toBe(0);
   });
 
   it("does not delete anything when logout fails with a network error", async () => {
@@ -383,10 +427,15 @@ describe("sign-out", () => {
     const editorLock = await editorTab.tryAcquire(SYNCED_ID);
 
     const pendingSignOut = runSignOut(fixture);
-    await flushPendingWork();
+    // Sign-out reaches the lock only after its own storage writes, so the wait
+    // is polled instead of counting macrotasks.
+    await vi.waitFor(() => {
+      expect(fixture.registry.countWaiting(`${LOCK_PREFIX}${SYNCED_ID}`)).toBe(
+        1,
+      );
+    });
     const recordWhileHeld =
       await fixture.repository.readSchemaRecord(SYNCED_ID);
-    expect(fixture.registry.countWaiting(`${LOCK_PREFIX}${SYNCED_ID}`)).toBe(1);
     editorLock?.release();
     await pendingSignOut;
 

@@ -73,6 +73,10 @@ async function deleteOwnedSchema(
 }
 
 async function deleteAccountCache(input: SignOutInput): Promise<void> {
+  // The session row goes first: writeCloudCopy refuses to write for an account
+  // without a session, so a cloud answer another tab is still waiting for
+  // cannot add a row after the deletions below have run.
+  await input.repository.deleteSession();
   const records = await input.repository.listOwnedSchemas(input.userId);
   const outcomes = await Promise.allSettled(
     records.map((record) => deleteOwnedSchema(input, record.id)),
@@ -86,10 +90,8 @@ async function deleteAccountCache(input: SignOutInput): Promise<void> {
       records.map((record) => record.id),
     ),
   ]);
-  // The session and the hint are cleared even when a deletion failed: the
-  // server session is already gone, so keeping them would claim a sign-in
-  // that no longer exists.
-  await input.repository.deleteSession();
+  // The hint is cleared even when a deletion failed: the server session is
+  // already gone, so keeping it would claim a sign-in that no longer exists.
   input.clearAuthHint();
   const failure = [...outcomes, ...sweep].find(
     (outcome) => outcome.status === "rejected",

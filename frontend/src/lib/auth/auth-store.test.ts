@@ -214,6 +214,33 @@ describe("createAuthStore", () => {
     expect(fetchImpl).toHaveBeenCalledOnce();
   });
 
+  // Storage refuses to cache a schema for an account that the session record
+  // does not name, so a session restored from the cookies writes it too.
+  it("writes the session record when the hint restores a session", async () => {
+    const { store, session } = createHarness({
+      hasHint: true,
+      replies: { "GET /auth/me": [userReply()] },
+    });
+
+    await store.getState().initialize();
+
+    expect(session.current()).toEqual(sessionOf(USER));
+  });
+
+  it("stays signed-in when writing the restored session record fails", async () => {
+    const { store, session } = createHarness({
+      hasHint: true,
+      replies: { "GET /auth/me": [userReply()] },
+    });
+    vi.mocked(session.sessionStore.write).mockRejectedValueOnce(
+      new Error("closed"),
+    );
+
+    await store.getState().initialize();
+
+    expect(store.getState().auth).toEqual({ status: "signed-in", user: USER });
+  });
+
   it("refreshes once and retries me after a 401", async () => {
     const { store, fetchImpl } = createHarness({
       hasHint: true,

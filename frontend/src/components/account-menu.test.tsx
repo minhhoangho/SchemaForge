@@ -257,6 +257,11 @@ describe("AccountMenu", () => {
   // parse, and the unsynced count would then be zero.
   async function seedPending(fixture: Fixture): Promise<void> {
     const schemaId = "00000000-0000-4000-8000-000000000001";
+    // Storage caches a schema only for the account the session row names.
+    await fixture.storage.repository.writeSession({
+      userId: USER_ID,
+      email: EMAIL,
+    });
     await fixture.storage.repository.writeCloudCopy({
       id: schemaId,
       ownerId: USER_ID,

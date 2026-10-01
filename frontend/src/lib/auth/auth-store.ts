@@ -160,6 +160,17 @@ export function createAuthStore(
       }
       const outcome = await resolveStartup(dependencies);
       if (outcome.kind === "signed-in") {
+        // The session row is this browser's record of who is signed in, and
+        // storage refuses to cache a schema for an account without it, so a
+        // session restored from the cookies writes it as well. Losing that
+        // write only costs the local cache, so it must not block the restore.
+        try {
+          await rememberAccount(dependencies, outcome.user);
+        } catch (cause) {
+          logger.warn("auth.session-write-failed", {
+            errorName: cause instanceof Error ? cause.name : "unknown",
+          });
+        }
         if (transition === latestTransition) {
           set({ auth: { status: "signed-in", user: outcome.user } });
         }

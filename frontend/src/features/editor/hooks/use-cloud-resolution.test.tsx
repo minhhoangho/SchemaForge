@@ -90,6 +90,8 @@ async function createFixture(
     clock: () => 1,
     generateId: () => SCHEMA_ID,
   });
+  // Storage only caches a cloud copy for the account the session row names.
+  await repository.writeSession({ userId: USER_ID, email: "user@example.com" });
   await repository.createSchema("Local", { ownerId: USER_ID });
   await repository.saveDocument(SCHEMA_ID, LOCAL_DOCUMENT);
   await repository.saveViewport({ schemaId: SCHEMA_ID, x: 1, y: 2, zoom: 1 });

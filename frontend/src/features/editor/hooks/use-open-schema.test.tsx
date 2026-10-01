@@ -208,7 +208,9 @@ type CloudFixture = {
   readonly api: ApiClient;
 };
 
-function setUpCloud(): CloudFixture {
+// The session row is what tells storage that this browser is signed in as
+// USER_ID: without it writeCloudCopy writes nothing (sign-out in another tab).
+async function setUpCloud(): Promise<CloudFixture> {
   const database = new SchemaforgeDatabase({
     indexedDB: new IDBFactory(),
     IDBKeyRange,
@@ -224,6 +226,7 @@ function setUpCloud(): CloudFixture {
     generateId: () => SCHEMA_ID,
   });
   const fetchImpl = vi.fn<typeof fetch>();
+  await repository.writeSession({ userId: USER_ID, email: "user@example.com" });
   return { database, repository, fetchImpl, api: createApi(fetchImpl) };
 }
 
@@ -244,6 +247,12 @@ async function seedCloudCopy(
   revision: number,
   ownerId: string = USER_ID,
 ): Promise<void> {
+  // The copy was cached while its own account was signed in here; the session
+  // then goes back to the account the test signs in as.
+  await repository.writeSession({
+    userId: ownerId,
+    email: "owner@example.com",
+  });
   await repository.writeCloudCopy({
     id: SCHEMA_ID,
     ownerId,
@@ -256,6 +265,7 @@ async function seedCloudCopy(
     cloudRevision: revision,
     syncStatus,
   });
+  await repository.writeSession({ userId: USER_ID, email: "user@example.com" });
 }
 
 function opened(
@@ -472,7 +482,7 @@ describe("useOpenSchema", () => {
 
   describe("with the cloud", () => {
     it("opens a guest schema without calling fetch", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       await seedGuest(repository);
 
       const { result } = renderOpenSchema(repository, api, {
@@ -488,7 +498,7 @@ describe("useOpenSchema", () => {
     });
 
     it("stores the cloud document and opens it when there is no cache", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       fetchImpl.mockResolvedValueOnce(detailResponse(4, CLOUD_DOCUMENT));
 
       const { result } = renderOpenSchema(repository, api, {
@@ -523,7 +533,7 @@ describe("useOpenSchema", () => {
     });
 
     it("shows not-found with a sign-in offer when there is no cache and the user is signed out", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
 
       const { result } = renderOpenSchema(repository, api);
 
@@ -537,7 +547,7 @@ describe("useOpenSchema", () => {
     });
 
     it("shows needs-network when there is no cache and the backend is unreachable", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       fetchImpl.mockRejectedValueOnce(new TypeError("Failed to fetch"));
 
       const { result } = renderOpenSchema(repository, api, {
@@ -550,7 +560,7 @@ describe("useOpenSchema", () => {
     });
 
     it("opens a pending schema that was never created without calling fetch", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       await seedPendingCreate(repository);
 
       const { result } = renderOpenSchema(repository, api, {
@@ -572,7 +582,7 @@ describe("useOpenSchema", () => {
     });
 
     it("replaces a synced cache that has an older revision", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       await seedCloudCopy(repository, "synced", 2);
       fetchImpl.mockResolvedValueOnce(detailResponse(3, CLOUD_DOCUMENT));
 
@@ -594,7 +604,7 @@ describe("useOpenSchema", () => {
     });
 
     it("deletes a synced cache that was deleted in the cloud", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       await seedCloudCopy(repository, "synced", 2);
       fetchImpl.mockResolvedValueOnce(errorResponse(404, "not-found"));
 
@@ -612,7 +622,7 @@ describe("useOpenSchema", () => {
     });
 
     it("marks conflict and reports the conflict dialog for a newer cloud revision", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       await seedCloudCopy(repository, "pending", 2);
       fetchImpl.mockResolvedValueOnce(detailResponse(3, CLOUD_DOCUMENT));
 
@@ -641,7 +651,7 @@ describe("useOpenSchema", () => {
     });
 
     it("marks deleted-in-cloud for a pending schema missing in the cloud", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       await seedCloudCopy(repository, "pending", 2);
       fetchImpl.mockResolvedValueOnce(errorResponse(404, "not-found"));
 
@@ -667,7 +677,7 @@ describe("useOpenSchema", () => {
     });
 
     it("opens the cache when the backend is unreachable", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       await seedCloudCopy(repository, "synced", 2);
       fetchImpl.mockRejectedValueOnce(new TypeError("Failed to fetch"));
 
@@ -685,7 +695,7 @@ describe("useOpenSchema", () => {
     });
 
     it("opens the cache and waits for sign-in when the session expired", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       await seedCloudCopy(repository, "synced", 2);
       fetchImpl.mockResolvedValueOnce(errorResponse(401, "unauthenticated"));
 
@@ -707,7 +717,7 @@ describe("useOpenSchema", () => {
     });
 
     it("does not overwrite the cache for a cloud document from a newer version", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       await seedCloudCopy(repository, "synced", 2);
       fetchImpl.mockResolvedValueOnce(
         detailResponse(3, {
@@ -736,7 +746,7 @@ describe("useOpenSchema", () => {
     });
 
     it("reads again when attempt increases", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       fetchImpl
         .mockRejectedValueOnce(new TypeError("Failed to fetch"))
         .mockResolvedValueOnce(detailResponse(1, CLOUD_DOCUMENT));
@@ -758,7 +768,7 @@ describe("useOpenSchema", () => {
     });
 
     it("does not read before the lock is granted", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       const readSchemaRecord = vi.spyOn(repository, "readSchemaRecord");
 
       const { result } = renderOpenSchema(repository, api, {
@@ -775,7 +785,7 @@ describe("useOpenSchema", () => {
     });
 
     it("reads again when the auth status changes before the schema opens", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       fetchImpl.mockResolvedValueOnce(detailResponse(1, CLOUD_DOCUMENT));
       const { result, rerender } = renderOpenSchema(repository, api);
       await waitFor(() => {
@@ -793,7 +803,7 @@ describe("useOpenSchema", () => {
     });
 
     it("keeps an opened schema when the auth status changes", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       await seedCloudCopy(repository, "synced", 2);
       fetchImpl.mockResolvedValueOnce(detailResponse(2, SAMPLE_DOCUMENT));
       const { result, rerender } = renderOpenSchema(repository, api, {
@@ -836,7 +846,7 @@ describe("useOpenSchema", () => {
     ] as const)(
       "opens a %s cache with the cloud at revision %s",
       async (syncStatus, _revision, answer, followUp, dialogKind) => {
-        const { repository, fetchImpl, api } = setUpCloud();
+        const { repository, fetchImpl, api } = await setUpCloud();
         await seedCloudCopy(repository, syncStatus, 2);
         fetchImpl.mockResolvedValueOnce(answer());
 
@@ -855,7 +865,7 @@ describe("useOpenSchema", () => {
     );
 
     it("shows not-found for a schema cached by another account", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       await seedCloudCopy(repository, "synced", 2, OTHER_USER_ID);
 
       const { result } = renderOpenSchema(repository, api, {
@@ -872,7 +882,7 @@ describe("useOpenSchema", () => {
     });
 
     it("shows unreadable for a stored document whose record is damaged", async () => {
-      const { database, repository, fetchImpl, api } = setUpCloud();
+      const { database, repository, fetchImpl, api } = await setUpCloud();
       await seedGuest(repository);
       await database.table<unknown>("schemas").put({ id: SCHEMA_ID, name: 42 });
 
@@ -890,7 +900,7 @@ describe("useOpenSchema", () => {
     });
 
     it("writes nothing when the cloud answers after the read was cancelled", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       const writeCloudCopy = vi.spyOn(repository, "writeCloudCopy");
       const getSchema = vi.spyOn(api.schemas, "get");
       const cloudAnswer = createDeferred<Response>();
@@ -914,7 +924,7 @@ describe("useOpenSchema", () => {
     });
 
     it("shows not-found without a sign-in offer when there is no cache and the cloud has no such schema", async () => {
-      const { repository, fetchImpl, api } = setUpCloud();
+      const { repository, fetchImpl, api } = await setUpCloud();
       fetchImpl.mockResolvedValueOnce(errorResponse(404, "not-found"));
 
       const { result } = renderOpenSchema(repository, api, {

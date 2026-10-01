@@ -112,14 +112,17 @@ async function rememberAccount(
   user: SessionUser,
 ): Promise<void> {
   const previous = await dependencies.sessionStore.read();
-  if (previous !== null && previous.userId !== user.id) {
-    await dependencies.onAccountChanged(previous.userId);
-  }
+  // The session row names the new account before the previous one is forgotten:
+  // storage only caches a cloud copy whose owner matches that row, so a late
+  // answer for the previous account is refused while the sweep runs.
   await dependencies.sessionStore.write({
     key: SESSION_KEY,
     userId: user.id,
     email: user.email,
   });
+  if (previous !== null && previous.userId !== user.id) {
+    await dependencies.onAccountChanged(previous.userId);
+  }
 }
 
 export function createAuthStore(

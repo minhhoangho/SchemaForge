@@ -59,5 +59,9 @@ export async function forgetPreviousAccount(
   const keptIds = records
     .map((record) => record.id)
     .filter((id) => !removedIds.includes(id));
+  // Everything else owned by the account is a row parseSchemaRecord rejects: it
+  // cannot be opened, edited or pushed, so keeping it hidden helps nobody,
+  // while isGuestEntry would show it to the account that just signed in.
+  await input.repository.deleteOwnedRowsExcept(input.previousUserId, keptIds);
   return { removedIds, keptIds };
 }

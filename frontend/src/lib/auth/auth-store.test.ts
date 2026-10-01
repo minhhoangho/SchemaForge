@@ -428,7 +428,7 @@ describe("createAuthStore", () => {
     expect(otherTabMessages).toEqual([]);
   });
 
-  it("calls onAccountChanged before replacing the session of another account", async () => {
+  it("writes the session of the new account before calling onAccountChanged", async () => {
     const { store, session, onAccountChanged } = createHarness({
       session: sessionOf(OTHER_USER),
       replies: { "POST /auth/login": [userReply()] },
@@ -442,7 +442,9 @@ describe("createAuthStore", () => {
     await store.getState().signIn(CREDENTIALS);
 
     expect(onAccountChanged).toHaveBeenCalledExactlyOnceWith(OTHER_USER.id);
-    expect(sessionWhenCalled).toEqual([sessionOf(OTHER_USER)]);
+    // Storage caches a cloud copy only for the account the session row names,
+    // so that row is the new account's before the previous one is forgotten.
+    expect(sessionWhenCalled).toEqual([sessionOf(USER)]);
     expect(session.current()).toEqual(sessionOf(USER));
   });
 

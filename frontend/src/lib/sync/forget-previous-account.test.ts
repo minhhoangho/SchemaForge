@@ -14,8 +14,12 @@ import type { FakeLockRegistry } from "@/testing/fake-lock-registry";
 import { forgetPreviousAccount } from "./forget-previous-account";
 
 const PREVIOUS_USER_ID = "5f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
+const OTHER_USER_ID = "6a2d3e4f-5b6c-4d7e-9f80-a1b2c3d4e5f6";
 const SYNCED_ID = "00000000-0000-4000-8000-000000000101";
 const OTHER_SYNCED_ID = "00000000-0000-4000-8000-000000000102";
+const BROKEN_ID = "00000000-0000-4000-8000-000000000103";
+const BROKEN_OTHER_ID = "00000000-0000-4000-8000-000000000104";
+const BROKEN_GUEST_ID = "00000000-0000-4000-8000-000000000105";
 const LOCK_PREFIX = "schemaforge:schema:";
 
 type Fixture = {
@@ -62,6 +66,27 @@ async function createOwnedWithStatus(
   });
   await repository.setSyncState(record.id, { cloudRevision: 1, syncStatus });
   return record.id;
+}
+
+// A row an older or newer release could have written: it carries an ownerId but
+// matches neither record shape, so parseSchemaRecord rejects it and it never
+// reaches listOwnedSchemas.
+async function seedUnparsableRow(
+  database: SchemaforgeDatabase,
+  id: string,
+  ownerId: string | null,
+): Promise<void> {
+  await database.table<unknown>("schemas").put({
+    id,
+    name: "Broken",
+    createdAt: 1,
+    updatedAt: 1,
+    ownerId,
+    cloudRevision: null,
+    syncStatus: "unknown",
+  });
+  await database.documents.put({ schemaId: id, document: { broken: true } });
+  await database.viewports.put({ schemaId: id, x: 1, y: 2, zoom: 1 });
 }
 
 describe("forgetPreviousAccount", () => {
@@ -194,6 +219,99 @@ describe("forgetPreviousAccount", () => {
     await expect(
       fixture.repository.openSchema(guest.id),
     ).resolves.toMatchObject({ kind: "opened", document: { name: "Guest" } });
+  });
+
+  it("deletes a row of the previous account that does not parse", async () => {
+    const fixture = setUp();
+    await seedUnparsableRow(fixture.database, BROKEN_ID, PREVIOUS_USER_ID);
+
+    const result = await runForget(fixture);
+
+    expect(result).toEqual({ removedIds: [], keptIds: [] });
+    await expect(
+      fixture.database.schemas.get(BROKEN_ID),
+    ).resolves.toBeUndefined();
+  });
+
+  it("deletes the document and the viewport of an unreadable row", async () => {
+    const fixture = setUp();
+    await seedUnparsableRow(fixture.database, BROKEN_ID, PREVIOUS_USER_ID);
+
+    await runForget(fixture);
+
+    await expect(
+      Promise.all([
+        fixture.database.documents.get(BROKEN_ID),
+        fixture.database.viewports.get(BROKEN_ID),
+      ]),
+    ).resolves.toEqual([undefined, undefined]);
+  });
+
+  it("keeps an unreadable row that belongs to another account", async () => {
+    const fixture = setUp();
+    await seedUnparsableRow(fixture.database, BROKEN_OTHER_ID, OTHER_USER_ID);
+
+    await runForget(fixture);
+
+    await expect(
+      Promise.all([
+        fixture.database.schemas.get(BROKEN_OTHER_ID),
+        fixture.database.documents.get(BROKEN_OTHER_ID),
+        fixture.database.viewports.get(BROKEN_OTHER_ID),
+      ]),
+    ).resolves.not.toContain(undefined);
+  });
+
+  it("keeps an unreadable guest row", async () => {
+    const fixture = setUp();
+    await seedUnparsableRow(fixture.database, BROKEN_GUEST_ID, null);
+
+    await runForget(fixture);
+
+    await expect(
+      Promise.all([
+        fixture.database.schemas.get(BROKEN_GUEST_ID),
+        fixture.database.documents.get(BROKEN_GUEST_ID),
+        fixture.database.viewports.get(BROKEN_GUEST_ID),
+      ]),
+    ).resolves.not.toContain(undefined);
+  });
+
+  it("keeps a pending record of the previous account while deleting its unreadable rows", async () => {
+    const fixture = setUp();
+    const pendingId = await createOwnedWithStatus(
+      fixture.repository,
+      "pending",
+    );
+    await seedUnparsableRow(fixture.database, BROKEN_ID, PREVIOUS_USER_ID);
+
+    const result = await runForget(fixture);
+
+    expect(result).toEqual({ removedIds: [], keptIds: [pendingId] });
+    await expect(
+      fixture.repository.readSchemaRecord(pendingId),
+    ).resolves.not.toBeNull();
+    await expect(
+      fixture.database.schemas.get(BROKEN_ID),
+    ).resolves.toBeUndefined();
+  });
+
+  it("keeps a synced record whose lock is held while deleting unreadable rows", async () => {
+    const fixture = setUp();
+    await writeSyncedCopy(fixture.repository, SYNCED_ID);
+    await seedUnparsableRow(fixture.database, BROKEN_ID, PREVIOUS_USER_ID);
+    const editorTab = createSchemaLockManager(fixture.registry.request);
+    await editorTab.tryAcquire(SYNCED_ID);
+
+    const result = await runForget(fixture);
+
+    expect(result).toEqual({ removedIds: [], keptIds: [SYNCED_ID] });
+    await expect(
+      fixture.repository.readSchemaRecord(SYNCED_ID),
+    ).resolves.not.toBeNull();
+    await expect(
+      fixture.database.schemas.get(BROKEN_ID),
+    ).resolves.toBeUndefined();
   });
 
   it("leaves the session record in place", async () => {

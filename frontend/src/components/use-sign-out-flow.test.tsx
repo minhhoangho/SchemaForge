@@ -206,6 +206,40 @@ async function seedConflict(fixture: Fixture): Promise<string> {
   return id;
 }
 
+function errorResponse(
+  status: number,
+  body: Record<string, unknown>,
+): Response {
+  return jsonResponse({ statusCode: status, ...body }, status);
+}
+
+// A pending change on top of a cloud copy, so the push is an update and the
+// cloud can answer with a revision conflict.
+async function seedPendingUpdate(
+  fixture: Fixture,
+  id: string,
+): Promise<string> {
+  await fixture.storage.repository.writeCloudCopy({
+    id,
+    ownerId: USER_ID,
+    document: SAMPLE_DOCUMENT,
+    revision: 1,
+    createdAt: 1,
+    updatedAt: 1,
+  });
+  await fixture.storage.repository.saveDocument(id, SAMPLE_DOCUMENT);
+  return id;
+}
+
+// 401 on the push plus 401 on the refresh is what the sync reads as an
+// expired session.
+function routeExpiredSession(fixture: Fixture): void {
+  fixture.routes["POST /schemas"] = () =>
+    errorResponse(401, { code: "unauthenticated" });
+  fixture.routes["POST /auth/refresh"] = () =>
+    errorResponse(401, { code: "session-expired" });
+}
+
 describe("useSignOutFlow", () => {
   it("signs out without a dialog when every schema is synced", async () => {
     const fixture = setUp();
@@ -274,6 +308,78 @@ describe("useSignOutFlow", () => {
     expect(flowOf(flowRef).state).toEqual({
       kind: "confirming",
       unsyncedCount: 0,
+    });
+  });
+
+  it("reports an expired session when the sync stops for it", async () => {
+    const fixture = setUp();
+    await seedPending(fixture);
+    routeExpiredSession(fixture);
+    const flowRef = await mountFlow(fixture);
+    await act(async () => {
+      await flowOf(flowRef).start();
+    });
+
+    await act(async () => {
+      await flowOf(flowRef).trySync();
+    });
+
+    expect(flowOf(flowRef).state).toEqual({
+      kind: "confirming",
+      unsyncedCount: 1,
+      syncIssue: { kind: "session-expired" },
+    });
+  });
+
+  it("reports how many schemas conflict with the cloud", async () => {
+    const fixture = setUp();
+    const conflictId = await seedPendingUpdate(
+      fixture,
+      "00000000-0000-4000-8000-0000000000fd",
+    );
+    const flowRef = await mountFlow(fixture);
+    await act(async () => {
+      await flowOf(flowRef).start();
+    });
+    fixture.routes[`PUT /schemas/${conflictId}`] = () =>
+      errorResponse(409, { code: "revision-conflict", currentRevision: 2 });
+
+    await act(async () => {
+      await flowOf(flowRef).trySync();
+    });
+
+    expect(flowOf(flowRef).state).toEqual({
+      kind: "confirming",
+      unsyncedCount: 1,
+      syncIssue: { kind: "conflict", count: 1 },
+    });
+  });
+
+  it("reports the expired session when conflicts happened as well", async () => {
+    const fixture = setUp();
+    // The newest record is pushed first, so the conflict is recorded before
+    // the expired session stops the run.
+    await seedPending(fixture);
+    const conflictId = await seedPendingUpdate(
+      fixture,
+      "00000000-0000-4000-8000-0000000000fd",
+    );
+    fixture.routes[`PUT /schemas/${conflictId}`] = () =>
+      errorResponse(409, { code: "revision-conflict", currentRevision: 2 });
+    routeExpiredSession(fixture);
+    const flowRef = await mountFlow(fixture);
+    await act(async () => {
+      await flowOf(flowRef).start();
+    });
+
+    await act(async () => {
+      await flowOf(flowRef).trySync();
+    });
+
+    expect(flowOf(flowRef).state).toEqual({
+      kind: "confirming",
+      unsyncedCount: 2,
+      syncIssue: { kind: "session-expired" },
     });
   });
 

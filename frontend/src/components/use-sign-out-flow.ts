@@ -9,12 +9,22 @@ import type { SchemaRepository } from "@/lib/storage/schema-repository";
 import { useStorage } from "@/lib/storage/storage-context";
 import { countUnsyncedSchemas } from "@/lib/sync/sign-out";
 import { syncPendingSchemas } from "@/lib/sync/sync-pending-schemas";
+import type { SyncPendingReport } from "@/lib/sync/sync-pending-schemas";
 import { useNotify } from "@/lib/use-notify";
+
+/** Why "Try to sync" left schemas behind, so the dialog can say so. */
+export type SignOutSyncIssue =
+  | { readonly kind: "session-expired" }
+  | { readonly kind: "conflict"; readonly count: number };
 
 export type SignOutFlowState =
   | { readonly kind: "idle" }
   | { readonly kind: "counting" }
-  | { readonly kind: "confirming"; readonly unsyncedCount: number }
+  | {
+      readonly kind: "confirming";
+      readonly unsyncedCount: number;
+      readonly syncIssue?: SignOutSyncIssue;
+    }
   | { readonly kind: "syncing"; readonly unsyncedCount: number }
   | { readonly kind: "signing-out" };
 
@@ -33,6 +43,19 @@ type AccountCache = {
 };
 
 const IDLE: SignOutFlowState = { kind: "idle" };
+
+// An expired session wins over conflicts: the user cannot resolve a conflict
+// before signing in again.
+function readSyncIssue(
+  report: SyncPendingReport,
+): SignOutSyncIssue | undefined {
+  if (report.stoppedBy === "session-expired") {
+    return { kind: "session-expired" };
+  }
+  return report.conflictIds.length === 0
+    ? undefined
+    : { kind: "conflict", count: report.conflictIds.length };
+}
 
 function errorName(cause: unknown): string {
   return cause instanceof Error ? cause.name : "unknown";
@@ -119,10 +142,11 @@ export function useSignOutFlow(): SignOutFlow {
     const previousCount = state.unsyncedCount;
     setState({ kind: "syncing", unsyncedCount: previousCount });
     try {
-      await syncPendingSchemas({ api, ...cache });
+      const report = await syncPendingSchemas({ api, ...cache });
       setState({
         kind: "confirming",
         unsyncedCount: await countUnsyncedSchemas(cache),
+        syncIssue: readSyncIssue(report),
       });
     } catch (cause: unknown) {
       logger.error("auth.sign-out-sync-failed", { name: errorName(cause) });

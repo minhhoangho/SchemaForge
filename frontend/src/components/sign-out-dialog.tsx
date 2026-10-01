@@ -1,5 +1,6 @@
 "use client";
 
+import type { TFunction } from "i18next";
 import type { JSX } from "react";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
-import type { SignOutFlowState } from "./use-sign-out-flow";
+import type { SignOutFlowState, SignOutSyncIssue } from "./use-sign-out-flow";
 
 export type SignOutDialogProps = {
   readonly state: SignOutFlowState;
@@ -29,6 +30,29 @@ function readUnsyncedCount(state: SignOutFlowState): number | null {
   return state.kind === "confirming" || state.kind === "syncing"
     ? state.unsyncedCount
     : null;
+}
+
+function syncIssueText(
+  t: TFunction<"sync">,
+  issue: SignOutSyncIssue | undefined,
+): string | null {
+  if (issue === undefined) {
+    return null;
+  }
+  switch (issue.kind) {
+    case "session-expired":
+      return t("signOutDialog.syncStoppedExpired");
+    case "conflict":
+      return t("signOutDialog.syncStoppedConflict", { count: issue.count });
+    default: {
+      const unhandledIssue: never = issue;
+      return unhandledIssue;
+    }
+  }
+}
+
+function readSyncIssue(state: SignOutFlowState): SignOutSyncIssue | undefined {
+  return state.kind === "confirming" ? state.syncIssue : undefined;
 }
 
 /**
@@ -57,6 +81,12 @@ export function SignOutDialog({
   const shownCount = unsyncedCount ?? lastCountRef.current;
   const isBusy = state.kind === "syncing" || state.kind === "signing-out";
   const busyKey = state.kind === "syncing" ? "syncing" : "signingOut";
+  const syncIssue = readSyncIssue(state);
+  // One live region: a running step reports itself, and when it ends the same
+  // region announces why the sync left schemas behind.
+  const statusText = isBusy
+    ? t(`signOutDialog.${busyKey}`)
+    : syncIssueText(t, syncIssue);
 
   return (
     <AlertDialog
@@ -85,7 +115,7 @@ export function SignOutDialog({
               : t("signOutDialog.description", { count: shownCount })}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        {isBusy ? <p role="status">{t(`signOutDialog.${busyKey}`)}</p> : null}
+        {statusText === null ? null : <p role="status">{statusText}</p>}
         <AlertDialogFooter>
           {/* Radix focuses this button when the dialog opens, so the warning is
               announced; without it nothing inside the dialog takes focus. */}

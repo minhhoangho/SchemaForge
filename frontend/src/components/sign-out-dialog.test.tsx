@@ -105,6 +105,30 @@ describe("SignOutDialog", () => {
     expect(screen.getByRole("button", { name: "Sign out" })).toBeDefined();
   });
 
+  it("explains that the session expired after trying to sync", () => {
+    renderDialog({
+      kind: "confirming",
+      unsyncedCount: 1,
+      syncIssue: { kind: "session-expired" },
+    });
+
+    expect(screen.getByRole("status").textContent).toBe(
+      "Your session expired. Sign in again to sync.",
+    );
+  });
+
+  it("explains how many schemas conflict with the cloud", () => {
+    renderDialog({
+      kind: "confirming",
+      unsyncedCount: 2,
+      syncIssue: { kind: "conflict", count: 2 },
+    });
+
+    expect(screen.getByRole("status").textContent).toBe(
+      "2 schemas conflict with the cloud. Open them to resolve.",
+    );
+  });
+
   it.each(["light", "dark"] as const)(
     "has no axe violations in the light and dark themes (%s)",
     async (themePreference) => {

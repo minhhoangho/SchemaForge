@@ -10,6 +10,11 @@ export const enSyncSignOutDialog = {
   signOut: "Sign out",
   cancel: "Cancel",
   syncing: "Syncing…",
+  syncStoppedExpired: "Your session expired. Sign in again to sync.",
+  syncStoppedConflict_one:
+    "{{count}} schema conflicts with the cloud. Open it to resolve.",
+  syncStoppedConflict_other:
+    "{{count}} schemas conflict with the cloud. Open them to resolve.",
   signingOut: "Signing out…",
   signOutFailed: "Could not sign out, check your connection",
   cacheCleanupFailed:

@@ -13,6 +13,12 @@ export const viSyncSignOutDialog = {
   signOut: "Đăng xuất",
   cancel: "Hủy",
   syncing: "Đang đồng bộ…",
+  syncStoppedExpired:
+    "Phiên đăng nhập đã hết hạn, hãy đăng nhập lại để đồng bộ.",
+  syncStoppedConflict_one:
+    "{{count}} schema đang xung đột với bản trên cloud, hãy mở để xử lý.",
+  syncStoppedConflict_other:
+    "{{count}} schema đang xung đột với bản trên cloud, hãy mở để xử lý.",
   signingOut: "Đang đăng xuất…",
   signOutFailed: "Không đăng xuất được, hãy kiểm tra kết nối",
   cacheCleanupFailed:

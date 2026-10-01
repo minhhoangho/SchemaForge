@@ -1,4 +1,3 @@
-import { createSampleSchema } from "@schemaforge/core/testing";
 import { screen } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
 import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
@@ -109,7 +108,8 @@ function setUp(input: {
       repository: createSchemaRepository({
         database,
         clock: createCounter(),
-        generateId: () => `id-${String(nextId())}`,
+        generateId: () =>
+          `00000000-0000-4000-8000-${String(nextId()).padStart(12, "0")}`,
       }),
     },
     dependencies: {
@@ -253,21 +253,9 @@ describe("AccountMenu", () => {
       await screen.findByText("Could not sign out, check your connection"),
     ).toBeDefined();
   });
-  // The id has to be a real schema id: listOwnedSchemas skips a row it cannot
-  // parse, and the unsynced count would then be zero.
   async function seedPending(fixture: Fixture): Promise<void> {
-    const schemaId = "00000000-0000-4000-8000-000000000001";
-    await fixture.storage.repository.writeCloudCopy({
-      id: schemaId,
+    await fixture.storage.repository.createSchema("Pending schema", {
       ownerId: USER_ID,
-      document: createSampleSchema(),
-      revision: 1,
-      createdAt: 1,
-      updatedAt: 1,
-    });
-    await fixture.storage.repository.setSyncState(schemaId, {
-      cloudRevision: 1,
-      syncStatus: "pending",
     });
   }
 

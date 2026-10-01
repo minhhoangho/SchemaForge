@@ -1,4 +1,6 @@
+import { createSampleSchema } from "@schemaforge/core/testing";
 import { screen } from "@testing-library/react";
+import type { UserEvent } from "@testing-library/user-event";
 import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
 import type { JSX } from "react";
 import { renderToString } from "react-dom/server";
@@ -250,5 +252,81 @@ describe("AccountMenu", () => {
     expect(
       await screen.findByText("Could not sign out, check your connection"),
     ).toBeDefined();
+  });
+  // The id has to be a real schema id: listOwnedSchemas skips a row it cannot
+  // parse, and the unsynced count would then be zero.
+  async function seedPending(fixture: Fixture): Promise<void> {
+    const schemaId = "00000000-0000-4000-8000-000000000001";
+    await fixture.storage.repository.writeCloudCopy({
+      id: schemaId,
+      ownerId: USER_ID,
+      document: createSampleSchema(),
+      revision: 1,
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    await fixture.storage.repository.setSyncState(schemaId, {
+      cloudRevision: 1,
+      syncStatus: "pending",
+    });
+  }
+
+  async function openSignOut(fixture: Fixture): Promise<UserEvent> {
+    const { user } = renderMenu(fixture, true);
+    await user.click(
+      await screen.findByRole("button", { name: `Account ${EMAIL}` }),
+    );
+    await user.click(await screen.findByRole("menuitem", { name: "Sign out" }));
+    return user;
+  }
+
+  it("starts the sign out flow from the menu", async () => {
+    const fixture = track(
+      setUp({
+        cookie: HINT_COOKIE,
+        handlers: { "GET /auth/me": userResponse },
+      }),
+    );
+    await seedPending(fixture);
+
+    await openSignOut(fixture);
+
+    expect(
+      await screen.findByRole("alertdialog", { name: "Sign out?" }),
+    ).toBeDefined();
+  });
+
+  it("returns focus to the menu button after cancelling", async () => {
+    const fixture = track(
+      setUp({
+        cookie: HINT_COOKIE,
+        handlers: { "GET /auth/me": userResponse },
+      }),
+    );
+    await seedPending(fixture);
+    const user = await openSignOut(fixture);
+
+    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+
+    expect(screen.getByRole("button", { name: `Account ${EMAIL}` })).toBe(
+      document.activeElement,
+    );
+  });
+
+  it("shows the sign-in link after signing out", async () => {
+    const fixture = track(
+      setUp({
+        cookie: HINT_COOKIE,
+        handlers: {
+          "GET /auth/me": userResponse,
+          "POST /auth/logout": () => new Response(null, { status: 204 }),
+        },
+      }),
+    );
+
+    await openSignOut(fixture);
+
+    const link = await screen.findByRole("link", { name: "Sign in" });
+    expect(link).toBe(document.activeElement);
   });
 });

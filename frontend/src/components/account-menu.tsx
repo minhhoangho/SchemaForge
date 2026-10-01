@@ -3,14 +3,12 @@
 import { TriangleAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { JSX } from "react";
+import type { JSX, RefObject } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  useAuth,
-  useInitialAuthHint,
-  useSignOut,
-} from "@/components/auth-provider";
+import { useAuth, useInitialAuthHint } from "@/components/auth-provider";
+import { SignOutDialog } from "@/components/sign-out-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,24 +17,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSignOutFlow } from "@/components/use-sign-out-flow";
 import { buildAuthHref } from "@/lib/auth/sanitize-return-to";
-import { logger } from "@/lib/logger";
-import { useNotify } from "@/lib/use-notify";
 
 type AccountLinkProps = {
   readonly returnTo: string;
   readonly label: string;
   readonly hasWarningIcon?: boolean;
+  readonly linkRef?: RefObject<HTMLAnchorElement | null>;
 };
 
 function AccountLink({
   returnTo,
   label,
   hasWarningIcon = false,
+  linkRef,
 }: AccountLinkProps): JSX.Element {
   return (
     <Button asChild variant="ghost" size="sm">
-      <Link href={buildAuthHref("/sign-in", returnTo)}>
+      <Link ref={linkRef} href={buildAuthHref("/sign-in", returnTo)}>
         {hasWarningIcon ? <TriangleAlertIcon aria-hidden="true" /> : null}
         {label}
       </Link>
@@ -48,50 +47,77 @@ export function AccountMenu(): JSX.Element {
   const { t } = useTranslation(["auth", "sync"]);
   const auth = useAuth((state) => state.auth);
   const hasAuthHint = useInitialAuthHint();
-  const requestSignOut = useSignOut();
-  const notify = useNotify();
   const pathname = usePathname();
+  const flow = useSignOutFlow();
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const signInLinkRef = useRef<HTMLAnchorElement | null>(null);
+  // Only a sign-out started here moves focus; one from another tab must not
+  // pull focus away from whatever the user is doing.
+  const hasRequestedSignOutRef = useRef(false);
+  const isFlowBusy =
+    flow.state.kind === "counting" || flow.state.kind === "signing-out";
 
-  async function handleSignOut(): Promise<void> {
-    try {
-      const result = await requestSignOut();
-      if (!result.isOk) {
-        notify({ tone: "error", titleKey: "sync:signOutDialog.signOutFailed" });
+  // The button that held focus is gone once the account is signed out, so
+  // focus continues on the sign-in link that replaces it. A flow that ended
+  // without signing out drops the request, so a later sign-out from another
+  // tab cannot pull focus.
+  useEffect(() => {
+    if (auth.status === "signed-in") {
+      if (flow.state.kind === "idle") {
+        hasRequestedSignOutRef.current = false;
       }
-    } catch (cause: unknown) {
-      // The server session is already revoked here, so the user really is
-      // signed out and only the local cleanup failed. Task 34 replaces this
-      // item with the dialog flow that reports it.
-      logger.error("auth.sign-out-cleanup-failed", {
-        errorName: cause instanceof Error ? cause.name : "unknown",
-      });
+      return;
     }
-  }
+    if (!hasRequestedSignOutRef.current) {
+      return;
+    }
+    hasRequestedSignOutRef.current = false;
+    signInLinkRef.current?.focus();
+  }, [auth.status, flow.state.kind]);
 
   if (auth.status === "signed-in") {
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={t("auth:accountMenu.menuLabel", {
-              email: auth.user.email,
-            })}
-          >
-            {auth.user.email}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            onSelect={() => {
-              void handleSignOut();
-            }}
-          >
-            {t("auth:accountMenu.signOut")}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              ref={menuButtonRef}
+              variant="ghost"
+              size="sm"
+              aria-label={t("auth:accountMenu.menuLabel", {
+                email: auth.user.email,
+              })}
+            >
+              {auth.user.email}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              disabled={isFlowBusy}
+              onSelect={() => {
+                hasRequestedSignOutRef.current = true;
+                // The flow reports its own failures.
+                void flow.start();
+              }}
+            >
+              {t("auth:accountMenu.signOut")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <SignOutDialog
+          state={flow.state}
+          onTrySync={() => {
+            void flow.trySync();
+          }}
+          onConfirm={() => {
+            void flow.confirm();
+          }}
+          onCancel={flow.cancel}
+          onReturnFocus={() => {
+            menuButtonRef.current?.focus();
+          }}
+        />
+      </>
     );
   }
 
@@ -112,6 +138,10 @@ export function AccountMenu(): JSX.Element {
   }
 
   return (
-    <AccountLink returnTo={pathname} label={t("auth:accountMenu.signIn")} />
+    <AccountLink
+      returnTo={pathname}
+      label={t("auth:accountMenu.signIn")}
+      linkRef={signInLinkRef}
+    />
   );
 }

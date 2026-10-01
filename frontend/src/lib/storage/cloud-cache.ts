@@ -1,7 +1,12 @@
 import type { SchemaDocument } from "@schemaforge/core";
 
 import type { SchemaforgeDatabase } from "./database";
-import { isCloudSchemaRecord, parseSchemaRecord } from "./records";
+import {
+  isCloudSchemaRecord,
+  parseSchemaRecord,
+  parseSessionRecord,
+  SESSION_KEY,
+} from "./records";
 import type { CloudSchemaRecord, SchemaRecord, SyncStatus } from "./records";
 import { isSchemaId } from "./schema-id";
 
@@ -28,6 +33,12 @@ export type SyncState = {
   readonly syncStatus: SyncStatus;
 };
 
+/**
+ * stale-session means the account is no longer signed in on this browser (a
+ * sign-out in another tab), so nothing was written.
+ */
+export type CloudCopyOutcome = "written" | "stale-session";
+
 export type OwnerAssignment = {
   readonly ownerId: string;
   readonly cloudRevision: number;
@@ -39,7 +50,7 @@ export type CloudCache = {
   readonly listOwnedSchemas: (
     ownerId: string,
   ) => Promise<readonly CloudSchemaRecord[]>;
-  readonly writeCloudCopy: (input: CloudCopy) => Promise<void>;
+  readonly writeCloudCopy: (input: CloudCopy) => Promise<CloudCopyOutcome>;
   readonly completePush: (
     schemaId: string,
     input: CompletePushInput,
@@ -97,10 +108,22 @@ async function listOwnedSchemas(
     .sort((first, second) => second.updatedAt - first.updatedAt);
 }
 
+// Sign-out deletes the session row before it clears the account's cache, so a
+// cloud answer that arrives afterwards finds no session of its owner. The check
+// runs inside the write transaction: outside it, the row could be deleted
+// between the check and the write.
+async function isSignedInAs(
+  database: SchemaforgeDatabase,
+  ownerId: string,
+): Promise<boolean> {
+  const session = parseSessionRecord(await database.session.get(SESSION_KEY));
+  return session?.userId === ownerId;
+}
+
 async function writeCloudCopy(
   database: SchemaforgeDatabase,
   input: CloudCopy,
-): Promise<void> {
+): Promise<CloudCopyOutcome> {
   const record: CloudSchemaRecord = {
     id: input.id,
     name: input.document.name,
@@ -110,16 +133,21 @@ async function writeCloudCopy(
     cloudRevision: input.revision,
     syncStatus: "synced",
   };
-  await database.transaction(
+  return database.transaction(
     "rw",
     database.schemas,
     database.documents,
-    async () => {
+    database.session,
+    async (): Promise<CloudCopyOutcome> => {
+      if (!(await isSignedInAs(database, input.ownerId))) {
+        return "stale-session";
+      }
       await database.schemas.put(record);
       await database.documents.put({
         schemaId: input.id,
         document: input.document,
       });
+      return "written";
     },
   );
 }

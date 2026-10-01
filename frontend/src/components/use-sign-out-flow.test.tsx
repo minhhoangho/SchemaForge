@@ -176,8 +176,17 @@ async function seedPending(fixture: Fixture): Promise<string> {
   return record.id;
 }
 
+// Storage caches a schema only for the account the session row names.
+async function seedSession(fixture: Fixture): Promise<void> {
+  await fixture.storage.repository.writeSession({
+    userId: USER_ID,
+    email: "user@example.com",
+  });
+}
+
 async function seedSynced(fixture: Fixture): Promise<string> {
   const id = "00000000-0000-4000-8000-0000000000ff";
+  await seedSession(fixture);
   await fixture.storage.repository.writeCloudCopy({
     id,
     ownerId: USER_ID,
@@ -191,6 +200,7 @@ async function seedSynced(fixture: Fixture): Promise<string> {
 
 async function seedConflict(fixture: Fixture): Promise<string> {
   const id = "00000000-0000-4000-8000-0000000000fe";
+  await seedSession(fixture);
   await fixture.storage.repository.writeCloudCopy({
     id,
     ownerId: USER_ID,
@@ -219,6 +229,7 @@ async function seedPendingUpdate(
   fixture: Fixture,
   id: string,
 ): Promise<string> {
+  await seedSession(fixture);
   await fixture.storage.repository.writeCloudCopy({
     id,
     ownerId: USER_ID,

@@ -33,11 +33,17 @@ function createIdGenerator(): () => string {
   };
 }
 
-function writeSyncedCopy(
+// The copy was cached while the previous account was signed in here, which the
+// session row records: writeCloudCopy writes nothing without it.
+async function writeSyncedCopy(
   repository: SchemaRepository,
   id: string,
 ): Promise<void> {
-  return repository.writeCloudCopy({
+  await repository.writeSession({
+    userId: PREVIOUS_USER_ID,
+    email: "user@example.com",
+  });
+  await repository.writeCloudCopy({
     id,
     ownerId: PREVIOUS_USER_ID,
     document: createSampleSchema(),

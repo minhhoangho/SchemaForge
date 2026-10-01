@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createCloudCache } from "./cloud-cache";
 import type { CloudCache } from "./cloud-cache";
 import { SchemaforgeDatabase } from "./database";
+import { SESSION_KEY } from "./records";
 import type {
   CloudSchemaRecord,
   LocalSchemaRecord,
@@ -92,6 +93,19 @@ describe("createCloudCache", () => {
     await database.documents.put({
       schemaId: record.id,
       document: createEmptySchema(record.name),
+    });
+  }
+
+  // A cloud copy is only written while the account is signed in on this
+  // browser, which the session row records.
+  async function seedSession(
+    database: SchemaforgeDatabase,
+    userId: string,
+  ): Promise<void> {
+    await database.session.put({
+      key: SESSION_KEY,
+      userId,
+      email: "owner@example.com",
     });
   }
 
@@ -226,6 +240,7 @@ describe("createCloudCache", () => {
   it("writes a cloud copy as synced with its revision and document", async () => {
     const { database, cloudCache } = setUp();
     const document = createEmptySchema("Invoices");
+    await seedSession(database, OWNER_ID);
     await database.viewports.put({
       schemaId: FIRST_SCHEMA_ID,
       x: 1,
@@ -261,6 +276,44 @@ describe("createCloudCache", () => {
       y: 2,
       zoom: 1,
     });
+  });
+
+  // The sign-out of another tab deletes the session row before it clears the
+  // account's cache, so a cloud answer that arrives after that must not put the
+  // account's schema back into this browser.
+  it("writes no cloud copy when the account is no longer signed in", async () => {
+    const { database, cloudCache } = setUp();
+
+    const outcome = await cloudCache.writeCloudCopy({
+      id: FIRST_SCHEMA_ID,
+      ownerId: OWNER_ID,
+      document: createEmptySchema("Invoices"),
+      revision: 7,
+      createdAt: 10,
+      updatedAt: 20,
+    });
+
+    expect(outcome).toBe("stale-session");
+    await expect(database.schemas.count()).resolves.toBe(0);
+    await expect(database.documents.count()).resolves.toBe(0);
+  });
+
+  it("writes no cloud copy when the session belongs to another account", async () => {
+    const { database, cloudCache } = setUp();
+    await seedSession(database, OTHER_OWNER_ID);
+
+    const outcome = await cloudCache.writeCloudCopy({
+      id: FIRST_SCHEMA_ID,
+      ownerId: OWNER_ID,
+      document: createEmptySchema("Invoices"),
+      revision: 7,
+      createdAt: 10,
+      updatedAt: 20,
+    });
+
+    expect(outcome).toBe("stale-session");
+    await expect(database.schemas.count()).resolves.toBe(0);
+    await expect(database.documents.count()).resolves.toBe(0);
   });
 
   it("completes a push as synced when the record did not change while sending", async () => {

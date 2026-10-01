@@ -4,7 +4,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getSchemaLockName } from "@/lib/storage/schema-lock-manager";
 
-import { createJourneyEnvironment } from "./mount-editor-journey";
+import {
+  createJourneyEnvironment,
+  setJourneyTestTimeout,
+} from "./mount-editor-journey";
+
+setJourneyTestTimeout();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({

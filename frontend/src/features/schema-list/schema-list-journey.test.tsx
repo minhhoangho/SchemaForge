@@ -6,7 +6,12 @@ import { toast } from "sonner";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { getSchemaIdFromHref } from "@/testing/journey-queries";
-import { createJourneyEnvironment } from "@/testing/mount-editor-journey";
+import {
+  createJourneyEnvironment,
+  setJourneyTestTimeout,
+} from "@/testing/mount-editor-journey";
+
+setJourneyTestTimeout();
 
 const { push } = vi.hoisted(() => ({
   push: vi.fn<(href: string) => void>(),

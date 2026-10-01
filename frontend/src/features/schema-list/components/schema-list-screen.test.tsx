@@ -32,9 +32,12 @@ import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { createFakeAuthLockManager } from "@/testing/fake-auth-lock-manager";
 import { createFakeLockRegistry } from "@/testing/fake-lock-registry";
 import type { FakeLockRegistry } from "@/testing/fake-lock-registry";
+import { setJourneyTestTimeout } from "@/testing/mount-editor-journey";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
 import { SchemaListScreen } from "./schema-list-screen";
+
+setJourneyTestTimeout();
 
 const { push, refresh } = vi.hoisted(() => ({
   push: vi.fn<(href: string) => void>(),

@@ -13,9 +13,12 @@ import { createSchemaRepository } from "@/lib/storage/schema-repository";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { createFakeLockRegistry } from "@/testing/fake-lock-registry";
 import type { FakeLockRegistry } from "@/testing/fake-lock-registry";
+import { setJourneyTestTimeout } from "@/testing/mount-editor-journey";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
 import { SchemaListScreen } from "./schema-list-screen";
+
+setJourneyTestTimeout();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({

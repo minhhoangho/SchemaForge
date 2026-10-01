@@ -40,6 +40,11 @@ async function createSchema(
   return client.request("POST", "/schemas", { body: { id, document } });
 }
 
+/** `JSON.parse` is the only way to build an own `__proto__` key. */
+function protoKeyMap(): unknown {
+  return JSON.parse('{"__proto__":{"polluted":true}}');
+}
+
 function readSummary(response: Response): SchemaSummary {
   return schemaSummarySchema.parse(readBody(response));
 }
@@ -248,6 +253,25 @@ describe("schemas e2e", () => {
 
       expect(response.status).toBe(422);
       expect(readDocumentErrors(response).length).toBeGreaterThan(0);
+    });
+
+    /**
+     * The document is empty apart from `tables`, so dropping the `__proto__`
+     * key would leave a valid document and answer `201`. The error code is the
+     * one core reports for this key, spelled out here because it is what tells
+     * the two ends apart.
+     */
+    it("rejects a map with a __proto__ own key with document-invalid", async () => {
+      const response = await createSchema(alice, {
+        ...buildSchema({ name: "proto" }),
+        tables: protoKeyMap(),
+      });
+
+      expect(response.status).toBe(422);
+      expect(readDocumentErrors(response).map((error) => error.code)).toEqual([
+        "invalid-shape",
+      ]);
+      expect(Object.hasOwn(Object.prototype, "polluted")).toBe(false);
     });
 
     it("stores a document with two tables of the same name", async () => {

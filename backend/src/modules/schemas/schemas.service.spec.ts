@@ -31,6 +31,11 @@ const DOCUMENT_WITH_ISSUES = buildSchema({
   ],
 });
 
+/** `JSON.parse` is the only way to build an own `__proto__` key. */
+function protoKeyMap(): unknown {
+  return JSON.parse('{"__proto__":{"polluted":true}}');
+}
+
 function manyInvalidTables(): Readonly<Record<string, unknown>> {
   return Object.fromEntries(
     Array.from({ length: INVALID_TABLE_COUNT }, (_value, index) => [
@@ -208,6 +213,30 @@ describe("SchemasService", () => {
           documentErrors: [{ code: "version-unsupported", path: ["version"] }],
         },
       });
+    });
+
+    it("rejects a map with a __proto__ own key with document-invalid", async () => {
+      const { service, prisma } = await createService([]);
+
+      await expect(
+        service.create(OWNER_ID, {
+          id: SCHEMA_ID,
+          document: {
+            ...DOCUMENT,
+            tables: protoKeyMap(),
+          },
+        }),
+      ).rejects.toMatchObject({
+        body: {
+          statusCode: 422,
+          code: "document-invalid",
+          documentErrors: [
+            { code: "invalid-shape", path: ["tables", "__proto__"] },
+          ],
+        },
+      });
+      expect(prisma.rows).toEqual([]);
+      expect(Object.hasOwn(Object.prototype, "polluted")).toBe(false);
     });
 
     it("returns at most 100 document errors", async () => {

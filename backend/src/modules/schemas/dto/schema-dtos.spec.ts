@@ -84,19 +84,24 @@ describe("CreateSchemaDto", () => {
     expect(dto).toEqual({ id: SCHEMA_ID, document: DOCUMENT });
   });
 
-  it("drops a __proto__ key without changing the prototype", async () => {
-    const document: unknown = JSON.parse(
-      '{"version":1,"__proto__":{"polluted":true}}',
-    );
-
+  it("keeps a __proto__ key as own data so core can reject it", async () => {
     const dto = await transformBody(CreateSchemaDto, {
       id: SCHEMA_ID,
-      document,
+      document: { ...DOCUMENT, tables: protoKeyMap() },
     });
 
-    expect(Object.hasOwn(documentOf(dto), "__proto__")).toBe(false);
-    expect(Object.getPrototypeOf(documentOf(dto))).toBe(Object.prototype);
+    expect(Object.hasOwn(tablesOf(dto), "__proto__")).toBe(true);
+    expect(Object.getPrototypeOf(tablesOf(dto))).toBe(Object.prototype);
     expect(Object.hasOwn(Object.prototype, "polluted")).toBe(false);
+  });
+
+  it("keeps a table keyed by constructor", async () => {
+    const dto = await transformBody(CreateSchemaDto, {
+      id: SCHEMA_ID,
+      document: { ...DOCUMENT, tables: { constructor: "a table" } },
+    });
+
+    expect(Object.hasOwn(tablesOf(dto), "constructor")).toBe(true);
   });
 });
 
@@ -168,5 +173,18 @@ function documentOf(dto: unknown): object {
     typeof dto.document === "object" &&
     dto.document !== null
     ? dto.document
+    : {};
+}
+/** `JSON.parse` is the only way to build an own `__proto__` key from a literal. */
+function protoKeyMap(): unknown {
+  return JSON.parse('{"__proto__":{"polluted":true}}');
+}
+
+function tablesOf(dto: unknown): object {
+  const document = documentOf(dto);
+  return "tables" in document &&
+    typeof document.tables === "object" &&
+    document.tables !== null
+    ? document.tables
     : {};
 }

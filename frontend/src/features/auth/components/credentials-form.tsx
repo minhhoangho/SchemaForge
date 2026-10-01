@@ -16,6 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CredentialsSubmitState } from "@/features/auth/hooks/use-credentials-submit";
+import {
+  retryAfterSecondsOf,
+  useRetryCountdown,
+} from "@/features/auth/hooks/use-retry-countdown";
 import { validateCredentials } from "@/features/auth/lib/validate-credentials";
 import type { CredentialsFieldError } from "@/features/auth/lib/validate-credentials";
 import type { ApiFailure } from "@/lib/api/api-failure";
@@ -47,6 +51,27 @@ const MODE_SETTINGS = {
 } as const;
 
 const FIELD_ERROR_CLASS_NAME = "text-sm text-destructive";
+
+const SECONDS_PER_MINUTE = 60;
+
+// The alert says how long to wait with the duration the server sent, so its
+// text never changes while the countdown ticks (spec section 2).
+function describeRateLimitWait(
+  totalSeconds: number,
+  t: TFunction<"auth">,
+): string {
+  return totalSeconds < SECONDS_PER_MINUTE
+    ? t("credentialsForm.retryAfter.seconds", { count: totalSeconds })
+    : t("credentialsForm.retryAfter.minutes", {
+        count: Math.ceil(totalSeconds / SECONDS_PER_MINUTE),
+      });
+}
+
+function formatRemainingClock(remainingSeconds: number): string {
+  const minutes = Math.floor(remainingSeconds / SECONDS_PER_MINUTE);
+  const seconds = remainingSeconds % SECONDS_PER_MINUTE;
+  return `${String(minutes)}:${String(seconds).padStart(2, "0")}`;
+}
 
 function describeEmailError(
   code: Extract<CredentialsFieldError, { field: "email" }>["code"],
@@ -161,6 +186,9 @@ export function CredentialsForm({
   };
   const settings = MODE_SETTINGS[mode];
   const isSubmitting = submitState.kind === "submitting";
+  const remainingSeconds = useRetryCountdown(failure);
+  const rateLimitSeconds = retryAfterSecondsOf(failure);
+  const isRateLimited = remainingSeconds > 0 && rateLimitSeconds !== null;
 
   function handleSubmit(): void {
     const errors = validateCredentials({ email, password });
@@ -252,10 +280,21 @@ export function CredentialsForm({
       </div>
       {failure === null ? null : (
         <p role="alert" className={FIELD_ERROR_CLASS_NAME}>
-          {tApiErrors(toApiErrorMessageKey(failure))}
+          {isRateLimited
+            ? describeRateLimitWait(rateLimitSeconds, t)
+            : tApiErrors(toApiErrorMessageKey(failure))}
         </p>
       )}
-      <Button type="submit" disabled={isSubmitting}>
+      {/* The ticking value is hidden from assistive technology: the alert
+          above already announced the wait, once. */}
+      {isRateLimited ? (
+        <p aria-hidden="true" className={FIELD_ERROR_CLASS_NAME}>
+          {t("credentialsForm.retryAfter.remaining", {
+            clock: formatRemainingClock(remainingSeconds),
+          })}
+        </p>
+      ) : null}
+      <Button type="submit" disabled={isSubmitting || isRateLimited}>
         {isSubmitting ? t("credentialsForm.submitting") : t(settings.submitKey)}
       </Button>
     </form>

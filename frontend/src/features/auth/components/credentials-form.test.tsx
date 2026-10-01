@@ -1,7 +1,7 @@
 import { EMAIL_MAX_LENGTH } from "@schemaforge/api-contract";
 import type { SimpleApiErrorCode } from "@schemaforge/api-contract";
-import { screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CredentialsSubmitState } from "@/features/auth/hooks/use-credentials-submit";
 import { renderWithProviders } from "@/testing/render-with-providers";
@@ -313,5 +313,92 @@ describe("CredentialsForm", () => {
       "disabled",
       true,
     );
+  });
+  describe("rate limit countdown", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function renderRateLimited(retryAfterSeconds: number): RenderedForm {
+      return renderForm({
+        submitState: {
+          kind: "failed",
+          failure: {
+            kind: "http",
+            status: 429,
+            body: { statusCode: 429, code: "too-many-requests" },
+            retryAfterSeconds,
+          },
+        },
+      });
+    }
+
+    it.each([
+      [1, "Too many attempts. Try again in 1 second."],
+      [45, "Too many attempts. Try again in 45 seconds."],
+      [60, "Too many attempts. Try again in 1 minute."],
+      [90, "Too many attempts. Try again in 2 minutes."],
+    ])("states a %s second wait in the alert", (seconds, message) => {
+      renderRateLimited(seconds);
+
+      expect(screen.getByRole("alert").textContent).toBe(message);
+    });
+
+    it("counts the remaining wait down in real time", () => {
+      renderRateLimited(90);
+
+      expect(screen.getByText("Try again in 1:30")).toBeDefined();
+
+      act(() => {
+        vi.advanceTimersByTime(31_000);
+      });
+
+      expect(screen.getByText("Try again in 0:59")).toBeDefined();
+    });
+
+    // The ticking value stays out of the accessibility tree, so a screen
+    // reader hears the wait once from the alert instead of every second.
+    it("keeps the ticking countdown hidden from assistive technology", () => {
+      renderRateLimited(90);
+      const alert = screen.getByRole("alert");
+
+      act(() => {
+        vi.advanceTimersByTime(31_000);
+      });
+
+      expect({
+        alertText: alert.textContent,
+        hidden: screen
+          .getByText("Try again in 0:59")
+          .getAttribute("aria-hidden"),
+      }).toEqual({
+        alertText: "Too many attempts. Try again in 2 minutes.",
+        hidden: "true",
+      });
+    });
+
+    it("disables the submit button until the wait is over", () => {
+      renderRateLimited(5);
+
+      expect(screen.getByRole("button", { name: "Sign in" })).toHaveProperty(
+        "disabled",
+        true,
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(5_000);
+      });
+
+      expect({
+        isDisabled: screen
+          .getByRole("button", { name: "Sign in" })
+          .hasAttribute("disabled"),
+        countdown: screen.queryByText(/Try again in/),
+      }).toEqual({ isDisabled: false, countdown: null });
+    });
   });
 });

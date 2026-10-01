@@ -7,6 +7,13 @@ export const viAuthCredentialsForm = {
   showPassword: "Hiện mật khẩu",
   hidePassword: "Ẩn mật khẩu",
   submitting: "Đang gửi…",
+  retryAfter: {
+    minutes_one: "Bạn thử quá nhiều lần. Hãy thử lại sau {{count}} phút.",
+    minutes_other: "Bạn thử quá nhiều lần. Hãy thử lại sau {{count}} phút.",
+    seconds_one: "Bạn thử quá nhiều lần. Hãy thử lại sau {{count}} giây.",
+    seconds_other: "Bạn thử quá nhiều lần. Hãy thử lại sau {{count}} giây.",
+    remaining: "Thử lại sau {{clock}}",
+  },
   errors: {
     emailRequired: "Hãy nhập email.",
     emailInvalid: "Email không hợp lệ.",

@@ -1,5 +1,7 @@
 # Bàn giao trạng thái phần Auth & Cloud — 2026-09-19
 
+> **Lạc hậu, giữ lại để tra lịch sử.** Bản bàn giao đang dùng là [2026-10-01-auth-cloud-handoff.md](2026-10-01-auth-cloud-handoff.md). Tài liệu này đếm **21/40 task** và mô tả **bốn nhánh worktree còn dang dở** (mục 2) — cả bốn nay đã merge vào `master` và không còn worktree nào; tiến độ thật cuối ngày 2026-10-01 là 38/40 task, chỉ còn Task 37 và Task 38. Mọi con số, nhánh và câu hỏi còn mở ở dưới đọc theo nghĩa "trạng thái ngày 2026-09-19", không phải trạng thái hiện tại.
+
 Tài liệu bàn giao cho session mới, viết cuối phiên làm việc ngày 2026-09-19. Nguồn công việc là `document/plans/2026-09-17-auth-cloud-plan.md` (40 task) và spec đã duyệt `document/specs/2026-09-15-auth-cloud-design.md`.
 
 Đây là tài liệu trạng thái, không phải plan. Nó không thay đổi bất kỳ quyết định nào trong spec hay plan.

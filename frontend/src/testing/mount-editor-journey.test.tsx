@@ -11,6 +11,7 @@ vi.mock("next/navigation", () => ({
     push: vi.fn<(href: string) => void>(),
     refresh: vi.fn<() => void>(),
   }),
+  usePathname: () => "/schemas",
 }));
 
 afterEach(() => {

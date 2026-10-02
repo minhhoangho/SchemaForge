@@ -181,7 +181,150 @@ const BOUNDARY_CASES = [
     surface: "card",
     where: "node interior",
   },
+  {
+    theme: "light",
+    boundary: "canvas-node-border",
+    surface: "canvas",
+    where: "canvas",
+  },
+  { theme: "light", boundary: "ring", surface: "canvas", where: "canvas" },
+  { theme: "light", boundary: "ring", surface: "popover", where: "dialog" },
+  { theme: "light", boundary: "input", surface: "popover", where: "dialog" },
+  {
+    theme: "light",
+    boundary: "canvas-relation",
+    surface: "canvas",
+    where: "canvas",
+  },
+  {
+    theme: "light",
+    boundary: "canvas-relation-hover",
+    surface: "canvas",
+    where: "canvas",
+  },
+  {
+    theme: "light",
+    boundary: "canvas-relation-selected",
+    surface: "canvas",
+    where: "canvas",
+  },
+  {
+    theme: "light",
+    boundary: "destructive",
+    surface: "canvas",
+    where: "canvas",
+  },
+  { theme: "light", boundary: "canvas-key", surface: "card", where: "node" },
+  {
+    theme: "light",
+    boundary: "canvas-foreign-key",
+    surface: "card",
+    where: "node",
+  },
+  {
+    theme: "dark",
+    boundary: "canvas-node-border",
+    surface: "canvas",
+    where: "canvas",
+  },
+  { theme: "dark", boundary: "ring", surface: "canvas", where: "canvas" },
+  { theme: "dark", boundary: "ring", surface: "popover", where: "dialog" },
+  { theme: "dark", boundary: "input", surface: "popover", where: "dialog" },
+  {
+    theme: "dark",
+    boundary: "canvas-relation",
+    surface: "canvas",
+    where: "canvas",
+  },
+  {
+    theme: "dark",
+    boundary: "canvas-relation-hover",
+    surface: "canvas",
+    where: "canvas",
+  },
+  {
+    theme: "dark",
+    boundary: "canvas-relation-selected",
+    surface: "canvas",
+    where: "canvas",
+  },
+  {
+    theme: "dark",
+    boundary: "destructive",
+    surface: "canvas",
+    where: "canvas",
+  },
+  { theme: "dark", boundary: "canvas-key", surface: "card", where: "node" },
+  {
+    theme: "dark",
+    boundary: "canvas-foreign-key",
+    surface: "card",
+    where: "node",
+  },
 ] as const satisfies readonly BoundaryCase[];
+
+const TEXT_CONTRAST_MINIMUM = 4.5;
+const THEMES = ["light", "dark"] as const;
+
+type TextCase = {
+  readonly theme: ThemeName;
+  readonly text: string;
+  readonly surface: string;
+};
+
+function pairs(
+  texts: readonly string[],
+  surfaces: readonly string[],
+): readonly Omit<TextCase, "theme">[] {
+  return texts.flatMap((text) =>
+    surfaces.map((surface) => ({ text, surface })),
+  );
+}
+
+const ACCENTS = Array.from(
+  { length: 8 },
+  (_, index) => `table-accent-${String(index + 1)}`,
+);
+const CODE_TOKENS = [
+  "code-foreground",
+  "code-token-keyword",
+  "code-token-string",
+  "code-token-constant",
+  "code-token-comment",
+  "code-token-function",
+  "code-token-parameter",
+  "code-token-punctuation",
+  "code-token-string-expression",
+  "code-token-link",
+];
+
+const TEXT_CASES: readonly TextCase[] = THEMES.flatMap((theme) =>
+  [
+    ...pairs(
+      ["foreground", "muted-foreground"],
+      ["background", "card", "muted", "popover", "accent", "secondary"],
+    ),
+    { text: "primary-foreground", surface: "primary" },
+    { text: "secondary-foreground", surface: "secondary" },
+    { text: "accent-foreground", surface: "accent" },
+    { text: "card-foreground", surface: "card" },
+    { text: "popover-foreground", surface: "popover" },
+    ...pairs(
+      ["primary", "destructive", "success", "warning"],
+      ["background", "card", "popover"],
+    ),
+    ...pairs(["canvas-node-header-foreground"], ACCENTS),
+    ...pairs(CODE_TOKENS, ["code-background"]),
+  ].map((pair) => ({ theme, ...pair })),
+);
+
+const TINT_OPACITY = 0.1;
+const TINT_CASES: readonly TextCase[] = THEMES.flatMap((theme) =>
+  [
+    ...pairs(["destructive"], ["background", "card", "popover"]),
+    ...pairs(["warning"], ["card", "popover"]),
+  ].map((pair) => ({ theme, ...pair })),
+);
 
 describe("theme tokens", () => {
   it.each(BOUNDARY_CASES)(
@@ -192,6 +335,28 @@ describe("theme tokens", () => {
       );
     },
   );
+
+  it.each(TEXT_CASES)(
+    "paints --$text on --$surface in the $theme theme with at least 4.5:1",
+    ({ theme, text, surface }) => {
+      const surfaceColor = resolveToken(theme, surface);
+
+      expect(
+        contrastRatio(
+          flattenOnto(resolveToken(theme, text), surfaceColor),
+          surfaceColor,
+        ),
+      ).toBeGreaterThanOrEqual(TEXT_CONTRAST_MINIMUM);
+    },
+  );
+
+  it("declares every table accent in both themes", () => {
+    for (const theme of THEMES) {
+      for (const accent of ACCENTS) {
+        expect(THEME_TOKENS[theme].has(accent)).toBe(true);
+      }
+    }
+  });
 
   it("wires the React Flow node border to the canvas-node-border token", () => {
     expect(GLOBALS_CSS).toContain(
@@ -215,12 +380,28 @@ describe("theme tokens", () => {
       "features/editor/components/canvas/table-node.tsx",
     );
 
-    // The card's own outer boundary, not the decorative divider between its
-    // header and its rows, which stays on --border.
-    expect(tableNode).toContain(
-      "rounded-md border border-canvas-node-border bg-card",
-    );
+    // The card's own outer boundary (the colored header band replaces the
+    // old --border divider between the header and the rows).
+    expect(tableNode).toContain("border border-canvas-node-border bg-card");
   });
+});
+
+describe("text on tinted surfaces", () => {
+  it.each(TINT_CASES)(
+    "keeps --$text readable on its 10% tint over --$surface in the $theme theme",
+    ({ theme, text, surface }) => {
+      const textColor = resolveToken(theme, text);
+      const surfaceColor = resolveToken(theme, surface);
+      const tint = flattenOnto(
+        atOpacity(textColor, TINT_OPACITY),
+        surfaceColor,
+      );
+
+      expect(
+        contrastRatio(flattenOnto(textColor, tint), tint),
+      ).toBeGreaterThanOrEqual(TEXT_CONTRAST_MINIMUM);
+    },
+  );
 });
 
 describe("focus ring usage", () => {
@@ -265,4 +446,21 @@ describe("dark invalid field border", () => {
       expect(source).not.toContain("dark:aria-invalid:border-destructive/50");
     },
   );
+});
+
+describe("hardcoded colors", () => {
+  const COLOR_LITERAL_PATTERN =
+    /\b(?:oklch|rgba?|hsla?)\(|#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\b/;
+
+  it("keeps color literals out of components", () => {
+    const offenders = listSourceFiles().filter(
+      (file) =>
+        file.endsWith(".tsx") &&
+        !file.endsWith(".test.tsx") &&
+        !file.startsWith("testing/") &&
+        COLOR_LITERAL_PATTERN.test(readSourceFile(file)),
+    );
+
+    expect(offenders).toEqual([]);
+  });
 });

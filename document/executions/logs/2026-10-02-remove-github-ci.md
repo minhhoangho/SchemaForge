@@ -55,3 +55,11 @@ grep -r "\.github/workflows" --exclude-dir=.git --exclude-dir=node_modules --exc
 - Xóa GitHub CI hoàn toàn. Repo hiện chỉ test cục bộ.
 - Staged deletion đã sẵn sàng để commit.
 - Không có CI-only scripts hay config để dọn dẹp.
+
+## 2026-10-02 12:00 — spec-writer — Xong
+- **Đã làm**: ghi quyết định gỡ GitHub CI vào `document/architecture.md`. Dòng "CI" nay ghi chưa có CI, cổng chặn là kiểm tra local trước khi commit (lý do: người dùng chỉ kiểm thử local ở giai đoạn này, thêm lại GitHub Actions khi cần), giữ nguyên phần `turbo.json` với `@schemaforge/frontend#build` phụ thuộc `typecheck`. Sửa các dòng nhắc CI khác: package manager, coverage, git hooks, conformance test, PostgreSQL local, test backend. Thêm ghi chú ngắn vào dòng 1 của `roadmap.md`.
+- **File thay đổi**: `document/architecture.md`, `document/roadmap.md`
+- **Kiểm tra**: `grep -i '\bCI\b' document/architecture.md` chỉ còn dòng "CI" (nói chưa có CI) và hai câu "không có job CI"; không còn mệnh đề nào nói CI tồn tại.
+- **Quyết định**: conformance test và e2e backend chạy local với Docker Postgres, không có job CI; PostgreSQL local giữ nguyên major 16. Không sửa spec/plan cũ (còn nhắc CI), không đụng `document/specs/2026-09-14-code-generators-design.md`.
+- **Việc còn lại**: không có.
+- **Ghi chú cho người tiếp theo**: các spec và plan đã duyệt (ví dụ auth-cloud mục 10, code-generators, import-export) vẫn nhắc job CI; chúng là bản ghi lịch sử, chưa sửa. Nếu cần nhất quán, mở spec mới hoặc sửa riêng các mục đó.

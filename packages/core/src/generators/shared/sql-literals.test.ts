@@ -120,12 +120,6 @@ describe("formatSqlLiteral", () => {
       "'2026-01-02T03:04:05Z'",
     ],
     [
-      "mysql",
-      { kind: "timestamptz" },
-      "2026-01-02T03:04:05Z",
-      "'2026-01-02T03:04:05Z'",
-    ],
-    [
       "sqlserver",
       { kind: "timestamptz" },
       "2026-01-02T03:04:05Z",
@@ -187,6 +181,40 @@ describe("formatSqlLiteral", () => {
       expect(formatSqlLiteral("mysql", { kind }, value)).toBe(sql);
     },
   );
+
+  // MySQL 8.4 rejects a "Z" or "-00:00" offset with error 1067 (Task 8 probe).
+  it.each<readonly [string, string]>([
+    ["2026-01-02T03:04:05Z", "'2026-01-02T03:04:05+00:00'"],
+    ["2026-01-02T03:04:05-00:00", "'2026-01-02T03:04:05+00:00'"],
+    ["2026-01-02 03:04:05.1234567Z", "'2026-01-02 03:04:05.123456+00:00'"],
+    ["2026-01-02T03:04:05+00:00", "'2026-01-02T03:04:05+00:00'"],
+    ["2026-01-02T03:04:05-05:00", "'2026-01-02T03:04:05-05:00'"],
+  ])(
+    "writes a UTC offset as +00:00 in MySQL timestamptz literals: %j",
+    (value, sql) => {
+      expect(formatSqlLiteral("mysql", { kind: "timestamptz" }, value)).toBe(
+        sql,
+      );
+    },
+  );
+
+  it.each<readonly [SqlDialect, string, string]>([
+    ["postgresql", "2026-01-02T03:04:05-00:00", "'2026-01-02T03:04:05-00:00'"],
+    ["sqlserver", "2026-01-02T03:04:05-00:00", "N'2026-01-02T03:04:05-00:00'"],
+  ])(
+    "keeps a -00:00 offset in timestamptz literals outside MySQL: %s %j",
+    (dialect, value, sql) => {
+      expect(formatSqlLiteral(dialect, { kind: "timestamptz" }, value)).toBe(
+        sql,
+      );
+    },
+  );
+
+  it("keeps a trailing Z in MySQL text literals", () => {
+    expect(
+      formatSqlLiteral("mysql", { kind: "text" }, "2026-01-02T03:04:05Z"),
+    ).toBe("'2026-01-02T03:04:05Z'");
+  });
 
   it("keeps fractional seconds for PostgreSQL", () => {
     expect(

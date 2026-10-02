@@ -24,15 +24,16 @@ type AllocatedName<Id extends string> = {
   readonly diagnostics: readonly GeneratorDiagnostic[];
 };
 
-// MySQL compares column and index names with utf8mb3_general_ci, so names
-// that differ only by an accent collide within one table (spec section 5).
+// MySQL 8.4 compares column and index names case-insensitively but
+// accent-sensitively (Task 8 probe), so only names that differ in case
+// collide within one table.
 function allocateInTable<Id extends string>(
   elements: readonly NamedElement<Id>[],
   pathRoot: "columns" | "indexes",
 ): readonly AllocatedName<Id>[] {
   const allocator = createNameAllocator({
     reserved: [],
-    comparison: "caseAndAccentInsensitive",
+    comparison: "caseInsensitive",
     separator: "_",
     maxBytes: MAX_NAME_BYTES,
   });

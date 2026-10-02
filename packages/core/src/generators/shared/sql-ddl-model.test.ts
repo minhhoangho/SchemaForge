@@ -211,9 +211,9 @@ describe("buildSqlDdlModel columns", () => {
       ],
       columns: [
         column("col_t_plain", "tbl_t", { name: "ma" }),
-        column("col_t_accent", "tbl_t", { name: "má" }),
+        column("col_t_accent", "tbl_t", { name: "MA" }),
         column("col_c_plain", "tbl_c", { name: "ref" }),
-        column("col_c_accent", "tbl_c", { name: "réf" }),
+        column("col_c_accent", "tbl_c", { name: "REF" }),
       ],
       indexes: [
         makeIndex({
@@ -245,10 +245,10 @@ describe("buildSqlDdlModel columns", () => {
         foreignKey.referencedColumnNames,
       ]),
     }).toStrictEqual({
-      columns: ["ma", "má_2"],
-      primaryKey: ["má_2"],
-      index: [["má_2"]],
-      foreignKey: [[["réf_2"], ["má_2"]]],
+      columns: ["ma", "MA_2"],
+      primaryKey: ["MA_2"],
+      index: [["MA_2"]],
+      foreignKey: [[["REF_2"], ["MA_2"]]],
     });
   });
 

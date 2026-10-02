@@ -22,7 +22,7 @@ CREATE TABLE "người dùng" (
   "ghi chú" varchar(50) NOT NULL DEFAULT 'it''s a\b',
   CONSTRAINT "người dùng_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "người dùng_ma_key" UNIQUE ("ma"),
-  CONSTRAINT "người dùng_má_key_2" UNIQUE ("má")
+  CONSTRAINT "người dùng_má_key" UNIQUE ("má")
 );
 
 CREATE TABLE "order" (

@@ -8,7 +8,7 @@ INSERT INTO `bảng có tên dài đúng sáu mươi ba byte theo utf-8 nhé` (`
   (2, 'ma_duy_nhat_2'),
   (3, 'ma_duy_nhat_3');
 
-INSERT INTO `người dùng` (`id`, `họ tên`, `USER_ID`, `ma`, `má_2`, `ghi chú`) VALUES
+INSERT INTO `người dùng` (`id`, `họ tên`, `USER_ID`, `ma`, `má`, `ghi chú`) VALUES
   ('0a4c75a8-148b-4b7f-9413-34471e88c512', 'ho_ten_1', 994025309, 'ma_1', 'ma_1', 'ghi_chu_1'),
   ('e0b9b7f4-dddc-4e67-9e95-70e00fc18cdf', 'ho_ten_2', -1608992785, 'ma_2', 'ma_2', 'ghi_chu_2'),
   ('288878a1-283f-4f96-b713-a56772cce06a', NULL, 161868220, 'ma_3', 'ma_3', 'ghi_chu_3');

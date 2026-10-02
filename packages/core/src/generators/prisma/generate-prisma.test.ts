@@ -600,22 +600,22 @@ describe("generatePrisma", () => {
     }).toStrictEqual({ hasIndex: true, diagnostics: [] });
   });
 
-  it("renames a mysql column that differs only by an accent and reports identifier-collision-renamed", () => {
+  it("renames a mysql column that differs only in case and reports identifier-collision-renamed", () => {
     const schema = usersSchema([
       column({ id: "col_ma", name: "ma" }),
-      column({ id: "col_ma_accent", name: "má" }),
+      column({ id: "col_ma_upper", name: "MA" }),
     ]);
     const result = generatePrisma(schema, { provider: "mysql" });
 
     expect({
-      hasLine: result.file.content.includes('  ma2 Int @map("má_2")\n'),
+      hasLine: result.file.content.includes('  ma2 Int @map("MA_2")\n'),
       diagnostics: result.diagnostics,
     }).toStrictEqual({
       hasLine: true,
       diagnostics: [
         {
           code: "identifier-collision-renamed",
-          path: ["columns", "col_ma_accent", "name"],
+          path: ["columns", "col_ma_upper", "name"],
         },
       ],
     });

@@ -1,10 +1,9 @@
 import type { ColumnId, TableId } from "../../model/ids.js";
 import type { ReferentialAction, Relation } from "../../model/relation.js";
 import type { Table } from "../../model/table.js";
-import { resolveReferentialAction } from "../shared/dialect-constraints.js";
-import { createDiagnostic } from "../shared/diagnostics.js";
 import { orderColumnPairsByReferencedKey } from "../shared/relation-graph.js";
 import type { Diagnosed } from "../shared/sql-ddl-model-context.js";
+import { resolveForeignKeyActions } from "../shared/sql-ddl-model.js";
 import type { PrismaContext } from "./prisma-context.js";
 import { formatPrismaString } from "./prisma-field-type.js";
 
@@ -17,50 +16,6 @@ const PRISMA_ACTIONS: Readonly<Record<ReferentialAction, string>> = {
   setNull: "SetNull",
   setDefault: "SetDefault",
 };
-
-type Actions = { readonly onDelete: string; readonly onUpdate: string };
-
-function resolveActions(
-  context: PrismaContext,
-  relation: Relation,
-): Diagnosed<Actions> {
-  if (context.sql.cascadeConflicts.has(relation.id)) {
-    return {
-      value: { onDelete: "NoAction", onUpdate: "NoAction" },
-      diagnostics: [
-        createDiagnostic("referential-action-cycle", [
-          "relations",
-          relation.id,
-        ]),
-      ],
-    };
-  }
-  const onDelete = resolveReferentialAction(
-    context.provider,
-    relation.onDelete,
-  );
-  const onUpdate = resolveReferentialAction(
-    context.provider,
-    relation.onUpdate,
-  );
-  const lossyEvents = [
-    ...(onDelete.isLossy ? ["onDelete"] : []),
-    ...(onUpdate.isLossy ? ["onUpdate"] : []),
-  ];
-  return {
-    value: {
-      onDelete: PRISMA_ACTIONS[onDelete.action],
-      onUpdate: PRISMA_ACTIONS[onUpdate.action],
-    },
-    diagnostics: lossyEvents.map((event) =>
-      createDiagnostic("referential-action-not-supported", [
-        "relations",
-        relation.id,
-        event,
-      ]),
-    ),
-  };
-}
 
 export function fieldList(
   context: PrismaContext,
@@ -95,7 +50,8 @@ function forwardField(
     (pair) => schema.columns[pair.fromColumnId]?.isNullable === true,
   );
   const relationName = fields.relationNames.get(relation.id);
-  const actions = resolveActions(context, relation);
+  // context.sql was built for context.provider, so its dialect matches.
+  const actions = resolveForeignKeyActions(context.sql, relation);
   const relationArguments = [
     ...(relationName === undefined ? [] : [formatPrismaString(relationName)]),
     `fields: ${fieldList(
@@ -106,8 +62,8 @@ function forwardField(
       context,
       pairs.map((pair) => pair.toColumnId),
     )}`,
-    `onDelete: ${actions.value.onDelete}`,
-    `onUpdate: ${actions.value.onUpdate}`,
+    `onDelete: ${PRISMA_ACTIONS[actions.value.onDelete]}`,
+    `onUpdate: ${PRISMA_ACTIONS[actions.value.onUpdate]}`,
   ];
   const fieldName = fields.forwardFieldNames.get(relation.id) ?? "";
   const modelName = context.modelNames.get(relation.toTableId) ?? "";

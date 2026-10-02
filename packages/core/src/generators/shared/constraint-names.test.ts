@@ -222,7 +222,8 @@ describe("allocateConstraintNames", () => {
     ).toBe("users_email_key_2");
   });
 
-  it("adds _2 when two generated names differ only by an accent", () => {
+  // MySQL 8.4 compares constraint names accent-sensitively (Task 8 probe).
+  it("keeps both generated names when they differ only by an accent", () => {
     const schema = buildSchema({
       tables: [makeTable({ id: "tbl_t", name: "t" })],
       columns: [
@@ -246,7 +247,7 @@ describe("allocateConstraintNames", () => {
     ).toStrictEqual(
       new Map([
         ["col_ma", "t_ma_key"],
-        ["col_ma_acute", "t_má_key_2"],
+        ["col_ma_acute", "t_má_key"],
       ]),
     );
   });

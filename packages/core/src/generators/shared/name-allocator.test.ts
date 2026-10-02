@@ -52,38 +52,17 @@ describe("createNameAllocator", () => {
     ]).toStrictEqual(["users", "Users"]);
   });
 
-  it("treats names differing only by an accent as taken when case and accent insensitive", () => {
+  it("allows names differing only by an accent when case-insensitive", () => {
     const allocator = createNameAllocator({
       ...CODE_OPTIONS,
-      comparison: "caseAndAccentInsensitive",
-      separator: "_",
+      comparison: "caseInsensitive",
     });
 
-    expect([
-      allocator.allocate("t_ma_key"),
-      allocator.allocate("t_Má_key"),
-    ]).toStrictEqual(["t_ma_key", "t_Má_key_2"]);
+    expect([allocator.allocate("ma"), allocator.allocate("Má")]).toStrictEqual([
+      "ma",
+      "Má",
+    ]);
   });
-
-  it.each([
-    ["đa", "da"],
-    ["Øl", "ol"],
-    ["łza", "lza"],
-    ["ħal", "hal"],
-  ])(
-    "folds đ, ø, ł and ħ when case and accent insensitive (%s, %s)",
-    (first, second) => {
-      const allocator = createNameAllocator({
-        ...CODE_OPTIONS,
-        comparison: "caseAndAccentInsensitive",
-      });
-
-      expect([
-        allocator.allocate(first),
-        allocator.allocate(second),
-      ]).toStrictEqual([first, `${second}2`]);
-    },
-  );
 
   it("never returns a reserved name", () => {
     const allocator = createNameAllocator({
@@ -145,8 +124,7 @@ describe("toComparisonKey", () => {
   it.each<[NameComparison, string, string]>([
     ["exact", "Người Dùng", "Người Dùng"],
     ["caseInsensitive", "Người Dùng", "người dùng"],
-    ["caseAndAccentInsensitive", "Người Dùng", "nguoi dung"],
-    ["caseAndAccentInsensitive", "ĐØŁĦ", "dolh"],
+    ["caseInsensitive", "ĐØŁĦ", "đøłħ"],
   ])(
     "builds comparison keys for each comparison (%s, %s)",
     (comparison, name, key) => {

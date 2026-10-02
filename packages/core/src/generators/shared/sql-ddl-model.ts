@@ -83,7 +83,12 @@ function buildEnum(
 
 type ForeignKeyActions = Pick<SqlForeignKeyModel, "onDelete" | "onUpdate">;
 
-function resolveActions(
+/**
+ * The referential actions written for a relation's foreign key, downgraded to
+ * NO ACTION on SQL Server cascade conflicts; shared by the SQL and Prisma
+ * generators so both apply the same rule.
+ */
+export function resolveForeignKeyActions(
   context: SqlDdlContext,
   relation: Relation,
 ): Diagnosed<ForeignKeyActions> {
@@ -133,7 +138,7 @@ function buildForeignKeys(
       return [];
     }
     const pairs = orderColumnPairsByReferencedKey(schema, relation);
-    const actions = resolveActions(context, relation);
+    const actions = resolveForeignKeyActions(context, relation);
     const foreignKey: SqlForeignKeyModel = {
       name,
       tableName,

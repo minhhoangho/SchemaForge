@@ -1,8 +1,6 @@
 import { toNameKey, utf8ByteLength } from "../../model/name-limits.js";
-import { removeCombiningMarks } from "./identifiers.js";
 
-export type NameComparison =
-  "exact" | "caseInsensitive" | "caseAndAccentInsensitive";
+export type NameComparison = "exact" | "caseInsensitive";
 
 export type NameAllocator = {
   readonly allocate: (preferred: string) => string;
@@ -19,16 +17,6 @@ type NameAllocatorOptions = {
 
 const FIRST_SUFFIX_NUMBER = 2;
 
-// MySQL compares identifiers with utf8mb3_general_ci, which also folds these
-// letters that have no decomposition (spec R12). Identifiers only: enum values
-// and data follow the table collation.
-const STROKE_LETTER_FOLDS: readonly (readonly [string, string])[] = [
-  ["đ", "d"],
-  ["ø", "o"],
-  ["ł", "l"],
-  ["ħ", "h"],
-];
-
 export function toComparisonKey(
   name: string,
   comparison: NameComparison,
@@ -38,11 +26,6 @@ export function toComparisonKey(
       return name;
     case "caseInsensitive":
       return toNameKey(name);
-    case "caseAndAccentInsensitive":
-      return STROKE_LETTER_FOLDS.reduce(
-        (key, [letter, folded]) => key.replaceAll(letter, folded),
-        toNameKey(removeCombiningMarks(name)),
-      );
     default: {
       const unreachable: never = comparison;
       return unreachable;

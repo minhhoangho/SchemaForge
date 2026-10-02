@@ -392,7 +392,7 @@ describe("serializeSeedDataset as sql", () => {
       tables: [makeTable({ id: "tbl_t" })],
       columns: [
         column("t", "plain", { name: "ma" }),
-        column("t", "accent", { name: "má" }),
+        column("t", "accent", { name: "MA" }),
       ],
     });
     const dataset: SeedDataset = {
@@ -402,7 +402,7 @@ describe("serializeSeedDataset as sql", () => {
     };
 
     expect(content(schema, dataset, "mysql")).toBe(
-      ["INSERT INTO `t` (`ma`, `má_2`) VALUES", "  (1, 2);", ""].join("\n"),
+      ["INSERT INTO `t` (`ma`, `MA_2`) VALUES", "  (1, 2);", ""].join("\n"),
     );
   });
 

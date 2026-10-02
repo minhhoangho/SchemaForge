@@ -57,6 +57,11 @@ function truncateFractionalSeconds(dialect: SqlDialect, value: string): string {
   );
 }
 
+// MySQL 8.4 rejects a UTC offset written as "Z" or "-00:00" (error 1067) but
+// accepts "+00:00" (Task 8 probe).
+const MYSQL_REJECTED_UTC_OFFSET_PATTERN = /(?:Z|-00:00)$/;
+const MYSQL_UTC_OFFSET = "+00:00";
+
 const BOOLEAN_LITERALS: Readonly<
   Record<SqlDialect, { readonly true: string; readonly false: string }>
 > = {
@@ -87,9 +92,18 @@ export function formatSqlLiteral(
       return value === "true"
         ? BOOLEAN_LITERALS[dialect].true
         : BOOLEAN_LITERALS[dialect].false;
+    case "timestamptz":
+      return sqlStringLiteral(
+        dialect,
+        truncateFractionalSeconds(
+          dialect,
+          dialect === "mysql"
+            ? value.replace(MYSQL_REJECTED_UTC_OFFSET_PATTERN, MYSQL_UTC_OFFSET)
+            : value,
+        ),
+      );
     case "time":
     case "timestamp":
-    case "timestamptz":
       return sqlStringLiteral(
         dialect,
         truncateFractionalSeconds(dialect, value),

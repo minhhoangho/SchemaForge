@@ -159,13 +159,14 @@ export function allocateConstraintNames(
   schema: SchemaDocument,
   orderColumnPairs: (relation: Relation) => readonly ColumnPair[],
 ): SchemaConstraintNames {
-  // Accent-insensitive for every dialect: MySQL compares index names that way.
+  // Case-insensitive for every dialect: MySQL and SQL Server's default
+  // collation compare these names that way, accent-sensitively.
   const allocator = createNameAllocator({
     reserved: [
       ...sortTables(schema).map((table) => table.name),
       ...sortIndexes(schema).map((index) => index.name),
     ],
-    comparison: "caseAndAccentInsensitive",
+    comparison: "caseInsensitive",
     separator: "_",
     maxBytes: MAX_NAME_BYTES,
   });

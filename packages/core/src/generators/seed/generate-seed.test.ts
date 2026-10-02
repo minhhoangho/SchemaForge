@@ -70,6 +70,18 @@ describe("generateSeed", () => {
     );
   });
 
+  // MySQL 8.4 rejects a timestamp literal ending in "Z" (Task 8 probe).
+  it("writes MySQL timestamptz values with +00:00 instead of a trailing Z", () => {
+    const { content } = generateSeed(createSampleSchema(), {
+      ...SNAPSHOT_OPTIONS,
+      format: "mysql",
+    }).file;
+
+    expect([content.includes("Z'"), content.includes("+00:00'")]).toStrictEqual(
+      [false, true],
+    );
+  });
+
   it("throws RangeError for an unknown format", () => {
     expect(() =>
       generateSeed(createSampleSchema(), {

@@ -784,7 +784,7 @@ Chạy sau khi Task 1–10 đã merge, trước Task 11. Dùng Chrome, `pnpm dev
 
 ## Kết quả kiểm tra tay
 
-Ngày 2026-10-02, commit đã kiểm tra: `c8fbcfa`. Người dùng chọn bỏ qua danh sách kiểm tra tay, gồm mục 1–10 ở [Kiểm tra tay cho người dùng](#kiểm-tra-tay-cho-người-dùng) và mục 11–16 bổ sung ở [bàn giao, mục 2.a](2026-10-02-visual-refresh-handoff.md#2a-kiểm-tra-tay--cần-người-dùng), nên mọi mục ghi "Chưa chạy (người dùng bỏ qua)". Các tiêu chí "(kiểm tra tay)" của spec vì thế chưa được xác nhận trên trình duyệt thật.
+Ngày 2026-10-02, commit đã kiểm tra: `c8fbcfa`. Người dùng chọn bỏ qua danh sách kiểm tra tay, gồm mục 1–10 ở [Kiểm tra tay cho người dùng](#kiểm-tra-tay-cho-người-dùng) và mục 11–16 bổ sung ở [bàn giao, mục 2.a](../executions/logs/2026-10-02-visual-refresh-handoff.md#2a-kiểm-tra-tay--cần-người-dùng), nên mọi mục ghi "Chưa chạy (người dùng bỏ qua)". Các tiêu chí "(kiểm tra tay)" của spec vì thế chưa được xác nhận trên trình duyệt thật.
 
 | # | Hạng mục | Kết quả | Trình duyệt | Ghi chú |
 |---|---|---|---|---|

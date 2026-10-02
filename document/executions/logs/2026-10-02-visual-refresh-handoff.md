@@ -48,7 +48,7 @@ Task 1–10 đã xong và đã push. Review: `project-reviewer` "accept with fol
 
 ### 2.a. Kiểm tra tay — **CẦN NGƯỜI DÙNG**
 
-Mười mục ở plan, mục [Kiểm tra tay cho người dùng](2026-10-01-visual-refresh-plan.md#kiểm-tra-tay-cho-người-dùng). Chạy bằng Chrome, `pnpm dev` (frontend cổng 3000, backend cổng 3001), mỗi mục kiểm ở light và dark, `vi` và `en` khi có chữ.
+Mười mục ở plan, mục [Kiểm tra tay cho người dùng](../../plans/2026-10-01-visual-refresh-plan.md#kiểm-tra-tay-cho-người-dùng). Chạy bằng Chrome, `pnpm dev` (frontend cổng 3000, backend cổng 3001), mỗi mục kiểm ở light và dark, `vi` và `en` khi có chữ.
 
 Thêm các mục sau, phát sinh từ review và các bản sửa sau plan:
 

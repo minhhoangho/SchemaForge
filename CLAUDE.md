@@ -45,6 +45,8 @@ Work is split into the sub-projects in `document/roadmap.md`. Each one goes thro
 2. Plan: `document/plans/YYYY-MM-DD-<topic>-plan.md`
 3. Implementation
 
+After each task completes, the agent writes an execution log in `document/executions/logs/YYYY-MM-DD-<topic>-task-<N>.md` (see `.claude/rules/execution-logs.md` for the format). Plans are to-do lists only; logs capture what was actually done, decisions made, and any remaining work.
+
 When a technical decision or a sub-project's status changes, update `document/architecture.md` or `document/roadmap.md` in the same change.
 
 Commits are pushed to the remote automatically once the checks pass; see `.claude/rules/git.md` for the details.

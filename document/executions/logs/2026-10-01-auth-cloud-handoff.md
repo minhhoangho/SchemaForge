@@ -50,7 +50,7 @@ Số liệu kiểm tra cuối cùng, **orchestrator tự chạy**, không lấy 
 
 ### 2.a. Task 37 — checklist kiểm tra tay — **CẦN NGƯỜI DÙNG**
 
-12 mục của bảng ở thân Task 37 (plan, mục [Task 37](2026-09-17-auth-cloud-plan.md)) chạy trên **trình duyệt thật** với **bản build**. Người dùng thao tác; orchestrator chuẩn bị môi trường, đọc từng bước và ghi kết quả.
+12 mục của bảng ở thân Task 37 (plan, mục [Task 37](../../plans/2026-09-17-auth-cloud-plan.md#task-37-checklist-kiểm-tra-tay-spec-mục-11)) chạy trên **trình duyệt thật** với **bản build**. Người dùng thao tác; orchestrator chuẩn bị môi trường, đọc từng bước và ghi kết quả.
 
 **Điều kiện tiên quyết** (làm đủ trước khi mời người dùng vào, để session mới không phải mò):
 

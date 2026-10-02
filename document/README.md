@@ -10,11 +10,14 @@ Tài liệu thiết kế của dự án, viết bằng tiếng Việt. Code và 
 | [architecture.md](architecture.md) | Các thành phần, luồng dữ liệu, bảo mật API key, quyết định kỹ thuật |
 | [roadmap.md](roadmap.md) | Các phần của dự án, phụ thuộc và thứ tự thực hiện |
 | [specs/](specs/) | Spec thiết kế của từng phần |
+| [plans/](plans/) | Kế hoạch thực hiện của từng phần |
+| [executions/](executions/) | Nhật ký thực thi của các task |
 
 ## Quy ước
 
 - Mỗi phần trong roadmap cần một spec trước khi làm: `specs/YYYY-MM-DD-<topic>-design.md`.
-- Spec được duyệt thì viết plan: `plans/YYYY-MM-DD-<topic>-plan.md`. Thư mục `plans/` được tạo khi có plan đầu tiên.
+- Spec được duyệt thì viết plan: `plans/YYYY-MM-DD-<topic>-plan.md`. Plans là danh sách các task (to-do list) và không chứa trạng thái hay tiến độ.
+- Khi mỗi task hoàn thành, agent viết execution log: `executions/logs/YYYY-MM-DD-<topic>-task-<N>.md`. Logs chứa nhật ký thực thi (Đã làm, File thay đổi, Kiểm tra, Quyết định, Việc còn lại, Ghi chú).
 - `<topic>` viết tiếng Anh, dạng kebab-case, ví dụ `core-schema-model`.
 - Khi chốt hoặc thay đổi một quyết định kỹ thuật, cập nhật `architecture.md` kèm lý do.
 - Khi một phần đổi trạng thái, cập nhật bảng trong `roadmap.md`.

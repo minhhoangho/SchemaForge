@@ -76,7 +76,7 @@ export function EnumItem({
   );
 
   return (
-    <fieldset className="grid gap-2 rounded-md border border-border p-2">
+    <fieldset className="grid gap-2 rounded-lg border border-border bg-card p-3">
       {/* An enum being renamed can have an empty name for a moment; the
           group still needs a name. */}
       <legend className="sr-only">

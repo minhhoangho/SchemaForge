@@ -205,7 +205,7 @@ export function ColumnItem(props: ColumnItemProps): JSX.Element | null {
 
   return (
     <li>
-      <fieldset className="grid gap-2 rounded-md border border-border p-2">
+      <fieldset className="grid gap-2 rounded-lg border border-border bg-card p-3">
         <legend className="sr-only">{displayName(column.name)}</legend>
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">

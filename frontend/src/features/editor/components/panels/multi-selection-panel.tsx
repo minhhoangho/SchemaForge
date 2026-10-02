@@ -39,7 +39,7 @@ export function MultiSelectionPanel({
   });
 
   return (
-    <section aria-labelledby={headingId} className="grid gap-4 p-4">
+    <section aria-labelledby={headingId} className="grid gap-5 p-4">
       <h2 id={headingId} className="text-base font-semibold">
         {t("relationPanel.multiSelection.label")}
       </h2>

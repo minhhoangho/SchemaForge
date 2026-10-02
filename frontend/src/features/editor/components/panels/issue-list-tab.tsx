@@ -1,6 +1,7 @@
 "use client";
 
 import type { Issue, SchemaDocument } from "@schemaforge/core";
+import { TriangleAlertIcon } from "lucide-react";
 import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -68,15 +69,21 @@ function IssueRow({ issue, schema, onSelect }: IssueRowProps): JSX.Element {
     <li>
       <button
         type="button"
-        className="w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-1 focus-visible:outline-ring"
+        className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-1 focus-visible:outline-ring"
         onClick={() => {
           onSelect(issue);
         }}
       >
-        {/* The space keeps the message its own words in the accessible name
-            (WCAG 2.5.3). */}
-        <span className="sr-only">{t("editor:leftPanel.issues.goTo")}</span>{" "}
-        {t(`issues:${issue.code}`, toIssueMessageValues(values))}
+        <TriangleAlertIcon
+          aria-hidden
+          className="mt-0.5 size-3.5 shrink-0 text-destructive"
+        />
+        <span className="min-w-0">
+          {/* The space keeps the message its own words in the accessible name
+              (WCAG 2.5.3). */}
+          <span className="sr-only">{t("editor:leftPanel.issues.goTo")}</span>{" "}
+          {t(`issues:${issue.code}`, toIssueMessageValues(values))}
+        </span>
       </button>
     </li>
   );

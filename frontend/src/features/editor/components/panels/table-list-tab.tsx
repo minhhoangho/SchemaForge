@@ -11,6 +11,7 @@ import { cn } from "@/lib/class-names";
 
 import { useRevealTable } from "../../hooks/use-reveal-table";
 import { getIssueIndex } from "../../lib/issue-index";
+import { getTableAccentColor } from "../../lib/table-accent";
 import { useEditorStore } from "../../state/use-editor-store";
 
 // A hovered or selected row sits on `bg-accent`, where the muted and
@@ -45,10 +46,18 @@ function TableRow({
           onReveal(table);
         }}
       >
+        <span
+          aria-hidden
+          className="size-2 shrink-0 rounded-[2px]"
+          style={{ backgroundColor: getTableAccentColor(table.id) }}
+        />
         {/* The spaces keep each part its own words in the accessible name. */}
         <span className="min-w-0 flex-1 truncate">{table.name}</span>{" "}
         <span
-          className={cn(ON_ACCENT_TEXT_CLASS_NAME, "text-muted-foreground")}
+          className={cn(
+            ON_ACCENT_TEXT_CLASS_NAME,
+            "text-muted-foreground tabular-nums",
+          )}
         >
           {t("leftPanel.tables.columnCount", {
             count: table.columnIds.length,

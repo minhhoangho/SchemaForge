@@ -178,7 +178,7 @@ export function RelationPanel({
     <section
       aria-labelledby={headingId}
       aria-describedby={hasOtherIssues ? otherIssuesId : undefined}
-      className="grid gap-4 p-4"
+      className="grid gap-5 p-4"
     >
       <h2 id={headingId} className="text-base font-semibold">
         {t("relationPanel.label")}

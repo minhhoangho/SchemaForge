@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 
+import { getTableAccentColor } from "../../../lib/table-accent";
 import { useEditorStore } from "../../../state/use-editor-store";
 import { CommittedTextArea } from "../../committed-text-area";
 import { CommittedTextField } from "../../committed-text-field";
@@ -52,7 +53,12 @@ export function TablePanel({
 
   return (
     <div className="grid gap-5">
-      <h2 className="text-sm font-semibold">{t("tablePanel.label")}</h2>
+      <h2
+        className="border-l-4 pl-2 text-sm font-semibold"
+        style={{ borderLeftColor: getTableAccentColor(table.id) }}
+      >
+        {t("tablePanel.label")}
+      </h2>
       <CommittedTextField
         id={`${baseId}-name`}
         label={t("tablePanel.nameLabel")}

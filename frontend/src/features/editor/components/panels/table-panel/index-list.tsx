@@ -101,7 +101,10 @@ export function IndexList({ tableId }: IndexListProps): JSX.Element | null {
 
   return (
     <section className="grid gap-3" aria-labelledby={headingId}>
-      <h3 id={headingId} className="text-sm font-semibold">
+      <h3
+        id={headingId}
+        className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+      >
         {t("tablePanel.indexes.title")}
       </h3>
       {indexes.length > 0 && (

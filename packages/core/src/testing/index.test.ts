@@ -6,7 +6,10 @@ import * as testing from "./index.js";
 const DOCUMENTED_TESTING_HELPERS = [
   "buildSchema",
   "createCounterIdGenerator",
+  "createLargeSchema",
+  "createNamingEdgeSchema",
   "createSampleSchema",
+  "createTargetLimitSchema",
   "makeColumn",
   "makeEnum",
   "makeIndex",

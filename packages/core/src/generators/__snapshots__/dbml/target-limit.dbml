@@ -1,0 +1,301 @@
+Project "Target limits" {
+}
+
+Enum "flag_status" {
+  "active"
+  "inactive"
+}
+
+Table "all_types" {
+  "id" integer [pk, not null]
+  "smallint_value" smallint [not null, default: -32768]
+  "integer_value" integer [not null, default: 42]
+  "bigint_value" bigint [not null, default: 9223372036854775807]
+  "decimal_value" decimal(12,2) [not null, default: 1234567890.12]
+  "real_value" real [not null, default: 1.5e10]
+  "double_value" double [not null, default: -2.25]
+  "boolean_value" boolean [not null, default: true]
+  "char_value" char(3) [not null, default: 'abc']
+  "varchar_value" varchar(20) [not null, default: 'it\'s']
+  "text_value" text [not null, default: 'a\\b']
+  "uuid_value" uuid [not null, default: '123e4567-e89b-12d3-a456-426614174000']
+  "date_value" date [not null, default: '2026-01-02']
+  "time_value" time [not null, default: '12:34:56.789']
+  "timestamp_value" timestamp [not null, default: '2026-01-02T03:04:05']
+  "timestamptz_value" timestamptz [not null, default: '2026-01-02T03:04:05.123+07:00']
+  "timestamp_now" timestamp [not null, default: `now()`]
+  "timestamptz_now" timestamptz [not null, default: `now()`]
+  "json_value" json [not null, default: '{"note":"it\'s"}']
+  "binary_value" binary
+  "enum_value" "flag_status" [not null, default: 'active']
+}
+
+Table "auto_integer" {
+  "id" integer [pk, increment, not null]
+}
+
+Table "auto_smallint" {
+  "id" smallint [pk, increment, not null]
+}
+
+Table "auto_trailing" {
+  "a" integer [not null]
+  "id" bigint [increment, not null]
+  indexes {
+    ("a", "id") [pk]
+  }
+}
+
+Table "auto_wide_key" {
+  "id" bigint [increment, not null]
+  "code_a" varchar(700) [not null]
+  "code_b" varchar(700) [not null]
+  indexes {
+    ("id", "code_a", "code_b") [pk]
+  }
+}
+
+Table "binary_keys" {
+  "id" integer [pk, not null]
+  "hash" binary [not null]
+  indexes {
+    ("hash") [unique, name: 'binary_keys_hash_ux']
+  }
+}
+
+Table "char_unique" {
+  "id" integer [pk, not null]
+  "code" char(300) [not null, unique]
+}
+
+Table "custom_required" {
+  "id" integer [pk, not null]
+  "payload" "tsvector" [not null]
+}
+
+Table "custom_values" {
+  "id" integer [pk, not null]
+  "shape" "geometry(Point, 4326)"
+  "address" "inet" [not null, default: '127.0.0.1']
+}
+
+Table "cycle_a" {
+  "id" integer [pk, not null]
+  "b_id" integer
+}
+
+Table "cycle_b" {
+  "id" integer [pk, not null]
+  "a_id" integer
+}
+
+Table "default_children" {
+  "id" integer [pk, not null]
+  "parent_id" integer [not null, default: 0]
+}
+
+Table "default_parents" {
+  "id" integer [pk, not null]
+}
+
+Table "five_part_keys" {
+  "id" integer [pk, not null]
+  "q1" varchar(700) [not null]
+  "q2" varchar(700) [not null]
+  "q3" varchar(700) [not null]
+  "q4" varchar(700) [not null]
+  "q5" varchar(700) [not null]
+  indexes {
+    ("q1", "q2", "q3", "q4", "q5") [unique, name: 'five_part_keys_ux']
+  }
+}
+
+Table "five_part_refs" {
+  "id" integer [pk, not null]
+  "q1" varchar(700) [not null]
+  "q2" varchar(700) [not null]
+  "q3" varchar(700) [not null]
+  "q4" varchar(700) [not null]
+  "q5" varchar(700) [not null]
+}
+
+Table "fixed_keys" {
+  "code" char(500) [pk, not null]
+}
+
+Table "fixed_refs" {
+  "id" integer [pk, not null]
+  "fixed_code" char(500) [not null]
+}
+
+Table "fixed_unique" {
+  "id" integer [pk, not null]
+  "code" char(900) [not null, unique]
+}
+
+Table "flags" {
+  "id" integer [pk, not null]
+  "status" "flag_status"
+  "is_primary" boolean [not null, unique]
+}
+
+Table "four_part_keys" {
+  "id" integer [pk, not null]
+  "p1" varchar(192) [not null]
+  "p2" varchar(192) [not null]
+  "p3" varchar(192) [not null]
+  "p4" varchar(192) [not null]
+  indexes {
+    ("p1", "p2", "p3", "p4") [unique, name: 'four_part_keys_ux']
+  }
+}
+
+Table "fractional_times" {
+  "id" integer [pk, not null]
+  "starts_at" time [not null, default: '12:34:56.123456789']
+  "created_at" timestamp [not null, default: '2026-01-02T03:04:05.12345678']
+}
+
+Table "json_keys" {
+  "doc" json [pk, not null]
+}
+
+Table "json_refs" {
+  "id" integer [pk, not null]
+  "doc" json [not null]
+}
+
+Table "json_unique" {
+  "id" integer [pk, not null]
+  "doc" json [not null, unique]
+}
+
+Table "leaf" {
+  "id" integer [pk, not null]
+  "left_id" integer [not null]
+  "right_id" integer [not null]
+}
+
+Table "left" {
+  "id" integer [pk, not null]
+  "root_id" integer [not null]
+}
+
+Table "long_comments" {
+  "id" integer [pk, not null]
+  "note" text [not null, note: 'ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc']
+  "surrogate_note" text [not null, note: 'sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss😀']
+  Note: 'ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt'
+}
+
+Table "long_unique" {
+  "id" integer [pk, not null]
+  "code" varchar(1000) [not null, unique]
+}
+
+Table "no_key_rows" {
+  "note" text [not null]
+  "value" integer [not null]
+}
+
+Table "nullable_unique" {
+  "id" integer [pk, not null]
+  "code" varchar(20) [unique]
+  "alt_code" varchar(20)
+  indexes {
+    ("alt_code") [unique, name: 'nullable_unique_alt_code_ux']
+  }
+}
+
+Table "nullable_unique_refs" {
+  "id" integer [pk, not null]
+  "code" varchar(20)
+}
+
+Table "oversized_types" {
+  "id" integer [pk, not null]
+  "pg_varchar" varchar(10485761) [not null]
+  "mysql_char" char(256) [not null]
+  "mysql_varchar" varchar(16384) [not null]
+  "sqlserver_char" char(4001) [not null]
+  "sqlserver_varchar" varchar(4001) [not null]
+  "pg_decimal" decimal(1001,2) [not null]
+  "mysql_decimal" decimal(40,31) [not null]
+}
+
+Table "oversized_unique" {
+  "id" integer [pk, not null]
+  "code" varchar(20000) [not null, unique]
+}
+
+Table "required_a" {
+  "id" integer [pk, not null]
+  "b_id" integer [not null]
+}
+
+Table "required_b" {
+  "id" integer [pk, not null]
+  "a_id" integer [not null]
+}
+
+Table "required_child" {
+  "id" integer [pk, not null]
+  "a_id" integer [not null]
+}
+
+Table "right" {
+  "id" integer [pk, not null]
+  "root_id" integer [not null]
+}
+
+Table "root" {
+  "id" integer [pk, not null]
+  "leaf_id" integer
+}
+
+Table "text_keys" {
+  "code" text [pk, not null]
+  "label" text [not null, unique]
+  "tag" text [not null]
+  indexes {
+    ("tag") [name: 'text_keys_tag_ix']
+  }
+}
+
+Table "text_refs" {
+  "id" integer [pk, not null]
+  "text_key_code" text [not null]
+}
+
+Table "tree_nodes" {
+  "id" integer [pk, not null]
+  "parent_id" integer
+}
+
+Table "unique_only" {
+  "code" varchar(20) [not null, unique]
+  "label" text [not null]
+}
+
+Table "wide_rows" {
+  "id" integer [pk, not null]
+  "v" varchar(16383) [not null]
+}
+
+Ref: "cycle_a"."b_id" > "cycle_b"."id" [delete: cascade, update: no action]
+Ref: "cycle_b"."a_id" > "cycle_a"."id" [delete: cascade, update: no action]
+Ref: "default_children"."parent_id" > "default_parents"."id" [delete: set default, update: no action]
+Ref: "five_part_refs".("q1", "q2", "q3", "q4", "q5") > "five_part_keys".("q1", "q2", "q3", "q4", "q5") [delete: no action, update: no action]
+Ref: "fixed_refs"."fixed_code" > "fixed_keys"."code" [delete: no action, update: no action]
+Ref: "json_refs"."doc" > "json_unique"."doc" [delete: no action, update: no action]
+Ref: "leaf"."left_id" > "left"."id" [delete: cascade, update: no action]
+Ref: "leaf"."right_id" > "right"."id" [delete: cascade, update: no action]
+Ref: "left"."root_id" > "root"."id" [delete: cascade, update: no action]
+Ref: "nullable_unique_refs"."code" > "nullable_unique"."code" [delete: no action, update: no action]
+Ref: "required_a"."b_id" > "required_b"."id" [delete: no action, update: no action]
+Ref: "required_b"."a_id" > "required_a"."id" [delete: no action, update: no action]
+Ref: "required_child"."a_id" > "required_a"."id" [delete: no action, update: no action]
+Ref: "right"."root_id" > "root"."id" [delete: cascade, update: no action]
+Ref: "root"."leaf_id" > "leaf"."id" [delete: restrict, update: no action]
+Ref: "text_refs"."text_key_code" > "text_keys"."code" [delete: no action, update: no action]
+Ref: "tree_nodes"."parent_id" > "tree_nodes"."id" [delete: set null, update: no action]

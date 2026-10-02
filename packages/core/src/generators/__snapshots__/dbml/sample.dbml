@@ -1,0 +1,80 @@
+Project "Sample" {
+}
+
+Enum "order_status" {
+  "pending"
+  "paid"
+  "shipped"
+}
+
+Table "order_items" {
+  "tenant_id" uuid [not null]
+  "order_number" integer [not null]
+  "line_number" integer [not null]
+  "quantity" integer [not null, default: 1]
+  indexes {
+    ("tenant_id", "order_number", "line_number") [pk]
+  }
+}
+
+Table "orders" {
+  "tenant_id" uuid [not null]
+  "order_number" integer [not null]
+  "status" "order_status" [not null, default: 'pending']
+  "total" decimal(12,2) [not null, default: 0.00]
+  "user_id" bigint [not null]
+  indexes {
+    ("tenant_id", "order_number") [pk]
+  }
+}
+
+Table "tags" {
+  "id" uuid [pk, not null]
+}
+
+Table "tenants" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+}
+
+Table "user_profiles" {
+  "user_id" bigint [pk, not null]
+  "bio" text
+}
+
+Table "user_tags" {
+  "users_id" bigint [not null]
+  "tags_id" uuid [not null]
+  "assigned_at" timestamptz [not null, default: `now()`]
+  indexes {
+    ("users_id", "tags_id") [pk]
+  }
+}
+
+Table "users" {
+  "id" bigint [pk, increment, not null]
+  "tenant_id" uuid [not null]
+  "email" varchar(255) [not null]
+  "manager_id" bigint
+  "created_at" timestamptz [not null, default: `now()`]
+  "location" "geometry(Point, 4326)"
+  indexes {
+    ("tenant_id", "email") [unique, name: 'users_tenant_id_email_key']
+  }
+}
+
+Ref: "order_items".("tenant_id", "order_number") > "orders".("tenant_id", "order_number") [delete: cascade, update: no action]
+Ref: "orders"."user_id" > "users"."id" [delete: no action, update: no action]
+Ref: "user_profiles"."user_id" - "users"."id" [delete: cascade, update: no action]
+Ref: "user_tags"."users_id" > "users"."id" [delete: cascade, update: no action]
+Ref: "user_tags"."tags_id" > "tags"."id" [delete: cascade, update: no action]
+Ref: "users"."tenant_id" > "tenants"."id" [delete: cascade, update: no action]
+Ref: "users"."manager_id" > "users"."id" [delete: set null, update: no action]
+
+TableGroup "Sales" {
+  "order_items"
+  "orders"
+}
+
+Note "note 1" {
+  'Orders and their items belong to the Sales subject area.'
+}

@@ -36,7 +36,7 @@ function CommandInput({
 }: React.ComponentProps<typeof CommandPrimitive.Input>): JSX.Element {
   return (
     <div data-slot="command-input-wrapper" className="p-1 pb-0">
-      <div className="flex h-8 w-full min-w-0 items-center gap-2 rounded-lg border border-input bg-input/30 px-2 transition-colors outline-none has-[[data-slot=command-input]:focus-visible]:border-ring has-[[data-slot=command-input]:focus-visible]:ring-3 has-[[data-slot=command-input]:focus-visible]:ring-ring">
+      <div className="flex h-8 w-full min-w-0 items-center gap-2 rounded-md border border-input bg-card px-2 shadow-sm transition-colors outline-none has-[[data-slot=command-input]:focus-visible]:border-ring has-[[data-slot=command-input]:focus-visible]:ring-3 has-[[data-slot=command-input]:focus-visible]:ring-ring dark:bg-input/30">
         <SearchIcon className="size-4 shrink-0 opacity-50" />
         <CommandPrimitive.Input
           data-slot="command-input"
@@ -118,7 +118,7 @@ function CommandItem({
     <CommandPrimitive.Item
       data-slot="command-item"
       className={cn(
-        "group/command-item relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-lg! data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-muted data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-selected:*:[svg]:text-foreground",
+        "group/command-item relative flex min-h-8 cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-lg! data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-accent data-selected:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-selected:*:[svg]:text-accent-foreground",
         className,
       )}
       {...props}

@@ -196,6 +196,37 @@ describe("validateSeedDataset", () => {
     );
   });
 
+  it("reports seed-identity-partial on each row that omits an auto-increment column another row sets", () => {
+    const rows = [
+      child(),
+      child({ col_children_id: 2, col_children_counter: 5 }),
+      child({ col_children_id: 3 }),
+    ];
+    expect(validateSeedDataset(SCHEMA, withChildren(rows))).toStrictEqual([
+      {
+        code: "seed-identity-partial",
+        path: ["tables", 1, "rows", 0, "col_children_counter"],
+      },
+      {
+        code: "seed-identity-partial",
+        path: ["tables", 1, "rows", 2, "col_children_counter"],
+      },
+    ]);
+  });
+
+  it("accepts an auto-increment column that every row sets", () => {
+    const rows = [
+      child({ col_children_counter: 1 }),
+      child({ col_children_id: 2, col_children_counter: 2 }),
+    ];
+    expect(validateSeedDataset(SCHEMA, withChildren(rows))).toStrictEqual([]);
+  });
+
+  it("accepts an auto-increment column that every row omits", () => {
+    const rows = [child(), child({ col_children_id: 2 })];
+    expect(validateSeedDataset(SCHEMA, withChildren(rows))).toStrictEqual([]);
+  });
+
   it("reports seed-unique-violation on the later row", () => {
     const rows = [
       child({ col_children_code: "a" }),

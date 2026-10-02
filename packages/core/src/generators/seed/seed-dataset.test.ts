@@ -11,6 +11,7 @@ import {
 const MAX_SEED = 0xffffffff;
 // Root 0, tables 1, table 2, rows 3, row 4: a column value container is at 5.
 const COLUMN_VALUE_DEPTH = 5;
+const WIDE_ARRAY_LENGTH = 200_000;
 
 function datasetWithValue(value: unknown): unknown {
   return { tables: [{ tableId: "tbl_a", rows: [{ col_a: value }] }] };
@@ -132,6 +133,16 @@ describe("parseSeedDataset", () => {
       0,
       "col_a",
     ]);
+  });
+
+  // 150 000 elements already overflowed the call stack when spread into push.
+  it("returns invalid-shape instead of throwing for a very wide array", () => {
+    const [error] = unwrapError(
+      parseSeedDataset({
+        tables: new Array<number>(WIDE_ARRAY_LENGTH).fill(0),
+      }),
+    );
+    expect(error).toStrictEqual({ code: "invalid-shape", path: ["tables", 0] });
   });
 
   it("reports the first container past the depth limit", () => {

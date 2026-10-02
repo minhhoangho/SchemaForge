@@ -26,6 +26,7 @@ export const SEED_ISSUE_CODES = [
   "seed-unique-violation",
   "seed-foreign-key-missing",
   "seed-order-invalid",
+  "seed-identity-partial",
 ] as const;
 
 export type SeedIssueCode = (typeof SEED_ISSUE_CODES)[number];
@@ -96,7 +97,8 @@ function listChildren(value: object): readonly [string | number, unknown][] {
 
 // Explicit stack instead of recursion, so input nested far past the limit
 // cannot overflow the call stack. Children are pushed in reverse so the first
-// container past the limit in reading order is reported.
+// container past the limit in reading order is reported, one at a time: a
+// spread `push` passes each child as an argument and overflows on wide input.
 function findTooDeepPath(input: unknown): DocumentPath | null {
   const stack: PendingNode[] = [{ value: input, path: [], depth: 0 }];
   for (let node = stack.pop(); node !== undefined; node = stack.pop()) {
@@ -107,12 +109,9 @@ function findTooDeepPath(input: unknown): DocumentPath | null {
       return node.path;
     }
     const { path, depth } = node;
-    const children = listChildren(node.value).map(([key, child]) => ({
-      value: child,
-      path: [...path, key],
-      depth: depth + 1,
-    }));
-    stack.push(...children.toReversed());
+    for (const [key, child] of listChildren(node.value).toReversed()) {
+      stack.push({ value: child, path: [...path, key], depth: depth + 1 });
+    }
   }
   return null;
 }

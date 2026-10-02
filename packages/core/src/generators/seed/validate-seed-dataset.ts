@@ -138,6 +138,36 @@ function checkUniqueKeys(
   });
 }
 
+// The INSERT lists a column when any row sets it, so a row that omits a set
+// auto-increment column gets DEFAULT: SQL Server rejects it under
+// IDENTITY_INSERT, and PostgreSQL's sequence hands out values before setval
+// that collide with the explicit ones.
+function checkIdentityColumns(
+  schema: SchemaDocument,
+  table: Table,
+  rows: readonly SeedRow[],
+  tablePath: DocumentPath,
+): readonly SeedIssue[] {
+  return table.columnIds
+    .filter(
+      (columnId) =>
+        schema.columns[columnId]?.isAutoIncrement === true &&
+        rows.some((row) => row[columnId] !== undefined),
+    )
+    .flatMap((columnId) =>
+      rows.flatMap((row, rowIndex) =>
+        row[columnId] === undefined
+          ? [
+              {
+                code: "seed-identity-partial" as const,
+                path: [...tablePath, "rows", rowIndex, columnId],
+              },
+            ]
+          : [],
+      ),
+    );
+}
+
 // First row index for each complete key, so a lookup is one map read.
 function indexRowsByKey(
   rows: readonly SeedRow[],
@@ -240,6 +270,7 @@ function checkTableEntry(
         rowIndex,
       ]),
     ),
+    ...checkIdentityColumns(context.schema, table, entry.rows, tablePath),
     ...checkUniqueKeys(context.schema, table, entry.rows, tablePath),
     ...sortRelations(context.schema)
       .filter((relation) => relation.fromTableId === table.id)
@@ -258,7 +289,8 @@ function dedupeIssues(issues: readonly SeedIssue[]): readonly SeedIssue[] {
 
 /**
  * Checks any well-typed dataset against the schema (spec CG-08): types,
- * nullability, unique keys, foreign keys and load order. Never throws.
+ * nullability, all-or-none auto-increment values, unique keys, foreign keys
+ * and load order. Never throws.
  */
 export function validateSeedDataset(
   schema: SchemaDocument,

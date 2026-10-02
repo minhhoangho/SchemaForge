@@ -105,6 +105,10 @@ export function formatSqlLiteral(
     case "json":
     case "enum":
       return sqlStringLiteral(dialect, value);
+    default: {
+      const unreachable: never = type;
+      return unreachable;
+    }
   }
 }
 
@@ -144,6 +148,10 @@ function currentTimestampFunction(
       return typeKind === "timestamptz"
         ? "sysdatetimeoffset()"
         : "sysdatetime()";
+    default: {
+      const unreachable: never = dialect;
+      return unreachable;
+    }
   }
 }
 
@@ -193,5 +201,9 @@ export function formatSqlDefault(input: FormatSqlDefaultInput): SqlDefault {
       };
     case "literal":
       return formatLiteralDefault(input, defaultValue.value);
+    default: {
+      const unreachable: never = defaultValue;
+      return unreachable;
+    }
   }
 }

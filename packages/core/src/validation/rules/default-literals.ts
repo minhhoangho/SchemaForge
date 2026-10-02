@@ -257,5 +257,9 @@ export function findDefaultValueProblem(
       return isValidDefaultLiteral(type, defaultValue.value, enums)
         ? null
         : "invalid";
+    default: {
+      const unreachable: never = defaultValue;
+      return unreachable;
+    }
   }
 }

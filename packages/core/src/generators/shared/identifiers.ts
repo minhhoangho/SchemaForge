@@ -1,6 +1,6 @@
 import type { SqlDialect } from "./generator-types.js";
 
-const COMBINING_MARKS = /[̀-ͯ]/g;
+const COMBINING_MARKS = /[\u0300-\u036F]/g;
 const NON_ASCII_WORD_CHARACTERS = /[^A-Za-z0-9]+/;
 const UPPERCASE_WORD = /^[A-Z0-9]*[A-Z][A-Z0-9]*$/;
 const BARE_PROPERTY_KEY = /^[A-Za-z_$][A-Za-z0-9_$]*$/;

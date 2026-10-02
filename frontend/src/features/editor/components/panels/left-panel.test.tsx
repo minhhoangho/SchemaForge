@@ -40,7 +40,7 @@ type HarnessOptions = {
   readonly document?: SchemaDocument;
 };
 
-// "orders" has two columns and a duplicated column name, "users" none.
+// "orders" has two columns and a duplicated column name, "users" has one.
 function createDocument(): SchemaDocument {
   return buildSchema({
     name: "shop",
@@ -170,6 +170,18 @@ describe("LeftPanel", () => {
     ).toBeDefined();
     expect(
       screen.getByRole("button", { name: "users 1 column" }),
+    ).toBeDefined();
+  });
+
+  it("labels a table without columns as having 0 columns", () => {
+    renderLeftPanel({
+      document: buildSchema({
+        tables: [makeTable({ id: "tbl_empty", name: "empty" })],
+      }),
+    });
+
+    expect(
+      screen.getByRole("button", { name: /^empty 0 columns/ }),
     ).toBeDefined();
   });
 

@@ -16,8 +16,8 @@ import type {
   OnSelectionChangeParams,
   Viewport,
 } from "@xyflow/react";
-import type { JSX, RefObject } from "react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import type { Dispatch, JSX, SetStateAction } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useThemePreference } from "@/lib/theme/use-theme-preference";
@@ -29,6 +29,7 @@ import {
   applyEdgeChanges,
   applyNodeChanges,
   applySelectionChange,
+  mergeMeasuredSizes,
 } from "../../lib/apply-canvas-changes";
 import type { MeasuredSize } from "../../lib/apply-canvas-changes";
 import { buildAriaLabelConfig } from "../../lib/aria-label-config";
@@ -79,13 +80,20 @@ function refuseDelete(): Promise<boolean> {
 }
 
 function useCanvasHandlers(
-  measuredSizes: RefObject<Map<string, MeasuredSize>>,
+  setMeasuredSizes: Dispatch<SetStateAction<ReadonlyMap<string, MeasuredSize>>>,
 ): CanvasHandlers {
   const store = useEditorStoreApi();
   return useMemo(
     () => ({
       onNodesChange: (changes) => {
-        applyNodeChanges(store, changes, measuredSizes.current);
+        const sizes = applyNodeChanges(store, changes);
+        // Only a measurement re-renders the canvas; a drag sends no sizes.
+        if (sizes.length > 0) {
+          const { document } = store.getState();
+          setMeasuredSizes((current) =>
+            mergeMeasuredSizes(current, sizes, document),
+          );
+        }
       },
       onEdgesChange: (changes) => {
         applyEdgeChanges(store, changes);
@@ -97,7 +105,7 @@ function useCanvasHandlers(
         applyDragStop(store, draggedNodes);
       },
     }),
-    [store, measuredSizes],
+    [store, setMeasuredSizes],
   );
 }
 
@@ -117,11 +125,14 @@ export function EditorCanvas({
   const [canvasElement, setCanvasElement] = useState<HTMLDivElement | null>(
     null,
   );
-  // Written by change handlers and read while deriving nodes; never rendered
-  // by itself, so it lives in a ref rather than in state.
-  const measuredSizes = useRef(new Map<string, MeasuredSize>());
+  // View state only: sizes never enter the schema or the undo history. They
+  // are state because the minimap draws a node only once its object carries
+  // its size.
+  const [measuredSizes, setMeasuredSizes] = useState<
+    ReadonlyMap<string, MeasuredSize>
+  >(() => new Map());
   const { nodes, edges } = useCanvasElements(t, measuredSizes);
-  const handlers = useCanvasHandlers(measuredSizes);
+  const handlers = useCanvasHandlers(setMeasuredSizes);
   const ariaLabelConfig = useMemo(() => buildAriaLabelConfig(t), [t]);
   useRevealFocusedElement(canvasElement);
 

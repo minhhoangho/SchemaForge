@@ -180,35 +180,52 @@ export function reduceNodeChanges(
   );
 }
 
-function mergeMeasuredSizes(
-  measuredSizes: Map<string, MeasuredSize>,
-  updates: NodeChangeEffects["measuredSizes"],
-  document: SchemaDocument,
-): void {
-  updates.forEach(([nodeId, size]) => {
-    measuredSizes.set(nodeId, size);
-  });
-  // Sizes of deleted tables would otherwise stay for the life of the canvas.
-  [...measuredSizes.keys()].forEach((nodeId) => {
-    if (lookup(document.tables, nodeId) === undefined) {
-      measuredSizes.delete(nodeId);
-    }
-  });
+function isSameSize(first: MeasuredSize, second: MeasuredSize): boolean {
+  return first.width === second.width && first.height === second.height;
 }
 
 /**
- * Applies node changes: drag positions and selection go to the store, arrow
- * key moves are dispatched with keyboard coalescing, and measured sizes are
- * remembered so a recreated node object is not measured again.
+ * Returns the measured sizes with `updates` applied and the sizes of deleted
+ * tables dropped, or the same map when nothing changed, so an unchanged size
+ * keeps its object and its node is not rebuilt.
+ */
+export function mergeMeasuredSizes(
+  measuredSizes: ReadonlyMap<string, MeasuredSize>,
+  updates: NodeChangeEffects["measuredSizes"],
+  document: SchemaDocument,
+): ReadonlyMap<string, MeasuredSize> {
+  const changed = updates.filter(([nodeId, size]) => {
+    if (lookup(document.tables, nodeId) === undefined) {
+      return false;
+    }
+    const current = measuredSizes.get(nodeId);
+    return current === undefined || !isSameSize(current, size);
+  });
+  // Sizes of deleted tables would otherwise stay for the life of the canvas.
+  const stale = [...measuredSizes.keys()].filter(
+    (nodeId) => lookup(document.tables, nodeId) === undefined,
+  );
+  if (changed.length === 0 && stale.length === 0) {
+    return measuredSizes;
+  }
+  const next = new Map([...measuredSizes, ...changed]);
+  stale.forEach((nodeId) => {
+    next.delete(nodeId);
+  });
+  return next;
+}
+
+/**
+ * Applies node changes: drag positions and selection go to the store and
+ * arrow key moves are dispatched with keyboard coalescing. Returns the
+ * measured sizes the changes report, which the canvas keeps as view state.
  */
 export function applyNodeChanges(
   store: CanvasChangeStore,
   changes: readonly NodeChange<TableNode>[],
-  measuredSizes: Map<string, MeasuredSize>,
-): void {
+): NodeChangeEffects["measuredSizes"] {
   const state = store.getState();
   const effects = reduceNodeChanges(state, changes);
-  mergeMeasuredSizes(measuredSizes, effects.measuredSizes, state.document);
   if (effects.dragPositions !== state.dragPositions) {
     state.setDragPositions(effects.dragPositions);
   }
@@ -221,6 +238,7 @@ export function applyNodeChanges(
       { coalesce: "keyboardMove" },
     );
   }
+  return effects.measuredSizes;
 }
 
 /** Folds edge changes into selected relation ids; every other change is ignored. */

@@ -282,6 +282,22 @@ function getNodes(): readonly TableNode[] {
   return getFlowProps().nodes ?? [];
 }
 
+function getUsersNode(): TableNode {
+  const node = getNodes().find((candidate) => candidate.id === "tbl_users");
+  if (node === undefined) {
+    throw new Error("The users table has no node.");
+  }
+  return node;
+}
+
+function getMeasuredSize(node: TableNode): { width: number; height: number } {
+  const { width, height } = node.measured ?? {};
+  if (width === undefined || height === undefined) {
+    throw new Error(`Node ${node.id} carries no measured size.`);
+  }
+  return { width, height };
+}
+
 beforeEach(() => {
   vi.stubGlobal("ResizeObserver", MeasuringResizeObserver);
 });
@@ -566,27 +582,19 @@ describe("EditorCanvas", () => {
   });
 
   it("colors minimap nodes with the table accent", () => {
-    const store = createTestStore(
-      buildSchema({
-        tables: [
-          makeTable({
-            id: "tbl_users",
-            name: "users",
-            position: USERS_POSITION,
-          }),
-        ],
-      }),
+    renderCanvas(
+      createTestStore(
+        buildSchema({
+          tables: [
+            makeTable({
+              id: "tbl_users",
+              name: "users",
+              position: USERS_POSITION,
+            }),
+          ],
+        }),
+      ),
     );
-    renderCanvas(store);
-    // The minimap draws only nodes that carry their measured size, which the
-    // canvas adds when it next derives its nodes.
-    act(() => {
-      store.getState().dispatch({
-        type: "updateTable",
-        tableId: "tbl_users",
-        changes: { name: "members" },
-      });
-    });
 
     const fills = Array.from(
       document.querySelectorAll<SVGRectElement>(
@@ -596,6 +604,51 @@ describe("EditorCanvas", () => {
     );
 
     expect(fills).toEqual(["var(--table-accent-7)"]);
+  });
+
+  it("draws every table in the minimap once measured", () => {
+    renderCanvas(createTestStore(createDocument()));
+
+    expect(
+      document.querySelectorAll("rect.react-flow__minimap-node"),
+    ).toHaveLength(2);
+  });
+
+  it("keeps the node object of a table measured again at the same size", () => {
+    renderCanvas(createTestStore(createDocument()));
+    const usersNodeBefore = getUsersNode();
+
+    act(() => {
+      getFlowProps().onNodesChange?.([
+        {
+          type: "dimensions",
+          id: "tbl_users",
+          dimensions: getMeasuredSize(usersNodeBefore),
+        },
+      ]);
+    });
+
+    expect(getUsersNode()).toBe(usersNodeBefore);
+  });
+
+  it("rebuilds the node object of a table measured at a new size", () => {
+    renderCanvas(createTestStore(createDocument()));
+    const usersNodeBefore = getUsersNode();
+
+    act(() => {
+      getFlowProps().onNodesChange?.([
+        {
+          type: "dimensions",
+          id: "tbl_users",
+          dimensions: { width: 320, height: 240 },
+        },
+      ]);
+    });
+
+    expect({
+      isSameObject: getUsersNode() === usersNodeBefore,
+      measured: getUsersNode().measured,
+    }).toEqual({ isSameObject: false, measured: { width: 320, height: 240 } });
   });
 
   it("reports no axe violations on the empty state", async () => {

@@ -1,5 +1,4 @@
 import type { TFunction } from "i18next";
-import type { RefObject } from "react";
 import { useMemo, useRef, useState } from "react";
 
 import { describeRelation, describeTable } from "../lib/aria-label-config";
@@ -77,7 +76,7 @@ function useBaseEdges(): readonly RelationEdge[] {
 
 function useLabeledNodes(
   t: TFunction<"canvas">,
-  measuredSizes: RefObject<ReadonlyMap<string, MeasuredSize>>,
+  measuredSizes: ReadonlyMap<string, MeasuredSize>,
 ): TableNode[] {
   const baseNodes = useBaseNodes();
   const tables = useEditorStore((state) => state.document.tables);
@@ -88,13 +87,14 @@ function useLabeledNodes(
     const next = baseNodes.map((base) => {
       const table = tables[base.data.tableId];
       const ariaLabel = table === undefined ? "" : describeTable(table, t);
+      // Measured sizes ride along: the minimap draws only nodes that carry
+      // one, and React Flow does not hide a node to measure it again every
+      // time its object changes (during a drag).
+      const measured = measuredSizes.get(base.id);
       const cached = labeled.get(base);
-      if (cached?.ariaLabel === ariaLabel) {
+      if (cached?.ariaLabel === ariaLabel && cached.measured === measured) {
         return cached;
       }
-      // Measured sizes ride along, so React Flow does not hide the node to
-      // measure it again every time its object changes (during a drag).
-      const measured = measuredSizes.current.get(base.id);
       const node =
         measured === undefined
           ? { ...base, ariaLabel }
@@ -145,7 +145,7 @@ function useLabeledEdges(t: TFunction<"canvas">): RelationEdge[] {
  */
 export function useCanvasElements(
   t: TFunction<"canvas">,
-  measuredSizes: RefObject<ReadonlyMap<string, MeasuredSize>>,
+  measuredSizes: ReadonlyMap<string, MeasuredSize>,
 ): CanvasElements {
   const nodes = useLabeledNodes(t, measuredSizes);
   const edges = useLabeledEdges(t);

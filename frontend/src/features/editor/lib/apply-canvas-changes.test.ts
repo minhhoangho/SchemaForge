@@ -19,6 +19,7 @@ import {
   applyEdgeChanges,
   applyNodeChanges,
   applySelectionChange,
+  mergeMeasuredSizes,
   reduceEdgeChanges,
   reduceNodeChanges,
   toDragStopMoves,
@@ -232,18 +233,14 @@ describe("applyNodeChanges", () => {
     const store = createTestStore();
     const document = store.getState().document;
 
-    applyNodeChanges(
-      store,
-      [
-        {
-          type: "position",
-          id: "tbl_users",
-          position: { x: 50, y: 30 },
-          dragging: true,
-        },
-      ],
-      new Map(),
-    );
+    applyNodeChanges(store, [
+      {
+        type: "position",
+        id: "tbl_users",
+        position: { x: 50, y: 30 },
+        dragging: true,
+      },
+    ]);
 
     expect({
       dragPositions: store.getState().dragPositions,
@@ -257,16 +254,12 @@ describe("applyNodeChanges", () => {
   it("merges consecutive arrow key moves into one history entry", () => {
     const store = createTestStore();
 
-    applyNodeChanges(
-      store,
-      [{ type: "position", id: "tbl_users", position: { x: 5, y: 0 } }],
-      new Map(),
-    );
-    applyNodeChanges(
-      store,
-      [{ type: "position", id: "tbl_users", position: { x: 10, y: 0 } }],
-      new Map(),
-    );
+    applyNodeChanges(store, [
+      { type: "position", id: "tbl_users", position: { x: 5, y: 0 } },
+    ]);
+    applyNodeChanges(store, [
+      { type: "position", id: "tbl_users", position: { x: 10, y: 0 } },
+    ]);
 
     expect({
       position: store.getState().document.tables.tbl_users?.position,
@@ -277,11 +270,9 @@ describe("applyNodeChanges", () => {
   it("stores the selected tables", () => {
     const store = createTestStore();
 
-    applyNodeChanges(
-      store,
-      [{ type: "select", id: "tbl_posts", selected: true }],
-      new Map(),
-    );
+    applyNodeChanges(store, [
+      { type: "select", id: "tbl_posts", selected: true },
+    ]);
 
     expect(store.getState().selection).toEqual({
       tableIds: ["tbl_posts"],
@@ -293,60 +284,30 @@ describe("applyNodeChanges", () => {
     const store = createTestStore();
     const selection = store.getState().selection;
 
-    applyNodeChanges(
-      store,
-      [{ type: "select", id: "tbl_posts", selected: false }],
-      new Map(),
-    );
+    applyNodeChanges(store, [
+      { type: "select", id: "tbl_posts", selected: false },
+    ]);
 
     expect(store.getState().selection).toBe(selection);
   });
 
-  it("remembers measured sizes", () => {
-    const measuredSizes = new Map<string, MeasuredSize>();
-
-    applyNodeChanges(
-      createTestStore(),
-      [
-        {
-          type: "dimensions",
-          id: "tbl_users",
-          dimensions: { width: 200, height: 120 },
-        },
-      ],
-      measuredSizes,
-    );
-
-    expect([...measuredSizes]).toEqual([
-      ["tbl_users", { width: 200, height: 120 }],
-    ]);
-  });
-
-  it("forgets measured sizes of tables that no longer exist", () => {
-    const measuredSizes = new Map<string, MeasuredSize>([
-      ["tbl_gone", { width: 10, height: 10 }],
+  it("returns the measured sizes the changes report", () => {
+    const sizes = applyNodeChanges(createTestStore(), [
+      {
+        type: "dimensions",
+        id: "tbl_users",
+        dimensions: { width: 200, height: 120 },
+      },
     ]);
 
-    applyNodeChanges(
-      createTestStore(),
-      [
-        {
-          type: "dimensions",
-          id: "tbl_users",
-          dimensions: { width: 200, height: 120 },
-        },
-      ],
-      measuredSizes,
-    );
-
-    expect([...measuredSizes.keys()]).toEqual(["tbl_users"]);
+    expect(sizes).toEqual([["tbl_users", { width: 200, height: 120 }]]);
   });
 
   it("never removes a table", () => {
     const store = createTestStore();
     const dispatch = vi.spyOn(store.getState(), "dispatch");
 
-    applyNodeChanges(store, [{ type: "remove", id: "tbl_users" }], new Map());
+    applyNodeChanges(store, [{ type: "remove", id: "tbl_users" }]);
 
     expect({
       dispatchCount: dispatch.mock.calls.length,
@@ -355,6 +316,55 @@ describe("applyNodeChanges", () => {
   });
 });
 
+describe("mergeMeasuredSizes", () => {
+  it("remembers measured sizes", () => {
+    const measuredSizes = mergeMeasuredSizes(
+      new Map(),
+      [["tbl_users", { width: 200, height: 120 }]],
+      createDocument(),
+    );
+
+    expect([...measuredSizes]).toEqual([
+      ["tbl_users", { width: 200, height: 120 }],
+    ]);
+  });
+
+  it("forgets measured sizes of tables that no longer exist", () => {
+    const measuredSizes = mergeMeasuredSizes(
+      new Map<string, MeasuredSize>([["tbl_gone", { width: 10, height: 10 }]]),
+      [["tbl_users", { width: 200, height: 120 }]],
+      createDocument(),
+    );
+
+    expect([...measuredSizes.keys()]).toEqual(["tbl_users"]);
+  });
+
+  it("ignores sizes reported for tables that do not exist", () => {
+    const measuredSizes = new Map<string, MeasuredSize>();
+
+    expect(
+      mergeMeasuredSizes(
+        measuredSizes,
+        [["tbl_gone", { width: 10, height: 10 }]],
+        createDocument(),
+      ),
+    ).toBe(measuredSizes);
+  });
+
+  it("keeps the same map when no size changed", () => {
+    const measuredSizes = new Map<string, MeasuredSize>([
+      ["tbl_users", { width: 200, height: 120 }],
+    ]);
+
+    expect(
+      mergeMeasuredSizes(
+        measuredSizes,
+        [["tbl_users", { width: 200, height: 120 }]],
+        createDocument(),
+      ),
+    ).toBe(measuredSizes);
+  });
+});
 describe("reduceEdgeChanges", () => {
   it("keeps only select changes of known relations", () => {
     expect(

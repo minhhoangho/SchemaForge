@@ -1,0 +1,156 @@
+[
+  {
+    "table": "2fa codes",
+    "rows": [
+      {
+        "code": "code_1",
+        "__proto__": "proto_1"
+      },
+      {
+        "code": "code_2",
+        "__proto__": null
+      },
+      {
+        "code": "code_3",
+        "__proto__": "proto_3"
+      }
+    ]
+  },
+  {
+    "table": "bảng có tên dài đúng sáu mươi ba byte theo utf-8 nhé",
+    "rows": [
+      {
+        "id": 1,
+        "mã duy nhất": "ma_duy_nhat_1"
+      },
+      {
+        "id": 2,
+        "mã duy nhất": "ma_duy_nhat_2"
+      },
+      {
+        "id": 3,
+        "mã duy nhất": "ma_duy_nhat_3"
+      }
+    ]
+  },
+  {
+    "table": "người dùng",
+    "rows": [
+      {
+        "id": "0a4c75a8-148b-4b7f-9413-34471e88c512",
+        "họ tên": "ho_ten_1",
+        "USER_ID": 994025309,
+        "ma": "ma_1",
+        "má": "ma_1",
+        "ghi chú": "ghi_chu_1"
+      },
+      {
+        "id": "e0b9b7f4-dddc-4e67-9e95-70e00fc18cdf",
+        "họ tên": "ho_ten_2",
+        "USER_ID": -1608992785,
+        "ma": "ma_2",
+        "má": "ma_2",
+        "ghi chú": "ghi_chu_2"
+      },
+      {
+        "id": "288878a1-283f-4f96-b713-a56772cce06a",
+        "họ tên": null,
+        "USER_ID": 161868220,
+        "ma": "ma_3",
+        "má": "ma_3",
+        "ghi chú": "ghi_chu_3"
+      }
+    ]
+  },
+  {
+    "table": "order",
+    "rows": [
+      {
+        "id": 1,
+        "select": "select_1",
+        "group": 1143494150,
+        "người dùng id": "0a4c75a8-148b-4b7f-9413-34471e88c512",
+        "updated_by": "288878a1-283f-4f96-b713-a56772cce06a",
+        "trạng thái": "má"
+      },
+      {
+        "id": 2,
+        "select": "select_2",
+        "group": 1001039841,
+        "người dùng id": "288878a1-283f-4f96-b713-a56772cce06a",
+        "updated_by": "288878a1-283f-4f96-b713-a56772cce06a",
+        "trạng thái": "chờ xử lý"
+      },
+      {
+        "id": 3,
+        "select": "select_3",
+        "group": -268590644,
+        "người dùng id": "e0b9b7f4-dddc-4e67-9e95-70e00fc18cdf",
+        "updated_by": "0a4c75a8-148b-4b7f-9413-34471e88c512",
+        "trạng thái": "đã giao"
+      }
+    ]
+  },
+  {
+    "table": "order items",
+    "rows": [
+      {
+        "id": 1
+      },
+      {
+        "id": 2
+      },
+      {
+        "id": 3
+      }
+    ]
+  },
+  {
+    "table": "order_items",
+    "rows": [
+      {
+        "id": 1
+      },
+      {
+        "id": 2
+      },
+      {
+        "id": 3
+      }
+    ]
+  },
+  {
+    "table": "tên \"lạ\" `x` [y] 'z' \\ w",
+    "rows": [
+      {
+        "id": 1,
+        "tên \"lạ\" `x` [y] 'z' \\ w": "ten_la_x_y_z_w_1"
+      },
+      {
+        "id": 2,
+        "tên \"lạ\" `x` [y] 'z' \\ w": "ten_la_x_y_z_w_2"
+      },
+      {
+        "id": 3,
+        "tên \"lạ\" `x` [y] 'z' \\ w": "ten_la_x_y_z_w_3"
+      }
+    ]
+  },
+  {
+    "table": "用户",
+    "rows": [
+      {
+        "id": 1,
+        "名字": "value_1"
+      },
+      {
+        "id": 2,
+        "名字": "value_2"
+      },
+      {
+        "id": 3,
+        "名字": "value_3"
+      }
+    ]
+  }
+]

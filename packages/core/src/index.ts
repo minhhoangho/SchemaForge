@@ -22,6 +22,7 @@ export type {
 export { GENERATOR_TARGETS } from "./generators/shared/generator-types.js";
 export type { GeneratorDiagnosticCode } from "./generators/shared/diagnostic-codes.js";
 export { GENERATOR_DIAGNOSTIC_CODES } from "./generators/shared/diagnostic-codes.js";
+export type { SeedDataset } from "./generators/seed/seed-dataset.js";
 export type { History, HistoryEntry } from "./history/history.js";
 export {
   createEmptyHistory,

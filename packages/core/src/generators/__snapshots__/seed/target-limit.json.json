@@ -1,0 +1,798 @@
+[
+  {
+    "table": "all_types",
+    "rows": [
+      {
+        "id": 1,
+        "smallint_value": -26668,
+        "integer_value": 729542903,
+        "bigint_value": "2082846120",
+        "decimal_value": "750329344.87",
+        "real_value": 8241.52,
+        "double_value": 3820.76,
+        "boolean_value": false,
+        "char_value": "e_1",
+        "varchar_value": "varchar_value_1",
+        "text_value": "text_value_1",
+        "uuid_value": "bac07737-e3fc-4537-8fce-01f5876ed4e7",
+        "date_value": "2026-07-05",
+        "time_value": "08:42:01",
+        "timestamp_value": "2026-08-30T12:49:57",
+        "timestamptz_value": "2026-07-03T21:41:01Z",
+        "timestamp_now": "2026-05-06T19:27:11",
+        "timestamptz_now": "2026-08-26T18:45:41Z",
+        "json_value": {
+          "value": 919
+        },
+        "binary_value": "M7gyGQ==",
+        "enum_value": "inactive"
+      },
+      {
+        "id": 2,
+        "smallint_value": -19141,
+        "integer_value": 1597383677,
+        "bigint_value": "857011259",
+        "decimal_value": "385633377.58",
+        "real_value": 633.35,
+        "double_value": 9760.96,
+        "boolean_value": true,
+        "char_value": "e_2",
+        "varchar_value": "varchar_value_2",
+        "text_value": "text_value_2",
+        "uuid_value": "192d42da-ff11-4fc4-9475-41970d898cd4",
+        "date_value": "2026-10-18",
+        "time_value": "08:42:49",
+        "timestamp_value": "2026-02-20T02:21:40",
+        "timestamptz_value": "2026-08-31T04:32:53Z",
+        "timestamp_now": "2026-01-08T17:19:09",
+        "timestamptz_now": "2026-12-27T00:01:39Z",
+        "json_value": {
+          "value": 327
+        },
+        "binary_value": "DufU/w==",
+        "enum_value": "inactive"
+      },
+      {
+        "id": 3,
+        "smallint_value": -20120,
+        "integer_value": 954790182,
+        "bigint_value": "1806488819",
+        "decimal_value": "613397647.28",
+        "real_value": 6165.96,
+        "double_value": 3747.29,
+        "boolean_value": false,
+        "char_value": "e_3",
+        "varchar_value": "varchar_value_3",
+        "text_value": "text_value_3",
+        "uuid_value": "1a89e0c1-1f77-40dd-a2d2-6ca52aaedb9e",
+        "date_value": "2026-05-05",
+        "time_value": "07:15:20",
+        "timestamp_value": "2026-12-26T16:17:20",
+        "timestamptz_value": "2026-06-15T12:25:31Z",
+        "timestamp_now": "2026-03-24T14:00:15",
+        "timestamptz_now": "2026-01-09T17:00:40Z",
+        "json_value": {
+          "value": 367
+        },
+        "binary_value": "U5dGbQ==",
+        "enum_value": "active"
+      }
+    ]
+  },
+  {
+    "table": "auto_integer",
+    "rows": [
+      {
+        "id": 1
+      },
+      {
+        "id": 2
+      },
+      {
+        "id": 3
+      }
+    ]
+  },
+  {
+    "table": "auto_smallint",
+    "rows": [
+      {
+        "id": 1
+      },
+      {
+        "id": 2
+      },
+      {
+        "id": 3
+      }
+    ]
+  },
+  {
+    "table": "auto_trailing",
+    "rows": [
+      {
+        "a": 1,
+        "id": "1"
+      },
+      {
+        "a": 2,
+        "id": "2"
+      },
+      {
+        "a": 3,
+        "id": "3"
+      }
+    ]
+  },
+  {
+    "table": "auto_wide_key",
+    "rows": [
+      {
+        "id": "1",
+        "code_a": "code_a_1",
+        "code_b": "code_b_1"
+      },
+      {
+        "id": "2",
+        "code_a": "code_a_2",
+        "code_b": "code_b_2"
+      },
+      {
+        "id": "3",
+        "code_a": "code_a_3",
+        "code_b": "code_b_3"
+      }
+    ]
+  },
+  {
+    "table": "binary_keys",
+    "rows": [
+      {
+        "id": 1,
+        "hash": "lYAM9g=="
+      },
+      {
+        "id": 2,
+        "hash": "ggFTGA=="
+      },
+      {
+        "id": 3,
+        "hash": "qxCMmw=="
+      }
+    ]
+  },
+  {
+    "table": "char_unique",
+    "rows": [
+      {
+        "id": 1,
+        "code": "code_1"
+      },
+      {
+        "id": 2,
+        "code": "code_2"
+      },
+      {
+        "id": 3,
+        "code": "code_3"
+      }
+    ]
+  },
+  {
+    "table": "custom_values",
+    "rows": [
+      {
+        "id": 1,
+        "shape": null
+      },
+      {
+        "id": 2,
+        "shape": null
+      },
+      {
+        "id": 3,
+        "shape": null
+      }
+    ]
+  },
+  {
+    "table": "cycle_a",
+    "rows": [
+      {
+        "id": 1,
+        "b_id": 1
+      },
+      {
+        "id": 2,
+        "b_id": 3
+      },
+      {
+        "id": 3,
+        "b_id": 1
+      }
+    ]
+  },
+  {
+    "table": "cycle_b",
+    "rows": [
+      {
+        "id": 1,
+        "a_id": 3
+      },
+      {
+        "id": 2,
+        "a_id": 3
+      },
+      {
+        "id": 3,
+        "a_id": 2
+      }
+    ]
+  },
+  {
+    "table": "default_parents",
+    "rows": [
+      {
+        "id": 1
+      },
+      {
+        "id": 2
+      },
+      {
+        "id": 3
+      }
+    ]
+  },
+  {
+    "table": "default_children",
+    "rows": [
+      {
+        "id": 1,
+        "parent_id": 1
+      },
+      {
+        "id": 2,
+        "parent_id": 2
+      },
+      {
+        "id": 3,
+        "parent_id": 2
+      }
+    ]
+  },
+  {
+    "table": "five_part_keys",
+    "rows": [
+      {
+        "id": 1,
+        "q1": "q1_1",
+        "q2": "q2_1",
+        "q3": "q3_1",
+        "q4": "q4_1",
+        "q5": "q5_1"
+      },
+      {
+        "id": 2,
+        "q1": "q1_2",
+        "q2": "q2_2",
+        "q3": "q3_2",
+        "q4": "q4_2",
+        "q5": "q5_2"
+      },
+      {
+        "id": 3,
+        "q1": "q1_3",
+        "q2": "q2_3",
+        "q3": "q3_3",
+        "q4": "q4_3",
+        "q5": "q5_3"
+      }
+    ]
+  },
+  {
+    "table": "five_part_refs",
+    "rows": [
+      {
+        "id": 1,
+        "q1": "q1_2",
+        "q2": "q2_2",
+        "q3": "q3_2",
+        "q4": "q4_2",
+        "q5": "q5_2"
+      },
+      {
+        "id": 2,
+        "q1": "q1_3",
+        "q2": "q2_3",
+        "q3": "q3_3",
+        "q4": "q4_3",
+        "q5": "q5_3"
+      },
+      {
+        "id": 3,
+        "q1": "q1_2",
+        "q2": "q2_2",
+        "q3": "q3_2",
+        "q4": "q4_2",
+        "q5": "q5_2"
+      }
+    ]
+  },
+  {
+    "table": "fixed_keys",
+    "rows": [
+      {
+        "code": "code_1"
+      },
+      {
+        "code": "code_2"
+      },
+      {
+        "code": "code_3"
+      }
+    ]
+  },
+  {
+    "table": "fixed_refs",
+    "rows": [
+      {
+        "id": 1,
+        "fixed_code": "code_1"
+      },
+      {
+        "id": 2,
+        "fixed_code": "code_1"
+      },
+      {
+        "id": 3,
+        "fixed_code": "code_2"
+      }
+    ]
+  },
+  {
+    "table": "fixed_unique",
+    "rows": [
+      {
+        "id": 1,
+        "code": "code_1"
+      },
+      {
+        "id": 2,
+        "code": "code_2"
+      },
+      {
+        "id": 3,
+        "code": "code_3"
+      }
+    ]
+  },
+  {
+    "table": "flags",
+    "rows": [
+      {
+        "id": 1,
+        "status": "active",
+        "is_primary": true
+      },
+      {
+        "id": 2,
+        "status": "active",
+        "is_primary": false
+      }
+    ]
+  },
+  {
+    "table": "four_part_keys",
+    "rows": [
+      {
+        "id": 1,
+        "p1": "p1_1",
+        "p2": "p2_1",
+        "p3": "p3_1",
+        "p4": "p4_1"
+      },
+      {
+        "id": 2,
+        "p1": "p1_2",
+        "p2": "p2_2",
+        "p3": "p3_2",
+        "p4": "p4_2"
+      },
+      {
+        "id": 3,
+        "p1": "p1_3",
+        "p2": "p2_3",
+        "p3": "p3_3",
+        "p4": "p4_3"
+      }
+    ]
+  },
+  {
+    "table": "fractional_times",
+    "rows": [
+      {
+        "id": 1,
+        "starts_at": "17:52:32",
+        "created_at": "2026-10-03T18:08:57"
+      },
+      {
+        "id": 2,
+        "starts_at": "11:15:14",
+        "created_at": "2026-04-28T01:06:17"
+      },
+      {
+        "id": 3,
+        "starts_at": "23:04:53",
+        "created_at": "2026-10-09T02:13:40"
+      }
+    ]
+  },
+  {
+    "table": "json_keys",
+    "rows": [
+      {
+        "doc": {
+          "value": 111
+        }
+      },
+      {
+        "doc": {
+          "value": 475
+        }
+      },
+      {
+        "doc": {
+          "value": 152
+        }
+      }
+    ]
+  },
+  {
+    "table": "json_unique",
+    "rows": [
+      {
+        "id": 1,
+        "doc": {
+          "value": 631
+        }
+      },
+      {
+        "id": 2,
+        "doc": {
+          "value": 523
+        }
+      },
+      {
+        "id": 3,
+        "doc": {
+          "value": 856
+        }
+      }
+    ]
+  },
+  {
+    "table": "json_refs",
+    "rows": [
+      {
+        "id": 1,
+        "doc": {
+          "value": 856
+        }
+      },
+      {
+        "id": 2,
+        "doc": {
+          "value": 631
+        }
+      },
+      {
+        "id": 3,
+        "doc": {
+          "value": 523
+        }
+      }
+    ]
+  },
+  {
+    "table": "long_comments",
+    "rows": [
+      {
+        "id": 1,
+        "note": "note_1",
+        "surrogate_note": "surrogate_note_1"
+      },
+      {
+        "id": 2,
+        "note": "note_2",
+        "surrogate_note": "surrogate_note_2"
+      },
+      {
+        "id": 3,
+        "note": "note_3",
+        "surrogate_note": "surrogate_note_3"
+      }
+    ]
+  },
+  {
+    "table": "long_unique",
+    "rows": [
+      {
+        "id": 1,
+        "code": "code_1"
+      },
+      {
+        "id": 2,
+        "code": "code_2"
+      },
+      {
+        "id": 3,
+        "code": "code_3"
+      }
+    ]
+  },
+  {
+    "table": "no_key_rows",
+    "rows": [
+      {
+        "note": "note_1",
+        "value": 680512464
+      },
+      {
+        "note": "note_2",
+        "value": -2024683812
+      },
+      {
+        "note": "note_3",
+        "value": -1097183343
+      }
+    ]
+  },
+  {
+    "table": "nullable_unique",
+    "rows": [
+      {
+        "id": 1,
+        "code": "code_1",
+        "alt_code": "alt_code_1"
+      },
+      {
+        "id": 2,
+        "code": "code_2",
+        "alt_code": "alt_code_2"
+      },
+      {
+        "id": 3,
+        "code": "code_3",
+        "alt_code": "alt_code_3"
+      }
+    ]
+  },
+  {
+    "table": "nullable_unique_refs",
+    "rows": [
+      {
+        "id": 1,
+        "code": "code_3"
+      },
+      {
+        "id": 2,
+        "code": "code_1"
+      },
+      {
+        "id": 3,
+        "code": "code_2"
+      }
+    ]
+  },
+  {
+    "table": "oversized_types",
+    "rows": [
+      {
+        "id": 1,
+        "pg_varchar": "pg_varchar_1",
+        "mysql_char": "mysql_char_1",
+        "mysql_varchar": "mysql_varchar_1",
+        "sqlserver_char": "sqlserver_char_1",
+        "sqlserver_varchar": "sqlserver_varchar_1",
+        "pg_decimal": "954638464.91",
+        "mysql_decimal": "983148276.6784687621492733882805745271054"
+      },
+      {
+        "id": 2,
+        "pg_varchar": "pg_varchar_2",
+        "mysql_char": "mysql_char_2",
+        "mysql_varchar": "mysql_varchar_2",
+        "sqlserver_char": "sqlserver_char_2",
+        "sqlserver_varchar": "sqlserver_varchar_2",
+        "pg_decimal": "752496475.98",
+        "mysql_decimal": "624835936.8131158258809413735435127836087"
+      },
+      {
+        "id": 3,
+        "pg_varchar": "pg_varchar_3",
+        "mysql_char": "mysql_char_3",
+        "mysql_varchar": "mysql_varchar_3",
+        "sqlserver_char": "sqlserver_char_3",
+        "sqlserver_varchar": "sqlserver_varchar_3",
+        "pg_decimal": "749689704.24",
+        "mysql_decimal": "913598098.1133903833505502475544049458440"
+      }
+    ]
+  },
+  {
+    "table": "oversized_unique",
+    "rows": [
+      {
+        "id": 1,
+        "code": "code_1"
+      },
+      {
+        "id": 2,
+        "code": "code_2"
+      },
+      {
+        "id": 3,
+        "code": "code_3"
+      }
+    ]
+  },
+  {
+    "table": "root",
+    "rows": [
+      {
+        "id": 1,
+        "leaf_id": 3
+      },
+      {
+        "id": 2,
+        "leaf_id": 3
+      },
+      {
+        "id": 3,
+        "leaf_id": 3
+      }
+    ]
+  },
+  {
+    "table": "left",
+    "rows": [
+      {
+        "id": 1,
+        "root_id": 3
+      },
+      {
+        "id": 2,
+        "root_id": 2
+      },
+      {
+        "id": 3,
+        "root_id": 2
+      }
+    ]
+  },
+  {
+    "table": "right",
+    "rows": [
+      {
+        "id": 1,
+        "root_id": 2
+      },
+      {
+        "id": 2,
+        "root_id": 2
+      },
+      {
+        "id": 3,
+        "root_id": 1
+      }
+    ]
+  },
+  {
+    "table": "leaf",
+    "rows": [
+      {
+        "id": 1,
+        "left_id": 1,
+        "right_id": 3
+      },
+      {
+        "id": 2,
+        "left_id": 1,
+        "right_id": 2
+      },
+      {
+        "id": 3,
+        "left_id": 3,
+        "right_id": 1
+      }
+    ]
+  },
+  {
+    "table": "text_keys",
+    "rows": [
+      {
+        "code": "code_1",
+        "label": "label_1",
+        "tag": "tag_1"
+      },
+      {
+        "code": "code_2",
+        "label": "label_2",
+        "tag": "tag_2"
+      },
+      {
+        "code": "code_3",
+        "label": "label_3",
+        "tag": "tag_3"
+      }
+    ]
+  },
+  {
+    "table": "text_refs",
+    "rows": [
+      {
+        "id": 1,
+        "text_key_code": "code_1"
+      },
+      {
+        "id": 2,
+        "text_key_code": "code_1"
+      },
+      {
+        "id": 3,
+        "text_key_code": "code_1"
+      }
+    ]
+  },
+  {
+    "table": "tree_nodes",
+    "rows": [
+      {
+        "id": 1,
+        "parent_id": null
+      },
+      {
+        "id": 2,
+        "parent_id": 1
+      },
+      {
+        "id": 3,
+        "parent_id": 2
+      }
+    ]
+  },
+  {
+    "table": "unique_only",
+    "rows": [
+      {
+        "code": "code_1",
+        "label": "label_1"
+      },
+      {
+        "code": "code_2",
+        "label": "label_2"
+      },
+      {
+        "code": "code_3",
+        "label": "label_3"
+      }
+    ]
+  },
+  {
+    "table": "wide_rows",
+    "rows": [
+      {
+        "id": 1,
+        "v": "v_1"
+      },
+      {
+        "id": 2,
+        "v": "v_2"
+      },
+      {
+        "id": 3,
+        "v": "v_3"
+      }
+    ]
+  }
+]

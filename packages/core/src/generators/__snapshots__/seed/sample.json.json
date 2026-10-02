@@ -1,0 +1,145 @@
+[
+  {
+    "table": "tags",
+    "rows": [
+      {
+        "id": "f85fc778-14ce-490a-9675-d5d1e4f1817e"
+      },
+      {
+        "id": "52f908ad-9048-42e5-a8ce-0e0643dae4d4"
+      },
+      {
+        "id": "56ab18c9-f061-494c-9a7a-e3cccf76d6cc"
+      }
+    ]
+  },
+  {
+    "table": "tenants",
+    "rows": [
+      {
+        "id": "14dff6f0-2768-4189-8345-572dc88367b9"
+      },
+      {
+        "id": "f8828d79-030c-496d-bf42-ec11ea269aae"
+      },
+      {
+        "id": "186daa03-01d7-4b72-85fd-0aa39c080478"
+      }
+    ]
+  },
+  {
+    "table": "users",
+    "rows": [
+      {
+        "id": "1",
+        "tenant_id": "f8828d79-030c-496d-bf42-ec11ea269aae",
+        "email": "email_1",
+        "manager_id": null,
+        "created_at": "2026-07-05T02:41:33Z",
+        "location": null
+      },
+      {
+        "id": "2",
+        "tenant_id": "14dff6f0-2768-4189-8345-572dc88367b9",
+        "email": "email_2",
+        "manager_id": "1",
+        "created_at": "2026-05-15T06:27:42Z",
+        "location": null
+      },
+      {
+        "id": "3",
+        "tenant_id": "14dff6f0-2768-4189-8345-572dc88367b9",
+        "email": "email_3",
+        "manager_id": "2",
+        "created_at": "2026-05-22T12:30:28Z",
+        "location": null
+      }
+    ]
+  },
+  {
+    "table": "orders",
+    "rows": [
+      {
+        "tenant_id": "790262ec-a5cb-49a9-b064-5f764a74db70",
+        "order_number": 1,
+        "status": "shipped",
+        "total": "450463497.90",
+        "user_id": "1"
+      },
+      {
+        "tenant_id": "01fcc062-455b-40ce-bfec-99e1310b90dd",
+        "order_number": 2,
+        "status": "pending",
+        "total": "784077283.02",
+        "user_id": "1"
+      },
+      {
+        "tenant_id": "25747bdb-d537-47ca-a22f-a8be87be7c7a",
+        "order_number": 3,
+        "status": "pending",
+        "total": "280772963.09",
+        "user_id": "2"
+      }
+    ]
+  },
+  {
+    "table": "order_items",
+    "rows": [
+      {
+        "tenant_id": "25747bdb-d537-47ca-a22f-a8be87be7c7a",
+        "order_number": 3,
+        "line_number": 1,
+        "quantity": -900892718
+      },
+      {
+        "tenant_id": "25747bdb-d537-47ca-a22f-a8be87be7c7a",
+        "order_number": 3,
+        "line_number": 2,
+        "quantity": -1236171027
+      },
+      {
+        "tenant_id": "01fcc062-455b-40ce-bfec-99e1310b90dd",
+        "order_number": 2,
+        "line_number": 3,
+        "quantity": -1706561432
+      }
+    ]
+  },
+  {
+    "table": "user_profiles",
+    "rows": [
+      {
+        "user_id": "1",
+        "bio": "bio_1"
+      },
+      {
+        "user_id": "3",
+        "bio": "bio_2"
+      },
+      {
+        "user_id": "2",
+        "bio": "bio_3"
+      }
+    ]
+  },
+  {
+    "table": "user_tags",
+    "rows": [
+      {
+        "users_id": "3",
+        "tags_id": "f85fc778-14ce-490a-9675-d5d1e4f1817e",
+        "assigned_at": "2026-06-15T14:09:06Z"
+      },
+      {
+        "users_id": "1",
+        "tags_id": "52f908ad-9048-42e5-a8ce-0e0643dae4d4",
+        "assigned_at": "2026-03-12T02:00:53Z"
+      },
+      {
+        "users_id": "2",
+        "tags_id": "52f908ad-9048-42e5-a8ce-0e0643dae4d4",
+        "assigned_at": "2026-05-01T14:47:41Z"
+      }
+    ]
+  }
+]

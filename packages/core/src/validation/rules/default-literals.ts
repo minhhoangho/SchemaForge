@@ -1,3 +1,4 @@
+import type { ColumnDefault } from "../../model/column-default.js";
 import type { ColumnType } from "../../model/column-type.js";
 import type { SchemaDocument } from "../../model/schema-document.js";
 
@@ -224,5 +225,37 @@ export function isValidDefaultLiteral(
       return false;
     case "enum":
       return isValidEnumLiteral(type, value, enums);
+  }
+}
+
+export type DefaultValueProblem = "invalid" | "incompatible";
+
+const TIMESTAMP_KINDS: ReadonlySet<ColumnType["kind"]> = new Set([
+  "timestamp",
+  "timestamptz",
+]);
+
+/**
+ * The single check behind `column-default-invalid` and
+ * `column-default-incompatible`, shared with the generators so they only
+ * write defaults that validation accepts (code generators spec, section 2).
+ */
+export function findDefaultValueProblem(
+  type: ColumnType,
+  defaultValue: ColumnDefault,
+  enums: SchemaDocument["enums"],
+): DefaultValueProblem | null {
+  switch (defaultValue.kind) {
+    case "currentTimestamp":
+      return TIMESTAMP_KINDS.has(type.kind) ? null : "incompatible";
+    case "generateUuid":
+      return type.kind === "uuid" ? null : "incompatible";
+    case "literal":
+      if (type.kind === "binary") {
+        return "incompatible";
+      }
+      return isValidDefaultLiteral(type, defaultValue.value, enums)
+        ? null
+        : "invalid";
   }
 }

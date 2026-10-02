@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { createEnumId } from "../../model/ids.js";
+import type { ColumnDefault } from "../../model/column-default.js";
 import type { ColumnType } from "../../model/column-type.js";
 import type { SchemaDocument } from "../../model/schema-document.js";
 
-import { isValidDefaultLiteral } from "./default-literals.js";
+import {
+  findDefaultValueProblem,
+  isValidDefaultLiteral,
+} from "./default-literals.js";
 
 const NO_ENUMS: SchemaDocument["enums"] = {};
 
@@ -183,5 +187,48 @@ describe("isValidDefaultLiteral", () => {
     const type: ColumnType = { kind: "enum", enumId: STATUS_ENUM_ID };
     acceptsAll(type, "enum", ["active", "archived"], ENUMS);
     rejectsAll(type, "enum", ["Active", "deleted", ""], ENUMS);
+  });
+});
+
+describe("findDefaultValueProblem", () => {
+  it("finds no problem for a valid literal", () => {
+    expect(
+      findDefaultValueProblem(
+        { kind: "integer" },
+        { kind: "literal", value: "42" },
+        NO_ENUMS,
+      ),
+    ).toBeNull();
+  });
+
+  it.each<readonly [string, ColumnType, ColumnDefault]>([
+    [
+      "currentTimestamp on date",
+      { kind: "date" },
+      { kind: "currentTimestamp" },
+    ],
+    [
+      "generateUuid on varchar",
+      { kind: "varchar", length: 36 },
+      { kind: "generateUuid" },
+    ],
+    ["a literal on binary", { kind: "binary" }, { kind: "literal", value: "" }],
+  ])(
+    "finds an incompatible default expression: %s",
+    (_, type, defaultValue) => {
+      expect(findDefaultValueProblem(type, defaultValue, NO_ENUMS)).toBe(
+        "incompatible",
+      );
+    },
+  );
+
+  it("finds an invalid literal", () => {
+    expect(
+      findDefaultValueProblem(
+        { kind: "integer" },
+        { kind: "literal", value: "1 OR 1=1" },
+        NO_ENUMS,
+      ),
+    ).toBe("invalid");
   });
 });

@@ -4,6 +4,7 @@ import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/class-names";
 import type { enSyncCloudStatus } from "@/lib/i18n/locales/en/sync/cloud-status";
 
 import type {
@@ -29,15 +30,40 @@ type BadgeText = {
   readonly labelKey: CloudStatusKey;
   readonly failure: CloudPushFailureCode | null;
   readonly isAnnounced: boolean;
-  readonly isError: boolean;
 };
 
-function quiet(labelKey: CloudStatusKey): BadgeText {
-  return { labelKey, failure: null, isAnnounced: false, isError: false };
+type Tone = { readonly text: string; readonly dot: string };
+
+const PILL_CLASS_NAME =
+  "inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-xs font-medium";
+
+function toTone(kind: CloudStatusView["kind"]): Tone {
+  switch (kind) {
+    case "failed":
+      return { text: "text-destructive", dot: "bg-destructive" };
+    case "synced":
+      return { text: "text-success", dot: "bg-success" };
+    case "unsynced":
+    case "unsynced-session-expired":
+    case "conflict":
+    case "deleted-in-cloud":
+      return { text: "text-warning", dot: "bg-warning" };
+    case "local-only":
+    case "syncing":
+      return { text: "text-muted-foreground", dot: "bg-muted-foreground" };
+    default: {
+      const unhandledKind: never = kind;
+      return unhandledKind;
+    }
+  }
 }
 
-function announced(labelKey: CloudStatusKey, isError: boolean): BadgeText {
-  return { labelKey, failure: null, isAnnounced: true, isError };
+function quiet(labelKey: CloudStatusKey): BadgeText {
+  return { labelKey, failure: null, isAnnounced: false };
+}
+
+function announced(labelKey: CloudStatusKey): BadgeText {
+  return { labelKey, failure: null, isAnnounced: true };
 }
 
 function toBadgeText(status: CloudStatusView): BadgeText {
@@ -51,20 +77,18 @@ function toBadgeText(status: CloudStatusView): BadgeText {
     case "unsynced":
       return announced(
         status.reason === "offline" ? "pendingOffline" : "pendingServer",
-        false,
       );
     case "unsynced-session-expired":
-      return announced("pendingSessionExpired", false);
+      return announced("pendingSessionExpired");
     case "conflict":
-      return announced("conflict", true);
+      return announced("conflict");
     case "deleted-in-cloud":
-      return announced("deletedInCloud", true);
+      return announced("deletedInCloud");
     case "failed":
       return {
         labelKey: "failed",
         failure: status.failure,
         isAnnounced: true,
-        isError: true,
       };
     default: {
       const unhandledStatus: never = status;
@@ -139,6 +163,7 @@ export function CloudStatusBadge({
   const { t } = useTranslation("sync");
   const { t: translateApiError } = useTranslation("apiErrors");
   const text = toBadgeText(status);
+  const tone = toTone(status.kind);
   const label = t(`cloudStatus.${text.labelKey}`);
   // version-unsupported is not an ApiErrorCode, so it has its own message.
   let detail: string | null = null;
@@ -150,13 +175,8 @@ export function CloudStatusBadge({
 
   return (
     <div className="flex items-center gap-1.5">
-      <p
-        className={
-          text.isError
-            ? "text-sm text-destructive"
-            : "text-sm text-muted-foreground"
-        }
-      >
+      <p className={cn(PILL_CLASS_NAME, tone.text)}>
+        <span aria-hidden className={cn("size-1.5 rounded-full", tone.dot)} />
         <span>{label}</span>
         {detail === null ? null : <span className="ml-1">{detail}</span>}
       </p>

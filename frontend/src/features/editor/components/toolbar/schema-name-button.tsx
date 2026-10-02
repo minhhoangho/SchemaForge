@@ -126,6 +126,7 @@ export function SchemaNameButton(): JSX.Element {
           <DialogTrigger asChild>
             <Button
               variant="ghost"
+              className="font-semibold"
               aria-describedby={hasIssues ? issuesId : undefined}
             >
               {hasIssues && (

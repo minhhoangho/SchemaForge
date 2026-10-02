@@ -105,7 +105,7 @@ export function EditorStatusScreen({
       <h1
         ref={headingRef}
         tabIndex={-1}
-        className="text-2xl font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="text-2xl font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {t(titleKey)}
       </h1>

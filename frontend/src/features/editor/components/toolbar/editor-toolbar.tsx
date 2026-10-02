@@ -68,7 +68,9 @@ function IconButton({
 }
 
 function ToolbarSeparator(): JSX.Element {
-  return <Separator orientation="vertical" aria-hidden className="mx-1 h-6" />;
+  return (
+    <Separator orientation="vertical" aria-hidden className="mx-1.5 h-5" />
+  );
 }
 
 function HistoryButtons(): JSX.Element {
@@ -133,7 +135,7 @@ function AddButtons(): JSX.Element {
 
   return (
     <>
-      <Button variant="ghost" onClick={addTable}>
+      <Button variant="secondary" onClick={addTable}>
         <PlusIcon aria-hidden />
         {t("toolbar.addTable")}
       </Button>

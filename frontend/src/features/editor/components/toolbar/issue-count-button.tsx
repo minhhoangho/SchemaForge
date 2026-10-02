@@ -33,6 +33,7 @@ export function IssueCountButton(): JSX.Element {
           <Button
             variant="ghost"
             size="icon"
+            className="text-muted-foreground"
             aria-label={label}
             onClick={openIssuesTab}
           >
@@ -48,8 +49,12 @@ export function IssueCountButton(): JSX.Element {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" onClick={openIssuesTab}>
-          <TriangleAlertIcon aria-hidden className="text-destructive" />
+        <Button
+          variant="ghost"
+          className="bg-destructive/10 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={openIssuesTab}
+        >
+          <TriangleAlertIcon aria-hidden />
           {/* The full phrase names the button; it contains the visible
               number, so voice control still matches it (WCAG 2.5.3). */}
           <span aria-hidden>{count}</span>

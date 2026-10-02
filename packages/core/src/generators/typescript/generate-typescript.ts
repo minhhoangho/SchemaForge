@@ -59,6 +59,10 @@ export function renderJsonFieldTypeScript(
       return enumTypeNames.get(fieldType.enumId) ?? "string";
     case "unknown":
       return "unknown";
+    default: {
+      const unreachable: never = fieldType;
+      return unreachable;
+    }
   }
 }
 

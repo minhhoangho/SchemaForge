@@ -77,6 +77,10 @@ function renderType(schema: SchemaDocument, type: ColumnType): string {
     }
     case "custom":
       return quoteDbmlIdentifier(type.name);
+    default: {
+      const unreachable: never = type;
+      return unreachable;
+    }
   }
 }
 
@@ -102,6 +106,10 @@ function renderDefault(schema: SchemaDocument, column: Column): string | null {
       return BARE_LITERAL_KINDS.has(column.type.kind)
         ? defaultValue.value
         : dbmlString(defaultValue.value);
+    default: {
+      const unreachable: never = defaultValue;
+      return unreachable;
+    }
   }
 }
 

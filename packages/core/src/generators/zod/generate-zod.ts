@@ -84,6 +84,10 @@ export function renderJsonFieldZod(
       return enumSchemaNames.get(fieldType.enumId) ?? "z.string()";
     case "unknown":
       return "z.unknown()";
+    default: {
+      const unreachable: never = fieldType;
+      return unreachable;
+    }
   }
 }
 

@@ -86,6 +86,10 @@ export function toJsonFieldType(type: ColumnType): JsonFieldType {
       return { kind: "enum", enumId: type.enumId };
     case "custom":
       return { kind: "unknown" };
+    default: {
+      const unreachable: never = type;
+      return unreachable;
+    }
   }
 }
 
@@ -158,5 +162,9 @@ export function isValidJsonValue(
       return (
         typeof value === "string" && isValidDefaultLiteral(type, value, enums)
       );
+    default: {
+      const unreachable: never = type;
+      return unreachable;
+    }
   }
 }

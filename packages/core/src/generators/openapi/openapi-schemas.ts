@@ -83,6 +83,10 @@ function buildFieldSchema(
     case "json":
     case "unknown":
       return {};
+    default: {
+      const unreachable: never = fieldType;
+      return unreachable;
+    }
   }
 }
 

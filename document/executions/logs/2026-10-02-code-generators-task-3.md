@@ -1,7 +1,7 @@
 # Task 3: Manifest và dependency của package conformance
 
 - Plan: [Task 3](../../plans/2026-09-15-code-generators-plan.md)
-- Spec: [2026-09-15-code-generators-design.md](../../specs/2026-09-15-code-generators-design.md) mục 7
+- Spec: [2026-09-14-code-generators-design.md](../../specs/2026-09-14-code-generators-design.md) mục 7
 
 ## 2026-10-02 13:45 — devops-engineer — Xong
 

@@ -333,6 +333,37 @@ describe("generateMysql tables", () => {
   it("writes an empty schema as a single newline", () => {
     expect(generate(createEmptySchema("Empty"))).toBe("\n");
   });
+
+  it.each(["int CHECK (x)", "text, extra int", "int REFERENCES other(id)"])(
+    "replaces the unsafe custom type %s with LONGTEXT and reports custom-type-unsafe",
+    (name) => {
+      const schema = buildSchema({
+        tables: [makeTable({ id: "tbl_t", name: "t" })],
+        columns: [
+          column("col_c", "tbl_t", {
+            name: "c",
+            type: { kind: "custom", name },
+          }),
+        ],
+      });
+
+      const result = generateMysql(schema, {});
+
+      expect({
+        hasFallbackLine: result.file.content.includes(
+          "  `c` LONGTEXT NOT NULL",
+        ),
+        containsRawName: result.file.content.includes(name),
+        diagnostics: result.diagnostics,
+      }).toStrictEqual({
+        hasFallbackLine: true,
+        containsRawName: false,
+        diagnostics: [
+          { code: "custom-type-unsafe", path: ["columns", "col_c", "type"] },
+        ],
+      });
+    },
+  );
 });
 
 describe("generateMysql key columns and row size", () => {

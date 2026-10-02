@@ -545,6 +545,37 @@ describe("generateSqlServer columns and constraints", () => {
   it("writes an empty schema as a single newline", () => {
     expect(generate(createEmptySchema("Empty"))).toBe("\n");
   });
+
+  it.each(["int CHECK (x)", "text, extra int", "int REFERENCES other(id)"])(
+    "replaces the unsafe custom type %s with nvarchar(max) and reports custom-type-unsafe",
+    (name) => {
+      const schema = buildSchema({
+        tables: [makeTable({ id: "tbl_t", name: "t" })],
+        columns: [
+          column("col_c", "tbl_t", {
+            name: "c",
+            type: { kind: "custom", name },
+          }),
+        ],
+      });
+
+      const result = generateSqlServer(schema, {});
+
+      expect({
+        hasFallbackLine: result.file.content.includes(
+          "  [c] nvarchar(max) NOT NULL",
+        ),
+        containsRawName: result.file.content.includes(name),
+        diagnostics: result.diagnostics,
+      }).toStrictEqual({
+        hasFallbackLine: true,
+        containsRawName: false,
+        diagnostics: [
+          { code: "custom-type-unsafe", path: ["columns", "col_c", "type"] },
+        ],
+      });
+    },
+  );
 });
 
 describe("generateSqlServer indexes and foreign keys", () => {

@@ -305,7 +305,7 @@ export function getTableAccent(tableId: TableId): TableAccentIndex;
 export function getTableAccentColor(tableId: TableId): string; // "var(--table-accent-3)"
 ```
 
-Màu dải tiêu đề là trang trí (giúp nhận ra bảng bằng mắt), không mang thông tin; tên bảng vẫn là chữ, nên không vi phạm 1.4.1. Người dùng tự chọn màu cho từng bảng là [câu hỏi mở 1](#câu-hỏi-còn-mở) ⚠.
+Màu dải tiêu đề là trang trí (giúp nhận ra bảng bằng mắt), không mang thông tin; tên bảng vẫn là chữ, nên không vi phạm 1.4.1. Người dùng tự chọn màu cho từng bảng là [câu hỏi mở 1](#câu-hỏi-đã-trả-lời) ⚠.
 
 ### Bố cục
 
@@ -352,7 +352,7 @@ Handle mặc định của React Flow là chấm 6 px khó trúng. Đổi bằng
 | `getBezierPath` (hiện tại) | Mềm, không chồng đoạn thẳng | Nhiều đường cong cắt chéo, khó lần theo |
 | `getStraightPath` | Đơn giản nhất | Cắt qua node khi bảng không thẳng hàng |
 
-Tham số: `borderRadius: 8`, `offset: 16` (đoạn ra khỏi handle đủ dài để ký hiệu chân gà nằm trên đoạn thẳng). Vì đổi hình đường là thay đổi nhìn thấy được lớn nhất trên canvas, người dùng xác nhận ở [câu hỏi mở 2](#câu-hỏi-còn-mở); mockup vẽ theo đề xuất.
+Tham số: `borderRadius: 8`, `offset: 16` (đoạn ra khỏi handle đủ dài để ký hiệu chân gà nằm trên đoạn thẳng). Vì đổi hình đường là thay đổi nhìn thấy được lớn nhất trên canvas, người dùng xác nhận ở [câu hỏi mở 2](#câu-hỏi-đã-trả-lời); mockup vẽ theo đề xuất.
 
 ### Màu, nét, ký hiệu
 
@@ -565,11 +565,13 @@ Ngoài phạm vi:
 | Giao diện chia sẻ, lịch sử phiên bản | Phần 8, dùng token của spec này |
 | Logo, favicon thiết kế riêng | Ngoài roadmap hiện tại; spec này chỉ dùng `DatabaseIcon` làm dấu nhận diện |
 
-## Câu hỏi còn mở
+## Câu hỏi đã trả lời
 
-| # | Câu hỏi | Lựa chọn | Đề xuất |
-|---|---|---|---|
-| 1 | ⚠ Người dùng có được tự chọn màu cho từng bảng không? | (a) Không, chỉ màu suy ra từ id như spec này. (b) Có: thêm trường `color` (một trong 8 tên màu, hoặc `null` = tự động) vào `Table` của core, tăng `version` tài liệu, thêm bước migration, operation `updateTable` nhận `color`, AI và importer giữ `null`; làm thành một phần riêng sau visual refresh. (c) Có, nhưng chỉ lưu ở frontend theo thiết bị | (a) cho phần này, và ghi (b) vào phần 9 "Hoàn thiện" nếu người dùng muốn. (c) bị loại vì màu không theo schema lên cloud. Lý do: (b) đụng core model, định dạng lưu, migration và backend, vượt phạm vi "chỉ giao diện" |
-| 2 | ⚠ Đổi đường quan hệ từ bezier sang vuông góc bo góc (`getSmoothStepPath`)? | (a) Đổi sang vuông góc. (b) Giữ bezier, chỉ đổi màu, độ dày, hover | (a): đúng phong cách dbdiagram, drawSQL người dùng chọn, ít cắt chéo; có sẵn trong React Flow nên không thêm thư viện. Mockup vẽ theo (a) |
-| 3 | ⚠ Font giao diện: Plus Jakarta Sans có hợp không? | (a) Plus Jakarta Sans + JetBrains Mono. (b) Inter + JetBrains Mono (trung tính, quen thuộc). (c) Giữ font hệ thống, chỉ thêm JetBrains Mono cho kiểu cột | (a): thân thiện, có tiếng Việt, tạo nhận diện; không thêm dependency vì dùng `next/font`. Mockup dùng (a) |
-| 4 | ⚠ Màu chính xanh lam (hue 259) có hợp không? | (a) Xanh lam như mockup. (b) Màu khác (xanh lục mòng két, tím); mọi cặp tương phản phải tính lại | (a): quen thuộc với công cụ sơ đồ, tách bạch với đỏ của lỗi và vàng của cảnh báo |
+Người dùng trả lời ngày 2026-10-02, sau khi xem spec và mockup.
+
+| # | Câu hỏi | Quyết định |
+|---|---|---|
+| 1 | Người dùng có được tự chọn màu cho từng bảng không? | Không, trong phần này. Màu dải tiêu đề là băm xác định từ `table.id` (FNV-1a 32 bit, chia lấy dư 8) như [mục 4](#màu-dải-tiêu-đề); core model không đổi. Màu do người dùng chọn để lại cho một phần sau (dự kiến phần 9 "Hoàn thiện") |
+| 2 | Đổi đường quan hệ từ bezier sang vuông góc bo góc? | Có: dùng `getSmoothStepPath` của `@xyflow/react` như [mục 5](#hình-đường-) |
+| 3 | Font giao diện | Plus Jakarta Sans cho giao diện và JetBrains Mono cho kiểu cột, code, qua `next/font/google`, có subset `vietnamese`, tự host |
+| 4 | Màu chính | Xanh lam (hue 259) như [mục 2](#2-token-màu) |

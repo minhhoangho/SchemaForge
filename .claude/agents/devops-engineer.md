@@ -91,6 +91,12 @@ pnpm typecheck
 - Stay within the task. Put other problems you notice in the report.
 - Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.
 
+## Execution log and context budget
+
+Follow `.claude/rules/execution-logs.md`: write your execution log entry when you finish or stop, and check the context-budget signals at every checkpoint.
+- Log what only CI can confirm and any new secrets or env variable names under **Ghi chú cho người tiếp theo**.
+- Stop at a safe point: no half-edited workflow or lockfile.
+
 ## Report
 
 Keep it short:
@@ -100,3 +106,4 @@ Keep it short:
 3. What only CI can confirm.
 4. New secrets or env variables needed (names only).
 5. Open questions and changes needed outside your scope.
+6. Log file path and status (`done`, `partial`, or `blocked`).

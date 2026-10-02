@@ -95,6 +95,12 @@ pnpm --filter @schemaforge/backend build
 - Never weaken, skip, or delete a failing test, or lower a coverage threshold.
 - Do not add a library that `document/architecture.md` or an approved spec does not list (for AI that is `ai` and `@ai-sdk/google`). Report the need instead.
 
+## Execution log and context budget
+
+Follow `.claude/rules/execution-logs.md`: write your execution log entry when you finish or stop, and check the context-budget signals at every checkpoint.
+- Log the tools added or changed, with their core operations, and any prompt or limit decisions under **Quyết định**.
+- Stop at a safe point: a tool, its tests, and its prompt wiring are either all done or reverted.
+
 ## Report
 
 Keep it short:
@@ -105,3 +111,4 @@ Keep it short:
 4. Commands run, with results (failures verbatim).
 5. Security-relevant decisions: prompt structure, logging, error mapping, limits.
 6. Open questions, deviations from the spec or plan, and contracts needed outside your scope.
+7. Log file path and status (`done`, `partial`, or `blocked`).

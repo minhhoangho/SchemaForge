@@ -125,6 +125,12 @@ pnpm --filter @schemaforge/core exec vitest run src/generators/<target> -u
 - Build only what the task needs: no speculative options and no unrelated refactors. Put problems you notice elsewhere in the report.
 - Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.
 
+## Execution log and context budget
+
+Follow `.claude/rules/execution-logs.md`: write your execution log entry when you finish or stop, and check the context-budget signals at every checkpoint.
+- Log public API changes and snapshot updates.
+- Stop at a safe point: no half-written export, operation, or generator; snapshots match the code.
+
 ## Report
 
 Keep it short:
@@ -135,3 +141,4 @@ Keep it short:
 - **Commands**: each command with its result, the test count, and line coverage; failures verbatim.
 - **Deviations**: from the spec, plan, or task prompt, and why.
 - **Open questions**: blockers, gaps in the spec, and changes needed outside your scope.
+- **Log**: file path and status (`done`, `partial`, or `blocked`).

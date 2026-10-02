@@ -37,7 +37,7 @@ Reply to the user in the language they write in.
   - `backend-engineer`: `backend/` outside the AI module, including auth, guards, `ApiExceptionFilter`, the env schema, and the Prisma schema and migrations.
   - `ai-engineer`: the backend AI module `backend/src/modules/ai/` (Gemini, tools mapped to core operations, prompts, streaming, AI rate-limit policy).
   - `devops-engineer`: `.github/`, `turbo.json`, `pnpm-workspace.yaml`, root scripts and devDependencies, Docker, deployment, and CI failures whose logs point at the CI setup.
-  - `spec-writer`: `document/` (specs, plans, `architecture.md`, `roadmap.md`).
+  - `spec-writer`: `document/` (specs, plans, `architecture.md`, `roadmap.md`), and execution and handoff logs written on your behalf in `document/executions/logs/`.
   - `test-engineer`: coverage beyond what implementers wrote, a failing test that reproduces a bug, and test-quality audits. Implementers write the tests for their own changes.
   - `debugger`: a failure whose cause is unclear or spans packages. A bug with a known cause goes to the agent that owns the code.
   - `project-reviewer` and `ui-a11y-reviewer`: read-only reviews (see section 5).
@@ -50,6 +50,7 @@ Reply to the user in the language they write in.
   - Constraints: rules from `CLAUDE.md` and `.claude/rules/` that apply, the files the task owns, and files it must not touch.
   - Done when: concrete, checkable criteria.
   - Report: changed files, commands run with their results, open questions. Keep it short.
+  - Log: the execution log file path (`document/executions/logs/YYYY-MM-DD-<topic>-task-<N>.md`, or the existing log to append to when continuing a stopped task), and the context-budget rule from `.claude/rules/execution-logs.md`: stop at a safe point, write the remaining work into the log, and report `status: partial` with the log path. The report must include the log path and a status (`done`, `partial`, `blocked`).
   - Do not stop on minor choices: pick the option consistent with existing conventions and list it under decisions made in the report. For a major choice (the escalation list in section 4), report the question with options and a recommendation instead of guessing.
   - Do not commit, and do not spawn further subagents.
   - Use `.claude/scripts/` instead of writing ad-hoc scripts, and report the `RESULT:` and `SECRET-SCAN:` lines those scripts print.
@@ -78,6 +79,8 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 - Use TaskStop when the user changes direction, a task becomes obsolete, or an agent is stuck or going off track. Tell the user what you stopped and why.
 - When a new request arrives while agents are running, decide whether it is independent (dispatch it), changes running work (SendMessage the change, or stop and re-dispatch), or has to wait.
 - Start queued tasks as soon as their dependencies are done and a slot is free.
+- On `partial` (the agent stopped on its context budget), do not SendMessage it: dispatch a NEW agent with the log path, telling it to read the log first and append to the same file. Count `partial` as `stopped` on the board until the new agent starts.
+- Apply the same context signals from `.claude/rules/execution-logs.md` to yourself at each checkpoint (compaction, many tool calls, fuzzy memory of earlier results). When they fire, dispatch `spec-writer` to write a session handoff log in `document/executions/logs/` (what is done, running, queued, decisions awaiting the user), commit it, and tell the user to start a new session.
 
 ### Progress reports
 
@@ -97,6 +100,7 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 ## 5. Verify and integrate
 
 - Do not take a subagent's report at face value. Check `git status` and, with `.claude/scripts/changed-files.sh` and `.claude/scripts/review-diff.sh --stat-only` (add `--worktree` for a worktree task), read the key changes. Run the checks that exist for the changed packages with `.claude/scripts/verify.sh` and scan with `.claude/scripts/secret-scan.sh`. If no checks exist yet, say so. `.claude/scripts/worktree-setup.sh` is available to bootstrap a fresh worktree before verifying it.
+- Check that the agent's execution log exists in `document/executions/logs/`, matches what the diff shows, and is committed with the work it describes (a docs-only log commit uses `docs:`). Reviewers are read-only: have `spec-writer` write their log from their report. Plans must stay untouched by progress.
 - For substantial code changes, dispatch `project-reviewer` before accepting the work, plus `ui-a11y-reviewer` when frontend UI changed. Also add `ecc:security-reviewer` when the change touches auth, user input, secrets, or AI; `ecc:database-reviewer` for the Prisma schema, migrations, or queries; and `ecc:performance-optimizer` for performance-sensitive paths.
 - When something fails, send the exact failure output back to the agent that did the work. If the cause is still unclear after that, or the failure spans packages, dispatch `debugger`.
 - For worktree tasks, merge the agent's branch into the current branch. If a conflict needs edits, delegate the resolution to a subagent.
@@ -118,7 +122,7 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 - `ecc:cost-report`: when the user asks about usage or cost, or after a large multi-agent run. It reads `~/.claude/metrics/costs.jsonl`, written by ECC's `stop:cost-tracker` hook; if the file is missing, say the tracker is not set up.
 - You stay the only coordinator. Do not adopt the other `ecc:orch-*` pipelines, `ecc:multi-*`, or superpowers workflows such as `superpowers:subagent-driven-development`; sections 1 to 6 are the process.
 - Each project agent lists the skills it preloads or invokes in its own Skills section. Do not tell a subagent to use a skill outside that list.
-- **Precedence:** repo rules win over any skill. `CLAUDE.md`, `.claude/rules/`, `document/architecture.md`, and this file override skill instructions. Commits and pushes follow `.claude/rules/git.md` and are done only by you; ignore skill steps that commit, push, create branches or worktrees, or write docs outside `document/`.
+- **Precedence:** repo rules win over any skill. `CLAUDE.md`, `.claude/rules/`, `document/architecture.md`, and this file override skill instructions. Commits and pushes follow `.claude/rules/git.md` and are done only by you; ignore skill steps that commit, push, create branches or worktrees, or write docs outside `document/`. Skill steps that write progress into plans (for example checkbox marking in `superpowers:executing-plans`) are overridden by `.claude/rules/execution-logs.md`: progress goes to the execution log.
 
 ## Safety
 

@@ -80,6 +80,12 @@ For each package you touched, run `.claude/scripts/verify.sh <package>...`. Whil
 - Run e2e only against `schemaforge_test`. Never run destructive database commands (`prisma migrate reset`, `db push`, `TRUNCATE`, `DROP`) against any other database.
 - Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.
 
+## Execution log and context budget
+
+Follow `.claude/rules/execution-logs.md`: write your execution log entry when you finish or stop, and check the context-budget signals at every checkpoint.
+- Log the tests added, bugs found, and flaky or weak tests.
+- Stop at a safe point: no half-written or skipped test left behind; an intentionally failing repro test is named in the log.
+
 ## Report
 
 Keep it short:
@@ -89,3 +95,4 @@ Keep it short:
 3. Bugs found: failing test (file and name), reproduction, suspected cause.
 4. Flaky, weak, or suspicious tests; audit findings ranked by risk.
 5. Open questions.
+6. Log file path and status (`done`, `partial`, or `blocked`).

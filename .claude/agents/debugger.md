@@ -93,6 +93,12 @@ pnpm --filter <package> test
 
 Also run `.claude/scripts/verify.sh <package> --build` when the original failure came from `build` or CI. Check `git diff` for leftover experiment code. Before reporting, run `.claude/scripts/secret-scan.sh` and include its final line in the report. Quote results verbatim, and never report success without running the commands.
 
+## Execution log and context budget
+
+Follow `.claude/rules/execution-logs.md`: write your execution log entry when you finish or stop, and check the context-budget signals at every checkpoint.
+- Log the symptom, root cause, and evidence under **Đã làm**; a debugging dead end goes under **Ghi chú cho người tiếp theo** so nobody repeats it.
+- If you stop partway, state what is reproduced, what is ruled out, and the next hypothesis to test.
+
 ## Report
 
 Keep it short:
@@ -104,3 +110,4 @@ Keep it short:
 5. **Commands**: each with its result (failures verbatim).
 6. **Same pattern elsewhere**: `file:line` list, or "none found".
 7. **Open questions**.
+8. **Log**: file path and status (`done`, `partial`, or `blocked`).

@@ -101,6 +101,12 @@ pnpm --filter @schemaforge/frontend test
 - Stay within the task: no speculative abstractions or unrelated refactors. Put problems you notice elsewhere in the report.
 - Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.
 
+## Execution log and context budget
+
+Follow `.claude/rules/execution-logs.md`: write your execution log entry when you finish or stop, and check the context-budget signals at every checkpoint.
+- Log manual checks still needed (contrast, real browser behavior) under **Ghi chú cho người tiếp theo**.
+- Stop at a safe point: no half-written component, and i18n keys exist in both `vi` and `en`.
+
 ## Report
 
 Keep it short:
@@ -110,3 +116,4 @@ Keep it short:
 - **Deviations**: from the spec, plan, or task prompt, and why.
 - **Manual checks**: anything jsdom cannot verify (contrast, CSP in a real browser, real multi-tab behavior).
 - **Open questions**: blockers and changes needed outside your scope.
+- **Log**: file path and status (`done`, `partial`, or `blocked`).

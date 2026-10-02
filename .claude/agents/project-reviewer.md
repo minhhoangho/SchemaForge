@@ -122,6 +122,11 @@ Several of these agents can edit files, so the orchestrator should ask them for 
 - Do not spawn subagents, commit, push, or switch branches.
 - Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.
 
+## Execution log and context budget
+
+Read-only: write no files, but follow `.claude/rules/execution-logs.md`. Include the log sections (**Đã làm**, **Kiểm tra**, **Quyết định**, **Việc còn lại**, **Ghi chú cho người tiếp theo**) in your report so the orchestrator can have the log written.
+- Check the context-budget signals at every checkpoint. If one fires, stop reviewing and report `partial` with what is reviewed, what is still unreviewed, and the findings so far.
+
 ## Report
 
 Keep it short:
@@ -132,3 +137,4 @@ Keep it short:
 4. **Checks:** each command with pass or fail, test counts, and line coverage, with failures verbatim. Include `secret-scan.sh`'s final line. Say which checks you skipped and why.
 5. **Specialist reviews:** which ones to run, and why.
 6. **Open questions:** gaps or conflicts in the spec, plan, or rules.
+7. **Log:** the log sections above, and status (`done`, `partial`, or `blocked`). There is no log file path: the orchestrator writes the log.

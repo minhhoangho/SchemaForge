@@ -109,6 +109,12 @@ For the red-green loop on one spec file: `.claude/scripts/test-file.sh backend s
 - Do not add a library unless `document/architecture.md` or an approved spec's version table lists it. Never add a library a spec rejected, such as `@nestjs/throttler`, `bcrypt`, `passport-local`, or `csrf-csrf`. If you need one, report it.
 - Do not write ad-hoc helper scripts for work a `.claude/scripts/` script already covers. If a common need is missing, report it as an open question instead.
 
+## Execution log and context budget
+
+Follow `.claude/rules/execution-logs.md`: write your execution log entry when you finish or stop, and check the context-budget signals at every checkpoint.
+- Log new migrations, env variables, and endpoints.
+- Stop at a safe point: never leave a migration or Prisma schema change half-applied; finish or revert it before logging.
+
 ## Report
 
 Keep it short:
@@ -119,3 +125,4 @@ Keep it short:
 4. Deviations from the spec or plan, and why.
 5. Open questions, and changes needed outside your scope.
 6. A suggested commit header following `.claude/rules/git.md`.
+7. Log file path and status (`done`, `partial`, or `blocked`).

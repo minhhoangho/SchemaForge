@@ -67,3 +67,32 @@ Người dùng có thể bác bỏ từng mục.
 ## 5. Khởi động nhanh cho session mới
 
 Xem mục 6 của [handoff trước](2026-10-02-codegen-ai-session-handoff.md#6-khởi-động-nhanh-cho-session-mới).
+
+## 6. Cập nhật cuối phiên
+
+Master đã push tới `4ec7478`. Không có agent chạy, không có worktree sót lại ở `.claude/worktrees/`.
+
+### Đã merge sau bàn giao
+
+- Task 26 tài liệu Markdown: `e173ee7`.
+- F1 sửa định danh MySQL và offset: `1377870`. Kết quả: so định danh chuyển sang `caseInsensitive`; bỏ `caseAndAccentInsensitive` và danh sách gộp; `timestamptz` MySQL ghi `+00:00` thay vì `Z` hoặc `-00:00`; export `resolveForeignKeyActions` từ `sql-ddl-model.ts` và Prisma dùng nó.
+- Task 16 SQL Server DDL: `d9aefd8`. Bảng ánh xạ hành động tham chiếu chuyển sang `generators/shared/sql-referential-actions.ts`, PostgreSQL import nó.
+- Task 31 conformance cho MSW, OpenAPI, DBML: `4ec7478`. `pnpm test:conformance`: 71 test pass, lần chạy thứ hai cache Turbo toàn bộ.
+
+### Sẵn sàng dispatch
+
+- Task 15 MySQL DDL: import `shared/sql-referential-actions.ts`, không copy lại.
+- Task 18 Drizzle.
+- Sau 15 và 16: Task 29. Sau 18: Task 30.
+- Sau 14–26 (nên phụ thuộc 15 và 18): Task 27. Sau 27: Task 28 → 33 → 34 → 35.
+
+### Hàng đợi
+
+- `.gitattributes`: snapshot chứa byte NUL nên ép diff dạng văn bản cho `packages/core/src/generators/__snapshots__/**`.
+- Review `1c42f9c..HEAD` bằng `project-reviewer` và `ecc:security-reviewer`.
+
+### Bài học thêm
+
+- Thứ tự merge quan trọng. Branch rebase lên commit shared mới có thể làm snapshot bị lỗi (Task 16 naming-edge sau F1). Chạy verify trên master trước push; nếu fail, `git reset --keep <commit cuối merge>`, để agent cập nhật snapshot, amend, merge lại.
+- `verify.sh` không có flag `--worktree`.
+- Generator subpath kiểu `Generate<T>`, nên caller pass `{}` làm argument thứ hai dù target không có option.

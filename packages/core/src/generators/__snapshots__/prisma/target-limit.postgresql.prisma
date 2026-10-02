@@ -1,0 +1,400 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum FlagStatus {
+  active
+  inactive
+
+  @@map("flag_status")
+}
+
+model AllTypes {
+  id Int @id
+  smallintValue Int @default(-32768) @map("smallint_value") @db.SmallInt
+  integerValue Int @default(42) @map("integer_value")
+  bigintValue BigInt @default(9223372036854775807) @map("bigint_value")
+  decimalValue Decimal @default(1234567890.12) @map("decimal_value") @db.Decimal(12, 2)
+  realValue Float @default(dbgenerated("1.5e10")) @map("real_value") @db.Real
+  doubleValue Float @default(-2.25) @map("double_value")
+  booleanValue Boolean @default(true) @map("boolean_value")
+  charValue String @default("abc") @map("char_value") @db.Char(3)
+  varcharValue String @default("it's") @map("varchar_value") @db.VarChar(20)
+  textValue String @default("a\\b") @map("text_value")
+  uuidValue String @default("123e4567-e89b-12d3-a456-426614174000") @map("uuid_value") @db.Uuid
+  dateValue DateTime @default(dbgenerated("'2026-01-02'")) @map("date_value") @db.Date
+  timeValue DateTime @default(dbgenerated("'12:34:56.789'")) @map("time_value") @db.Time(6)
+  timestampValue DateTime @default(dbgenerated("'2026-01-02T03:04:05'")) @map("timestamp_value") @db.Timestamp(6)
+  timestamptzValue DateTime @default(dbgenerated("'2026-01-02T03:04:05.123+07:00'")) @map("timestamptz_value") @db.Timestamptz(6)
+  timestampNow DateTime @default(now()) @map("timestamp_now") @db.Timestamp(6)
+  timestamptzNow DateTime @default(now()) @map("timestamptz_now") @db.Timestamptz(6)
+  jsonValue Json @default("{\"note\":\"it's\"}") @map("json_value")
+  binaryValue Bytes? @map("binary_value")
+  enumValue FlagStatus @default(active) @map("enum_value")
+
+  @@map("all_types")
+}
+
+model AutoInteger {
+  id Int @id @default(autoincrement())
+
+  @@map("auto_integer")
+}
+
+model AutoSmallint {
+  id Int @id @default(autoincrement()) @db.SmallInt
+
+  @@map("auto_smallint")
+}
+
+model AutoTrailing {
+  a Int
+  id BigInt @default(autoincrement())
+
+  @@id([a, id])
+  @@map("auto_trailing")
+}
+
+model AutoWideKey {
+  id BigInt @default(autoincrement())
+  codeA String @map("code_a") @db.VarChar(700)
+  codeB String @map("code_b") @db.VarChar(700)
+
+  @@id([id, codeA, codeB])
+  @@map("auto_wide_key")
+}
+
+model BinaryKeys {
+  id Int @id
+  hash Bytes
+
+  @@unique([hash], map: "binary_keys_hash_ux")
+  @@map("binary_keys")
+}
+
+model CharUnique {
+  id Int @id
+  code String @unique @db.Char(300)
+
+  @@map("char_unique")
+}
+
+model CustomRequired {
+  id Int @id
+  payload Unsupported("tsvector")
+
+  @@map("custom_required")
+}
+
+model CustomValues {
+  id Int @id
+  shape Unsupported("geometry(Point, 4326)")?
+  address Unsupported("inet") @default(dbgenerated("'127.0.0.1'"))
+
+  @@map("custom_values")
+}
+
+model CycleA {
+  id Int @id
+  bId Int? @map("b_id")
+  b CycleB? @relation("CycleA_b", fields: [bId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  cycleB CycleB[] @relation("CycleB_a")
+
+  @@map("cycle_a")
+}
+
+model CycleB {
+  id Int @id
+  aId Int? @map("a_id")
+  a CycleA? @relation("CycleB_a", fields: [aId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  cycleA CycleA[] @relation("CycleA_b")
+
+  @@map("cycle_b")
+}
+
+model DefaultChildren {
+  id Int @id
+  parentId Int @default(0) @map("parent_id")
+  parent DefaultParents @relation(fields: [parentId], references: [id], onDelete: SetDefault, onUpdate: NoAction)
+
+  @@map("default_children")
+}
+
+model DefaultParents {
+  id Int @id
+  defaultChildren DefaultChildren[]
+
+  @@map("default_parents")
+}
+
+model FivePartKeys {
+  id Int @id
+  q1 String @db.VarChar(700)
+  q2 String @db.VarChar(700)
+  q3 String @db.VarChar(700)
+  q4 String @db.VarChar(700)
+  q5 String @db.VarChar(700)
+  fivePartRefs FivePartRefs[]
+
+  @@unique([q1, q2, q3, q4, q5], map: "five_part_keys_ux")
+  @@map("five_part_keys")
+}
+
+model FivePartRefs {
+  id Int @id
+  q1 String @db.VarChar(700)
+  q2 String @db.VarChar(700)
+  q3 String @db.VarChar(700)
+  q4 String @db.VarChar(700)
+  q5 String @db.VarChar(700)
+  fivePartKeys FivePartKeys @relation(fields: [q1, q2, q3, q4, q5], references: [q1, q2, q3, q4, q5], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("five_part_refs")
+}
+
+model FixedKeys {
+  code String @id @db.Char(500)
+  fixedRefs FixedRefs[]
+
+  @@map("fixed_keys")
+}
+
+model FixedRefs {
+  id Int @id
+  fixedCode String @map("fixed_code") @db.Char(500)
+  fixedKeys FixedKeys @relation(fields: [fixedCode], references: [code], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("fixed_refs")
+}
+
+model FixedUnique {
+  id Int @id
+  code String @unique @db.Char(900)
+
+  @@map("fixed_unique")
+}
+
+model Flags {
+  id Int @id
+  status FlagStatus?
+  isPrimary Boolean @unique @map("is_primary")
+
+  @@map("flags")
+}
+
+model FourPartKeys {
+  id Int @id
+  p1 String @db.VarChar(192)
+  p2 String @db.VarChar(192)
+  p3 String @db.VarChar(192)
+  p4 String @db.VarChar(192)
+
+  @@unique([p1, p2, p3, p4], map: "four_part_keys_ux")
+  @@map("four_part_keys")
+}
+
+model FractionalTimes {
+  id Int @id
+  startsAt DateTime @default(dbgenerated("'12:34:56.123456789'")) @map("starts_at") @db.Time(6)
+  createdAt DateTime @default(dbgenerated("'2026-01-02T03:04:05.12345678'")) @map("created_at") @db.Timestamp(6)
+
+  @@map("fractional_times")
+}
+
+model JsonKeys {
+  doc Json @id
+
+  @@map("json_keys")
+}
+
+model JsonRefs {
+  id Int @id
+  doc Json
+  jsonUnique JsonUnique @relation(fields: [doc], references: [doc], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("json_refs")
+}
+
+model JsonUnique {
+  id Int @id
+  doc Json @unique
+  jsonRefs JsonRefs[]
+
+  @@map("json_unique")
+}
+
+model Leaf {
+  id Int @id
+  leftId Int @map("left_id")
+  rightId Int @map("right_id")
+  left Left @relation(fields: [leftId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  right Right @relation(fields: [rightId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  root Root[]
+
+  @@map("leaf")
+}
+
+model Left {
+  id Int @id
+  rootId Int @map("root_id")
+  root Root @relation(fields: [rootId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  leaf Leaf[]
+
+  @@map("left")
+}
+
+/// ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+model LongComments {
+  id Int @id
+  /// ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+  note String
+  /// sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss😀
+  surrogateNote String @map("surrogate_note")
+
+  @@map("long_comments")
+}
+
+model LongUnique {
+  id Int @id
+  code String @unique @db.VarChar(1000)
+
+  @@map("long_unique")
+}
+
+model NoKeyRows {
+  note String
+  value Int
+
+  @@map("no_key_rows")
+  @@ignore
+}
+
+model NullableUnique {
+  id Int @id
+  code String? @unique @db.VarChar(20)
+  altCode String? @map("alt_code") @db.VarChar(20)
+  nullableUniqueRefs NullableUniqueRefs[]
+
+  @@unique([altCode], map: "nullable_unique_alt_code_ux")
+  @@map("nullable_unique")
+}
+
+model NullableUniqueRefs {
+  id Int @id
+  code String? @db.VarChar(20)
+  nullableUnique NullableUnique? @relation(fields: [code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("nullable_unique_refs")
+}
+
+model OversizedTypes {
+  id Int @id
+  pgVarchar String @map("pg_varchar")
+  mysqlChar String @map("mysql_char") @db.Char(256)
+  mysqlVarchar String @map("mysql_varchar") @db.VarChar(16384)
+  sqlserverChar String @map("sqlserver_char") @db.Char(4001)
+  sqlserverVarchar String @map("sqlserver_varchar") @db.VarChar(4001)
+  pgDecimal Decimal @map("pg_decimal") @db.Decimal(1000, 2)
+  mysqlDecimal Decimal @map("mysql_decimal") @db.Decimal(40, 31)
+
+  @@map("oversized_types")
+}
+
+model OversizedUnique {
+  id Int @id
+  code String @unique @db.VarChar(20000)
+
+  @@map("oversized_unique")
+}
+
+model RequiredA {
+  id Int @id
+  bId Int @map("b_id")
+  b RequiredB @relation("RequiredA_b", fields: [bId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  requiredB RequiredB[] @relation("RequiredB_a")
+  requiredChild RequiredChild[]
+
+  @@map("required_a")
+}
+
+model RequiredB {
+  id Int @id
+  aId Int @map("a_id")
+  a RequiredA @relation("RequiredB_a", fields: [aId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  requiredA RequiredA[] @relation("RequiredA_b")
+
+  @@map("required_b")
+}
+
+model RequiredChild {
+  id Int @id
+  aId Int @map("a_id")
+  a RequiredA @relation(fields: [aId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("required_child")
+}
+
+model Right {
+  id Int @id
+  rootId Int @map("root_id")
+  root Root @relation(fields: [rootId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  leaf Leaf[]
+
+  @@map("right")
+}
+
+model Root {
+  id Int @id
+  leafId Int? @map("leaf_id")
+  leaf Leaf? @relation(fields: [leafId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  left Left[]
+  right Right[]
+
+  @@map("root")
+}
+
+model TextKeys {
+  code String @id
+  label String @unique
+  tag String
+  textRefs TextRefs[]
+
+  @@index([tag], map: "text_keys_tag_ix")
+  @@map("text_keys")
+}
+
+model TextRefs {
+  id Int @id
+  textKeyCode String @map("text_key_code")
+  textKeys TextKeys @relation(fields: [textKeyCode], references: [code], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("text_refs")
+}
+
+model TreeNodes {
+  id Int @id
+  parentId Int? @map("parent_id")
+  parent TreeNodes? @relation("TreeNodes_parent", fields: [parentId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  treeNodes TreeNodes[] @relation("TreeNodes_parent")
+
+  @@map("tree_nodes")
+}
+
+model UniqueOnly {
+  code String @unique @db.VarChar(20)
+  label String
+
+  @@map("unique_only")
+}
+
+model WideRows {
+  id Int @id
+  v String @db.VarChar(16383)
+
+  @@map("wide_rows")
+}

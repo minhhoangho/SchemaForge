@@ -1,0 +1,4 @@
+enum-not-supported ["columns","col_16","type"]
+key-column-type-narrowed ["columns","col_7","type"]
+key-column-type-narrowed ["columns","col_8","type"]
+referential-action-cycle ["relations","rel_34"]

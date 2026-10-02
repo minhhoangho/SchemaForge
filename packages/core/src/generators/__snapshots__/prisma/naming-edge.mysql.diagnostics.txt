@@ -1,0 +1,3 @@
+key-column-type-narrowed ["columns","col_7","type"]
+identifier-collision-renamed ["columns","col_8","name"]
+key-column-type-narrowed ["columns","col_8","type"]

@@ -31,9 +31,9 @@ export function Toaster(props: AppToasterProps): JSX.Element {
       className="toaster group"
       position={TOASTER_POSITION}
       icons={{
-        success: <CircleCheckIcon className="text-success size-4" />,
+        success: <CircleCheckIcon className="size-4 text-success" />,
         info: <InfoIcon className="size-4 text-primary" />,
-        warning: <TriangleAlertIcon className="text-warning size-4" />,
+        warning: <TriangleAlertIcon className="size-4 text-warning" />,
         error: <CircleAlertIcon className="size-4 text-destructive" />,
         loading: (
           <LoaderIcon className="size-4 text-muted-foreground motion-safe:animate-spin" />

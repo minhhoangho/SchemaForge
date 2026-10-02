@@ -442,7 +442,7 @@ describe("generateMysql key columns and row size", () => {
     });
   });
 
-  it("writes a plain index named <table>_<column>_idx for an auto-increment column that leads no key", () => {
+  it("writes a plain key named <table>_<column>_idx inside CREATE TABLE for an auto-increment column that leads no key", () => {
     const schema = tableSchema(
       [
         { name: "a" },
@@ -451,15 +451,64 @@ describe("generateMysql key columns and row size", () => {
       ["col_0", "col_1"],
     );
 
-    const result = generateMysql(schema, {});
+    expect(generate(schema)).toBe(
+      [
+        "CREATE TABLE `t` (",
+        "  `a` INT NOT NULL,",
+        "  `id` BIGINT AUTO_INCREMENT NOT NULL,",
+        "  PRIMARY KEY (`a`, `id`),",
+        "  KEY `t_id_idx` (`id`)",
+        `) ${TABLE_OPTIONS};`,
+        "",
+      ].join("\n"),
+    );
+  });
 
-    expect({
-      statements: result.file.content.split("\n\n").slice(1),
-      diagnostics: result.diagnostics,
-    }).toStrictEqual({
-      statements: ["CREATE INDEX `t_id_idx` ON `t` (`id`);\n"],
-      diagnostics: [],
+  it("writes a user index that leads an auto-increment column inside CREATE TABLE", () => {
+    const schema = buildSchema({
+      tables: [
+        makeTable({
+          id: "tbl_t",
+          name: "t",
+          primaryKeyColumnIds: ["col_0", "col_1"],
+        }),
+      ],
+      columns: [
+        column("col_0", "tbl_t", { name: "a" }),
+        column("col_1", "tbl_t", { name: "id", isAutoIncrement: true }),
+        column("col_2", "tbl_t", { name: "b" }),
+      ],
+      indexes: [
+        makeIndex({
+          id: "idx_id",
+          name: "t_id_ux",
+          tableId: "tbl_t",
+          columnIds: ["col_1", "col_0"],
+          isUnique: true,
+        }),
+        makeIndex({
+          id: "idx_b",
+          name: "t_b_ix",
+          tableId: "tbl_t",
+          columnIds: ["col_2"],
+        }),
+      ],
     });
+
+    expect(generate(schema)).toBe(
+      [
+        "CREATE TABLE `t` (",
+        "  `a` INT NOT NULL,",
+        "  `id` INT AUTO_INCREMENT NOT NULL,",
+        "  `b` INT NOT NULL,",
+        "  PRIMARY KEY (`a`, `id`),",
+        "  UNIQUE KEY `t_id_ux` (`id`, `a`)",
+        `) ${TABLE_OPTIONS};`,
+        "",
+        "CREATE INDEX `t_b_ix` ON `t` (`b`);",
+        "",
+      ].join("\n"),
+    );
   });
 
   it("renames a column that differs only by case and uses the new name in keys", () => {

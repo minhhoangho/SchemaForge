@@ -36,13 +36,15 @@ CREATE TABLE `auto_smallint` (
 CREATE TABLE `auto_trailing` (
   `a` INT NOT NULL,
   `id` BIGINT AUTO_INCREMENT NOT NULL,
-  PRIMARY KEY (`a`, `id`)
+  PRIMARY KEY (`a`, `id`),
+  KEY `auto_trailing_id_idx` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_ci;
 
 CREATE TABLE `auto_wide_key` (
   `id` BIGINT AUTO_INCREMENT NOT NULL,
   `code_a` VARCHAR(700) NOT NULL,
-  `code_b` VARCHAR(700) NOT NULL
+  `code_b` VARCHAR(700) NOT NULL,
+  KEY `auto_wide_key_id_idx` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_ci;
 
 CREATE TABLE `binary_keys` (
@@ -302,8 +304,6 @@ CREATE TABLE `wide_rows` (
 CREATE UNIQUE INDEX `four_part_keys_ux` ON `four_part_keys` (`p1`, `p2`, `p3`, `p4`);
 CREATE UNIQUE INDEX `nullable_unique_alt_code_ux` ON `nullable_unique` (`alt_code`);
 CREATE INDEX `text_keys_tag_ix` ON `text_keys` (`tag`);
-CREATE INDEX `auto_trailing_id_idx` ON `auto_trailing` (`id`);
-CREATE INDEX `auto_wide_key_id_idx` ON `auto_wide_key` (`id`);
 
 ALTER TABLE `cycle_a` ADD CONSTRAINT `cycle_a_b_id_fkey` FOREIGN KEY (`b_id`) REFERENCES `cycle_b` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE `cycle_b` ADD CONSTRAINT `cycle_b_a_id_fkey` FOREIGN KEY (`a_id`) REFERENCES `cycle_a` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;

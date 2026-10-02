@@ -51,10 +51,42 @@ function renderColumn(
   ].join("");
 }
 
+// MySQL raises error 1075 at CREATE TABLE when an AUTO_INCREMENT column leads
+// no key, so for each such column that neither the primary key nor a unique
+// constraint leads, the first index leading it is written inside CREATE TABLE
+// (spec R14, R25): the substitute `<table>_<column>_idx` or a user index.
+function findInlineIndexes(
+  table: SqlTableModel,
+  indexes: readonly SqlIndexModel[],
+): readonly SqlIndexModel[] {
+  const leadingNames = new Set(
+    [table.primaryKey, ...table.uniqueConstraints].flatMap(
+      (key) => key?.columnNames[0] ?? [],
+    ),
+  );
+  return table.columns.flatMap((column) => {
+    if (!column.isAutoIncrement || leadingNames.has(column.name)) {
+      return [];
+    }
+    const index = indexes.find(
+      (candidate) =>
+        candidate.tableName === table.name &&
+        candidate.columnNames[0] === column.name,
+    );
+    return index === undefined ? [] : [index];
+  });
+}
+
+function renderInlineIndex(index: SqlIndexModel): string {
+  const unique = index.isUnique ? "UNIQUE " : "";
+  return `${COLUMN_INDENT}${unique}KEY ${quote(index.name)} (${quoteList(index.columnNames)})`;
+}
+
 // MySQL always names the primary key PRIMARY, so it is written unnamed.
 function renderTableElements(
   table: SqlTableModel,
   enums: SchemaDocument["enums"],
+  inlineIndexes: readonly SqlIndexModel[],
 ): readonly string[] {
   return [
     ...table.columns.map((column) => renderColumn(column, enums)),
@@ -67,14 +99,16 @@ function renderTableElements(
       (unique) =>
         `${COLUMN_INDENT}CONSTRAINT ${quote(unique.name)} UNIQUE (${quoteList(unique.columnNames)})`,
     ),
+    ...inlineIndexes.map(renderInlineIndex),
   ];
 }
 
 function renderTable(
   table: SqlTableModel,
   enums: SchemaDocument["enums"],
+  inlineIndexes: readonly SqlIndexModel[],
 ): readonly string[] {
-  const elements = renderTableElements(table, enums);
+  const elements = renderTableElements(table, enums, inlineIndexes);
   const comment =
     table.comment === "" ? "" : ` COMMENT=${literal(table.comment)}`;
   const footer = `${TABLE_OPTIONS}${comment};`;
@@ -108,9 +142,15 @@ export const generateMysql: Generate<"mysql"> = (
   schema: SchemaDocument,
 ): GenerateResult => {
   const model = buildSqlDdlModel(schema, "mysql");
+  const inlineIndexes = model.tables.map((table) =>
+    findInlineIndexes(table, model.indexes),
+  );
+  const inlined = new Set(inlineIndexes.flat());
   const content = renderFileContent([
-    ...model.tables.map((table) => renderTable(table, schema.enums)),
-    model.indexes.map(renderIndex),
+    ...model.tables.map((table, position) =>
+      renderTable(table, schema.enums, inlineIndexes[position] ?? []),
+    ),
+    model.indexes.filter((index) => !inlined.has(index)).map(renderIndex),
     model.foreignKeys.map(renderForeignKey),
   ]);
   return {

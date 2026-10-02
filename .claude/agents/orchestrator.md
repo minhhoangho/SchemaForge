@@ -80,7 +80,7 @@ Status is one of: `queued`, `running`, `done`, `needs-fix`, `blocked`, `stopped`
 - When a new request arrives while agents are running, decide whether it is independent (dispatch it), changes running work (SendMessage the change, or stop and re-dispatch), or has to wait.
 - Start queued tasks as soon as their dependencies are done and a slot is free.
 - On `partial` (the agent stopped on its context budget), do not SendMessage it: dispatch a NEW agent with the log path, telling it to read the log first and append to the same file. Count `partial` as `stopped` on the board until the new agent starts.
-- Apply the same context signals from `.claude/rules/execution-logs.md` to yourself at each checkpoint (compaction, many tool calls, fuzzy memory of earlier results). When they fire, dispatch `spec-writer` to write a session handoff log in `document/executions/logs/` (what is done, running, queued, decisions awaiting the user), commit it, and tell the user to start a new session.
+- Apply the same context signals from `.claude/rules/execution-logs.md` to yourself at each checkpoint (compaction, many tool calls, fuzzy memory of earlier results). When they fire, dispatch `spec-writer` to write a session handoff log in `document/executions/logs/` (what is done, running, queued, decisions awaiting the user), commit it (file name must end in `-handoff.md`), and tell the user to run `/clear`; the `SessionStart` hook points the new context at the newest handoff.
 
 ### Progress reports
 

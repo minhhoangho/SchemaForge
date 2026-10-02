@@ -41,5 +41,5 @@ If any signal fires: finish or revert the current small edit so no file is half-
 
 - Every report includes the log file path and a status: `done`, `partial` (stopped on the context budget), or `blocked`.
 - On `partial`, the orchestrator dispatches a NEW agent (not SendMessage, because the old context is the problem) with the log path, telling it to read the log first and append to the same file.
-- The orchestrator applies the same signals to itself: when its context is long, it has `spec-writer` write a session handoff log and tells the user to start a new session.
+- The orchestrator applies the same signals to itself: when its context is long, it has `spec-writer` write a session handoff log (file name ending in `-handoff.md`) and tells the user to run `/clear`; the `SessionStart` hook (`.claude/scripts/session-handoff.sh`) then points the new context at the newest handoff.
 - Commit logs together with the work they describe; a docs-only log commit uses `docs:`.

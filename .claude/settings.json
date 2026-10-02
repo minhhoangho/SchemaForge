@@ -12,5 +12,18 @@
       "Bash(.claude/scripts/secret-scan.sh *)",
       "Bash(.claude/scripts/worktree-setup.sh *)"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/scripts/session-handoff.sh"
+          }
+        ]
+      }
+    ]
   }
 }

@@ -75,6 +75,12 @@ describe("isValidDefaultLiteral", () => {
     ]);
   });
 
+  describe("decimal(2, 2)", () => {
+    const type: ColumnType = { kind: "decimal", precision: 2, scale: 2 };
+    acceptsAll(type, "decimal(2, 2)", ["0", "0.5", "-0.12", "00.5"]);
+    rejectsAll(type, "decimal(2, 2)", ["1.0", "0.123"]);
+  });
+
   describe("decimal(2, 3)", () => {
     const type: ColumnType = { kind: "decimal", precision: 2, scale: 3 };
     acceptsAll(type, "decimal(2, 3)", ["12.3456"]);

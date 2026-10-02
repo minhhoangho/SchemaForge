@@ -21,7 +21,9 @@ function isValidIntegerLiteral(value: string, bits: bigint): boolean {
 }
 
 const DECIMAL_LITERAL_PATTERN = /^-?[0-9]+(\.[0-9]+)?$/;
-const LEADING_ZEROS_PATTERN = /^0+(?=[0-9])/;
+// Every leading zero is stripped, so an integer part of "0" counts as no digits
+// and decimal(p, p) still accepts 0.5 (spec: "không kể số 0 ở đầu").
+const LEADING_ZEROS_PATTERN = /^0+/;
 
 // Digit-count limits only apply when scale <= precision; a larger scale
 // already has its own issue (column-type-invalid-scale), so plan issue 2

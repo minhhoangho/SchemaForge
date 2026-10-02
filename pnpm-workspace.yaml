@@ -13,5 +13,9 @@ catalog:
 
 allowBuilds:
   "@prisma/engines": true
+  cpu-features: false
+  msw: false
   prisma: true
+  protobufjs: false
+  ssh2: false
   unrs-resolver: true

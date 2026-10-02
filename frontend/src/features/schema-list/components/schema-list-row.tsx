@@ -26,7 +26,7 @@ const UPDATED_AT_FORMAT: Intl.DateTimeFormatOptions = {
 };
 
 const LINK_CLASS_NAME =
-  "truncate font-semibold text-foreground no-underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  "truncate font-semibold text-foreground underline underline-offset-4 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 // The trigger is passed back so the dialog can return focus to it.
 type RowAction = (
@@ -54,7 +54,9 @@ type GuestRowProps = {
 const ROW_CLASS_NAME =
   "flex items-center gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground shadow-sm transition-[border-color] duration-150 hover:border-input";
 
-function RowIcon({ isCloud }: { readonly isCloud: boolean }): JSX.Element {
+type RowIconProps = { readonly isCloud: boolean };
+
+function RowIcon({ isCloud }: RowIconProps): JSX.Element {
   const Icon = isCloud ? CloudIcon : HardDriveIcon;
 
   return (

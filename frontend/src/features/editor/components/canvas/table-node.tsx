@@ -90,12 +90,12 @@ export const TableNode = memo(function TableNode({
   return (
     <div
       className={cn(
-        "table-node-card max-w-80 min-w-56 overflow-hidden rounded-lg border border-canvas-node-border bg-card text-xs text-card-foreground shadow-sm transition-[border-color,box-shadow] duration-150 hover:shadow-md",
+        "table-node-card max-w-80 min-w-56 rounded-lg border border-canvas-node-border bg-card text-xs text-card-foreground shadow-sm transition-[border-color,box-shadow] duration-150 hover:shadow-md",
         selected && "border-primary shadow-md ring-1 ring-primary",
       )}
     >
       <div
-        className="relative flex h-9 items-center gap-1.5 px-3 text-[0.8125rem] font-semibold text-canvas-node-header-foreground"
+        className="relative flex h-9 items-center gap-1.5 rounded-t-[calc(var(--radius-lg)-1px)] px-3 text-[0.8125rem] font-semibold text-canvas-node-header-foreground"
         style={{ backgroundColor: getTableAccentColor(table.id) }}
       >
         <Handle

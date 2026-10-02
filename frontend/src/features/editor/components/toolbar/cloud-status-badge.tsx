@@ -40,13 +40,13 @@ const PILL_CLASS_NAME =
 function toTone(kind: CloudStatusView["kind"]): Tone {
   switch (kind) {
     case "failed":
+    case "conflict":
+    case "deleted-in-cloud":
       return { text: "text-destructive", dot: "bg-destructive" };
     case "synced":
       return { text: "text-success", dot: "bg-success" };
     case "unsynced":
     case "unsynced-session-expired":
-    case "conflict":
-    case "deleted-in-cloud":
       return { text: "text-warning", dot: "bg-warning" };
     case "local-only":
     case "syncing":

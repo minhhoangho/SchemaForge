@@ -51,7 +51,7 @@ export function IssueCountButton(): JSX.Element {
       <TooltipTrigger asChild>
         <Button
           variant="ghost"
-          className="bg-destructive/10 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          className="border-transparent bg-destructive/10 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
           onClick={openIssuesTab}
         >
           <TriangleAlertIcon aria-hidden />

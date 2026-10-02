@@ -13,7 +13,7 @@ export function SignInInvite(): JSX.Element {
   const { t } = useTranslation("sync");
 
   return (
-    <p className="col-span-2 flex items-start gap-3 rounded-lg border border-border bg-muted p-3">
+    <p className="col-span-2 flex items-start gap-3 rounded-lg border border-border bg-card p-3">
       <CloudIcon
         aria-hidden="true"
         className="size-4 shrink-0 text-muted-foreground"

@@ -265,6 +265,7 @@ const BOUNDARY_CASES = [
 
 const TEXT_CONTRAST_MINIMUM = 4.5;
 const THEMES = ["light", "dark"] as const;
+const PERCENT = 100;
 
 type TextCase = {
   readonly theme: ThemeName;
@@ -350,12 +351,10 @@ describe("theme tokens", () => {
     },
   );
 
-  it("declares every table accent in both themes", () => {
-    for (const theme of THEMES) {
-      for (const accent of ACCENTS) {
-        expect(THEME_TOKENS[theme].has(accent)).toBe(true);
-      }
-    }
+  it.each(
+    THEMES.flatMap((theme) => ACCENTS.map((accent) => ({ theme, accent }))),
+  )("declares --$accent in the $theme theme", ({ theme, accent }) => {
+    expect(THEME_TOKENS[theme].has(accent)).toBe(true);
   });
 
   it("wires the React Flow node border to the canvas-node-border token", () => {
@@ -399,6 +398,56 @@ describe("text on tinted surfaces", () => {
 
       expect(
         contrastRatio(flattenOnto(textColor, tint), tint),
+      ).toBeGreaterThanOrEqual(TEXT_CONTRAST_MINIMUM);
+    },
+  );
+});
+
+// button.tsx mixes --foreground into --primary on hover (color-mix in oklch,
+// shorter hue). The mix has to keep the focus ring at 3:1 against the hovered
+// fill (1.4.11) and the label at 4.5:1 (1.4.3). 6 is the largest whole percent
+// that holds in light (7 gives 2.96:1); dark has headroom.
+const HOVER_MIX_PERCENT = 6;
+const OKLCH_PARTS = /^oklch\(([\d.]+) ([\d.]+) ([\d.]+)\)$/;
+const HALF_TURN = 180;
+const FULL_TURN = 360;
+
+function oklchParts(theme: ThemeName, name: string): readonly number[] {
+  const parts = OKLCH_PARTS.exec(THEME_TOKENS[theme].get(name) ?? "");
+
+  return (parts ?? []).slice(1).map(Number);
+}
+
+function mixedOklch(theme: ThemeName, percent: number): SrgbColor {
+  const [l1 = 0, c1 = 0, h1 = 0] = oklchParts(theme, "primary");
+  const [l2 = 0, c2 = 0, h2 = 0] = oklchParts(theme, "foreground");
+  let hueDelta = h2 - h1;
+  if (hueDelta > HALF_TURN) hueDelta -= FULL_TURN;
+  if (hueDelta < -HALF_TURN) hueDelta += FULL_TURN;
+  const share = percent / PERCENT;
+
+  return parseOklch(
+    `oklch(${String(l1 + (l2 - l1) * share)} ${String(c1 + (c2 - c1) * share)} ${String(h1 + hueDelta * share)})`,
+  );
+}
+
+describe("default button hover", () => {
+  it("uses the percentage measured here in button.tsx", () => {
+    expect(readSourceFile("components/ui/button.tsx")).toContain(
+      `var(--foreground)_${String(HOVER_MIX_PERCENT)}%`,
+    );
+  });
+
+  it.each(THEMES)(
+    "keeps the ring and the label readable on the hovered primary in the %s theme",
+    (theme) => {
+      const hovered = mixedOklch(theme, HOVER_MIX_PERCENT);
+
+      expect(
+        contrastRatio(resolveToken(theme, "ring"), hovered),
+      ).toBeGreaterThanOrEqual(NON_TEXT_CONTRAST_MINIMUM);
+      expect(
+        contrastRatio(resolveToken(theme, "primary-foreground"), hovered),
       ).toBeGreaterThanOrEqual(TEXT_CONTRAST_MINIMUM);
     },
   );

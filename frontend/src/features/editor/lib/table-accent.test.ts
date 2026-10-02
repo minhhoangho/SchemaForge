@@ -6,6 +6,12 @@ import {
   type TableAccentIndex,
 } from "./table-accent";
 
+const ACCENTS_OF_1000_IDS = new Set<TableAccentIndex>(
+  Array.from({ length: 1000 }, (_, index) =>
+    getTableAccent(`tbl_${String(index)}`),
+  ),
+);
+
 describe("table-accent", () => {
   it("returns the same accent for the same table id", () => {
     const id = "tbl_users";
@@ -22,12 +28,7 @@ describe("table-accent", () => {
   });
 
   it("spreads 1000 generated table ids over all 8 accents", () => {
-    const accents = new Set<TableAccentIndex>();
-    for (let i = 0; i < 1000; i += 1) {
-      const id = `tbl_${String(i)}` as const;
-      accents.add(getTableAccent(id));
-    }
-    expect(accents.size).toBe(TABLE_ACCENT_COUNT);
+    expect(ACCENTS_OF_1000_IDS.size).toBe(TABLE_ACCENT_COUNT);
   });
 
   it("formats the accent as a css variable reference", () => {

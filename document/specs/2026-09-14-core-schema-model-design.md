@@ -167,7 +167,24 @@ type ColumnType =
 - Giới hạn riêng của từng dialect (ví dụ `decimal` tối đa 38 chữ số ở SQL Server, `nvarchar` tối đa 4000 ký tự trước khi phải dùng `max`) không nằm trong core. Generator báo diagnostic theo câu hỏi 7 (phần 6).
 - `varchar` và `text` là chuỗi Unicode: SQL Server ánh xạ sang `nvarchar`, vì tên và dữ liệu tiếng Việt cần Unicode.
 
-**Kiểu custom** là lối thoát cho kiểu riêng của database (`inet`, `money`, `geometry(Point, 4326)`, `text[]`). `name` được generator SQL ghi nguyên văn, nên phải khớp cú pháp an toàn: bắt đầu bằng chữ cái Latin (`A–Z`, `a–z`), chỉ gồm chữ cái Latin, chữ số, `_`, khoảng trắng, dấu phẩy, `()` và `[]`, tối đa 63 byte. Không cho phép dấu nháy, `;`, `--`, `/*`, nên kiểu custom không thể chèn câu lệnh SQL vào output. Vi phạm là issue `column-custom-type-invalid`. Generator không phải SQL ánh xạ kiểu custom sang kiểu tổng quát nhất của đích (Prisma `Unsupported("…")`, TypeScript `unknown`, Zod `z.unknown()`).
+**Kiểu custom** là lối thoát cho kiểu riêng của database (`inet`, `money`, `geometry(Point, 4326)`, `text[]`). `name` được generator SQL ghi nguyên văn vào `CREATE TABLE`, nên phải khớp quy tắc dưới đây. Quy tắc này thay mô tả cũ (tập ký tự an toàn, kèm khẳng định kiểu custom "không thể chèn câu lệnh SQL"), sửa ngày 2026-10-03 theo quyết định của orchestrator sau review bảo mật của các generator; triển khai ở log `document/executions/logs/2026-10-03-custom-type-name-hardening.md`. Vi phạm là issue `column-custom-type-invalid` (mã không đổi). Thứ tự kiểm tra: (1) tối đa 63 byte UTF-8 (`MAX_NAME_BYTES`), (2) ngữ pháp, (3) kiểm tra từ khóa.
+
+```
+word         = [A-Za-z_][A-Za-z0-9_]*
+argument     = word | [0-9]+
+argumentList = "(" argument ( " "? "," " "? argument )* ")"
+customType   = word ( " " word )* ( " "? argumentList )? ( "[]" )*
+```
+
+**Kiểm tra từ khóa:** tách `name` theo các chuỗi ký tự nằm ngoài `[A-Za-z0-9_]`; không mảnh nào được bằng (không phân biệt hoa thường) một trong `CHECK`, `REFERENCES`, `DEFAULT`, `CONSTRAINT`, `PRIMARY`, `FOREIGN`, `UNIQUE`, `KEY`, `NOT`, `NULL`, `COLLATE`, `GENERATED`, `AS`, `ON`, `AUTO_INCREMENT`, `IDENTITY`, `COMMENT`. Phép kiểm tra áp cả cho phần trong `argumentList`.
+
+**Lý do:** generator in kiểu custom nguyên văn vào `CREATE TABLE`. Quy tắc cũ chặn được việc thoát khỏi câu lệnh (không có dấu nháy, `;`, `--`, `/*`) nhưng cho phép chèn mệnh đề: `text, extra int` thêm một cột, `int CHECK (x)` thêm ràng buộc, `int REFERENCES t(id)` thêm khóa ngoại. Ngữ pháp mới chỉ cho tên kiểu, tham số, và hậu tố mảng; danh sách từ khóa chặn các từ mở đầu mệnh đề cột còn lại.
+
+**Hệ quả:** `timestamp(3) with time zone` bị từ chối (sau `)` chỉ được có `[]`); dùng kiểu chung `timestamptz`. Tên được bắt đầu bằng `_`. Từ khóa trong danh sách tham số cũng bị từ chối. `inet`, `money`, `geometry(Point, 4326)`, `text[]` vẫn hợp lệ.
+
+**Rủi ro còn lại, đã chấp nhận:** các thuộc tính cột không có trong danh sách vẫn qua được: MySQL `UNSIGNED`, `ZEROFILL`, `INVISIBLE`; PostgreSQL `STORAGE`, `COMPRESSION`; SQL Server `SPARSE`, `ROWGUIDCOL`. Chúng chỉ đổi thuộc tính của chính cột đó, không thêm được cột, ràng buộc hay biểu thức.
+
+Generator không phải SQL ánh xạ kiểu custom sang kiểu tổng quát nhất của đích (Prisma `Unsupported("…")`, TypeScript `unknown`, Zod `z.unknown()`).
 
 **Phương án bị loại:**
 
@@ -464,7 +481,7 @@ Dùng chung cho `parseSchemaDocument` (đường dẫn trong tài liệu) và `a
 | `enum-values-empty` | `enums/<id>/values` | Enum không có giá trị | ED-05 |
 | `enum-value-duplicate` | `enums/<id>/values/<i>` | Giá trị trùng giá trị khác trong enum | ED-05 |
 | `column-type-invalid-scale` | `columns/<id>/type/scale` | `scale > precision` | ED-02 |
-| `column-custom-type-invalid` | `columns/<id>/type/name` | Tên kiểu custom sai cú pháp an toàn | ED-02 |
+| `column-custom-type-invalid` | `columns/<id>/type/name` | Tên kiểu custom quá 63 byte, sai ngữ pháp, hoặc chứa từ khóa cấm (mục 3, kiểu custom) | ED-02 |
 | `column-default-invalid` | `columns/<id>/defaultValue` | Literal sai dạng của kiểu cột, hoặc không có trong enum | ED-02 |
 | `column-default-incompatible` | `columns/<id>/defaultValue` | Biểu thức không dùng được với kiểu cột, hoặc literal trên `binary` | ED-02 |
 | `column-primary-key-nullable` | `columns/<id>/isNullable` | Cột trong khóa chính nhưng nullable | ED-02 |

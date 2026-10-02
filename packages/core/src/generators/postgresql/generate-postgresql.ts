@@ -1,4 +1,3 @@
-import type { ReferentialAction } from "../../model/relation.js";
 import type { SchemaDocument } from "../../model/schema-document.js";
 import type {
   Generate,
@@ -17,19 +16,12 @@ import type {
 } from "../shared/sql-ddl-model.js";
 import { buildSqlDdlModel } from "../shared/sql-ddl-model.js";
 import { sqlStringLiteral } from "../shared/sql-literals.js";
+import { REFERENTIAL_ACTION_SQL } from "../shared/sql-referential-actions.js";
 import { renderPostgresqlType } from "./render-postgresql-type.js";
 
 export type PostgresqlOptions = GeneratorOptions["postgresql"];
 
 const COLUMN_INDENT = "  ";
-
-const REFERENTIAL_ACTION_SQL: Readonly<Record<ReferentialAction, string>> = {
-  noAction: "NO ACTION",
-  restrict: "RESTRICT",
-  cascade: "CASCADE",
-  setNull: "SET NULL",
-  setDefault: "SET DEFAULT",
-};
 
 function quote(name: string): string {
   return quoteSqlIdentifier("postgresql", name);

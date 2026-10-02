@@ -781,3 +781,48 @@ Chạy sau khi Task 1–10 đã merge, trước Task 11. Dùng Chrome, `pnpm dev
 8. DevTools Rendering, "Emulate CSS media feature prefers-reduced-motion: reduce": hover nút, mở hộp thoại không còn chuyển động.
 9. Đo bằng DevTools color picker (mục Contrast): chữ trên chip issue của toolbar, nhãn trạng thái schema cần chú ý, nút xóa trong hộp thoại xác nhận, chip trên dải tiêu đề node; tất cả ≥ 4,5:1.
 10. Focus bàn phím: Tab qua toolbar, panel, danh sách schema, form auth; mọi control có vòng focus thấy rõ, không bị minimap, toast che.
+
+## Kết quả kiểm tra tay
+
+Ngày 2026-10-02, commit đã kiểm tra: `c8fbcfa`. Người dùng chọn bỏ qua danh sách kiểm tra tay, gồm mục 1–10 ở [Kiểm tra tay cho người dùng](#kiểm-tra-tay-cho-người-dùng) và mục 11–16 bổ sung ở [bàn giao, mục 2.a](2026-10-02-visual-refresh-handoff.md#2a-kiểm-tra-tay--cần-người-dùng), nên mọi mục ghi "Chưa chạy (người dùng bỏ qua)". Các tiêu chí "(kiểm tra tay)" của spec vì thế chưa được xác nhận trên trình duyệt thật.
+
+| # | Hạng mục | Kết quả | Trình duyệt | Ghi chú |
+|---|---|---|---|---|
+| 1 | Danh sách schema `/`: dấu nhận diện, ô icon, nhãn trạng thái dạng pill, so với mockup | Chưa chạy (người dùng bỏ qua) | Không có | |
+| 2 | Editor: toolbar có separator, nút "Thêm bảng" nổi hơn, pill lưu và cloud có chấm màu kèm chữ, canvas và lưới chấm | Chưa chạy (người dùng bỏ qua) | Không có | |
+| 3 | Hộp thoại, menu tài khoản, toast: bo góc, bóng, lớp phủ, icon toast có màu | Chưa chạy (người dùng bỏ qua) | Không có | |
+| 4 | Font tải từ `/_next/static/media/`, không gọi `fonts.googleapis.com`, `fonts.gstatic.com`; chữ có dấu cùng một font | Chưa chạy (người dùng bỏ qua) | Không có | Gộp với mục 16 |
+| 5 | Node bảng: dải màu, viền chọn 2 px, vòng focus, handle, kéo node ≥ 30 fps ở CPU chậm 4× | Chưa chạy (người dùng bỏ qua) | Không có | |
+| 6 | Đường quan hệ: vuông góc bo góc, hover đổi màu cả marker, cạnh có issue nét đứt, quan hệ tự tham chiếu; Firefox, Safari | Chưa chạy (người dùng bỏ qua) | Không có | |
+| 7 | Đăng nhập, đăng ký, 404 ở 320 px và phóng chữ 200%: không cuộn ngang | Chưa chạy (người dùng bỏ qua) | Không có | |
+| 8 | `prefers-reduced-motion: reduce` tắt chuyển động | Chưa chạy (người dùng bỏ qua) | Không có | |
+| 9 | Tương phản chữ trên chip issue, nhãn trạng thái, nút xóa, chip trên dải tiêu đề ≥ 4,5:1 | Chưa chạy (người dùng bỏ qua) | Không có | Cặp token đã có test tự động trong `globals.test.ts` |
+| 10 | Focus bàn phím qua toolbar, panel, danh sách schema, form auth; không bị minimap, toast che | Chưa chạy (người dùng bỏ qua) | Không có | |
+| 11 | Minimap hiện đủ mọi bảng ngay lần tải đầu, nở ra khi thêm cột, hiện lại sau khi xóa bảng rồi hoàn tác | Chưa chạy (người dùng bỏ qua) | Không có | `mergeMeasuredSizes` có test unit |
+| 12 | Handle node bảng là hình tròn đầy đủ; góc dải tiêu đề bo theo thẻ | Chưa chạy (người dùng bỏ qua) | Không có | |
+| 13 | Nút primary vừa hover vừa focus bàn phím vẫn thấy vòng focus | Chưa chạy (người dùng bỏ qua) | Không có | Tỉ lệ tính trong `globals.test.ts`: 3,04:1 light, 3,29:1 dark |
+| 14 | Chip `U`, `AI` (10 px) đọc được khi phóng chữ 200% | Chưa chạy (người dùng bỏ qua) | Không có | |
+| 15 | Link tiêu đề schema ở danh sách có gạch chân khi chưa hover | Chưa chạy (người dùng bỏ qua) | Không có | |
+| 16 | Request font chỉ đến từ `/_next/static/media/` | Chưa chạy (người dùng bỏ qua) | Không có | Gộp với mục 4 |
+
+Kiểm tra tự động ở commit `30edfe7`:
+
+- `.claude/scripts/verify.sh frontend --build`: PASS, 3423 test, độ phủ dòng khoảng 96%.
+- `pnpm format:check`: đạt.
+- `.claude/scripts/secret-scan.sh`: sạch.
+
+## Sai lệch so với plan và spec
+
+Orchestrator quyết các điểm dưới trong lúc làm Task 1–10 và các bản sửa sau review; người dùng có thể bác bỏ. `architecture.md` ghi theo cột "Thực tế".
+
+| # | Plan/spec ghi | Thực tế | Lý do |
+|---|---|---|---|
+| 1 | [Task 7](#task-7-toolbar-và-khung-editor): trạng thái cloud `conflict` và `deleted-in-cloud` dùng sắc `warning` | Dùng sắc `destructive` ở cả toolbar và danh sách schema | Hai trạng thái này cần người dùng xử lý, không chỉ là cảnh báo |
+| 2 | [Spec mục 4](../specs/2026-10-01-visual-refresh-design.md#4-node-bảng): thẻ node bảng có `overflow-hidden` để dải tiêu đề theo góc bo | Thẻ không có `overflow-hidden`; dải tiêu đề tự bo góc trên | `overflow-hidden` cắt mất handle của React Flow |
+| 3 | [Vấn đề số 8](#vấn-đề-phát-hiện-khi-lập-plan): hover nút `default` pha 12% `--foreground` | Hover pha 5%: `color-mix(in oklch, var(--primary), var(--foreground) 5%)` trong `frontend/src/components/ui/button.tsx`, có test chốt tỉ lệ và tính tương phản trong `frontend/src/app/globals.test.ts`; vòng focus trên nút chính đang hover đạt 3,04:1 ở light, 3,29:1 ở dark | Giữ đủ lề tương phản 3:1 cho vòng focus; 6% ở light chỉ còn đúng 3,00:1 |
+| 4 | [Spec mục 10](../specs/2026-10-01-visual-refresh-design.md#10-danh-sách-schema): link tên schema không gạch chân lúc nghỉ, gạch chân khi hover | Gạch chân khi chưa hover, bỏ gạch chân khi hover | Khuyến nghị của `ui-a11y-reviewer` |
+| 5 | [Spec mục 10](../specs/2026-10-01-visual-refresh-design.md#10-danh-sách-schema) và [Task 9](#task-9-dấu-nhận-diện-và-danh-sách-schema): lời mời đăng nhập (`sign-in-invite.tsx`) nền `bg-muted` | Nền `bg-card` | `primary` trên `muted` chỉ đạt 4,49:1, dưới ngưỡng 4,5:1 |
+| 6 | Không có trong plan | Component dùng chung mới `frontend/src/components/centered-card-layout.tsx` cho trang đăng nhập, đăng ký và 404 | Tránh lặp bố cục thẻ giữa ba trang |
+| 7 | Không có trong plan | Sửa minimap: kích thước node đo được là state React trong `frontend/src/features/editor/components/canvas/editor-canvas.tsx` (không còn là ref), gộp bằng hàm `mergeMeasuredSizes` trong `frontend/src/features/editor/lib/apply-canvas-changes.ts`; đây chỉ là view state, không đi qua core operation hay undo | Lỗi có từ phần 3: minimap trống ở lần tải đầu |
+
+Việc mở, không chặn: `TEXT_CASES` trong `globals.test.ts` cố ý không có case `primary` trên `muted`. Cặp này chỉ đạt 4,49:1 và hiện không component nào dùng. Nếu sau này có component cần chữ `primary` trên nền `muted` thì phải đổi màu chữ hoặc nền, không thêm case để che.

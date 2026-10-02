@@ -18,7 +18,7 @@ Trạng thái bám theo ba bước đó: `Chưa bắt đầu` (chưa có spec) �
 | 7 | Import / Export | Import SQL, Prisma, DBML, JSON; export file, JSON, PNG/SVG, ZIP | 3, 6 | Xong spec |
 | 8 | Chia sẻ + lịch sử phiên bản | Link public/private; lịch sử phiên bản cơ bản | 4 | Chưa bắt đầu |
 | 9 | Hoàn thiện | Subject area, ghi chú trên canvas, auto-layout, templates, presentation mode, phím tắt | 3 | Chưa bắt đầu |
-| 10 | Visual refresh | Làm mới giao diện, giữ bố cục và luồng: token màu light, dark, font, node bảng có dải màu, đường quan hệ, danh sách schema, trang đăng nhập, hộp thoại, toast | 3 | Xong plan |
+| 10 | Visual refresh | Làm mới giao diện, giữ bố cục và luồng: token màu light, dark, font, node bảng có dải màu, đường quan hệ, danh sách schema, trang đăng nhập, hộp thoại, toast | 3 | Xong |
 
 Phần 4 đang viết code: phần lớn task của [plan phần 4](plans/2026-09-17-auth-cloud-plan.md) đã xong và đã push, còn Task 35, 36, 37, 38 và 40. Task 38 làm lượt cập nhật tài liệu cuối, gồm cả việc đổi ô "Trạng thái" của phần này sang `Xong`.
 
@@ -27,4 +27,4 @@ Phần 4 đang viết code: phần lớn task của [plan phần 4](plans/2026-0
 - **Vì sao AI đứng thứ 5 dù là trọng tâm.** AI cần core model để sửa schema có cấu trúc, cần editor để hiển thị kết quả, và cần auth vì AI dùng key của hệ thống nên mỗi request phải gắn với một người dùng.
 - **Core model hỗ trợ đủ khái niệm ngay từ phần 2.** Index, enum, comment, subject area và ghi chú có trong model từ đầu, dù giao diện cho subject area và ghi chú làm ở phần 9. Như vậy không phải đổi định dạng dữ liệu về sau.
 - **i18n và dark mode làm từ Editor MVP.** Thêm vào sau sẽ phải sửa lại toàn bộ giao diện.
-- **Làm song song được.** Phần 6 chỉ phụ thuộc phần 2, nên có thể làm song song với phần 3–5. Phần 4 có thể làm song song với phần 3. Phần 10 chỉ đổi giao diện frontend nên làm song song được với phần 4: [spec phần 10](specs/2026-10-01-visual-refresh-design.md), [plan phần 10](plans/2026-10-01-visual-refresh-plan.md).
+- **Làm song song được.** Phần 6 chỉ phụ thuộc phần 2, nên có thể làm song song với phần 3–5. Phần 4 có thể làm song song với phần 3. Phần 10 chỉ đổi giao diện frontend nên đã làm song song với phần 4 và đã xong: [spec phần 10](specs/2026-10-01-visual-refresh-design.md), [plan phần 10](plans/2026-10-01-visual-refresh-plan.md).

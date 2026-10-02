@@ -16,6 +16,7 @@ import type { ThemePreference } from "@/lib/preferences/preference-cookies";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
+import { getTableAccentColor } from "../../lib/table-accent";
 import { createEditorStore } from "../../state/create-editor-store";
 import { EditorStoreProvider } from "../../state/editor-store-provider";
 import { EditorCanvas } from "./editor-canvas";
@@ -143,6 +144,18 @@ describe("TableNode", () => {
     expect(
       within(getTableNode(/^Table users, 3 columns$/)).getByText("users"),
     ).toBeDefined();
+  });
+
+  it("paints the table header with the accent of its table id", () => {
+    renderCanvas(createUsersDocument());
+
+    const header = within(getTableNode(/^Table users/)).getByText(
+      "users",
+    ).parentElement;
+
+    expect(header?.style.backgroundColor).toBe(
+      getTableAccentColor("tbl_users"),
+    );
   });
 
   it("shows a comment icon with the comment in a tooltip", async () => {

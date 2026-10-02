@@ -14,6 +14,7 @@ import { cn } from "@/lib/class-names";
 
 import { formatTableHandleId } from "../../lib/handle-ids";
 import { getIssueIndex } from "../../lib/issue-index";
+import { getTableAccentColor } from "../../lib/table-accent";
 import type { TableNode as TableFlowNode } from "../../lib/to-table-nodes";
 import { useEditorStore } from "../../state/use-editor-store";
 import { ColumnRow } from "./column-row";
@@ -29,7 +30,7 @@ function IssueBadge({ count }: IssueBadgeProps): JSX.Element {
     <span
       role="img"
       aria-label={t("node.issueCount", { count })}
-      className="flex shrink-0 items-center gap-0.5 text-destructive"
+      className="flex shrink-0 items-center gap-0.5 rounded-sm bg-card px-1 text-destructive"
     >
       <TriangleAlertIcon aria-hidden className="size-3.5" />
       <span aria-hidden>{count}</span>
@@ -48,10 +49,7 @@ function TableComment({ comment }: TableCommentProps): JSX.Element {
     <Tooltip>
       <TooltipTrigger asChild>
         <span role="img" aria-label={t("node.comment", { comment })}>
-          <MessageSquareTextIcon
-            aria-hidden
-            className="size-3.5 text-muted-foreground"
-          />
+          <MessageSquareTextIcon aria-hidden className="size-3.5" />
         </span>
       </TooltipTrigger>
       <TooltipContent>{comment}</TooltipContent>
@@ -92,11 +90,14 @@ export const TableNode = memo(function TableNode({
   return (
     <div
       className={cn(
-        "max-w-80 min-w-48 rounded-md border border-canvas-node-border bg-card text-xs text-card-foreground shadow-sm in-focus-visible:ring-2 in-focus-visible:ring-foreground",
-        selected && "border-primary",
+        "table-node-card max-w-80 min-w-56 overflow-hidden rounded-lg border border-canvas-node-border bg-card text-xs text-card-foreground shadow-sm transition-[border-color,box-shadow] duration-150 hover:shadow-md",
+        selected && "border-primary shadow-md ring-1 ring-primary",
       )}
     >
-      <div className="relative flex items-center gap-1.5 border-b border-border px-3 py-2 font-semibold">
+      <div
+        className="relative flex h-9 items-center gap-1.5 px-3 text-[0.8125rem] font-semibold text-canvas-node-header-foreground"
+        style={{ backgroundColor: getTableAccentColor(table.id) }}
+      >
         <Handle
           type="source"
           position={Position.Left}

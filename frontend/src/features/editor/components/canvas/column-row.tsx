@@ -15,6 +15,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/class-names";
 
 import { getForeignKeyColumnIds } from "../../lib/foreign-key-columns";
 import { formatColumnType } from "../../lib/format-column-type";
@@ -53,14 +54,22 @@ function KeyMarks({ columnId, tableId }: KeyMarksProps): JSX.Element {
   const isForeignKey = useEditorStore((state) =>
     getForeignKeyColumnIds(state.document.relations).has(columnId),
   );
+  const isPrimaryKey = keyIndex !== NOT_IN_PRIMARY_KEY;
   const isComposite = keySize >= COMPOSITE_KEY_SIZE;
   const position = keyIndex + 1;
 
   return (
-    <span className="flex w-9 shrink-0 items-center gap-0.5">
-      {keyIndex === NOT_IN_PRIMARY_KEY ? null : (
+    <span
+      // Read by the row through CSS, so the row needs no key selectors of its
+      // own: the name of a key column is bold, and a column that is both keys
+      // needs a wider key cell.
+      className="peer flex items-center gap-0.5"
+      data-primary-key={isPrimaryKey ? true : undefined}
+      data-both-keys={isPrimaryKey && isForeignKey ? true : undefined}
+    >
+      {isPrimaryKey ? (
         <span className="flex items-center text-canvas-key">
-          <KeyRoundIcon aria-hidden className="size-3" />
+          <KeyRoundIcon aria-hidden className="size-3.5" />
           {isComposite ? (
             // The amber key color is too light for text (WCAG 1.4.3), so the
             // digit uses the regular text color.
@@ -74,10 +83,10 @@ function KeyMarks({ columnId, tableId }: KeyMarksProps): JSX.Element {
               : t("column.primaryKey")}
           </span>
         </span>
-      )}
+      ) : null}
       {isForeignKey ? (
         <span className="flex items-center text-canvas-foreign-key">
-          <Link2Icon aria-hidden className="size-3" />
+          <Link2Icon aria-hidden className="size-3.5" />
           <span className="sr-only">{t("column.foreignKey")}</span>
         </span>
       ) : null}
@@ -88,11 +97,19 @@ function KeyMarks({ columnId, tableId }: KeyMarksProps): JSX.Element {
 type NotationMarkProps = {
   readonly mark: string;
   readonly label: string;
+  readonly className?: string;
 };
 
-function NotationMark({ mark, label }: NotationMarkProps): JSX.Element {
+// `U` and `AI` sit in small chips; `?` stays inline right after the type.
+const CHIP_CLASS_NAME = "rounded-sm bg-muted px-1 text-[0.625rem] font-medium";
+
+function NotationMark({
+  mark,
+  label,
+  className,
+}: NotationMarkProps): JSX.Element {
   return (
-    <span className="text-muted-foreground">
+    <span className={cn("text-muted-foreground", className)}>
       <span aria-hidden>{mark}</span>
       {/* The space keeps the mark a separate word after the type name, so a
           screen reader does not read "varchar(255)Nullable". */}
@@ -114,7 +131,7 @@ function CommentMark({ comment }: CommentMarkProps): JSX.Element {
         <span role="img" aria-label={t("node.comment", { comment })}>
           <MessageSquareTextIcon
             aria-hidden
-            className="size-3 text-muted-foreground"
+            className="size-3.5 text-muted-foreground"
           />
         </span>
       </TooltipTrigger>
@@ -145,7 +162,7 @@ export const ColumnRow = memo(function ColumnRow({
   }
 
   return (
-    <li className="relative flex items-center gap-2 px-3 py-1">
+    <li className="relative grid h-7 grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-2 px-3 has-data-both-keys:grid-cols-[2.25rem_minmax(0,1fr)_auto]">
       <Handle
         type="source"
         position={Position.Left}
@@ -154,34 +171,45 @@ export const ColumnRow = memo(function ColumnRow({
       <KeyMarks columnId={columnId} tableId={tableId} />
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="min-w-0 flex-1 truncate">{column.name}</span>
+          <span className="min-w-0 truncate peer-data-primary-key:font-semibold">
+            {column.name}
+          </span>
         </TooltipTrigger>
         <TooltipContent>{column.name}</TooltipContent>
       </Tooltip>
-      <span className="shrink-0 font-mono text-muted-foreground">
-        {typeLabel}
-        {column.isNullable ? (
-          <NotationMark mark={NULLABLE_MARK} label={t("column.nullable")} />
+      <span className="flex items-center gap-1">
+        <span className="font-mono text-muted-foreground">
+          {typeLabel}
+          {column.isNullable ? (
+            <NotationMark mark={NULLABLE_MARK} label={t("column.nullable")} />
+          ) : null}
+        </span>
+        {column.isUnique ? (
+          <NotationMark
+            mark={UNIQUE_MARK}
+            label={t("column.unique")}
+            className={CHIP_CLASS_NAME}
+          />
+        ) : null}
+        {column.isAutoIncrement ? (
+          <NotationMark
+            mark={AUTO_INCREMENT_MARK}
+            label={t("column.autoIncrement")}
+            className={CHIP_CLASS_NAME}
+          />
+        ) : null}
+        {column.comment === "" ? null : (
+          <CommentMark comment={column.comment} />
+        )}
+        {issueCount > 0 ? (
+          <span className="flex items-center text-destructive">
+            <TriangleAlertIcon aria-hidden className="size-3.5" />
+            <span className="sr-only">
+              {t("column.issue", { count: issueCount })}
+            </span>
+          </span>
         ) : null}
       </span>
-      {column.isUnique ? (
-        <NotationMark mark={UNIQUE_MARK} label={t("column.unique")} />
-      ) : null}
-      {column.isAutoIncrement ? (
-        <NotationMark
-          mark={AUTO_INCREMENT_MARK}
-          label={t("column.autoIncrement")}
-        />
-      ) : null}
-      {column.comment === "" ? null : <CommentMark comment={column.comment} />}
-      {issueCount > 0 ? (
-        <span className="flex items-center text-destructive">
-          <TriangleAlertIcon aria-hidden className="size-3" />
-          <span className="sr-only">
-            {t("column.issue", { count: issueCount })}
-          </span>
-        </span>
-      ) : null}
       <Handle
         type="source"
         position={Position.Right}

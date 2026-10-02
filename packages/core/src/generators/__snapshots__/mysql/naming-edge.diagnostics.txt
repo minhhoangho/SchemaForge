@@ -1,0 +1,2 @@
+key-column-type-narrowed ["columns","col_7","type"]
+key-column-type-narrowed ["columns","col_8","type"]

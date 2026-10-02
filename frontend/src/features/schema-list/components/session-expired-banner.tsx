@@ -1,5 +1,6 @@
 "use client";
 
+import { TriangleAlertIcon } from "lucide-react";
 import Link from "next/link";
 import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,8 +16,12 @@ export function SessionExpiredBanner(): JSX.Element {
   return (
     <div
       role="status"
-      className="col-span-2 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted p-3"
+      className="col-span-2 flex items-start gap-3 rounded-lg border border-warning p-3"
     >
+      <TriangleAlertIcon
+        aria-hidden="true"
+        className="size-4 shrink-0 text-warning"
+      />
       <p className="min-w-0 flex-1 font-medium">
         {t("schemaList.sessionExpiredBanner")}
       </p>

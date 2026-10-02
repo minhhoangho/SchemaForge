@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleAlertIcon } from "lucide-react";
 import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -22,10 +23,14 @@ export function CloudListBanner({
   return (
     <div
       role="alert"
-      className="col-span-2 flex flex-wrap items-center gap-3 rounded-lg border border-destructive p-3"
+      className="col-span-2 flex items-start gap-3 rounded-lg border border-destructive p-3"
     >
+      <CircleAlertIcon
+        aria-hidden="true"
+        className="size-4 shrink-0 text-destructive"
+      />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="font-medium text-destructive">
+        <p className="font-medium text-foreground">
           {t("schemaList.cloudListFailed")}
         </p>
         <p className="text-sm text-muted-foreground">

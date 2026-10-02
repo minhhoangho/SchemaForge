@@ -34,10 +34,10 @@ export function SchemaStatusLabel({
   return (
     <span
       className={cn(
-        "rounded-md border px-1.5 py-0.5 text-xs font-medium",
+        "rounded-full px-2 py-0.5 text-xs font-medium",
         NEEDS_ATTENTION.has(label)
-          ? "border-destructive text-destructive"
-          : "border-border text-muted-foreground",
+          ? "bg-destructive/10 text-destructive"
+          : "border border-border text-muted-foreground",
       )}
     >
       {t(LABEL_KEYS[label])}

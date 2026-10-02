@@ -1,6 +1,6 @@
 "use client";
 
-import { EllipsisIcon } from "lucide-react";
+import { CloudIcon, EllipsisIcon, HardDriveIcon } from "lucide-react";
 import Link from "next/link";
 import type { JSX } from "react";
 import { useRef } from "react";
@@ -26,7 +26,7 @@ const UPDATED_AT_FORMAT: Intl.DateTimeFormatOptions = {
 };
 
 const LINK_CLASS_NAME =
-  "truncate font-medium text-primary underline underline-offset-4 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  "truncate font-semibold text-foreground no-underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 // The trigger is passed back so the dialog can return focus to it.
 type RowAction = (
@@ -52,7 +52,20 @@ type GuestRowProps = {
 };
 
 const ROW_CLASS_NAME =
-  "flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-card-foreground";
+  "flex items-center gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground shadow-sm transition-[border-color] duration-150 hover:border-input";
+
+function RowIcon({ isCloud }: { readonly isCloud: boolean }): JSX.Element {
+  const Icon = isCloud ? CloudIcon : HardDriveIcon;
+
+  return (
+    <span
+      aria-hidden="true"
+      className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground"
+    >
+      <Icon className="size-4" />
+    </span>
+  );
+}
 
 function getSchemaHref(schemaId: string): string {
   return `/schemas/${schemaId}`;
@@ -71,7 +84,7 @@ function RowSummary({ schema, label }: RowSummaryProps): JSX.Element {
       <Link href={getSchemaHref(schema.id)} className={LINK_CLASS_NAME}>
         {schema.name}
       </Link>
-      <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+      <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground tabular-nums">
         {t("row.updatedAt", {
           time: new Intl.DateTimeFormat(
             i18n.language,
@@ -174,6 +187,7 @@ export function SchemaListRow(props: SchemaListRowProps): JSX.Element {
     const { row } = props;
     return (
       <li className={ROW_CLASS_NAME}>
+        <RowIcon isCloud />
         <RowSummary schema={row} label={row.label} />
         <RowMenu
           target={{
@@ -203,6 +217,7 @@ function GuestRow({
 
   return (
     <li className={ROW_CLASS_NAME}>
+      <RowIcon isCloud={false} />
       {schema === null ? (
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-muted-foreground">{displayName}</span>

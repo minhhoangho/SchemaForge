@@ -5,12 +5,14 @@
 // records), so the configuration must load first or the CSP blocks Zod's eval.
 import "@/lib/zod-config";
 
+import { DatabaseIcon, PlusIcon } from "lucide-react";
 import type { JSX, ReactNode, RefObject } from "react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AccountMenu } from "@/components/account-menu";
 import { useApiClient, useAuth } from "@/components/auth-provider";
+import { BrandMark } from "@/components/brand-mark";
 import { LanguageSwitch } from "@/components/language-switch";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { Button } from "@/components/ui/button";
@@ -26,7 +28,6 @@ import {
 import { useSchemaListDialogs } from "@/features/schema-list/hooks/use-schema-list-dialogs";
 import type { SchemaListDialogs as SchemaListDialogsState } from "@/features/schema-list/hooks/use-schema-list-dialogs";
 import { removeStaleCache } from "@/features/schema-list/lib/remove-stale-cache";
-import { APP_NAME } from "@/lib/app-name";
 import type { AuthState } from "@/lib/auth/auth-store";
 import { logger } from "@/lib/logger";
 import type { StorageBundle } from "@/lib/storage/create-browser-storage";
@@ -65,8 +66,8 @@ function ScreenLayout({
 
   return (
     <>
-      <header className="flex items-center justify-between gap-4 border-b border-border px-4 py-2">
-        <span className="font-semibold">{APP_NAME}</span>
+      <header className="flex h-14 items-center justify-between gap-4 border-b border-border bg-background px-4">
+        <BrandMark />
         <div className="flex items-center gap-1">
           <AccountMenu />
           <ThemeSwitch />
@@ -78,7 +79,7 @@ function ScreenLayout({
         <h1
           ref={headingRef}
           tabIndex={-1}
-          className="text-2xl font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="text-2xl font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {t("title")}
         </h1>
@@ -92,12 +93,12 @@ function SchemaListSkeleton(): JSX.Element {
   const { t } = useTranslation("schemaList");
 
   return (
-    <div role="status" className={`${CONTENT_CLASS_NAME} flex flex-col gap-3`}>
+    <div role="status" className={`${CONTENT_CLASS_NAME} flex flex-col gap-2`}>
       <span className="sr-only">{t("loading")}</span>
       {SKELETON_ROW_KEYS.map((key) => (
         <Skeleton
           key={key}
-          className="h-16 w-full motion-reduce:animate-none"
+          className="h-19 w-full motion-reduce:animate-none"
         />
       ))}
     </div>
@@ -131,13 +132,20 @@ function SchemaEntries({
 
   if (entries.length === 0) {
     return (
-      <div className={`${CONTENT_CLASS_NAME} flex flex-col items-start gap-3`}>
+      <div
+        className={`${CONTENT_CLASS_NAME} flex flex-col items-center gap-3 rounded-lg border border-dashed border-input p-8 text-center`}
+      >
+        <DatabaseIcon
+          aria-hidden="true"
+          className="size-8 text-muted-foreground"
+        />
         <p className="text-muted-foreground">{t("empty.title")}</p>
         <Button
           onClick={(event) => {
             dialogs.open({ kind: "create" }, event.currentTarget);
           }}
         >
+          <PlusIcon aria-hidden="true" />
           {t("empty.createFirst")}
         </Button>
       </div>
@@ -145,7 +153,7 @@ function SchemaEntries({
   }
 
   return (
-    <ul className={`${CONTENT_CLASS_NAME} flex flex-col gap-3`}>
+    <ul className={`${CONTENT_CLASS_NAME} flex flex-col gap-2`}>
       {entries.map((entry) => (
         <SchemaListRow
           key={getSchemaListEntryId(entry)}
@@ -175,7 +183,7 @@ function CloudListSkeleton(): JSX.Element {
       <span className="sr-only">{t("schemaList.loadingCloud")}</span>
       <Skeleton
         aria-hidden="true"
-        className="h-16 w-full motion-reduce:animate-none"
+        className="h-19 w-full motion-reduce:animate-none"
       />
     </div>
   );
@@ -197,7 +205,7 @@ function OwnedSection({
   return (
     <SchemaListSection title={t("schemaList.ownedSection")}>
       {rows.length === 0 ? null : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-2">
           {rows.map((row) => (
             <SchemaListRow
               key={row.id}
@@ -367,6 +375,7 @@ function ReadySchemaList({
           dialogs.open({ kind: "create" }, event.currentTarget);
         }}
       >
+        <PlusIcon aria-hidden="true" />
         {t("create.trigger")}
       </Button>
       {result === undefined ? (
@@ -406,6 +415,7 @@ function ScreenContent({ headingRef }: ScreenContentProps): JSX.Element {
       return (
         <>
           <Button className={ACTION_CLASS_NAME} disabled>
+            <PlusIcon aria-hidden="true" />
             {t("create.trigger")}
           </Button>
           <SchemaListSkeleton />

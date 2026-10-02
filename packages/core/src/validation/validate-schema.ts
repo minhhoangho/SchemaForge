@@ -7,11 +7,13 @@ import { validateColumns } from "./rules/columns.js";
 import { validateEnums } from "./rules/enums.js";
 import { validateNames } from "./rules/names.js";
 import { validateRelations } from "./rules/relations.js";
+import { validateTables } from "./rules/tables.js";
 
 /** Returns every semantic issue of a structurally valid schema, sorted by path, then by code (spec section 8). */
 export function validateSchema(schema: SchemaDocument): readonly Issue[] {
   return sortByPathThenCode([
     ...validateNames(schema),
+    ...validateTables(schema),
     ...validateColumns(schema),
     ...validateColumnDefaults(schema),
     ...validateRelations(schema),

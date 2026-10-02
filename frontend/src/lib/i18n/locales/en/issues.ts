@@ -10,7 +10,10 @@ export const enIssues = {
   "column-name-duplicate":
     "Table “{{table}}” already has another column named “{{column}}”.",
   "index-name-duplicate": "Another index is already named “{{index}}”.",
+  "index-name-conflicts-table":
+    "Index “{{index}}” has the same name as a table.",
   "subject-area-name-duplicate": "Another subject area already has this name.",
+  "table-columns-empty": "Table “{{table}}” has no columns.",
   "enum-values-empty": "Enum “{{enum}}” has no values.",
   "enum-value-duplicate":
     "Enum “{{enum}}” lists the value “{{value}}” more than once.",

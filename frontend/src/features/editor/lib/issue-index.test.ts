@@ -21,7 +21,10 @@ function createDocument(): SchemaDocument {
       makeTable({ id: "tbl_users", name: "users" }),
       makeTable({ id: "tbl_orders", name: "orders" }),
     ],
-    columns: [makeColumn({ id: "col_email", tableId: "tbl_users", name: "" })],
+    columns: [
+      makeColumn({ id: "col_email", tableId: "tbl_users", name: "" }),
+      makeColumn({ id: "col_order_id", tableId: "tbl_orders" }),
+    ],
     indexes: [
       makeIndex({
         id: "idx_email",

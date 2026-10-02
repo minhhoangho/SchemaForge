@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { SchemaDocument } from "../../model/schema-document.js";
 import {
   buildSchema,
   makeColumn,
@@ -329,4 +330,79 @@ describe("validateNames", () => {
       { code: "name-empty", path: ["tables", "tbl_2", "name"] },
     ]);
   });
+
+  it("reports an index named like a table at the index name path", () => {
+    const schema = buildSchemaWithIndexAndTableNames("users", "users");
+
+    expect(validateNames(schema)).toStrictEqual([
+      {
+        code: "index-name-conflicts-table",
+        path: ["indexes", "idx_1", "name"],
+      },
+    ]);
+  });
+
+  it("compares index and table names without regard to case", () => {
+    const schema = buildSchemaWithIndexAndTableNames("USERS", "users");
+
+    expect(validateNames(schema)).toStrictEqual([
+      {
+        code: "index-name-conflicts-table",
+        path: ["indexes", "idx_1", "name"],
+      },
+    ]);
+  });
+
+  it("does not report the table", () => {
+    const schema = buildSchemaWithIndexAndTableNames("users", "users");
+
+    expect(validateNames(schema)).not.toContainEqual(
+      expect.objectContaining({ path: ["tables", "tbl_1", "name"] }),
+    );
+  });
+
+  it("does not report an index named like an enum", () => {
+    const schema = buildSchema({
+      tables: [makeTable({ id: "tbl_1", name: "users" })],
+      columns: [makeColumn({ id: "col_1", tableId: "tbl_1", name: "status" })],
+      enums: [makeEnum({ id: "enum_1", name: "status" })],
+      indexes: [
+        makeIndex({
+          id: "idx_1",
+          tableId: "tbl_1",
+          columnIds: ["col_1"],
+          name: "status",
+        }),
+      ],
+    });
+
+    expect(validateNames(schema)).toStrictEqual([]);
+  });
+
+  it("does not report an empty index name as a table conflict", () => {
+    const schema = buildSchemaWithIndexAndTableNames("", "");
+
+    expect(validateNames(schema)).toStrictEqual([
+      { code: "name-empty", path: ["indexes", "idx_1", "name"] },
+      { code: "name-empty", path: ["tables", "tbl_1", "name"] },
+    ]);
+  });
 });
+
+function buildSchemaWithIndexAndTableNames(
+  indexName: string,
+  tableName: string,
+): SchemaDocument {
+  return buildSchema({
+    tables: [makeTable({ id: "tbl_1", name: tableName })],
+    columns: [makeColumn({ id: "col_1", tableId: "tbl_1", name: "id" })],
+    indexes: [
+      makeIndex({
+        id: "idx_1",
+        tableId: "tbl_1",
+        columnIds: ["col_1"],
+        name: indexName,
+      }),
+    ],
+  });
+}

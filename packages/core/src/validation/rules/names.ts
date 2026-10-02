@@ -173,6 +173,24 @@ function findIndexDuplicates(schema: SchemaDocument): readonly Issue[] {
   return findDuplicateIssues(candidates);
 }
 
+// PostgreSQL puts tables and indexes in one namespace. Only the index is
+// reported, since the user renames the index; enums live in a separate
+// namespace and an empty name is already reported as name-empty.
+function findIndexTableConflicts(schema: SchemaDocument): readonly Issue[] {
+  const tableNameKeys = new Set(
+    Object.values(schema.tables).map((table) => toNameKey(table.name)),
+  );
+  return Object.values(schema.indexes)
+    .filter((index) => {
+      const nameKey = toNameKey(index.name);
+      return nameKey.length > 0 && tableNameKeys.has(nameKey);
+    })
+    .map((index): Issue => ({
+      code: "index-name-conflicts-table",
+      path: ["indexes", index.id, "name"],
+    }));
+}
+
 function findSubjectAreaDuplicates(schema: SchemaDocument): readonly Issue[] {
   const candidates = Object.values(schema.subjectAreas).map(
     (subjectArea): DuplicateCandidate => ({
@@ -196,6 +214,7 @@ export function validateNames(schema: SchemaDocument): readonly Issue[] {
     ...findTableAndEnumDuplicates(schema),
     ...findColumnDuplicates(schema),
     ...findIndexDuplicates(schema),
+    ...findIndexTableConflicts(schema),
     ...findSubjectAreaDuplicates(schema),
   ];
   return sortByPathThenCode(issues);

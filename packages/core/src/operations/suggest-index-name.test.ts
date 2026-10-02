@@ -92,6 +92,34 @@ describe("suggestIndexName", () => {
     expect(suggestion).toBe("users_email_idx2");
   });
 
+  it("skips a candidate that equals a table name", () => {
+    const schema = buildSchema({
+      tables: [makeTable({ id: "tbl_clash", name: "users_email_idx" })],
+    });
+
+    const suggestion = suggestIndexName(schema, {
+      tableName: "users",
+      columnNames: ["email"],
+      isUnique: false,
+    });
+
+    expect(suggestion).toBe("users_email_idx2");
+  });
+
+  it("skips a table name that differs only in case", () => {
+    const schema = buildSchema({
+      tables: [makeTable({ id: "tbl_clash", name: "USERS_EMAIL_KEY" })],
+    });
+
+    const suggestion = suggestIndexName(schema, {
+      tableName: "users",
+      columnNames: ["email"],
+      isUnique: true,
+    });
+
+    expect(suggestion).toBe("users_email_key2");
+  });
+
   it("keeps the suggestion within 63 UTF-8 bytes", () => {
     const schema = buildSchema({});
 

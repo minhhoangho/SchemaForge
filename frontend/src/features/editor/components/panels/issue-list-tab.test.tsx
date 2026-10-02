@@ -47,6 +47,7 @@ function createValidDocument(): SchemaDocument {
   return buildSchema({
     name: "shop",
     tables: [makeTable({ id: "tbl_users", name: "users" })],
+    columns: [makeColumn({ id: "col_users_id", tableId: "tbl_users" })],
   });
 }
 
@@ -65,6 +66,7 @@ function createDocumentWithIssues(): SchemaDocument {
         tableId: "tbl_users",
         name: "email",
       }),
+      makeColumn({ id: "col_people_id", tableId: "tbl_people" }),
       makeColumn({
         id: "col_orders_user",
         tableId: "tbl_orders",

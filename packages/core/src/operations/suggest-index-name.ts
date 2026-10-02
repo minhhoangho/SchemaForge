@@ -37,6 +37,8 @@ function buildCandidate(stem: string, suffix: string): string {
  * Suggests an index name from table and column names that no index in the
  * schema already uses, compared case-insensitively. Takes names rather than
  * ids so importers can name an index before its table exists in the schema.
+ * Table names count as used too, so the suggestion never raises
+ * index-name-conflicts-table.
  */
 export function suggestIndexName(
   schema: SchemaDocument,
@@ -49,7 +51,9 @@ export function suggestIndexName(
   const stem = [input.tableName, ...input.columnNames].join(NAME_SEPARATOR);
   const suffix = input.isUnique ? UNIQUE_INDEX_SUFFIX : INDEX_SUFFIX;
   const usedNameKeys = new Set(
-    Object.values(schema.indexes).map((index) => toNameKey(index.name)),
+    [...Object.values(schema.indexes), ...Object.values(schema.tables)].map(
+      (element) => toNameKey(element.name),
+    ),
   );
   let candidate = buildCandidate(stem, suffix);
   let candidateNumber = FIRST_CANDIDATE_NUMBER;

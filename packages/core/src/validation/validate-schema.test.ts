@@ -175,6 +175,10 @@ describe("validateSchema", () => {
         makeTable({ id: "tbl_customers", name: "users" }),
         makeTable({ id: "tbl_users", name: "users" }),
       ],
+      columns: [
+        makeColumn({ id: "col_customers_id", tableId: "tbl_customers" }),
+        makeColumn({ id: "col_users_id", tableId: "tbl_users" }),
+      ],
     });
 
     expect(validateSchema(schema)).toStrictEqual([
@@ -256,6 +260,35 @@ describe("validateSchema", () => {
       {
         code: "relation-column-type-mismatch",
         path: ["relations", "rel_orders_users", "columnPairs", 0],
+      },
+    ]);
+  });
+
+  it("reports table-columns-empty and index-name-conflicts-table through validateSchema", () => {
+    const schema = buildSchema({
+      tables: [
+        makeTable({ id: "tbl_users", name: "users" }),
+        makeTable({ id: "tbl_orders", name: "orders" }),
+      ],
+      columns: [makeColumn({ id: "col_id", tableId: "tbl_orders" })],
+      indexes: [
+        makeIndex({
+          id: "idx_orders_id",
+          tableId: "tbl_orders",
+          columnIds: ["col_id"],
+          name: "Users",
+        }),
+      ],
+    });
+
+    expect(validateSchema(schema)).toStrictEqual([
+      {
+        code: "index-name-conflicts-table",
+        path: ["indexes", "idx_orders_id", "name"],
+      },
+      {
+        code: "table-columns-empty",
+        path: ["tables", "tbl_users", "columnIds"],
       },
     ]);
   });

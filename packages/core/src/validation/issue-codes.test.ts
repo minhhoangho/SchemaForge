@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ISSUE_CODES } from "./issue-codes.js";
 
 describe("ISSUE_CODES", () => {
-  it("lists the twenty-five issue codes from the spec without duplicates", () => {
+  it("lists the twenty-seven issue codes from the spec without duplicates", () => {
     expect(ISSUE_CODES).toStrictEqual([
       "name-empty",
       "name-invalid",
@@ -12,7 +12,9 @@ describe("ISSUE_CODES", () => {
       "enum-name-duplicate",
       "column-name-duplicate",
       "index-name-duplicate",
+      "index-name-conflicts-table",
       "subject-area-name-duplicate",
+      "table-columns-empty",
       "enum-values-empty",
       "enum-value-duplicate",
       "column-type-invalid-scale",
@@ -31,6 +33,6 @@ describe("ISSUE_CODES", () => {
       "relation-set-null-not-nullable",
       "relation-set-default-without-default",
     ]);
-    expect(new Set(ISSUE_CODES).size).toBe(25);
+    expect(new Set(ISSUE_CODES).size).toBe(27);
   });
 });

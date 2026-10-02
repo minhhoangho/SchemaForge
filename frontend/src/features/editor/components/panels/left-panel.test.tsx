@@ -49,6 +49,7 @@ function createDocument(): SchemaDocument {
       makeTable({ id: "tbl_orders", name: "orders" }),
     ],
     columns: [
+      makeColumn({ id: "col_users_id", tableId: "tbl_users", name: "id" }),
       makeColumn({ id: "col_orders_a", tableId: "tbl_orders", name: "code" }),
       makeColumn({ id: "col_orders_b", tableId: "tbl_orders", name: "code" }),
     ],
@@ -168,7 +169,7 @@ describe("LeftPanel", () => {
       screen.getByRole("button", { name: "orders 2 columns 2 issues" }),
     ).toBeDefined();
     expect(
-      screen.getByRole("button", { name: "users 0 columns" }),
+      screen.getByRole("button", { name: "users 1 column" }),
     ).toBeDefined();
   });
 

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSchema, makeEnum, makeTable } from "../testing/factories.js";
+import {
+  buildSchema,
+  makeColumn,
+  makeEnum,
+  makeTable,
+} from "../testing/factories.js";
 
 import { findIntroducedIssues } from "./find-introduced-issues.js";
 
@@ -42,6 +47,7 @@ describe("findIntroducedIssues", () => {
     });
     const after = buildSchema({
       tables: [makeTable({ id: "tbl_users", name: "" })],
+      columns: [makeColumn({ id: "col_id", tableId: "tbl_users" })],
       enums: [makeEnum({ id: "enum_status", values: [] })],
     });
 

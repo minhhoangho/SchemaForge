@@ -115,6 +115,10 @@ function createDocumentWithTwoIssues(): SchemaDocument {
       makeTable({ id: "tbl_users", name: "users" }),
       makeTable({ id: "tbl_people", name: "users" }),
     ],
+    columns: [
+      makeColumn({ id: "col_users_id", tableId: "tbl_users" }),
+      makeColumn({ id: "col_people_id", tableId: "tbl_people" }),
+    ],
   });
 }
 

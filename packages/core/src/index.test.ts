@@ -38,7 +38,7 @@ const DOCUMENTED_RUNTIME_VALUES = [
   "validateSchema",
 ];
 
-const ISSUE_CODE_COUNT = 25;
+const ISSUE_CODE_COUNT = 27;
 const ERROR_CODE_COUNT = 17;
 const GENERATOR_TARGET_COUNT = 12;
 const GENERATOR_DIAGNOSTIC_CODE_COUNT = 17;
@@ -50,7 +50,7 @@ describe("public API", () => {
     );
   });
 
-  it("exposes twenty-five issue codes and seventeen error codes", () => {
+  it("exposes twenty-seven issue codes and seventeen error codes", () => {
     expect([core.ISSUE_CODES.length, core.ERROR_CODES.length]).toStrictEqual([
       ISSUE_CODE_COUNT,
       ERROR_CODE_COUNT,

@@ -13,8 +13,10 @@ export const viIssues = {
   "column-name-duplicate":
     "Bảng “{{table}}” đã có một cột khác tên “{{column}}”.",
   "index-name-duplicate": "Index “{{index}}” trùng tên với một index khác.",
+  "index-name-conflicts-table": "Index “{{index}}” trùng tên với một bảng.",
   "subject-area-name-duplicate":
     "Vùng chủ đề này trùng tên với một vùng chủ đề khác.",
+  "table-columns-empty": "Bảng “{{table}}” chưa có cột nào.",
   "enum-values-empty": "Enum “{{enum}}” chưa có giá trị nào.",
   "enum-value-duplicate":
     "Enum “{{enum}}” có giá trị “{{value}}” lặp lại nhiều lần.",

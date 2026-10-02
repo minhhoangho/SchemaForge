@@ -1,18 +1,13 @@
 import { sortByPathThenCode } from "../../document-path.js";
 import type { DocumentPath } from "../../document-path.js";
 import type { Column } from "../../model/column.js";
-import { MAX_NAME_BYTES, utf8ByteLength } from "../../model/name-limits.js";
 import type { SchemaDocument } from "../../model/schema-document.js";
 import type { Table } from "../../model/table.js";
 import { isUniqueColumnSet } from "../column-uniqueness.js";
 import type { Issue } from "../issue-codes.js";
+import { isSafeCustomTypeName } from "./custom-type-name.js";
 
 const AUTO_INCREMENT_TYPE_KINDS = new Set(["smallint", "integer", "bigint"]);
-
-// Letters, digits, underscore, space, comma, parentheses and square brackets:
-// enough to write "geometry(Point, 4326)" or "text[]" but no quote, semicolon
-// or comment marker that could inject SQL into generator output.
-const CUSTOM_TYPE_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_ ,()[\]]*$/;
 
 function checkPrimaryKeyNullable(
   column: Column,
@@ -72,18 +67,8 @@ function checkScale(column: Column): readonly Issue[] {
   return [];
 }
 
-function isValidCustomTypeName(name: string): boolean {
-  return (
-    CUSTOM_TYPE_NAME_PATTERN.test(name) &&
-    utf8ByteLength(name) <= MAX_NAME_BYTES
-  );
-}
-
 function checkCustomType(column: Column): readonly Issue[] {
-  if (
-    column.type.kind !== "custom" ||
-    isValidCustomTypeName(column.type.name)
-  ) {
+  if (column.type.kind !== "custom" || isSafeCustomTypeName(column.type.name)) {
     return [];
   }
   return [

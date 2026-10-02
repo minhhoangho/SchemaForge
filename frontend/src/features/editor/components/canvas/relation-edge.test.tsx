@@ -6,7 +6,7 @@ import {
   makeRelation,
   makeTable,
 } from "@schemaforge/core/testing";
-import { screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import type { Connection, Viewport } from "@xyflow/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -20,6 +20,7 @@ import { createEditorStore } from "../../state/create-editor-store";
 import { EditorStoreProvider } from "../../state/editor-store-provider";
 import { EditorCanvas } from "./editor-canvas";
 import { EditorFlowProvider } from "./editor-flow-provider";
+import { RelationMarkers } from "./relation-markers";
 
 const SCHEMA_ID = "0b7d4c1e-2f3a-4b5c-8d6e-7f8091a2b3c4";
 const MEASURED_SIZE = { inlineSize: 1000, blockSize: 800 };
@@ -175,6 +176,16 @@ describe("RelationEdge", () => {
     ).toBe("g");
   });
 
+  it("draws the relation as a right-angle path", () => {
+    renderCanvas(createPostsDocument());
+
+    const path = screen
+      .getByRole("group", { name: "posts.author_id → users.id, one-to-many" })
+      .querySelector("path.react-flow__edge-path");
+
+    expect(path?.getAttribute("d")).toMatch(/^M[^C]*$/);
+  });
+
   it("hides the visible edge label from screen readers", () => {
     renderCanvas(createPostsDocument());
 
@@ -205,5 +216,17 @@ describe("RelationEdge", () => {
     await screen.findByRole("tooltip");
 
     await expectNoAxeViolations(document.body);
+  });
+});
+
+describe("RelationMarkers", () => {
+  it("renders a hover marker variant for every marker shape", () => {
+    const { container } = render(<RelationMarkers />);
+
+    expect({
+      many: container.querySelector("marker#relation-marker-many-hover")
+        ?.tagName,
+      one: container.querySelector("marker#relation-marker-one-hover")?.tagName,
+    }).toEqual({ many: "marker", one: "marker" });
   });
 });

@@ -565,6 +565,39 @@ describe("EditorCanvas", () => {
     ]);
   });
 
+  it("colors minimap nodes with the table accent", () => {
+    const store = createTestStore(
+      buildSchema({
+        tables: [
+          makeTable({
+            id: "tbl_users",
+            name: "users",
+            position: USERS_POSITION,
+          }),
+        ],
+      }),
+    );
+    renderCanvas(store);
+    // The minimap draws only nodes that carry their measured size, which the
+    // canvas adds when it next derives its nodes.
+    act(() => {
+      store.getState().dispatch({
+        type: "updateTable",
+        tableId: "tbl_users",
+        changes: { name: "members" },
+      });
+    });
+
+    const fills = Array.from(
+      document.querySelectorAll<SVGRectElement>(
+        "rect.react-flow__minimap-node",
+      ),
+      (rect) => rect.style.fill,
+    );
+
+    expect(fills).toEqual(["var(--table-accent-7)"]);
+  });
+
   it("reports no axe violations on the empty state", async () => {
     const { container } = renderCanvas(createTestStore(buildSchema({})));
 

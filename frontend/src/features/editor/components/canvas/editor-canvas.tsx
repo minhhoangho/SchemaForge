@@ -32,6 +32,7 @@ import {
 } from "../../lib/apply-canvas-changes";
 import type { MeasuredSize } from "../../lib/apply-canvas-changes";
 import { buildAriaLabelConfig } from "../../lib/aria-label-config";
+import { getTableAccentColor } from "../../lib/table-accent";
 import { RELATION_EDGE_TYPE } from "../../lib/to-relation-edges";
 import type { RelationEdge as RelationFlowEdge } from "../../lib/to-relation-edges";
 import { TABLE_NODE_TYPE } from "../../lib/to-table-nodes";
@@ -156,8 +157,14 @@ export function EditorCanvas({
         fitView={defaultViewport === null}
         fitViewOptions={FIT_VIEW_OPTIONS}
       >
-        <MiniMap pannable zoomable />
-        <Background variant={BackgroundVariant.Dots} />
+        <MiniMap<TableFlowNode>
+          pannable
+          zoomable
+          nodeColor={(node) => getTableAccentColor(node.data.tableId)}
+          nodeBorderRadius={2}
+          className="overflow-hidden rounded-lg border border-border shadow-md"
+        />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} />
       </ReactFlow>
       {nodes.length === 0 ? <CanvasEmptyState onAddTable={onAddTable} /> : null}
     </div>

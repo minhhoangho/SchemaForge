@@ -2,18 +2,20 @@ import type { JSX } from "react";
 
 export type RelationMarkerShape = "many" | "one";
 
-export type RelationMarkerVariant = "default" | "selected" | "issue";
+export type RelationMarkerVariant = "default" | "hover" | "selected" | "issue";
 
 const MARKER_SHAPES: readonly RelationMarkerShape[] = ["many", "one"];
 
 const VARIANT_COLORS: Readonly<Record<RelationMarkerVariant, string>> = {
   default: "var(--canvas-relation)",
+  hover: "var(--canvas-relation-hover)",
   selected: "var(--canvas-relation-selected)",
   issue: "var(--destructive)",
 };
 
 const VARIANTS: readonly RelationMarkerVariant[] = [
   "default",
+  "hover",
   "selected",
   "issue",
 ];
@@ -27,7 +29,7 @@ const MARKER_PATHS: Readonly<Record<RelationMarkerShape, string>> = {
 
 const MARKER_SIZE = 12;
 const MARKER_CENTER = 6;
-const MARKER_STROKE_WIDTH = 1.5;
+const MARKER_STROKE_WIDTH = 2;
 
 function getMarkerId(
   shape: RelationMarkerShape,

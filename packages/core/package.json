@@ -11,6 +11,10 @@
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "default": "./dist/testing/index.js"
+    },
+    "./generators/*": {
+      "types": "./dist/generators/*/index.d.ts",
+      "default": "./dist/generators/*/index.js"
     }
   },
   "scripts": {

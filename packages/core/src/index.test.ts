@@ -5,6 +5,8 @@ import * as core from "./index.js";
 const DOCUMENTED_RUNTIME_VALUES = [
   "CURRENT_SCHEMA_VERSION",
   "ERROR_CODES",
+  "GENERATOR_DIAGNOSTIC_CODES",
+  "GENERATOR_TARGETS",
   "ISSUE_CODES",
   "MAX_BATCH_DEPTH",
   "applyOperation",
@@ -38,6 +40,8 @@ const DOCUMENTED_RUNTIME_VALUES = [
 
 const ISSUE_CODE_COUNT = 25;
 const ERROR_CODE_COUNT = 17;
+const GENERATOR_TARGET_COUNT = 12;
+const GENERATOR_DIAGNOSTIC_CODE_COUNT = 17;
 
 describe("public API", () => {
   it("exports exactly the documented runtime values", () => {
@@ -51,5 +55,12 @@ describe("public API", () => {
       ISSUE_CODE_COUNT,
       ERROR_CODE_COUNT,
     ]);
+  });
+
+  it("exposes twelve generator targets and seventeen generator diagnostic codes", () => {
+    expect([
+      core.GENERATOR_TARGETS.length,
+      core.GENERATOR_DIAGNOSTIC_CODES.length,
+    ]).toStrictEqual([GENERATOR_TARGET_COUNT, GENERATOR_DIAGNOSTIC_CODE_COUNT]);
   });
 });

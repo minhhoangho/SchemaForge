@@ -7,6 +7,21 @@ export type {
   StructuralErrorCode,
 } from "./error-codes.js";
 export { ERROR_CODES } from "./error-codes.js";
+export type {
+  Generate,
+  GeneratedFile,
+  GenerateResult,
+  GeneratorDiagnostic,
+  GeneratorOptions,
+  GeneratorTarget,
+  MarkdownLabels,
+  NoOptions,
+  OutputLanguage,
+  SqlDialect,
+} from "./generators/shared/generator-types.js";
+export { GENERATOR_TARGETS } from "./generators/shared/generator-types.js";
+export type { GeneratorDiagnosticCode } from "./generators/shared/diagnostic-codes.js";
+export { GENERATOR_DIAGNOSTIC_CODES } from "./generators/shared/diagnostic-codes.js";
 export type { History, HistoryEntry } from "./history/history.js";
 export {
   createEmptyHistory,

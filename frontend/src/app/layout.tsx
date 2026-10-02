@@ -6,12 +6,15 @@ import type { JSX, ReactNode } from "react";
 import { AppProviders } from "@/components/app-providers";
 import { APP_NAME } from "@/lib/app-name";
 import { getRequestAuthHint } from "@/lib/auth/request-auth-hint";
+import { cn } from "@/lib/class-names";
 import {
   getRequestLocale,
   getRequestNonce,
   getRequestThemePreference,
 } from "@/lib/i18n/request-locale";
 import { getServerTranslation } from "@/lib/i18n/server-translation";
+
+import { monoFont, sansFont } from "./fonts";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
@@ -43,6 +46,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
+      className={cn(sansFont.variable, monoFont.variable)}
       data-theme-preference={themePreference}
       suppressHydrationWarning
     >

@@ -2,17 +2,18 @@
 
 Plan triển khai phần 6 trong [roadmap.md](../roadmap.md), dựa trên spec đã duyệt [2026-09-14-code-generators-design.md](../specs/2026-09-14-code-generators-design.md) (commit 4e14920; mọi quyết định cần xác nhận đã được user xác nhận). Spec là nguồn gốc: plan chỉ chia việc, chốt các chi tiết mức cài đặt mà spec để lại, và không đổi quyết định nào của spec. Chỗ spec còn hở hoặc mâu thuẫn được nêu ở mục [Vấn đề phát hiện khi lập plan](#vấn-đề-phát-hiện-khi-lập-plan).
 
-Plan được viết trong hai lượt. Lượt thứ nhất viết phần khung, bảng task đầy đủ, thân của các task nền và ba generator SQL DDL. Lượt thứ hai viết thân các task còn lại ở cuối file, theo đúng quy ước, điểm nóng và bảng task ở đây.
+Plan được viết trong hai lượt. Lượt thứ nhất (2026-09-15) viết phần khung, bảng task đầy đủ, thân của các task nền và ba generator SQL DDL. Lượt thứ hai (2026-10-02) ghi lựa chọn của Task 0 cho Vấn đề 1–12 vào các task bị ảnh hưởng, chuyển conformance từ job CI sang chạy local bằng Docker (CI đã bị gỡ ngày 2026-10-02, xem dòng "CI" và "Conformance test của generator" trong [architecture.md](../architecture.md)), thêm Task 36 và viết thân các task còn lại ở mục [Các task còn lại](#các-task-còn-lại). Spec trên đĩa đã ghi các lựa chọn của Task 0 (mã thứ 17 `comment-truncated`, quy tắc 768 và 3072 byte của MySQL, `restrict` ngoài đồ thị cascade).
 
 ## Mục tiêu
 
-`packages/core` có 12 generator thuần (PostgreSQL, MySQL, SQL Server, Prisma, Drizzle, TypeScript, Zod, Mock API, OpenAPI, seed, DBML, Markdown), mỗi đích một subpath `@schemaforge/core/generators/<đích>`, dùng chung các hàm định danh, literal, tên ràng buộc, biểu diễn JSON và đồ thị quan hệ trong `generators/shared/`. Output xác định, luôn an toàn với tên và comment bất kỳ, và báo diagnostic khi đích không biểu diễn được một khái niệm. Package `packages/codegen-conformance` chạy output qua công cụ đích thật trong một job CI riêng. Frontend có code panel sinh code trong Web Worker và highlight bằng Shiki.
+`packages/core` có 12 generator thuần (PostgreSQL, MySQL, SQL Server, Prisma, Drizzle, TypeScript, Zod, Mock API, OpenAPI, seed, DBML, Markdown), mỗi đích một subpath `@schemaforge/core/generators/<đích>`, dùng chung các hàm định danh, literal, tên ràng buộc, biểu diễn JSON và đồ thị quan hệ trong `generators/shared/`. Output xác định, luôn an toàn với tên và comment bất kỳ, và báo diagnostic khi đích không biểu diễn được một khái niệm. Package `packages/codegen-conformance` chạy output qua công cụ đích thật, chạy local bằng Docker qua script root `pnpm test:conformance` (không có CI). Frontend có code panel sinh code trong Web Worker và highlight bằng Shiki.
 
 ## Điều kiện tiên quyết
 
-- Phần 2 đã merge tới **Task 26** của [plan phần 2](2026-09-14-core-schema-model-plan.md): `src/index.ts` export đủ public API, `@schemaforge/core/testing` export factory (`makeTable`, `makeColumn`, `makeRelation`, `makeIndex`, `makeEnum`, `makeSubjectArea`, `makeNote`, `buildSchema`, `createCounterIdGenerator`), `unwrapOk`, `unwrapError` và `createSampleSchema`. Mọi task của plan này phụ thuộc Task 26 của phần 2, trừ các mục chỉ lập kế hoạch. Task 27, 28 của phần 2 (bỏ `PRODUCT_NAME`, tài liệu) không chặn plan này, nhưng Task 5 dưới đây sửa `src/index.ts` nên phải merge sau Task 27 của phần 2 nếu Task 27 chưa xong (xem [Điểm nóng](#điểm-nóng-khi-làm-song-song)).
+- Phần 2 đã merge Task 26 và Task 27 của [plan phần 2](2026-09-14-core-schema-model-plan.md) (đã xong; các câu "phụ thuộc P2-26, P2-27" dưới đây coi như đã thỏa): `src/index.ts` export đủ public API, `@schemaforge/core/testing` export factory (`makeTable`, `makeColumn`, `makeRelation`, `makeIndex`, `makeEnum`, `makeSubjectArea`, `makeNote`, `buildSchema`, `createCounterIdGenerator`), `unwrapOk`, `unwrapError` và `createSampleSchema`. Mọi task của plan này phụ thuộc Task 26 của phần 2, trừ các mục chỉ lập kế hoạch. Task 27, 28 của phần 2 (bỏ `PRODUCT_NAME`, tài liệu) không chặn plan này, nhưng Task 5 dưới đây sửa `src/index.ts` nên phải merge sau Task 27 của phần 2 nếu Task 27 chưa xong (xem [Điểm nóng](#điểm-nóng-khi-làm-song-song)).
 - Các hàm nội bộ của phần 2 mà generator dùng lại đã có: `sortTables`, `sortEnums`, `sortSubjectAreas`, `sortIndexes`, `sortRelations`, `sortNotes` (`src/model/ordering.ts`, Task 7 phần 2); `isValidDefaultLiteral` (`src/validation/rules/default-literals.ts`, Task 10); rule kiểu custom trong `src/validation/rules/columns.ts` (Task 12); `isUniqueColumnSet` (`src/validation/column-uniqueness.ts`, Task 8); `utf8ByteLength`, `toNameKey` (`src/model/name-limits.ts`); `sortByPathThenCode` (`src/document-path.ts`).
-- Task 32–34 (frontend) phụ thuộc thêm **phần 3 (Editor MVP)** đã merge: store của editor, `getIssues`, `notify`, `resolveIssueTarget`, `buildContentSecurityPolicy`, i18n `lib/i18n/locales/{en,vi}/`, toolbar và cột panel phải.
+- Task 32–34 (frontend) phụ thuộc thêm **phần 3 (Editor MVP)**, đã merge: store của editor (`frontend/src/features/editor/state/create-editor-store.ts`), `getIssueIndex` (`features/editor/lib/issue-index.ts`, tên thật của `getIssues` trong spec), `createNotify` và `useNotify` (`lib/notify.ts`, `lib/use-notify.ts`), `resolveIssueTarget` (`features/editor/lib/resolve-issue-target.ts`), `buildContentSecurityPolicy` (`lib/security/content-security-policy.ts`), `lib/zod-config.ts`, i18n `lib/i18n/locales/{en,vi}/`, toolbar (`features/editor/components/toolbar/editor-toolbar.tsx`) và cột panel phải (`PropertiesPanel` trong `features/editor/components/editor-workspace.tsx`). Phần 4 và phần 10 cũng đã merge; task frontend đọc code hiện tại, không dựa vào mô tả cũ.
+- Task 8, 29, 30, 31 và 35 cần Docker chạy được trên máy (`docker info` thoát mã 0). Máy dev có Docker Desktop (`architecture.md`, dòng "PostgreSQL local").
 - Node 24 qua nvm. Mọi lệnh `node`, `pnpm`, `npm` trong shell không tương tác chạy ở root repo với tiền tố:
 
   ```bash
@@ -28,7 +29,8 @@ Plan được viết trong hai lượt. Lượt thứ nhất viết phần khung
 - Subagent không commit, không push, không tạo subagent khác. Orchestrator kiểm tra kết quả rồi commit đúng các file của task với commit message ghi trong task (`.claude/rules/git.md`: một dòng, không body, không trailer).
 - Task song song chạy trong worktree riêng (`isolation: "worktree"`) tạo từ **HEAD local** của `master` (không từ `origin`), vì lệnh typecheck, lint, test của core chạy trên cả package và sẽ đỏ theo file đang viết dở của task khác nếu dùng chung working tree. Trong worktree, việc đầu tiên là chạy tiền tố Node rồi `pnpm install --frozen-lockfile`. Orchestrator commit trong worktree, merge về `master` lần lượt từng task, và chạy lại lệnh kiểm tra của core sau mỗi lần merge trước khi merge task tiếp theo.
 - Cột "Đợt" trong bảng task là thứ tự chạy gợi ý; orchestrator bắt đầu một task ngay khi mọi phụ thuộc của nó đã merge. Mỗi đợt tối đa 5 task, tập file sở hữu rời nhau.
-- Task có bước kiểm chứng "chỉ CI" (conformance) cần push lên remote để job `conformance` chạy. Orchestrator hỏi user trước mỗi lần push.
+- Không có CI. Conformance chạy local bằng Docker và là cổng chặn của phần 6 (spec mục 7): Task 8 viết helper và chạy probe (kết quả probe là điều kiện của Task 15, 16); Task 29, 30, 31 viết test conformance của từng đích và phải pass hết trước khi phần 6 xong. Từ khi test conformance của một đích đã có, mọi task sửa generator của đích đó chạy test này trước khi báo xong. Subagent ghi kết quả vào execution log; orchestrator chạy lại lệnh conformance của task khi xác minh, trước khi commit. Commit được push tự động sau khi kiểm tra local qua (`.claude/rules/git.md`).
+- Mỗi subagent ghi execution log `document/executions/logs/YYYY-MM-DD-code-generators-task-<N>.md` theo `.claude/rules/execution-logs.md`; orchestrator commit log cùng code của task.
 
 ## Quy ước chung cho mọi task
 
@@ -69,8 +71,24 @@ Plan được viết trong hai lượt. Lượt thứ nhất viết phần khung
 - **Fixture:** `sample` (`createSampleSchema()`), `naming-edge` (`createNamingEdgeSchema()`), `target-limit` (`createTargetLimitSchema()`), `empty` (`createEmptySchema("Empty")`). `createLargeSchema()` chỉ dùng cho benchmark và property test, không có snapshot.
 - **Biến thể:** đích có option ghi giá trị option chính vào tên (`provider`, `dialect`, `format` của seed). Đích không có option không có biến thể.
 - **Cách viết:** test `async`, gọi `await expect(result.file.content).toMatchFileSnapshot("../__snapshots__/<đích>/<fixture>.<ext>")` từ file test nằm trong `src/generators/<đích>/`, và tương tự cho `.diagnostics.txt`. Mỗi đích × fixture × biến thể là một `it` riêng (`it.each` được).
-- **Tạo và cập nhật:** chỉ ghi snapshot của đích mình, bằng `pnpm --filter @schemaforge/core exec vitest run src/generators/<đích> -u`. Sau khi ghi, đọc lại từng file snapshot và đối chiếu với spec; báo cáo của task liệt kê các file snapshot đã tạo. CI không ghi snapshot mới (thiếu là fail), nên snapshot phải được commit cùng task.
+- **Tạo và cập nhật:** chỉ ghi snapshot của đích mình, bằng `pnpm --filter @schemaforge/core exec vitest run src/generators/<đích> -u`. Sau khi ghi, đọc lại từng file snapshot và đối chiếu với spec; báo cáo của task liệt kê các file snapshot đã tạo. Không có CI, và Vitest chạy local tự ghi snapshot còn thiếu thay vì fail, nên snapshot phải được commit cùng task: sau khi chạy `pnpm --filter @schemaforge/core test`, `git status --porcelain` không được có file mới trong `__snapshots__` ngoài file của task.
 - Thư mục `__snapshots__` được Task 1 loại khỏi typecheck, lint, Prettier, build và coverage. Không thêm ngoại lệ ở chỗ khác.
+
+### Conformance của task generator
+
+Test conformance của từng đích nằm trong `packages/codegen-conformance/src/<đích>.test.ts` (Task 29, 30, 31 viết), chỉ import helper của `src/support/` (Task 3, Task 8). Dạng chung: `describe.each(listConformanceFixtures())` theo fixture, mỗi biến thể option một `it`; dữ liệu lấy qua `@schemaforge/core/testing` và subpath `@schemaforge/core/generators/<đích>` (bản build), không import `src/` của core. Task 29, 30, 31 chạy lệnh dưới đây cho file của mình; từ khi file của một đích đã có, task nào sửa generator của đích đó (kể cả task sửa lỗi) cũng chạy lệnh này trước khi báo xong (spec mục 7, cổng chặn của phần 6). Lệnh, chạy ở root:
+
+```bash
+source ~/.nvm/nvm.sh >/dev/null 2>&1; nvm use 24 >/dev/null 2>&1;
+docker info >/dev/null && echo docker-ok
+pnpm --filter @schemaforge/core build
+pnpm --filter @schemaforge/codegen-conformance exec vitest run src/<đích>.test.ts
+pnpm --filter @schemaforge/codegen-conformance typecheck
+pnpm --filter @schemaforge/codegen-conformance lint
+pnpm exec prettier --check packages/codegen-conformance/src/<đích>.test.ts
+```
+
+Mong đợi: in `docker-ok`; mọi lệnh thoát mã 0; mọi test pass. Execution log của task ghi số test, thời gian chạy và phiên bản công cụ đích in ra trong test (nếu có). Conformance đỏ là lỗi của generator: sửa generator, không nới test. Lỗi do môi trường (Docker không chạy, kéo image thất bại) thì dừng với trạng thái `Bị chặn` và ghi lỗi nguyên văn.
 
 ### Kiểm tra trước khi báo xong
 
@@ -97,17 +115,19 @@ Báo cáo gồm: file đã tạo hoặc sửa, lệnh đã chạy kèm kết qu�
 | `exports` trong `packages/core/package.json` | Spec mục 1 dùng **một pattern** `"./generators/*"` thay vì một mục cho từng đích. Task 5 thêm pattern này một lần; mỗi đích có subpath riêng ngay khi task của đích tạo `src/generators/<đích>/index.ts`, nên không task đích nào sửa `package.json`. `generators/shared/` và `generators/__snapshots__/` không có `index.ts` nên không import được qua pattern. Ngoài Task 5, chỉ Task 28 sửa `package.json` của core (thêm script `bench`). Dependency của core không đổi trong cả plan |
 | Cấu hình loại trừ của core và root: `packages/core/tsconfig.json`, `tsconfig.build.json`, `vitest.config.ts`, `eslint.config.mjs`, `.prettierignore` | Chỉ Task 1 sửa, một lần cho mọi đích: loại `src/**/__snapshots__/**` khỏi typecheck, lint, Prettier, build và coverage; loại `src/**/*.bench.ts` khỏi build và coverage cho Task 28. Task sau cần ngoại lệ mới thì dừng và báo |
 | `src/index.ts`, `src/index.test.ts` của core | Task 5 thêm giá trị và type chung của generator. Task 22 chỉ thêm một dòng `export type { SeedDataset }` vào `src/index.ts` (không đổi danh sách giá trị lúc chạy, nên không sửa `index.test.ts`). Không task nào khác sửa. Task 5 chạy sau Task 27 của phần 2 (Task 27 cũng sửa hai file này) |
-| `src/testing/index.ts`, `src/testing/index.test.ts` | Chỉ Task 4 sửa (export ba fixture mới). Helper test của task khác nằm trong file riêng không export |
+| `src/testing/index.ts`, `src/testing/index.test.ts` | Chỉ Task 4 sửa (export ba fixture mới). Helper test của task khác nằm trong file riêng không export (ví dụ `src/testing/generator-snapshot.ts` của Task 2) |
+| `src/validation/issue-codes.ts`, `issue-codes.test.ts`, `validation/rules/names.ts`, `validation/rules/tables.ts` (mới), `validate-schema.ts`, `frontend/src/lib/i18n/locales/{en,vi}/issues.ts` | Chỉ Task 36 sửa (hai issue mới của phần 2, Vấn đề 10, 12). Core và bản dịch đi chung một task vì `issues.ts` dùng `satisfies Record<IssueCode, string>`: tách ra thì frontend không biên dịch được giữa hai commit |
 | `generators/shared/*` | Mỗi file thuộc đúng một task nền và được merge **trước** mọi task đích dùng nó: Task 2 (`generator-types.ts`, `diagnostic-codes.ts`, `diagnostics.ts`, `render-file.ts`), Task 6 (`identifiers.ts`, `name-allocator.ts`, `javascript-reserved-words.ts`), Task 7 (`sql-literals.ts`), Task 9 (`constraint-names.ts`), Task 10 (`json-representation.ts`, `rest-resources.ts`), Task 11 (`relation-graph.ts`, `relation-field-names.ts`), Task 12 (`dialect-types.ts`, `dialect-constraints.ts`, `mysql-identifiers.ts`), Task 13 (`sql-ddl-model*.ts`). Task đích chỉ import. Cần hành vi dùng chung mới thì dừng và báo; orchestrator tạo task sửa file nền, chạy khi không còn task đích nào đang dùng file đó |
 | Import giữa các thư mục đích | Cấm, trừ `mock-api/` import `buildSeedDataset` từ `seed/` (spec CG-06). Phần dùng chung giữa hai đích phải nằm trong `shared/` |
-| Hàm nội bộ của phần 2 cần export thêm | Task 7 tách hàm kiểm tra giá trị mặc định dùng chung khỏi `validation/rules/column-defaults.ts` và `default-literals.ts`; Task 12 tách hàm kiểm tra cú pháp kiểu custom khỏi `validation/rules/columns.ts`. Cả hai chỉ tách hàm, không đổi hành vi (test cũ phải pass nguyên vẹn); hai task sửa các file khác nhau nên chạy song song được. Không task nào khác sửa `src/validation/` |
-| `GENERATOR_DIAGNOSTIC_CODES` | Task 2 tạo đủ 16 mã theo spec mục 4 kèm hợp đồng `path` cho từng mã; test ghim danh sách. Task sau chỉ import. Thiếu mã là thay đổi spec: dừng và báo. Frontend (Task 34) dùng `satisfies Record<GeneratorDiagnosticCode, string>`, nên danh sách phải cố định trước Task 34. Mã `SeedIssue` của CG-08 là danh mục riêng do Task 21 tạo trong `generators/seed/` |
-| `pnpm-lock.yaml`, `pnpm-workspace.yaml` | Chỉ Task 3 (dependency của package conformance, mục `allowBuilds`) và Task 32 (`shiki` cho frontend) ghi lockfile. Hai task này không chạy đồng thời với nhau, và orchestrator không chạy chúng đồng thời với task ghi lockfile của plan khác (phần 3, phần 7). Sau khi merge, worktree đang mở chạy lại `pnpm install --frozen-lockfile` |
-| Package mới `packages/codegen-conformance` | Task 3 viết toàn bộ `package.json` của package (tên, script, dependency) để task sau không sửa manifest. Task 8 tạo `tsconfig.json`, `vitest.config.ts`, helper dùng chung trong `src/support/` và test probe; Task 29, 30, 31 mỗi task sở hữu file test riêng trong `src/` và chỉ import helper. Cần helper mới thì đặt trong file test của mình hoặc dừng và báo |
-| Job CI `conformance`, `turbo.json`, script root `test:conformance` | Chỉ Task 8 sửa `.github/workflows/ci.yml`, `turbo.json` và `package.json` root. Đặt job thành status check bắt buộc là cài đặt trên GitHub, Task 35 nhắc user |
-| Kiểm chứng chỉ chạy trong CI | Máy dev không có Docker. Task 8 được push trước; job `conformance` xanh và kết quả probe MySQL, SQL Server (spec mục "Rủi ro") được ghi vào báo cáo trước khi Task 15, 16 bắt đầu. Probe khác ma trận của spec mục 4 thì dừng, user quyết định sửa spec, rồi mới chạy Task 15, 16 |
+| Hàm nội bộ của phần 2 cần export thêm | Task 7 tách hàm kiểm tra giá trị mặc định dùng chung khỏi `validation/rules/column-defaults.ts` và `default-literals.ts`; Task 12 tách hàm kiểm tra cú pháp kiểu custom khỏi `validation/rules/columns.ts`. Cả hai chỉ tách hàm, không đổi hành vi (test cũ phải pass nguyên vẹn); hai task sửa các file khác nhau nên chạy song song được. Ngoài hai task này, chỉ Task 36 sửa `src/validation/` (thêm rule, không đụng file của Task 7, 12) |
+| `GENERATOR_DIAGNOSTIC_CODES` | Task 2 tạo đủ 17 mã theo spec mục 4 (gồm `comment-truncated`, lựa chọn của Task 0 cho Vấn đề 2) kèm hợp đồng `path` cho từng mã; test ghim danh sách. Task sau chỉ import. Thiếu mã là thay đổi spec: dừng và báo. Frontend (Task 34) dùng `satisfies Record<GeneratorDiagnosticCode, string>`, nên danh sách phải cố định trước Task 34. Mã `SeedIssue` của CG-08 là danh mục riêng do Task 21 tạo trong `generators/seed/` |
+| `pnpm-lock.yaml`, `pnpm-workspace.yaml` | Chỉ Task 3 (dependency của package conformance, mục `allowBuilds`) và Task 32 (`shiki` cho frontend) ghi lockfile. Hai task này không chạy đồng thời với nhau, và orchestrator không chạy chúng đồng thời với task ghi lockfile của plan khác (ví dụ phần 5, phần 7). Sau khi merge, worktree đang mở chạy lại `pnpm install --frozen-lockfile` |
+| Package mới `packages/codegen-conformance` | Task 3 viết toàn bộ `package.json` của package (tên, script, dependency) để task sau không sửa manifest. Task 3 tạo thêm `tsconfig.json`, `vitest.config.ts`, `.gitignore` và `src/support/temp-directory.ts`; Task 8 tạo mọi helper dùng chung còn lại trong `src/support/` và probe trong `src/probes/`. Task 29 sở hữu `src/postgresql.test.ts`, `mysql.test.ts`, `sqlserver.test.ts`, `seed-sql.test.ts`; Task 30 `prisma.test.ts`, `drizzle.test.ts`, `typescript.test.ts`, `zod.test.ts`; Task 31 `mock-api.test.ts`, `openapi.test.ts`, `dbml.test.ts`. Ba task chỉ import helper. Cần helper mới thì đặt trong file test của mình hoặc dừng và báo |
+| `turbo.json`, script root `test:conformance` | Chỉ Task 8 sửa `turbo.json` (thêm task `test:conformance`) và `package.json` root (thêm script). Không có `.github/workflows/ci.yml` và không task nào tạo lại nó |
+| Probe hành vi database trước generator MySQL, SQL Server | Task 8 chạy probe local bằng Docker và ghi kết quả từng điểm (Vấn đề 1, 2, 7, 8, 9 và mục "Rủi ro" của spec) vào execution log của Task 8. Task 15, 16 chỉ bắt đầu khi log đó có kết quả và mọi probe khớp kỳ vọng. Probe khác ma trận của spec mục 4 thì dừng, orchestrator cho sửa spec trước, rồi mới chạy Task 15, 16 |
 | Snapshot | Mỗi task đích chỉ ghi `__snapshots__/<đích>/`. Fixture của Task 4 đổi sau khi đã có snapshot thì orchestrator tạo một task riêng sửa fixture và ghi lại mọi snapshot bị ảnh hưởng, không chạy song song với task đích |
-| File i18n và CSP của frontend | Task 34 sở hữu `frontend/src/lib/i18n/locales/{en,vi}/code-generator.ts`, `generator-diagnostics.ts`, phần đăng ký namespace trong resource và `i18next.d.ts`, và `buildContentSecurityPolicy`. Task 33 (worker) không có chuỗi hiển thị. Hai task chỉ chạy sau khi phần 3 merge; orchestrator đối chiếu danh sách file sở hữu với task đang chạy của plan khác trước khi giao |
+| File i18n và CSP của frontend | Task 34 sở hữu `frontend/src/lib/i18n/locales/{en,vi}/code-generator.ts`, `generator-diagnostics.ts`, phần đăng ký namespace trong `resources.ts` (và `resources.test.ts` nếu test ghim danh sách namespace), và `buildContentSecurityPolicy`. `i18next.d.ts` lấy kiểu từ `enResources` nên không cần sửa. Task 33 (worker) không có chuỗi hiển thị. Task 36 chỉ sửa `issues.ts` và chạy trước Task 34 |
+| File của editor (phần 3) mà code panel chạm vào | Chỉ Task 34 sửa `create-editor-store.ts` (chế độ cột phải, đích và option), `editor-toolbar.tsx`, `editor-workspace.tsx`, `issue-list-tab.tsx` (tách `useGoToIssue` ra hook dùng chung) và test của chúng. Orchestrator đối chiếu với task đang chạy của plan khác trước khi giao |
 
 ## Phiên bản
 
@@ -131,11 +151,24 @@ Kiểm tra lại ngày 2026-09-15 bằng `npm view <package> dist-tags time peer
 | `mssql`, `@types/mssql` | `^12.7.2`, `^12.3.0` | 12.7.2 (2026-09-10), 12.3.0 (2026-04-16) | conformance (dev) | `mssql` không kèm type |
 | `fast-check` | `^4.10.0` | 4.10.0, 2026-09-11 | `packages/core` (dev, đã có) | Property test Task 27; không đổi |
 | `shiki` | `^4.4.3` | 4.4.3, 2026-08-10 | `frontend` (dependencies) | Task 32 |
-| `postgres` | `18-alpine` | cập nhật 2026-08-15 | Không phải npm; ghi trong test Task 29 | Không có PostGIS (xem Vấn đề 3) |
-| `mysql` | `8.4` | cập nhật 2026-09-12 | Test Task 8, 29 | |
-| `mcr.microsoft.com/mssql/server` | `2022-latest` | có trên MCR; CU mới nhất `2022-CU26-ubuntu-22.04` | Test Task 8, 29 | Tag trôi theo CU; lỗi mới xuất hiện sau khi image cập nhật thì ghim tag CU trong Task 29 |
+| `postgres` | `18-alpine` | cập nhật 2026-08-15 | Không phải npm; hằng trong `src/support/containers.ts` của Task 8 | Không có PostGIS (xem Vấn đề 3) |
+| `mysql` | `8.4` | cập nhật 2026-09-12 | `src/support/containers.ts` (Task 8) | |
+| `mcr.microsoft.com/mssql/server` | `2022-latest` | có trên MCR; CU mới nhất `2022-CU26-ubuntu-22.04` | `src/support/containers.ts` (Task 8) | Tag trôi theo CU; lỗi mới xuất hiện sau khi image cập nhật thì orchestrator tạo task ghim tag CU trong `containers.ts` |
 
 Không dùng: `@faker-js/faker`, `json-server` (spec CG-06, CG-08).
+
+**Kiểm tra lại ngày 2026-10-02** (`npm view <package> dist-tags`, `npm view <package>@<bản> time`). Khai báo trong bảng trên giữ nguyên; dải `^` tự nhận bản vá mới khi Task 3, 32 cài, và `minimumReleaseAge` vẫn loại bản chưa quá 24 giờ:
+
+| Package | Thay đổi so với 2026-09-15 | Xử lý |
+|---|---|---|
+| `msw` | `latest` là 3.0.1 (2026-09-30); 3.0.0 phát hành 2026-09-28, peer `typescript >=5.9.x` | Giữ `^2.15.0`: spec CG-06 chốt handler MSW 2. Output ghi rõ MSW 2 trong comment đầu file (Task 23). Chuyển sang MSW 3 là thay đổi spec riêng (Vấn đề 15) |
+| `drizzle-orm` | `latest` là 0.45.3 (2026-09-21) | `^0.45.2` cài 0.45.3, cùng nhánh 0.45 của spec |
+| `testcontainers`, `@testcontainers/*` | 12.2.0 (2026-09-28) | `^12.1.0` cài 12.2.0 |
+| `@dbml/core` | 10.2.0 (2026-09-23) | `^10.1.1` cài 10.2.0 |
+| `mysql2` | 3.24.5 (2026-09-29) | `^3.24.4` cài 3.24.5 |
+| `shiki` | 4.5.0 (2026-10-01 06:46 UTC) | `^4.4.3`; Task 32 cài bản mới nhất đã quá 24 giờ |
+| `prisma` | `latest` là `8.0.0-rc.19` (pre-release); nhánh 7 vẫn dừng ở 7.10.0 | Giữ `^7.10.0` |
+| `pg`, `@types/pg`, `mssql`, `@types/mssql`, `openapi-types`, `@readme/openapi-parser`, `zod` | Không đổi bản cần dùng | Giữ nguyên |
 
 ## Bảng task
 
@@ -143,28 +176,29 @@ Không dùng: `@faker-js/faker`, `json-server` (spec CG-06, CG-08).
 
 | Task | Nội dung | Phụ thuộc | Đợt |
 |---|---|---|---|
-| 0 | Chốt Vấn đề 1–12 với user, ghi lựa chọn vào spec (không có thân riêng, xem mục "Vấn đề phát hiện khi lập plan") | — | 0 (song song với đợt 1) |
+| 0 | Chốt Vấn đề 1–12 với user, ghi lựa chọn vào spec (không có thân riêng). Đã chốt ngày 2026-10-02, xem cột "Quyết định" ở mục "Vấn đề phát hiện khi lập plan" | — | 0 |
 | 1 | Hạ tầng snapshot: loại `__snapshots__` và `*.bench.ts` khỏi typecheck, lint, Prettier, build, coverage | P2-26 | 1 |
-| 2 | Kiểu chung của generator, `GENERATOR_TARGETS`, `GENERATOR_DIAGNOSTIC_CODES` kèm hợp đồng `path`, `finalizeDiagnostics`, `renderFileContent`, `formatDiagnosticsSnapshot` | P2-26 | 1 |
-| 3 | Dependency của `packages/codegen-conformance`, mục `allowBuilds`, lockfile | P2-26 | 1 |
-| 4 | Fixture `createNamingEdgeSchema`, `createTargetLimitSchema`, `createLargeSchema` | P2-26 | 1 |
+| 2 | Kiểu chung của generator, `GENERATOR_TARGETS`, `GENERATOR_DIAGNOSTIC_CODES` (17 mã) kèm hợp đồng `path`, `finalizeDiagnostics`, `renderFileContent`, `formatDiagnosticsSnapshot` | P2-26 | 1 |
+| 3 | Manifest và dependency của `packages/codegen-conformance`, mục `allowBuilds`, lockfile | P2-26 | 1 |
+| 36 | Phần 2: issue `table-columns-empty` và `index-name-conflicts-table` trong core, kèm bản dịch `vi`, `en` của frontend (Vấn đề 10, 12) | P2-26 | 1 |
+| 4 | Fixture `createNamingEdgeSchema`, `createTargetLimitSchema`, `createLargeSchema` | P2-26, 36 | 2 |
 | 5 | Subpath `./generators/*` và export chung ở entry point chính | 2, P2-27 | 2 |
 | 6 | Định danh: quote SQL, định danh code, `NameAllocator` (`identifiers.ts`, `name-allocator.ts`, `javascript-reserved-words.ts`) | 2 | 2 |
 | 7 | Literal SQL và giá trị mặc định theo dialect (`sql-literals.ts`) | 2 | 2 |
-| 8 | Khung package conformance, job CI `conformance`, probe hành vi MySQL và SQL Server | 3, 4 | 2 |
+| 8 | Khung package conformance, task Turborepo và script root `test:conformance`, probe hành vi MySQL và SQL Server chạy local | 3, 4 | 3 |
 | 9 | Tên ràng buộc do generator đặt (`constraint-names.ts`) | 6 | 3 |
 | 10 | Biểu diễn JSON và tài nguyên REST (`json-representation.ts`, `rest-resources.ts`) | 2, 6 | 3 |
 | 11 | Đồ thị quan hệ và tên trường quan hệ (`relation-graph.ts`, `relation-field-names.ts`) | 2, 6 | 3 |
 | 12 | Quy tắc kiểu và khóa theo dialect cho SQL, Prisma, Drizzle (`dialect-types.ts`, `dialect-constraints.ts`, `mysql-identifiers.ts`) | 2, 6 | 3 |
 | 13 | Mô hình DDL dùng chung cho ba dialect (`sql-ddl-model.ts`) | 4, 7, 9, 11, 12 | 4 |
-| 17 | CG-02 Prisma schema | 1, 4, 5, 7, 11, 12 | 4 |
+| 17 | CG-02 Prisma schema | 1, 4, 5, 7, 9, 11, 12, 36 | 4 |
 | 18 | CG-03 Drizzle schema (PostgreSQL, MySQL) | 1, 4, 5, 7, 9, 11, 12 | 4 |
 | 19 | CG-04 TypeScript types | 1, 4, 5, 10 | 4 |
 | 20 | CG-05 Zod schema | 1, 4, 5, 10 | 4 |
-| 14 | CG-01 SQL DDL PostgreSQL | 1, 4, 5, 13 | 5 |
-| 15 | CG-01 SQL DDL MySQL | 1, 4, 5, 8 (CI xanh), 13 | 5 |
-| 16 | CG-01 SQL DDL SQL Server | 1, 4, 5, 8 (CI xanh), 13 | 5 |
-| 21 | CG-08 `SeedDataset`: PRNG, `buildSeedDataset`, `validateSeedDataset`, mã `SeedIssue` | 2, 4, 10, 11 | 5 |
+| 14 | CG-01 SQL DDL PostgreSQL | 1, 4, 5, 13, 36 | 5 |
+| 15 | CG-01 SQL DDL MySQL | 1, 4, 5, 8 (kết quả probe local trong log), 13, 36 | 5 |
+| 16 | CG-01 SQL DDL SQL Server | 1, 4, 5, 8 (kết quả probe local trong log), 13, 36 | 5 |
+| 21 | CG-08 `SeedDataset`: PRNG, `buildSeedDataset`, `validateSeedDataset`, mã `SeedIssue` | 2, 4, 9, 10, 11 | 5 |
 | 24 | CG-07 OpenAPI 3.1 | 1, 4, 5, 10 | 5 |
 | 22 | CG-08 `serializeSeedDataset`, `generateSeed`, export type `SeedDataset` | 1, 4, 5, 7, 21 | 6 |
 | 23 | CG-06 Mock API (handler MSW 2) | 1, 4, 5, 10, 21 | 6 |
@@ -175,16 +209,17 @@ Không dùng: `@faker-js/faker`, `json-server` (spec CG-06, CG-08).
 | 29 | Conformance: DDL và seed SQL trên PostgreSQL 18, MySQL 8.4, SQL Server 2022 | 8, 14, 15, 16, 22 | 7 |
 | 30 | Conformance: `prisma validate`; typecheck Drizzle, TypeScript, Zod; parse seed JSON bằng schema Zod | 8, 17, 18, 19, 20, 22 | 7 |
 | 31 | Conformance: Mock API trên `msw/node`, validator OpenAPI, parse DBML | 8, 23, 24, 25 | 7 |
-| 32 | Dependency `shiki` cho frontend, lockfile | P3 | 8 |
+| 32 | Dependency `shiki` cho frontend, lockfile | P3, 3 | 8 |
 | 33 | Worker sinh code và tách token Shiki, hook `use-generated-code`; worker import `zod-config.ts` của phần 3 đầu tiên | 5, 14–26, 32, P3 | 9 |
-| 34 | Code panel, nút "Code" trên toolbar, i18n `codeGenerator` và `generatorDiagnostics`, CSP `worker-src 'self'` | 33 | 10 |
-| 35 | Tài liệu (`roadmap.md`, `architecture.md`, `CLAUDE.md`), kết quả benchmark, kiểm tra toàn repo | 27–31, 34 | 11 |
+| 34 | Code panel, nút "Code" trên toolbar, i18n `codeGenerator` và `generatorDiagnostics`, CSP `worker-src 'self'` | 33, 36 | 10 |
+| 35 | Tài liệu (`roadmap.md`, `architecture.md`, `CLAUDE.md`, spec phần 2), kết quả benchmark, chạy lại toàn bộ `pnpm test:conformance`, kiểm tra toàn repo | 27–31, 34 | 11 |
 
-- Đường tới hạn của core: Task 2 → 6 → 12 → 13 → 14, 15, 16. Task 32 bắt đầu được ngay khi phần 3 merge, không cần chờ đợt 7.
-- Task 15, 16 cần job `conformance` của Task 8 đã xanh trên CI (mục "Điểm nóng").
+- Đường tới hạn của core: Task 2 → 6 → 12 → 13 → 14, 15, 16. Task 32 bắt đầu được ngay khi Task 3 đã merge (hai task cùng ghi lockfile), không cần chờ đợt 7.
+- Task 15, 16 chỉ bắt đầu khi execution log của Task 8 có kết quả probe local và mọi probe khớp kỳ vọng (mục "Điểm nóng").
 - Task 33: import đầu tiên của `code-generator.worker.ts` là `zod-config.ts` của phần 3 (đặt `z.config({ jitless: true })`), đứng trước mọi module import `@schemaforge/core`, vì Zod đọc `jitless` khi tạo schema chứ không phải khi parse, còn core tạo schema lúc được import (spec mục 8, "CSP"; `packages/core/src/zod-jitless.test.ts`). Thân Task 33 có bước kiểm tra rằng dòng import đầu tiên của file worker là `zod-config`.
-- Task 0 phải xong trước mọi task nằm trong cột "Ảnh hưởng" của vấn đề tương ứng; các task khác không chờ Task 0.
-- Thân task: lượt 1 viết Task 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16 ở ngay dưới. Task 3, 8, 17–35 do lượt 2 viết ở mục [Các task còn lại](#các-task-còn-lại).
+- Task 0 đã xong (2026-10-02): mọi task có thể giao theo phụ thuộc trong bảng.
+- Đợt 1 có Task 1, 2, 3, 36; Task 4 sang đợt 2 vì fixture phải sạch cả với hai issue mới của Task 36 (Vấn đề 10, 12); Task 8 sang đợt 3 vì cần Task 4.
+- Thân task: Task 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16 ở ngay dưới. Task 3, 8, 17–36 ở mục [Các task còn lại](#các-task-còn-lại).
 
 ## Task 1: Hạ tầng snapshot cho generator
 
@@ -245,7 +280,7 @@ export type Generate<T extends GeneratorTarget> = (schema: SchemaDocument, optio
 
 `MarkdownLabels` gồm đúng 23 khóa `string` (spec CG-10: tiêu đề mục, tiêu đề cột, "Có", "Không", tên loại quan hệ), chốt ở đây để Task 5 export và Task 26, 34 dùng mà không sửa file này: `enumsHeading`, `tablesHeading`, `indexesHeading`, `relationsHeading`, `columnNameHeader`, `columnTypeHeader`, `columnNullableHeader`, `columnDefaultHeader`, `columnConstraintsHeader`, `columnCommentHeader`, `indexNameHeader`, `indexColumnsHeader`, `indexUniqueHeader`, `yes`, `no`, `primaryKey`, `unique`, `autoIncrement`, `foreignKey`, `oneToOne`, `oneToMany`, `outgoingRelations`, `incomingRelations`. Tên hành động ON DELETE, ON UPDATE ghi bằng từ khóa SQL, không phải nhãn.
 
-`diagnostic-codes.ts`: `GENERATOR_DIAGNOSTIC_CODES` là mảng `as const` gồm 16 mã theo đúng thứ tự bảng ở spec mục 4, và `GeneratorDiagnosticCode`. Hợp đồng `path` dưới đây áp cho mọi đích (spec chỉ ví dụ; plan chốt để frontend dùng `resolveIssueTarget` nhất quán):
+`diagnostic-codes.ts`: `GENERATOR_DIAGNOSTIC_CODES` là mảng `as const` gồm 17 mã theo đúng thứ tự bảng ở spec mục 4 (`comment-truncated` đứng sau `null-character-removed`, trước `seed-table-skipped`), và `GeneratorDiagnosticCode`. Hợp đồng `path` dưới đây áp cho mọi đích (spec chỉ ví dụ; plan chốt để frontend dùng `resolveIssueTarget` nhất quán):
 
 | Mã | `path` |
 |---|---|
@@ -258,6 +293,7 @@ export type Generate<T extends GeneratorTarget> = (schema: SchemaDocument, optio
 | `default-omitted` | `["columns", columnId, "defaultValue"]` |
 | `identifier-collision-renamed` | Phần tử bị đổi tên: `["columns", columnId, "name"]` hoặc `["indexes", indexId, "name"]` |
 | `null-character-removed` | `["tables", tableId, "comment"]`, `["columns", columnId, "comment"]`, `["columns", columnId, "defaultValue"]` hoặc `["enums", enumId, "values", i]` |
+| `comment-truncated` | `["tables", tableId, "comment"]` hoặc `["columns", columnId, "comment"]` |
 
 `diagnostics.ts`:
 
@@ -275,7 +311,7 @@ export type Generate<T extends GeneratorTarget> = (schema: SchemaDocument, optio
 **Test viết trước:**
 
 - `generator-types.test.ts`: `lists the twelve generator targets in spec order`; `lists the three sql dialects`; `requires a provider option for prisma` (dùng `expectTypeOf<GeneratorOptions["prisma"]>().toEqualTypeOf<{ readonly provider: SqlDialect }>()`, được kiểm tra bởi `typecheck`).
-- `diagnostic-codes.test.ts`: `lists the sixteen diagnostic codes from the spec without duplicates` (`toStrictEqual` với danh sách đầy đủ và `new Set(...).size` là 16).
+- `diagnostic-codes.test.ts`: `lists the seventeen diagnostic codes from the spec without duplicates` (`toStrictEqual` với danh sách đầy đủ và `new Set(...).size` là 17).
 - `diagnostics.test.ts`: `sorts diagnostics by path, then by code`; `removes a repeated code and path pair`; `keeps the same code at two different paths`; `orders a numeric path segment before a string segment`; `returns an empty list for no diagnostics`.
 - `render-file.test.ts`: `joins the lines of one block and ends with one newline`; `separates blocks with one blank line`; `skips empty blocks`; `returns a single newline when there are no blocks`; `collapses trailing newlines at the end into one`.
 - `generator-snapshot.test.ts`: `formats one diagnostic per line as code and json path`; `writes (none) when there are no diagnostics`.
@@ -288,14 +324,14 @@ export type Generate<T extends GeneratorTarget> = (schema: SchemaDocument, optio
 
 **Mục tiêu:** ba schema hợp lệ dùng cho snapshot, conformance, property test và benchmark (spec mục 9, 10).
 
-**Phụ thuộc:** P2-26. **Đợt:** 1.
+**Phụ thuộc:** P2-26, Task 36. **Đợt:** 2.
 
 **File sở hữu:** tạo `packages/core/src/testing/naming-edge-schema.ts`, `target-limit-schema.ts`, `large-schema.ts`, mỗi file kèm `<name>.test.ts`; sửa `packages/core/src/testing/index.ts`, `packages/core/src/testing/index.test.ts`.
 
 **Cài đặt chung:**
 
 - Đọc `src/testing/factories.ts` và `sample-schema.ts` trước. Dựng bằng `buildSchema` và `make*` với `createCounterIdGenerator()` (theo Vấn đề 4 của plan phần 2, không qua operation). Lỗi dựng thì throw `Error`. Không import `vitest`, `fast-check`.
-- Mỗi lần gọi trả schema bằng nhau theo cấu trúc. `validateSchema` của mọi fixture trả mảng rỗng.
+- Mỗi lần gọi trả schema bằng nhau theo cấu trúc. `validateSchema` của mọi fixture trả mảng rỗng, kể cả với hai issue của Task 36: mọi bảng có ít nhất một cột, và không index nào trùng tên một bảng.
 - `src/testing/index.ts` export thêm `createNamingEdgeSchema`, `createTargetLimitSchema`, `createLargeSchema` và type `LargeSchemaOptions`; `index.test.ts` thêm ba tên vào danh sách export mong đợi.
 
 **`createNamingEdgeSchema(): SchemaDocument`** phải chứa (tên gợi ý, được đổi nếu vẫn đủ tình huống):
@@ -318,12 +354,19 @@ export type Generate<T extends GeneratorTarget> = (schema: SchemaDocument, optio
 - Vòng chỉ gồm cột bắt buộc (`required_a` ↔ `required_b`, `noAction`) và một bảng tham chiếu bắt buộc tới `required_a`.
 - `text` trong khóa chính, trong cột `isUnique`, trong index và trong cặp cột quan hệ.
 - `json` trong khóa chính của một bảng; `json` `isUnique` được một quan hệ tham chiếu; `binary` trong index unique.
+- Cột auto-increment trên MySQL (R14): khóa chính `(id, code_a, code_b)` với `id` `bigint` auto-increment, `code_a`, `code_b` `varchar(700)` (vượt 3072 byte, MySQL bỏ khóa chính và thêm index `<bảng>_id_idx`); và một bảng khóa chính `(a, id)` với `a` `integer`, `id` `bigint` auto-increment đứng sau.
+- Kích thước dòng MySQL (R13): bảng có cột `id` `integer` khóa chính và cột `v` `varchar(16383)` không thuộc khóa.
 - Tham số vượt giới hạn: `varchar(10485761)`, `char(256)`, `varchar(16384)`, `char(4001)`, `varchar(4001)`, `decimal(1001, 2)`, `decimal(40, 31)`.
 - Cột nullable `isUnique` được khóa ngoại tham chiếu; index unique có cột nullable không được tham chiếu.
 - Bảng không có khóa chính và không có unique; bảng không có khóa chính nhưng có cột bắt buộc `isUnique`.
 - Kiểu custom: cột nullable không mặc định, cột bắt buộc có mặc định literal, và một bảng riêng có cột custom bắt buộc không mặc định.
 - `setDefault` trên quan hệ có cột khóa ngoại mang giá trị mặc định.
 - Cột enum nullable; cột `boolean` `isUnique`.
+- Độ dài khóa MySQL (Vấn đề 1): một cột `varchar(1000)` `isUnique` (hẹp về `VARCHAR(768)`); một index unique gồm bốn cột `varchar(192)` (đúng 3072 byte, giữ nguyên); một index unique gồm năm cột `varchar(700)` (14 000 byte, bị bỏ trên MySQL) được một quan hệ hai đầu cùng kiểu tham chiếu (khóa ngoại cũng bị bỏ trên MySQL).
+- Độ dài khóa SQL Server (R1, R10): bảng có khóa chính `char(500)` (1000 byte cố định, quá 900) cùng một bảng khác có cột khóa ngoại `char(500)` tham chiếu tới nó; bảng có cột `char(900)` `isUnique` (1800 byte, quá 1700). Trên SQL Server cả ba cột thành `nvarchar(n)`.
+- Cột `char(300)` `isUnique` (MySQL thành `VARCHAR(300)`, chỉ `type-parameter-out-of-range`, R11).
+- Độ dài comment (Vấn đề 2): comment cột 1025 ký tự; comment bảng 2049 ký tự; comment cột 3751 code unit UTF-16 có cặp surrogate (ví dụ `😀`) vắt qua vị trí 3750.
+- Giây lẻ (Vấn đề 8): cột `time` mặc định `12:34:56.123456789`; cột `timestamp` mặc định `2026-01-02T03:04:05.12345678`.
 - Bảng `all_types` có đủ 19 kiểu chung (trừ custom đã có ở trên) và literal mặc định cho mọi kiểu nhận literal: `date`, `time` có giây lẻ, `timestamp`, `timestamptz` có độ lệch, `boolean`, `real` dạng mũ, `bigint` lớn nhất, `decimal`, `json` chứa `'`, `char`, `uuid`; `currentTimestamp` trên `timestamp` và `timestamptz`; auto-increment trên `smallint`, `integer` (mỗi cột ở một bảng riêng, là khóa chính).
 
 **`createLargeSchema(options: LargeSchemaOptions): SchemaDocument`**, `LargeSchemaOptions = { readonly tableCount: number }`:
@@ -337,7 +380,7 @@ export type Generate<T extends GeneratorTarget> = (schema: SchemaDocument, optio
 **Test viết trước:**
 
 - `naming-edge-schema.test.ts`: `has no semantic issues`; `returns structurally equal schemas on every call`; `passes parseSchemaDocument after JSON stringify and parse`; `contains names with every quote character of the three sql dialects`; `contains a table name of exactly 63 bytes`; `contains two table names that map to the same code identifier`; `contains column names that differ only by an accent`; `contains a comment with a null character`; `contains two relations between the same pair of tables`.
-- `target-limit-schema.test.ts`: `has no semantic issues`; `returns structurally equal schemas on every call`; `contains a cascade cycle and a second cascade path`; `contains a cycle of required foreign keys`; `contains text, json and binary columns in keys`; `contains type parameters beyond every dialect limit`; `contains a nullable unique column referenced by a foreign key`; `contains tables without a primary key`; `contains custom types with and without defaults`; `contains a set default relation`; `contains a default literal for every type that accepts one`.
+- `target-limit-schema.test.ts`: `has no semantic issues`; `returns structurally equal schemas on every call`; `contains a cascade cycle and a second cascade path`; `contains a cycle of required foreign keys`; `contains text, json and binary columns in keys`; `contains type parameters beyond every dialect limit`; `contains a nullable unique column referenced by a foreign key`; `contains tables without a primary key`; `contains custom types with and without defaults`; `contains a set default relation`; `contains a default literal for every type that accepts one`; `contains key columns beyond the MySQL key length limits`; `contains fixed-length keys beyond the SQL Server limits and a foreign key paired with one`; `contains auto-increment columns that lead no MySQL index`; `contains a table row beyond the MySQL row size limit`; `contains comments beyond the MySQL and SQL Server limits`; `contains time defaults with more than seven fractional digits`.
 - `large-schema.test.ts`: `creates 200 tables with 20 columns each, 300 relations, 200 indexes and 20 enums`; `has no semantic issues at 200 tables` (đặt `timeout` riêng nếu cần); `contains a composite foreign key and a relation cycle`; `returns structurally equal schemas on every call`; `throws RangeError for a table count below 2`.
 - `index.test.ts`: danh sách export mong đợi có thêm ba hàm.
 
@@ -379,7 +422,7 @@ export type Generate<T extends GeneratorTarget> = (schema: SchemaDocument, optio
 
   Mỗi type option là `GeneratorOptions["<đích>"]`.
 
-**Test viết trước:** trong `index.test.ts`, sửa `exports exactly the documented runtime values` để danh sách mong đợi có thêm hai tên; thêm `exposes twelve generator targets and sixteen generator diagnostic codes`.
+**Test viết trước:** trong `index.test.ts`, sửa `exports exactly the documented runtime values` để danh sách mong đợi có thêm hai tên; thêm `exposes twelve generator targets and seventeen generator diagnostic codes`.
 
 **Kiểm tra:** như mục "Quy ước chung", thêm:
 
@@ -388,7 +431,7 @@ pnpm --filter @schemaforge/core build
 pnpm --filter @schemaforge/backend exec node --input-type=module -e 'const core = await import("@schemaforge/core"); console.log(core.GENERATOR_TARGETS.length, core.GENERATOR_DIAGNOSTIC_CODES.length); await import("@schemaforge/core/generators/shared").then(() => console.log("reachable"), (error) => console.log(error.code));'
 ```
 
-Mong đợi: build thoát mã 0; lệnh `node` in `12 16` rồi `ERR_MODULE_NOT_FOUND` (thư mục `shared` không có `index.js` nên không import được qua pattern). Import thành công một subpath thật được kiểm tra ở Task 14.
+Mong đợi: build thoát mã 0; lệnh `node` in `12 17` rồi `ERR_MODULE_NOT_FOUND` (thư mục `shared` không có `index.js` nên không import được qua pattern). Import thành công một subpath thật được kiểm tra ở Task 14.
 
 **Commit:** `feat(core): expose generator subpaths and shared generator types`
 
@@ -429,7 +472,7 @@ export function truncateToUtf8Bytes(text: string, maxBytes: number): string;
 ```
 
 - Spec mục 5 ghi option `isCaseInsensitive`; plan thay bằng `comparison` (thêm mức không phân biệt dấu cho tên MySQL và tên ràng buộc, Vấn đề 7), và thêm `separator`, `maxBytes` vì spec dùng hậu tố `2` cho code, `_2` cho SQL, `-2` cho đường dẫn, và tên SQL tối đa 63 byte.
-- `toComparisonKey`: `exact` → giữ nguyên; `caseInsensitive` → `toNameKey(name)`; `caseAndAccentInsensitive` → `toNameKey` của chuỗi sau `normalize("NFD")` và bỏ ký tự U+0300–U+036F (không đổi `đ`).
+- `toComparisonKey`: `exact` → giữ nguyên; `caseInsensitive` → `toNameKey(name)`; `caseAndAccentInsensitive` → `toNameKey` của chuỗi sau `normalize("NFD")` và bỏ ký tự U+0300–U+036F, rồi đổi `đ` → `d`, `ø` → `o`, `ł` → `l`, `ħ` → `h` (chữ hoa đã thành chữ thường sau `toNameKey`; cách so định danh của MySQL theo `utf8mb3_general_ci`, R12). Chỉ dùng để so định danh, không áp cho giá trị enum hay dữ liệu.
 - `allocate(preferred)`: nếu khóa của `preferred` chưa bị chiếm (bởi `reserved` hoặc lần cấp trước) thì chiếm và trả `preferred`. Nếu không, thử `n = 2, 3, …`: hậu tố `separator + n`; phần gốc là `preferred`, hoặc `truncateToUtf8Bytes(preferred, maxBytes − số byte của hậu tố)` khi `maxBytes` khác `null`; trả ứng viên đầu tiên chưa bị chiếm và chiếm nó.
 - State (tập khóa đã chiếm) nằm trong closure của từng allocator, không ở cấp module.
 - `truncateToUtf8Bytes`: giữ tiền tố dài nhất theo code point có số byte UTF-8 (dùng `utf8ByteLength` của `src/model/name-limits.ts`) không quá `maxBytes`; không tách cặp surrogate.
@@ -446,7 +489,7 @@ export function truncateToUtf8Bytes(text: string, maxBytes: number): string;
   - `appends an underscore to a reserved word`; `keeps an identifier that is not reserved`.
   - `formats property keys` (`it.each`): `USER_ID` trần; `$ref` trần; `họ tên` → `"họ tên"`; `2fa` → `"2fa"`; `a"b` → `"a\"b"`; `__proto__` → `["__proto__"]`.
   - `formats a one-line JSDoc comment`; `formats a multi-line JSDoc comment`; `escapes a comment terminator inside JSDoc`; `returns no lines for an empty comment`.
-- `name-allocator.test.ts`: `returns the preferred name when it is free`; `appends 2, then 3 to repeated names`; `treats names differing only in case as taken when case-insensitive`; `allows names differing only in case when comparison is exact`; `treats names differing only by an accent as taken when case and accent insensitive`; `builds comparison keys for each comparison` (`it.each`); `never returns a reserved name`; `uses the separator before the number`; `truncates the base so the suffixed name fits the byte limit`; `does not split a surrogate pair when truncating`; `keeps separate state for separate allocators`.
+- `name-allocator.test.ts`: `returns the preferred name when it is free`; `appends 2, then 3 to repeated names`; `treats names differing only in case as taken when case-insensitive`; `allows names differing only in case when comparison is exact`; `treats names differing only by an accent as taken when case and accent insensitive`; `folds đ, ø, ł and ħ when case and accent insensitive` (`it.each`: `đa`/`da`, `Øl`/`ol`, `łza`/`lza`, `ħal`/`hal`); `builds comparison keys for each comparison` (`it.each`); `never returns a reserved name`; `uses the separator before the number`; `truncates the base so the suffixed name fits the byte limit`; `does not split a surrogate pair when truncating`; `keeps separate state for separate allocators`.
 - `javascript-reserved-words.test.ts`: `contains class, default and await`; `has no duplicates`.
 
 **Kiểm tra:** như mục "Quy ước chung".
@@ -478,7 +521,7 @@ Trong `sql-literals.ts`:
 
 - `sqlStringLiteral(dialect: SqlDialect, value: string): string`: PostgreSQL `'…'` nhân đôi `'`; MySQL `'…'` đổi `\` thành `\\` rồi nhân đôi `'`; SQL Server `N'…'` nhân đôi `'`. Ký tự xuống dòng giữ nguyên trong literal.
 - `removeNullCharacters(value: string): { readonly text: string; readonly hasRemoved: boolean }`.
-- `formatSqlLiteral(dialect: SqlDialect, type: ColumnType, value: string): string`: `value` đã hợp lệ với kiểu (người gọi bảo đảm). `smallint`, `integer`, `bigint`, `decimal`, `real`, `double` ghi không quote; `boolean`: PostgreSQL `true`/`false`, MySQL `TRUE`/`FALSE`, SQL Server `1`/`0`; mọi kiểu còn lại trừ `binary` ghi bằng `sqlStringLiteral`. Gọi với `binary` là lỗi lập trình: throw `Error` (seed xử lý `binary` riêng ở Task 22).
+- `formatSqlLiteral(dialect: SqlDialect, type: ColumnType, value: string): string`: `value` đã hợp lệ với kiểu (người gọi bảo đảm). `smallint`, `integer`, `bigint`, `decimal`, `real`, `double` ghi không quote; `boolean`: PostgreSQL `true`/`false`, MySQL `TRUE`/`FALSE`, SQL Server `1`/`0`; mọi kiểu còn lại trừ `binary` ghi bằng `sqlStringLiteral`. Riêng SQL Server với `time`, `timestamp`, `timestamptz`: phần giây lẻ (chuỗi chữ số ngay sau dấu `.` của giây) dài hơn 7 chữ số thì cắt còn 7, không làm tròn, giữ nguyên `Z` hoặc độ lệch phía sau (spec mục 3 "Giây lẻ trên SQL Server", Vấn đề 8); không có diagnostic. Hàm này là đường duy nhất ghi literal SQL Server, nên giá trị mặc định của CG-01, `dbgenerated` của Prisma `sqlserver` và seed SQL cùng hành vi. MySQL tương tự nhưng cắt về 6 chữ số (R15, bằng độ chính xác cột `TIME(6)`, `DATETIME(6)`, `TIMESTAMP(6)`), không diagnostic. PostgreSQL giữ nguyên literal. Gọi với `binary` là lỗi lập trình: throw `Error` (seed xử lý `binary` riêng ở Task 22).
 - Giá trị mặc định:
 
   ```ts
@@ -506,6 +549,7 @@ Trong `sql-literals.ts`:
   - `removes null characters and reports it`; `reports nothing when there is no null character`.
   - `formats literals by column type and dialect` (`it.each`, ba dialect cho: `integer` `-5`, `decimal(3, 2)` `9.99`, `real` `1.5e-3`, `boolean` `true` và `false`, `varchar(10)` có `'`, `uuid`, `date`, `timestamptz`, `json`, enum).
   - `formats currentTimestamp for each dialect and timestamp kind`; `formats generateUuid for each dialect`.
+  - `truncates fractional seconds beyond seven digits for SQL Server` (`it.each`: `time` `12:34:56.123456789` → `N'12:34:56.1234567'`; `timestamptz` `2026-01-02T03:04:05.123456789+07:00` → `N'2026-01-02T03:04:05.1234567+07:00'`; `timestamp` 7 chữ số giữ nguyên); `truncates fractional seconds beyond six digits for MySQL` (`it.each` ba kiểu); `keeps fractional seconds for PostgreSQL`.
   - `wraps a MySQL literal in parentheses when requested`; `does not wrap a PostgreSQL literal`.
   - `returns none for a column without a default`.
   - `omits a literal that is not valid for a numeric column` (`it.each`: `1; DROP TABLE x`, `1 OR 1=1`, `0x10`); `omits currentTimestamp on a date column`; `omits a literal on a binary column`.
@@ -529,7 +573,7 @@ Trong `sql-literals.ts`:
 
 ```ts
 export function buildConstraintName(
-  tableName: string, columnNames: readonly string[], suffix: "pkey" | "key" | "fkey" | "check",
+  tableName: string, columnNames: readonly string[], suffix: "pkey" | "key" | "fkey" | "check" | "idx",
 ): string;
 export function fnv1a32Hex(text: string): string;
 export type SchemaConstraintNames = {
@@ -537,6 +581,7 @@ export type SchemaConstraintNames = {
   readonly uniqueColumns: ReadonlyMap<ColumnId, string>; // cột isUnique
   readonly enumChecks: ReadonlyMap<ColumnId, string>;    // cột enum (CHECK của SQL Server)
   readonly foreignKeys: ReadonlyMap<RelationId, string>;
+  readonly autoIncrementIndexes: ReadonlyMap<ColumnId, string>; // mọi cột auto-increment: <bảng>_<cột>_idx
 };
 export function allocateConstraintNames(
   schema: SchemaDocument,
@@ -546,15 +591,15 @@ export function allocateConstraintNames(
 
 - `buildConstraintName`: `pkey` → `<bảng>_pkey` (bỏ qua `columnNames`); còn lại → nối `tableName`, các `columnNames`, `suffix` bằng `_`. Dùng tên gốc. Tên dài hơn 63 byte UTF-8 → `truncateToUtf8Bytes(tên, 54) + "_" + fnv1a32Hex(tên)`.
 - `fnv1a32Hex`: FNV-1a 32 bit (offset basis `0x811c9dc5`, prime `0x01000193`, nhân bằng `Math.imul`, `>>> 0`) trên các byte UTF-8 của `text`, tự mã hóa theo code point (không `TextEncoder`; surrogate lẻ mã hóa như U+FFFD, khớp `utf8ByteLength`), trả 8 chữ số hex thường, đệm `0` bên trái.
-- `allocateConstraintNames`: một `createNameAllocator({ reserved, comparison: "caseAndAccentInsensitive", separator: "_", maxBytes: 63 })` (không phân biệt dấu cho mọi dialect vì MySQL so tên index như vậy, Vấn đề 7) với `reserved` là tên mọi bảng (`sortTables`) và mọi index của người dùng (`sortIndexes`). Cấp theo thứ tự: với từng bảng theo `sortTables`: khóa chính (nếu `primaryKeyColumnIds` không rỗng), rồi theo `columnIds`: tên unique cho cột `isUnique`, tên check cho cột kiểu `enum`; sau đó với từng quan hệ theo `sortRelations`: tên khóa ngoại với cột nguồn theo thứ tự `orderColumnPairs(relation)`. Tên không phụ thuộc dialect, nên ba dialect và Drizzle cho cùng tên. Tên index của người dùng không bao giờ đi qua allocator.
+- `allocateConstraintNames`: một `createNameAllocator({ reserved, comparison: "caseAndAccentInsensitive", separator: "_", maxBytes: 63 })` (không phân biệt dấu cho mọi dialect vì MySQL so tên index như vậy, Vấn đề 7) với `reserved` là tên mọi bảng (`sortTables`) và mọi index của người dùng (`sortIndexes`). Cấp theo thứ tự: với từng bảng theo `sortTables`: khóa chính (nếu `primaryKeyColumnIds` không rỗng), rồi theo `columnIds`: tên unique cho cột `isUnique`, tên check cho cột kiểu `enum`, tên `idx` cho cột `isAutoIncrement` (cấp cho mọi dialect để tên giống nhau; chỉ MySQL dùng, cho index thay thế của R14); sau đó với từng quan hệ theo `sortRelations`: tên khóa ngoại với cột nguồn theo thứ tự `orderColumnPairs(relation)`. Tên không phụ thuộc dialect, nên ba dialect và Drizzle cho cùng tên. Tên index của người dùng không bao giờ đi qua allocator.
 - `orderColumnPairs` được tiêm vào để task này không phụ thuộc Task 11; người gọi truyền `orderColumnPairsByReferencedKey` của Task 11.
 
 **Test viết trước:**
 
-- `builds names by the PostgreSQL convention` (`it.each`: `users_pkey`, `users_email_key`, `orders_tenant_id_number_key`, `posts_author_id_fkey`, `orders_status_check`).
+- `builds names by the PostgreSQL convention` (`it.each`: `users_pkey`, `users_email_key`, `orders_tenant_id_number_key`, `posts_author_id_fkey`, `orders_status_check`, `users_id_idx`).
 - `keeps a name of exactly 63 bytes`; `shortens a 64-byte name to 54 bytes, an underscore and an eight-digit hash`; `cuts at a code point boundary inside accented text`.
 - `matches the FNV-1a test vectors` (`it.each`: `""` → `811c9dc5`, `"a"` → `e40c292c`, `"foobar"` → `bf9cf968`); `hashes the utf-8 bytes of accented text` (giá trị mong đợi tính một lần bằng `node -e` dùng `Buffer` ngoài core, ghi cứng vào test).
-- `allocates primary key, unique, check and foreign key names for a schema`; `adds _2 when a generated name equals a table name`; `adds _2 when a generated name equals a user index name that differs only in case`; `adds _2 when two generated names differ only by an accent`; `never renames a user index`; `orders foreign key column names with the injected pair order`; `returns the same names regardless of map key order`.
+- `allocates primary key, unique, check, auto-increment index and foreign key names for a schema`; `adds _2 when a generated name equals a table name`; `adds _2 when a generated name equals a user index name that differs only in case`; `adds _2 when two generated names differ only by an accent`; `never renames a user index`; `orders foreign key column names with the injected pair order`; `returns the same names regardless of map key order`.
 
 **Kiểm tra:** như mục "Quy ước chung".
 
@@ -733,7 +778,12 @@ export function resolveDialectColumnType(input: {
 | Độ dài `keyText` | không áp dụng | 255 | 450 |
 
 - `char(n)` vượt giới hạn: MySQL → `varchar(n)` nếu `n` trong giới hạn `varchar`, nếu không → `text`; PostgreSQL, SQL Server → `text` (Vấn đề 6). `varchar(n)` vượt giới hạn → `text`. `decimal`: kẹp precision về tối đa, rồi kẹp scale về `min(scale tối đa, precision sau khi kẹp)` khi lớn hơn. Mỗi lần đổi một diagnostic `type-parameter-out-of-range`.
-- MySQL và SQL Server: nếu kiểu sau bước trên là `text` và `isKeyColumn` → `keyText` kèm `key-column-type-narrowed` (áp cả cho `varchar` quá dài đã thành `text`, Vấn đề 6). PostgreSQL giữ `text`.
+- Chỉ MySQL, xét **trước** các bước trên (Vấn đề 1, spec mục 4 "Độ dài khóa trên MySQL"): cột `char(n)` hoặc `varchar(n)` với `n > 768` và `isKeyColumn` → `{ kind: "varchar", length: 768 }` kèm `key-column-type-narrowed`, cộng `type-parameter-out-of-range` khi `n` vượt giới hạn của MySQL (`char` > 255, `varchar` > 16 383). Không đi vòng qua `LONGTEXT` (R2, R11): `varchar(20000)`, `char(1000)` trong khóa → `VARCHAR(768)`, hai diagnostic; `varchar(1000)` trong khóa → `VARCHAR(768)`, chỉ `key-column-type-narrowed`; `char(300)` trong khóa có `n ≤ 768` nên đi bước giới hạn thường → `VARCHAR(300)`, chỉ `type-parameter-out-of-range`.
+- MySQL và SQL Server: nếu kiểu sau bước trên là `text` và `isKeyColumn` → `keyText` kèm `key-column-type-narrowed` (SQL Server áp cả cho `varchar` quá dài đã thành `text`, Vấn đề 6). PostgreSQL giữ `text`.
+- Chỉ SQL Server: input thêm `isFixedLengthNarrowed: boolean` (mặc định do người gọi truyền, `false` với dialect khác): `char(n)` → `{ kind: "varchar", length: n }` kèm `key-column-type-narrowed` (Msg 1944, xem `resolveSchemaColumnTypes` bên dưới).
+- `mysqlKeyPartBytes(type: DialectColumnType): number` (export): `char`, `varchar`, `keyText` → `4 × length`; `uuid` → 144 (`CHAR(36)`); `custom` → 0; mọi kiểu khác → 32. Hằng `MYSQL_MAX_KEY_BYTES = 3072`, `MYSQL_MAX_KEY_CHARACTERS = 768`.
+- `sqlServerFixedKeyBytes(type: DialectColumnType): number` (export, spec mục 4 "Độ dài khóa trên SQL Server"): `char(n)` (`nchar`) → `2 × n`; `uuid` → 16; kiểu độ dài thay đổi (`varchar`, `keyText`, `text`, `json`, `binary`, `enum` là `nvarchar`) và `custom` → 0; mọi kiểu cố định khác → 17 (cận trên). Hằng `SQLSERVER_MAX_PRIMARY_KEY_BYTES = 900`, `SQLSERVER_MAX_INDEX_KEY_BYTES = 1700`.
+- `mysqlRowBytes(types: readonly DialectColumnType[], nullableCount: number): number` (export, spec mục 4 "Kích thước dòng trên MySQL"): `char(n)` → `4 × n`; `varchar(n)`, `keyText` → `4 × n + 2`; `text`, `json`, `binary` → 12; `custom` → 0; kiểu khác → 32; cộng `⌈nullableCount / 8⌉`. Hằng `MYSQL_MAX_ROW_BYTES = 65535`.
 - `custom` → `isSafe: isSafeCustomTypeName(name)`; diagnostic `custom-type-unsafe` do Task 13 thêm, vì chỉ SQL cần. Mọi kiểu khác giữ nguyên.
 - `path` của diagnostic là `["columns", column.id, "type"]`.
 
@@ -741,12 +791,20 @@ export function resolveDialectColumnType(input: {
 
 ```ts
 export function collectKeyColumnIds(schema: SchemaDocument): ReadonlySet<ColumnId>;
+export type SchemaColumnTypes = {
+  readonly types: ReadonlyMap<ColumnId, DialectColumnType>; // mọi cột của schema
+  readonly diagnostics: readonly GeneratorDiagnostic[];
+};
+export function resolveSchemaColumnTypes(schema: SchemaDocument, dialect: SqlDialect): SchemaColumnTypes;
 export type DroppedConstraints = {
   readonly primaryKeyTableIds: ReadonlySet<TableId>; readonly uniqueColumnIds: ReadonlySet<ColumnId>;
   readonly indexIds: ReadonlySet<IndexId>; readonly relationIds: ReadonlySet<RelationId>;
+  readonly autoIncrementIndexColumnIds: ReadonlySet<ColumnId>; // chỉ MySQL: cột cần index thường dự phòng
   readonly diagnostics: readonly GeneratorDiagnostic[];
 };
-export function findUnindexableConstraints(schema: SchemaDocument, dialect: SqlDialect): DroppedConstraints;
+export function findUnindexableConstraints(
+  schema: SchemaDocument, dialect: SqlDialect, types: ReadonlyMap<ColumnId, DialectColumnType>,
+): DroppedConstraints;
 export function resolveReferentialAction(dialect: SqlDialect, action: ReferentialAction):
   { readonly action: ReferentialAction; readonly isLossy: boolean };
 export function resolveSqlServerUnique(schema: SchemaDocument, tableId: TableId, columnIds: readonly ColumnId[]):
@@ -754,7 +812,8 @@ export function resolveSqlServerUnique(schema: SchemaDocument, tableId: TableId,
 ```
 
 - `collectKeyColumnIds`: cột thuộc khóa chính, cột `isUnique`, cột của index, cột hai đầu của mọi cặp quan hệ (điều kiện của `key-column-type-narrowed`).
-- `findUnindexableConstraints`: PostgreSQL → rỗng. MySQL, SQL Server: khóa chính có cột kiểu `json` hoặc `binary` bị bỏ; cột `isUnique` kiểu đó bỏ unique; index có cột kiểu đó bị bỏ; quan hệ có cột kiểu đó ở một trong hai đầu bị bỏ (kiểu hai đầu phải bằng nhau, nên đây đúng là khóa ngoại tham chiếu tới ràng buộc bị bỏ). Mỗi phần tử bị bỏ một diagnostic `key-column-type-not-indexable` theo hợp đồng `path` của Task 2.
+- `resolveSchemaColumnTypes`: điểm vào duy nhất để Task 13, 17, 18 lấy kiểu cột. Gọi `resolveDialectColumnType` cho mọi cột (theo `sortTables` rồi `columnIds`) với `isKeyColumn` từ `collectKeyColumnIds`. Riêng SQL Server, trước đó tính tập cột cần đổi độ dài cố định (Msg 1944): với mỗi khóa chính (ngưỡng 900), cột `isUnique` và index (ngưỡng 1700), cộng `sqlServerFixedKeyBytes` của các cột (kiểu tính với `isFixedLengthNarrowed: false`); khóa vượt ngưỡng thì mọi cột `char` của khóa vào tập. Sau đó lan theo quan hệ (R10, Msg 1778, 1753): với mọi quan hệ, cột ghép cặp qua `columnPairs` với một cột trong tập và có kiểu `char` cũng vào tập, lặp (hàng đợi tường minh) tới khi tập không đổi. Rồi gọi lại với `isFixedLengthNarrowed` theo tập; mỗi cột trong tập một `key-column-type-narrowed`. Riêng MySQL, sau bước kiểu từng cột (R13): với từng bảng, khi `mysqlRowBytes` của các cột vượt `MYSQL_MAX_ROW_BYTES`, đổi cột `char` hoặc `varchar` không thuộc khóa có `length` lớn nhất (bằng nhau thì cột đứng trước theo `columnIds`) thành `{ kind: "text" }` kèm `type-parameter-out-of-range`, tính lại, lặp tới khi vừa hoặc không còn cột để đổi (giới hạn đã chấp nhận). Một cột chỉ có một kiểu trong output, nên cột đã đổi cho một khóa thì đổi ở mọi nơi. `diagnostics` gộp diagnostic của mọi cột.
+- `findUnindexableConstraints`: PostgreSQL → rỗng. MySQL, SQL Server: khóa chính có cột kiểu `json` hoặc `binary` bị bỏ; cột `isUnique` kiểu đó bỏ unique; index có cột kiểu đó bị bỏ; quan hệ có cột kiểu đó ở một trong hai đầu bị bỏ (kiểu hai đầu phải bằng nhau, nên đây đúng là khóa ngoại tham chiếu tới ràng buộc bị bỏ). Riêng MySQL, thêm điều kiện độ dài: với kiểu đã qua `resolveDialectColumnType(…, isKeyColumn: true)`, khóa chính, cột `isUnique`, index có tổng `mysqlKeyPartBytes` của các cột vượt `MYSQL_MAX_KEY_BYTES` bị bỏ, và quan hệ có tổng `mysqlKeyPartBytes` của các cột nguồn vượt ngưỡng bị bỏ (khóa được tham chiếu có cùng tập cột và cùng kiểu, nên nó cũng bị bỏ; khóa ngoại MySQL còn tự tạo index trên cột nguồn). Riêng SQL Server, khóa chính có tổng `sqlServerFixedKeyBytes` (theo `types`, tức sau khi đã đổi `nchar`) vẫn quá 900, cột `isUnique` hoặc index quá 1700, bị bỏ. Thêm cho mọi dialect trừ PostgreSQL: quan hệ có tập `toColumnId` bằng tập cột của một khóa chính, cột `isUnique` hoặc index unique đã bị bỏ của bảng đích cũng bị bỏ. Mỗi phần tử bị bỏ một diagnostic `key-column-type-not-indexable` theo hợp đồng `path` của Task 2, dù bị bỏ vì một hay nhiều lý do. `autoIncrementIndexColumnIds` (chỉ MySQL, lỗi 1075, R14): cột auto-increment không phải cột đầu tiên của khóa chính (theo `primaryKeyColumnIds`), unique cột hay index (theo `columnIds` của index) nào còn giữ sau khi bỏ, kể cả khi khóa chính nhiều cột có nó đứng sau; người gọi thêm index thường một cột tên `autoIncrementIndexes` của Task 9 (`<bảng>_<cột>_idx`), không có diagnostic.
 - `resolveReferentialAction`: MySQL `setDefault` → `noAction`, `isLossy: true` (người gọi thêm `referential-action-not-supported` cho từng sự kiện); SQL Server `restrict` → `noAction`, `isLossy: false` (tương đương); còn lại giữ nguyên, `isLossy: false`. Hạ hành động vì vòng cascade là việc của `findCascadeConflicts` (Task 11), không nằm ở đây.
 - `resolveSqlServerUnique`: không cột nào nullable → `plain`; có cột nullable và có quan hệ tới đúng bảng đó với tập `toColumnId` bằng tập `columnIds` → `plain`, `isNullsRestricted: true` (người gọi thêm `unique-nulls-restricted`); có cột nullable và không được tham chiếu → `filtered`.
 
@@ -774,8 +833,8 @@ export function allocateMysqlNames(schema: SchemaDocument): MysqlNames;
 **Test viết trước:**
 
 - `custom-type-name.test.ts`: `accepts inet, geometry(Point, 4326), text[] and double precision` (`it.each`); `rejects a name with a quote, semicolon, hyphen or slash` (`it.each`); `rejects a name starting with a digit`; `rejects a 64-byte name`.
-- `dialect-types.test.ts`: `keeps types within dialect limits unchanged` (`it.each`); `maps char beyond the MySQL limit to varchar`; `maps char beyond the MySQL varchar limit to text`; `maps char beyond the PostgreSQL and SQL Server limits to text`; `maps varchar beyond the limit to text for each dialect` (`it.each`); `clamps decimal precision and scale to each dialect limit` (`it.each`); `reports type-parameter-out-of-range at the column type path`; `keeps text in a PostgreSQL key column`; `narrows text in a key column to 255 on MySQL and 450 on SQL Server`; `narrows an out-of-range varchar key column and reports both diagnostics`; `marks a custom type with an unsafe name`.
-- `dialect-constraints.test.ts`: `collects primary key, unique, index and relation columns as key columns`; `drops nothing on PostgreSQL`; `drops a primary key, a unique column and an index containing json or binary` (`it.each` MySQL, SQL Server); `drops a relation between json or binary columns`; `reports one key-column-type-not-indexable per dropped element`; `maps set default to no action on MySQL as lossy`; `maps restrict to no action on SQL Server without loss`; `keeps every action on PostgreSQL`; `filters a nullable unique that no foreign key references`; `restricts a nullable unique referenced by a foreign key`; `uses a plain unique when no column is nullable`.
+- `dialect-types.test.ts`: `narrows a MySQL char or varchar key column longer than 768 to varchar(768)` (`it.each`: `varchar(1000)` một diagnostic; `char(1000)`, `varchar(20000)` hai diagnostic); `narrows a SQL Server nchar to nvarchar when asked`; `keeps a MySQL varchar(768) key column`; `keeps a long varchar key column on SQL Server and PostgreSQL`; `keeps a long MySQL varchar that is not a key column`; `counts MySQL key part bytes by type` (`it.each`: `varchar(10)` 40, `keyText` 1020, `uuid` 144, `custom` 0, `bigint` 32); `keeps types within dialect limits unchanged` (`it.each`); `maps char beyond the MySQL limit to varchar`; `maps char beyond the MySQL varchar limit to text`; `maps char beyond the PostgreSQL and SQL Server limits to text`; `maps varchar beyond the limit to text for each dialect` (`it.each`); `clamps decimal precision and scale to each dialect limit` (`it.each`); `reports type-parameter-out-of-range at the column type path`; `keeps text in a PostgreSQL key column`; `narrows text in a key column to 255 on MySQL and 450 on SQL Server`; `narrows an out-of-range varchar key column to nvarchar(450) on SQL Server and reports both diagnostics`; `marks a custom type with an unsafe name`.
+- `dialect-constraints.test.ts`: `collects primary key, unique, index and relation columns as key columns`; `drops nothing on PostgreSQL`; `drops a primary key, a unique column and an index containing json or binary` (`it.each` MySQL, SQL Server); `drops a relation between json or binary columns`; `narrows nchar columns of a SQL Server primary key over 900 bytes and a unique over 1700 bytes to nvarchar`; `drops a SQL Server key still over the fixed-length limit after narrowing`; `drops a relation that references a dropped key`; `asks for a fallback index when a MySQL auto-increment column loses its only key`; `asks for a fallback index when the auto-increment column is not first in a composite primary key`; `asks for no fallback index on SQL Server`; `spreads nchar narrowing to every column paired through relations on SQL Server`; `converts the largest non-key MySQL varchar to text until the row fits`; `keeps key columns when only key columns remain over the row size`; `resolves the types of every column once per schema`; `keeps a MySQL index of exactly 3072 bytes`; `drops a MySQL index, primary key and relation longer than 3072 bytes`; `keeps long keys on SQL Server and PostgreSQL`; `reports one key-column-type-not-indexable per dropped element`; `maps set default to no action on MySQL as lossy`; `maps restrict to no action on SQL Server without loss`; `keeps every action on PostgreSQL`; `filters a nullable unique that no foreign key references`; `restricts a nullable unique referenced by a foreign key`; `uses a plain unique when no column is nullable`.
 - `mysql-identifiers.test.ts`: `renames a column that differs from an earlier column only by an accent`; `renames an index that differs from an earlier index of the same table only by an accent`; `keeps index names that differ only by an accent in different tables`; `reports identifier-collision-renamed at the renamed name path`; `keeps every other name unchanged`; `renames in column order and index order regardless of map key order`.
 
 **Kiểm tra:** như mục "Quy ước chung".
@@ -828,16 +887,16 @@ export function buildSqlDdlModel(schema: SchemaDocument, dialect: SqlDialect): S
 
 **Hành vi:**
 
-1. Chuẩn bị: `collectKeyColumnIds`, `findUnindexableConstraints(schema, dialect)`, `allocateConstraintNames(schema, (relation) => orderColumnPairsByReferencedKey(schema, relation))`; MySQL thêm `allocateMysqlNames(schema)`; SQL Server thêm `findCascadeConflicts(schema)`. Tên cột ghi ra luôn lấy qua một hàm tra cứu duy nhất (tên MySQL đã đổi, hoặc tên gốc), dùng cho cột, khóa chính, unique, index, khóa ngoại và CHECK.
+1. Chuẩn bị: `resolveSchemaColumnTypes(schema, dialect)` (kiểu mọi cột cùng diagnostic kiểu), `findUnindexableConstraints(schema, dialect, types)`, `allocateConstraintNames(schema, (relation) => orderColumnPairsByReferencedKey(schema, relation))`; MySQL thêm `allocateMysqlNames(schema)`; SQL Server thêm `findCascadeConflicts(schema)`. Tên cột ghi ra luôn lấy qua một hàm tra cứu duy nhất (tên MySQL đã đổi, hoặc tên gốc), dùng cho cột, khóa chính, unique, index, khóa ngoại và CHECK.
 2. **Enum** theo `sortEnums`. PostgreSQL: giá trị qua `removeNullCharacters`, bỏ thì thêm `null-character-removed` tại `["enums", id, "values", i]`.
 3. **Bảng** theo `sortTables`, cột theo `columnIds`:
-   - Kiểu: `resolveDialectColumnType`. Kiểu `custom` có `isSafe: false` → thay bằng `{ kind: "text" }` kèm `custom-type-unsafe`.
+   - Kiểu: lấy từ `resolveSchemaColumnTypes`, không gọi `resolveDialectColumnType` trực tiếp. Kiểu `custom` có `isSafe: false` → thay bằng `{ kind: "text" }` kèm `custom-type-unsafe`.
    - Mặc định: `formatSqlDefault` với `shouldParenthesizeLiteral` đúng khi dialect là MySQL và kiểu sau bước trên là `text`, `json` hoặc `binary`. `omitted` → `defaultSql: null` kèm `default-omitted`; `hasRemovedNullCharacter` → `null-character-removed` tại `["columns", id, "defaultValue"]`.
-   - Comment bảng và cột: PostgreSQL bỏ U+0000 kèm `null-character-removed` tại đường dẫn `comment` tương ứng; MySQL, SQL Server giữ nguyên.
+   - Comment bảng và cột: PostgreSQL bỏ U+0000 kèm `null-character-removed` tại đường dẫn `comment` tương ứng, không giới hạn độ dài. MySQL, SQL Server giữ U+0000 nhưng cắt comment vượt giới hạn của đích (Vấn đề 2, spec mục 4 "Cắt comment") kèm `comment-truncated` tại `["tables", id, "comment"]` hoặc `["columns", id, "comment"]`: MySQL comment cột quá 1024 code point cắt còn 1024 code point đầu, comment bảng quá 2048 code point cắt còn 2048; SQL Server comment (bảng và cột) quá 3750 code unit UTF-16 cắt còn tiền tố dài nhất không quá 3750 code unit và không tách cặp surrogate. Hai hàm `truncateCodePoints(text, max)` và `truncateUtf16CodeUnits(text, max)` nằm trong file của task này (ví dụ `sql-ddl-model-comments.ts`), kèm test.
    - Khóa chính: khi `primaryKeyColumnIds` không rỗng và bảng không nằm trong `primaryKeyTableIds` bị bỏ, tên từ `primaryKeys`.
    - Cột `isUnique` không bị bỏ, theo `columnIds`: PostgreSQL, MySQL → `uniqueConstraints`. SQL Server → `resolveSqlServerUnique(schema, tableId, [columnId])`: `plain` → `uniqueConstraints` (thêm `unique-nulls-restricted` tại `["columns", id, "isUnique"]` khi `isNullsRestricted`); `filtered` → một `SqlIndexModel` unique có `filterColumnNames: [tên cột]`, cùng tên ràng buộc.
    - `enumChecks`: chỉ SQL Server, mọi cột enum theo `columnIds`, tên từ `enumChecks` của Task 9.
-4. **Index**: index của người dùng theo `sortIndexes` (bỏ index trong `indexIds` bị bỏ), tên MySQL đã đổi hoặc tên gốc; SQL Server với index unique gọi `resolveSqlServerUnique`: `filtered` → `filterColumnNames` là các cột nullable theo thứ tự cột của index; `isNullsRestricted` → `unique-nulls-restricted` tại `["indexes", id]`. Sau đó mới đến index lọc sinh từ cột `isUnique` ở bước 3, theo thứ tự bảng rồi cột.
+4. **Index**: index của người dùng theo `sortIndexes` (bỏ index trong `indexIds` bị bỏ), tên MySQL đã đổi hoặc tên gốc; SQL Server với index unique gọi `resolveSqlServerUnique`: `filtered` → `filterColumnNames` là các cột nullable theo thứ tự cột của index; `isNullsRestricted` → `unique-nulls-restricted` tại `["indexes", id]`. Sau đó mới đến index lọc sinh từ cột `isUnique` ở bước 3, theo thứ tự bảng rồi cột. Cuối cùng, chỉ MySQL: mỗi cột trong `autoIncrementIndexColumnIds` (theo thứ tự bảng rồi cột) một `SqlIndexModel` không unique, một cột, tên là `autoIncrementIndexes` của Task 9 cho cột đó (`<bảng>_<cột>_idx`), không có diagnostic (lỗi 1075, R14).
 5. **Khóa ngoại** theo `sortRelations`, bỏ quan hệ trong `relationIds` bị bỏ; cặp cột theo `orderColumnPairsByReferencedKey`. SQL Server: quan hệ trong `findCascadeConflicts` → cả hai hành động `noAction` kèm `referential-action-cycle` tại `["relations", id]`. Còn lại mỗi sự kiện qua `resolveReferentialAction`; `isLossy` → `referential-action-not-supported` tại `["relations", id, "onDelete"]` hoặc `"onUpdate"`.
 6. Phần tử được tham chiếu mà không tìm thấy (không xảy ra với tài liệu đã qua `parseSchemaDocument`) thì bỏ qua, không throw. `diagnostics` đi qua `finalizeDiagnostics`.
 
@@ -848,11 +907,14 @@ export function buildSqlDdlModel(schema: SchemaDocument, dialect: SqlDialect): S
 - `uses the renamed MySQL column name in the primary key, index and foreign key`.
 - `replaces an unsafe custom type with text and reports custom-type-unsafe`; `omits an invalid default and reports default-omitted`; `parenthesizes a MySQL literal default on text, json and binary storage`.
 - `removes null characters from PostgreSQL comments, defaults and enum values and reports each`; `keeps null characters for MySQL and SQL Server`.
+- `truncates a MySQL column comment to 1024 code points and a table comment to 2048 and reports comment-truncated`; `truncates a SQL Server comment to 3750 utf-16 code units without splitting a surrogate pair`; `keeps comments at exactly the limit`; `keeps long PostgreSQL comments`.
 - `drops constraints with json or binary columns on MySQL and SQL Server and keeps them on PostgreSQL`.
 - `moves a nullable unique column to a filtered unique index on SQL Server`; `adds filter columns to a nullable unique index on SQL Server`; `keeps a referenced nullable unique as a constraint and reports unique-nulls-restricted`.
 - `orders foreign key columns by the referenced key`.
 - `downgrades both actions of a cascade conflict on SQL Server and reports referential-action-cycle`; `maps set default to no action on MySQL and reports each event`; `writes restrict as no action on SQL Server without a diagnostic`.
 - `writes enum checks only for SQL Server`; `uses the allocated constraint names`.
+- `drops a MySQL unique index longer than 3072 bytes and the foreign key that references it`.
+- `adds a plain MySQL index for an auto-increment column whose primary key was dropped`; `adds a plain MySQL index for an auto-increment column that is second in a composite primary key`; `uses nvarchar for SQL Server nchar key columns over the fixed-length limit and for the columns paired with them`; `parenthesizes the default of a MySQL column moved to text for the row size`.
 - `reports the expected diagnostic codes for createTargetLimitSchema on each dialect` (`it.each`, so tập mã).
 - `does not throw for a schema with duplicate names, an invalid default and an unsafe custom type`.
 
@@ -864,7 +926,7 @@ export function buildSqlDdlModel(schema: SchemaDocument, dialect: SqlDialect): S
 
 **Mục tiêu:** `@schemaforge/core/generators/postgresql` export `generatePostgresql`, in DDL PostgreSQL từ `SqlDdlModel` (spec CG-01, mục 3 bảng "SQL" cột PostgreSQL, mục 4 ma trận).
 
-**Phụ thuộc:** Task 1, 4, 5, 13. **Đợt:** 5.
+**Phụ thuộc:** Task 1, 4, 5, 13, 36. **Đợt:** 5.
 
 **File sở hữu (tạo):** `packages/core/src/generators/postgresql/index.ts`, `generate-postgresql.ts`, `generate-postgresql.test.ts`, `render-postgresql-type.ts`, `render-postgresql-type.test.ts`; mọi file trong `packages/core/src/generators/__snapshots__/postgresql/`.
 
@@ -916,15 +978,16 @@ pnpm --filter @schemaforge/backend exec node --input-type=module -e 'const gener
 
 Mong đợi: in `function schema.sql` (xác nhận pattern `./generators/*` của Task 5 hoạt động với một đích thật). DDL chạy trên database thật được kiểm chứng ở Task 29.
 
+
 **Commit:** `feat(core): add postgresql ddl generator`
 
 ## Task 15: CG-01 SQL DDL cho MySQL
 
 **Mục tiêu:** `@schemaforge/core/generators/mysql` export `generateMysql`, in DDL MySQL 8.4 từ `SqlDdlModel` (spec CG-01, mục 3 bảng "SQL" cột MySQL, mục 4 ma trận, mục "Rủi ro").
 
-**Phụ thuộc:** Task 1, 4, 5, 13, và Task 8 với job `conformance` đã xanh trên CI. **Đợt:** 5.
+**Phụ thuộc:** Task 1, 4, 5, 13, 36, và Task 8 với kết quả probe MySQL đã ghi trong execution log của Task 8. **Đợt:** 5.
 
-**Trước khi bắt đầu:** đọc báo cáo probe MySQL của Task 8. Điểm nào khác spec mục 4 hoặc khác đề xuất ở Vấn đề 1, 2, 7, 9 thì dừng và báo; không tự đổi quy tắc.
+**Trước khi bắt đầu:** đọc mục kết quả probe MySQL trong `document/executions/logs/` của Task 8 (`*-code-generators-task-8.md`). Điểm nào khác spec mục 4 hoặc khác quyết định ở Vấn đề 1, 2, 7, 9 thì dừng và báo; không tự đổi quy tắc.
 
 **File sở hữu (tạo):** `packages/core/src/generators/mysql/index.ts`, `generate-mysql.ts`, `generate-mysql.test.ts`, `render-mysql-type.ts`, `render-mysql-type.test.ts`; mọi file trong `packages/core/src/generators/__snapshots__/mysql/`.
 
@@ -962,10 +1025,11 @@ export function renderMysqlType(type: DialectColumnType, enums: SchemaDocument["
 **Test viết trước:**
 
 - `render-mysql-type.test.ts`: `renders every dialect column type` (`it.each`); `renders an enum column as ENUM with escaped values`; `renders a narrowed key text as VARCHAR`.
-- `generate-mysql.test.ts`: `names the file schema.sql with language sql`; `writes auto-increment, not null, default and comment in column order`; `writes an unnamed primary key and named unique constraints`; `ends every table with InnoDB, utf8mb4 and the accent-sensitive collation`; `writes a non-empty table comment as a table option`; `wraps literal defaults of LONGTEXT, JSON and LONGBLOB columns in parentheses`; `writes CURRENT_TIMESTAMP(6) and (UUID()) defaults`; `narrows text key columns to VARCHAR(255) and reports key-column-type-narrowed`; `omits constraints with json or binary columns and reports each`; `writes set default as NO ACTION and reports each event`; `renames a column that differs only by an accent and uses the new name in keys`; `escapes backslashes and quotes in string literals`; `quotes identifiers containing a backtick`; `creates indexes before foreign keys`; `writes no statement after the foreign keys`; `writes an empty schema as a single newline`.
+- `generate-mysql.test.ts`: `names the file schema.sql with language sql`; `writes auto-increment, not null, default and comment in column order`; `writes an unnamed primary key and named unique constraints`; `ends every table with InnoDB, utf8mb4 and the accent-sensitive collation`; `writes a non-empty table comment as a table option`; `wraps literal defaults of LONGTEXT, JSON and LONGBLOB columns in parentheses`; `writes CURRENT_TIMESTAMP(6) and (UUID()) defaults`; `narrows text key columns to VARCHAR(255) and reports key-column-type-narrowed`; `narrows a varchar(1000) key column to VARCHAR(768)`; `omits an index longer than 3072 bytes and the foreign key that references it and reports each`; `truncates column and table comments beyond the MySQL limits and reports comment-truncated`; `writes a plain index named <table>_<column>_idx for an auto-increment column that leads no key`; `writes LONGTEXT for the largest non-key varchar of a row over 65535 bytes and reports type-parameter-out-of-range`; `writes char(300) in a key as VARCHAR(300)`; `truncates fractional seconds of defaults to six digits`; `omits constraints with json or binary columns and reports each`; `writes set default as NO ACTION and reports each event`; `renames a column that differs only by an accent and uses the new name in keys`; `escapes backslashes and quotes in string literals`; `quotes identifiers containing a backtick`; `creates indexes before foreign keys`; `writes no statement after the foreign keys`; `writes an empty schema as a single newline`.
 - Snapshot: `matches the snapshot for <fixture>` (`it.each` với `sample`, `naming-edge`, `target-limit`, `empty`).
 
 **Kiểm tra:** như mục "Quy ước chung", thêm lệnh `node` như Task 14 với `@schemaforge/core/generators/mysql` và `generateMysql`, mong đợi `function schema.sql`.
+
 
 **Commit:** `feat(core): add mysql ddl generator`
 
@@ -973,9 +1037,9 @@ export function renderMysqlType(type: DialectColumnType, enums: SchemaDocument["
 
 **Mục tiêu:** `@schemaforge/core/generators/sqlserver` export `generateSqlServer`, in T-SQL cho SQL Server 2022 từ `SqlDdlModel` (spec CG-01, mục 3 bảng "SQL" cột SQL Server, mục 4 ma trận và "Phát hiện vòng cascade trên SQL Server").
 
-**Phụ thuộc:** Task 1, 4, 5, 13, và Task 8 với job `conformance` đã xanh trên CI. **Đợt:** 5.
+**Phụ thuộc:** Task 1, 4, 5, 13, 36, và Task 8 với kết quả probe SQL Server đã ghi trong execution log của Task 8. **Đợt:** 5.
 
-**Trước khi bắt đầu:** đọc báo cáo probe SQL Server của Task 8 và lựa chọn của user cho Vấn đề 2, 8, 9. Điểm nào khác spec thì dừng và báo.
+**Trước khi bắt đầu:** đọc mục kết quả probe SQL Server trong execution log của Task 8 và quyết định ở Vấn đề 2, 8, 9 (cột "Quyết định"). Điểm nào khác spec thì dừng và báo.
 
 **File sở hữu (tạo):** `packages/core/src/generators/sqlserver/index.ts`, `generate-sqlserver.ts`, `generate-sqlserver.test.ts`, `render-sqlserver-type.ts`, `render-sqlserver-type.test.ts`; mọi file trong `packages/core/src/generators/__snapshots__/sqlserver/`.
 
@@ -1018,32 +1082,269 @@ Không có `GO`, `USE`, `BEGIN`, `COMMIT`, `DROP` hay thời gian.
 **Test viết trước:**
 
 - `render-sqlserver-type.test.ts`: `renders every dialect column type` (`it.each`); `sizes an enum column by its longest value in UTF-16 code units`; `sizes an enum with only empty values as nvarchar(1)`; `uses nvarchar(max) for an enum value longer than 4000 code units`.
-- `generate-sqlserver.test.ts`: `names the file schema.sql with language sql`; `writes identity, explicit null or not null, and default in column order`; `writes primary key, unique and enum check constraints after the columns`; `writes enum check values as N literals`; `writes bit defaults as 1 and 0`; `writes sysdatetime for datetime2 and sysdatetimeoffset for datetimeoffset`; `writes newid() for generateUuid`; `moves a nullable unique column to a filtered unique index`; `writes a WHERE clause for the nullable columns of a unique index`; `keeps a referenced nullable unique as a constraint and reports unique-nulls-restricted`; `writes restrict as NO ACTION without a diagnostic`; `downgrades a cascade cycle and a second cascade path to NO ACTION and reports referential-action-cycle`; `narrows text key columns to nvarchar(450)`; `omits constraints with json or binary columns and reports each`; `creates indexes before foreign keys`; `declares the schema name variable once before the extended properties`; `passes table and column names to sp_addextendedproperty as N literals`; `writes no comment statements when no comment exists`; `quotes identifiers containing a closing bracket`; `contains no GO batch separator for the naming edge schema`; `reports type-parameter-out-of-range for an enum longer than 4000 code units`; `writes an empty schema as a single newline`.
+- `generate-sqlserver.test.ts`: `names the file schema.sql with language sql`; `writes identity, explicit null or not null, and default in column order`; `writes primary key, unique and enum check constraints after the columns`; `writes enum check values as N literals`; `writes bit defaults as 1 and 0`; `writes sysdatetime for datetime2 and sysdatetimeoffset for datetimeoffset`; `writes newid() for generateUuid`; `moves a nullable unique column to a filtered unique index`; `writes a WHERE clause for the nullable columns of a unique index`; `keeps a referenced nullable unique as a constraint and reports unique-nulls-restricted`; `writes restrict as NO ACTION without a diagnostic`; `downgrades a cascade cycle and a second cascade path to NO ACTION and reports referential-action-cycle`; `narrows text key columns to nvarchar(450)`; `omits constraints with json or binary columns and reports each`; `creates indexes before foreign keys`; `declares the schema name variable once before the extended properties`; `passes table and column names to sp_addextendedproperty as N literals`; `writes no comment statements when no comment exists`; `quotes identifiers containing a closing bracket`; `contains no GO batch separator for the naming edge schema`; `reports type-parameter-out-of-range for an enum longer than 4000 code units`; `truncates a comment beyond 3750 utf-16 code units and reports comment-truncated`; `truncates fractional seconds of time and datetime2 defaults to seven digits without a diagnostic`; `keeps a varchar(1000) key column as nvarchar(1000)`; `writes nvarchar for nchar primary key and unique columns over the fixed-length limits and reports key-column-type-narrowed`; `writes nvarchar for a foreign key column paired with a narrowed primary key and reports it`; `writes an empty schema as a single newline`.
 - Snapshot: `matches the snapshot for <fixture>` (`it.each` với `sample`, `naming-edge`, `target-limit`, `empty`).
 
 **Kiểm tra:** như mục "Quy ước chung", thêm lệnh `node` như Task 14 với `@schemaforge/core/generators/sqlserver` và `generateSqlServer`, mong đợi `function schema.sql`.
+
 
 **Commit:** `feat(core): add sql server ddl generator`
 
 ## Vấn đề phát hiện khi lập plan
 
-Các task đã viết theo phương án đề xuất. **Task 0** (không có thân riêng): orchestrator trình bảng này cho user, ghi lựa chọn vào spec phần 6 (hoặc báo cho plan phần 2 khi vấn đề thuộc phần 2), rồi mới giao các task ở cột "Ảnh hưởng". User chọn khác đề xuất thì chỉ sửa đúng các task đó. Lượt lập plan thứ hai thêm vấn đề mới vào cuối bảng, đánh số tiếp từ 13.
+Task 0 đã chốt mọi vấn đề dưới đây ngày 2026-10-02 (user giao quyền quyết định cho orchestrator; spec phần 6, mục "Quyết định bổ sung 2026-10-02"). Cột "Quyết định" ghi lựa chọn; các task đã được viết theo lựa chọn đó. Vấn đề 13–16 phát hiện ở lượt lập plan thứ hai và do plan quyết định, theo spec và rule hiện có.
 
-| # | Vấn đề | Đề xuất | Ảnh hưởng |
-|---|---|---|---|
-| 1 | **MySQL giới hạn tổng độ dài khóa index 3072 byte.** Với `utf8mb4` mỗi ký tự tính 4 byte, nên một cột `char`, `varchar` có `n > 768` trong khóa chính, unique hoặc index, hoặc nhiều cột có tổng vượt 3072 byte (kể cả bốn cột `text` đã hẹp về `VARCHAR(255)` theo spec), làm `CREATE TABLE`, `CREATE INDEX` báo lỗi 1071. Schema vẫn hợp lệ theo phần 2, và ma trận spec mục 4 chỉ xử lý `text`. SQL Server chỉ cảnh báo lúc tạo (900 byte cho khóa clustered, 1700 byte cho nonclustered), không lỗi DDL | Task 8 probe xác nhận. Nếu đúng, user chọn: (a) MySQL hẹp cột `char`, `varchar` trong khóa có `n > 768` về `VARCHAR(768)` kèm `key-column-type-narrowed`, và khi tổng vẫn vượt 3072 byte thì bỏ ràng buộc hoặc index kèm `key-column-type-not-indexable`; hoặc (b) ghi thành giới hạn đã biết của CG-01 và fixture tránh trường hợp này. Plan nghiêng về (a) để giữ tiêu chí "DDL chạy không lỗi với schema hợp lệ" | Spec mục 4; Task 4, 8, 12, 13, 15, 17, 18 |
-| 2 | **Giới hạn độ dài comment.** MySQL từ chối comment cột dài hơn 1024 ký tự và comment bảng dài hơn 2048 ký tự ở strict mode mặc định; giá trị extended property của SQL Server tối đa 7500 byte (3750 ký tự `nvarchar`). Phần 2 không giới hạn độ dài comment, nên schema hợp lệ có thể cho DDL lỗi | Task 8 probe xác nhận. Nếu đúng: thêm mã diagnostic thứ 17 `comment-truncated` (cắt ở ranh giới code point, `path` là đường dẫn `comment`), cần user duyệt vì đổi danh mục của spec mục 4. Trong lúc chờ, Task 15, 16 không cắt và fixture giữ comment ngắn | Spec mục 4; Task 2, 4, 13, 15, 16, 34 |
-| 3 | **Kiểu custom trong conformance.** `createSampleSchema()` có cột `location` kiểu `geometry(Point, 4326)`. `postgres:18-alpine` không có PostGIS, MySQL không có cú pháp này, SQL Server có `geometry` nhưng không nhận tham số, nên chạy DDL của fixture nguyên trạng làm CG-01 fail trên cả ba database; seed cũng bỏ bảng `users` nếu cột này bắt buộc và không có mặc định | Package conformance có helper thay tên kiểu custom của fixture bằng một kiểu có thật của dialect trước khi sinh (`inet` cho PostgreSQL, `YEAR` cho MySQL, `money` cho SQL Server; cả ba qua cú pháp an toàn). Snapshot trong core vẫn dùng fixture nguyên trạng. Không dùng image PostGIS (nặng, và không giải quyết MySQL, SQL Server). Task 4 bảo đảm cột custom bắt buộc không mặc định chỉ nằm ở bảng riêng | Task 4, 8, 29 |
-| 4 | **`restrict` trong đồ thị cascade của SQL Server.** Spec mục 4 đưa vào đồ thị mọi quan hệ "có hành động khác `noAction`". SQL Server ghi `restrict` là `NO ACTION` (tương đương theo nguyên tắc 2 của mục 4), và `NO ACTION` không gây lỗi vòng hay nhiều đường cascade. Đọc đúng chữ thì quan hệ `restrict` bị hạ kèm diagnostic dù output không đổi, và làm quan hệ cascade khác bị hạ oan | Đồ thị bỏ cả `noAction` và `restrict` (đã viết vào Task 11). Prisma `sqlserver` cũng ghi `restrict` là `NoAction`, nên SQL và Prisma vẫn khớp. Conformance của Task 29, 30 xác nhận với SQL Server và `prisma validate` | Spec mục 4; Task 11, 13, 17 |
-| 5 | **Cột tên `__proto__`.** Tên này hợp lệ theo phần 2. Trong object literal JavaScript, cả `__proto__: …` lẫn `"__proto__": …` đặt prototype thay vì tạo thuộc tính, nên `z.object({ "__proto__": … })`, dữ liệu trong `handlers.ts` và object dựng bằng phép gán trong core âm thầm mất cột. Spec mục 5 chỉ ghi "khớp regex thì ghi trần, còn lại `JSON.stringify`" | `formatPropertyKey` trả `["__proto__"]` (khóa tính toán tạo thuộc tính thật, hợp lệ cả trong type literal TypeScript); mọi object có khóa từ tên người dùng dựng bằng `Object.fromEntries` (mục "Quy ước chung"). Fixture `naming-edge` có cột này; Task 30 typecheck và parse dữ liệu có cột này | Task 4, 6, 19, 20, 21, 22, 23, 24, 30 |
-| 6 | **Tham số kiểu chưa đủ trong ma trận.** (a) PostgreSQL `char(n)` cũng tối đa 10 485 760 nhưng spec chỉ ghi `varchar(n)`. (b) Spec không nói thứ tự giữa "vượt giới hạn" và "`text` trong khóa": `varchar(20000)` trong khóa MySQL thành `LONGTEXT`, không đánh index được. (c) SQL Server enum là `nvarchar(n)` với `n` là độ dài giá trị dài nhất, nhưng không nói đơn vị và trường hợp vượt 4000 | (a) Xử lý như `varchar`: `text` kèm `type-parameter-out-of-range`. (b) Áp giới hạn trước, rồi hẹp như `text` (`VARCHAR(255)`, `nvarchar(450)`) kèm cả hai diagnostic. (c) `n` tính theo code unit UTF-16 (đơn vị của `nvarchar`), tối thiểu 1; vượt 4000 thì `nvarchar(max)` kèm `type-parameter-out-of-range`. Đã viết vào Task 12, 16 | Task 12, 13, 16, 17, 18 |
-| 7 | **So tên không phân biệt dấu.** Spec mục 4 ghi MySQL so tên cột, index không phân biệt dấu. Tên ràng buộc do generator đặt (từ tên gốc có dấu) cũng là tên index trên MySQL: hai cột `ma`, `má` cùng `isUnique` cho `t_ma_key` và `t_má_key`, trùng trên MySQL. `NameAllocator` của spec chỉ có `isCaseInsensitive` | `NameAllocator` nhận `comparison` (`exact`, `caseInsensitive`, `caseAndAccentInsensitive`). Tên ràng buộc so không phân biệt dấu cho **mọi** dialect để tên vẫn giống nhau giữa ba dialect và Drizzle. Chưa rõ MySQL có coi `đ` và `d` là một không: Task 8 probe; nếu có, `toComparisonKey` đổi thêm `đ` → `d` | Task 6, 8, 9, 12 |
-| 8 | **Giây lẻ quá 7 chữ số.** Literal `time`, `timestamp`, `timestamptz` của phần 2 cho phép số chữ số giây lẻ bất kỳ. PostgreSQL và MySQL làm tròn về 6 chữ số, còn SQL Server báo lỗi chuyển kiểu khi quá 7 chữ số, nên giá trị mặc định hợp lệ làm DDL SQL Server lỗi | Đề xuất phần 2 giới hạn giây lẻ tối đa 6 chữ số (bằng độ chính xác cột của CG-01), sửa `isValidDefaultLiteral` trong một task riêng của phần 2, chạy trước Task 16. Phương án khác: SQL Server cắt về 7 chữ số, không diagnostic. Task 8 probe xác nhận | Spec phần 2 mục 3; plan phần 2 Task 10; Task 7, 10, 16, 21 |
-| 9 | **Điểm cần probe ngoài danh sách rủi ro của spec.** MySQL: literal `timestamptz` có `Z` và có độ lệch trên cột `TIMESTAMP(6)` (MySQL 8.0.19 trở lên nhận độ lệch, `Z` chưa rõ); `DEFAULT (UUID())` trên `CHAR(36)`; hai tên ràng buộc chỉ khác dấu (Vấn đề 7). SQL Server: `DECLARE` sau `CREATE TABLE` trong cùng batch; `sp_addextendedproperty` với `@level0name` là biến; literal `time` 7 chữ số giây lẻ | Task 8 viết probe cho từng điểm cùng các điểm ở mục "Rủi ro" của spec. Probe khác kỳ vọng thì dừng Task 15, 16 và user quyết định sửa spec | Task 8, 15, 16 |
-| 10 | **Index trùng tên bảng trên PostgreSQL.** PostgreSQL dùng chung một không gian tên cho bảng và index. Phần 2 chỉ bảo đảm tên index không trùng tên index khác (`index-name-duplicate`), và spec phần 6 không cho đổi tên index của người dùng, nên index tên `users` trên bảng khác làm DDL lỗi dù schema hợp lệ | Đề xuất phần 2 mở rộng `index-name-duplicate` cho trùng tên bảng (hoặc thêm issue mới). Cho tới khi đó, fixture tránh trường hợp này | Spec phần 2 mục 8; Task 4, 14 |
-| 11 | **Mã `SeedIssue` không có bản dịch.** Spec không yêu cầu i18n cho `seed-value-invalid`, `seed-value-null`, `seed-unique-violation`, `seed-foreign-key-missing`, `seed-order-invalid`; code panel của phần 6 không hiển thị chúng | Không export danh mục này ở entry point chính và không có namespace dịch trong phần 6. Phần 5 (AI-06) quyết định khi cần hiển thị | Task 21, 34 |
-| 12 | **Bảng không có cột.** 25 mã issue của phần 2 không có mã nào cho bảng rỗng. PostgreSQL nhận `CREATE TABLE "t" ();`, nhưng MySQL và SQL Server từ chối bảng không có cột, và Prisma từ chối model không có trường, nên schema hợp lệ vẫn cho output lỗi. AI hoặc import có thể tạo bảng rỗng | Đề xuất phần 2 thêm issue `table-columns-empty` tại `["tables", id, "columnIds"]`: bảng rỗng thành schema còn issue, và generator vẫn sinh output an toàn theo spec mục 2. Fixture không có bảng rỗng | Spec phần 2 mục 8; plan phần 2; Task 4, 14, 15, 16, 17, 34 |
+| # | Vấn đề | Đề xuất | Quyết định | Ảnh hưởng |
+|---|---|---|---|---|
+| 1 | **MySQL giới hạn tổng độ dài khóa index 3072 byte.** Với `utf8mb4` mỗi ký tự tính 4 byte, nên một cột `char`, `varchar` có `n > 768` trong khóa chính, unique hoặc index, hoặc nhiều cột có tổng vượt 3072 byte (kể cả bốn cột `text` đã hẹp về `VARCHAR(255)` theo spec), làm `CREATE TABLE`, `CREATE INDEX` báo lỗi 1071. Schema vẫn hợp lệ theo phần 2, và ma trận spec mục 4 chỉ xử lý `text`. SQL Server chỉ cảnh báo lúc tạo (900 byte cho khóa clustered, 1700 byte cho nonclustered), không lỗi DDL | Task 8 probe xác nhận. Nếu đúng, user chọn: (a) MySQL hẹp cột `char`, `varchar` trong khóa có `n > 768` về `VARCHAR(768)` kèm `key-column-type-narrowed`, và khi tổng vẫn vượt 3072 byte thì bỏ ràng buộc hoặc index kèm `key-column-type-not-indexable`; hoặc (b) ghi thành giới hạn đã biết của CG-01 và fixture tránh trường hợp này. Plan nghiêng về (a) để giữ tiêu chí "DDL chạy không lỗi với schema hợp lệ" | Phương án (a). Đã viết vào Task 4, 8, 12, 13, 15 | Spec mục 4; Task 4, 8, 12, 13, 15, 17, 18 |
+| 2 | **Giới hạn độ dài comment.** MySQL từ chối comment cột dài hơn 1024 ký tự và comment bảng dài hơn 2048 ký tự ở strict mode mặc định; giá trị extended property của SQL Server tối đa 7500 byte (3750 ký tự `nvarchar`). Phần 2 không giới hạn độ dài comment, nên schema hợp lệ có thể cho DDL lỗi | Task 8 probe xác nhận. Nếu đúng: thêm mã diagnostic thứ 17 `comment-truncated` (cắt ở ranh giới code point, `path` là đường dẫn `comment`), cần user duyệt vì đổi danh mục của spec mục 4. Trong lúc chờ, Task 15, 16 không cắt và fixture giữ comment ngắn | Thêm mã thứ 17 `comment-truncated` (sau `null-character-removed`, trước `seed-table-skipped`); MySQL cột > 1024 ký tự, bảng > 2048 ký tự; SQL Server `MS_Description` > 3750 code unit UTF-16; cắt ở ranh giới code point. Task 2 đã có 17 mã; đã viết vào Task 4, 8, 13, 15, 16, 34 | Spec mục 4; Task 2, 4, 13, 15, 16, 34 |
+| 3 | **Kiểu custom trong conformance.** `createSampleSchema()` có cột `location` kiểu `geometry(Point, 4326)`. `postgres:18-alpine` không có PostGIS, MySQL không có cú pháp này, SQL Server có `geometry` nhưng không nhận tham số, nên chạy DDL của fixture nguyên trạng làm CG-01 fail trên cả ba database; seed cũng bỏ bảng `users` nếu cột này bắt buộc và không có mặc định | Package conformance có helper thay tên kiểu custom của fixture bằng một kiểu có thật của dialect trước khi sinh (`inet` cho PostgreSQL, `YEAR` cho MySQL, `money` cho SQL Server; cả ba qua cú pháp an toàn). Snapshot trong core vẫn dùng fixture nguyên trạng. Không dùng image PostGIS (nặng, và không giải quyết MySQL, SQL Server). Task 4 bảo đảm cột custom bắt buộc không mặc định chỉ nằm ở bảng riêng | Theo đề xuất. Helper `withDialectCustomTypes` của Task 8; Task 14, 15, 16, 22 dùng | Task 4, 8, 29 |
+| 4 | **`restrict` trong đồ thị cascade của SQL Server.** Spec mục 4 đưa vào đồ thị mọi quan hệ "có hành động khác `noAction`". SQL Server ghi `restrict` là `NO ACTION` (tương đương theo nguyên tắc 2 của mục 4), và `NO ACTION` không gây lỗi vòng hay nhiều đường cascade. Đọc đúng chữ thì quan hệ `restrict` bị hạ kèm diagnostic dù output không đổi, và làm quan hệ cascade khác bị hạ oan | Đồ thị bỏ cả `noAction` và `restrict` (đã viết vào Task 11). Prisma `sqlserver` cũng ghi `restrict` là `NoAction`, nên SQL và Prisma vẫn khớp. Conformance của Task 29, 30 xác nhận với SQL Server và `prisma validate` | Theo đề xuất (spec mục 4 đã sửa) | Spec mục 4; Task 11, 13, 17 |
+| 5 | **Cột tên `__proto__`.** Tên này hợp lệ theo phần 2. Trong object literal JavaScript, cả `__proto__: …` lẫn `"__proto__": …` đặt prototype thay vì tạo thuộc tính, nên `z.object({ "__proto__": … })`, dữ liệu trong `handlers.ts` và object dựng bằng phép gán trong core âm thầm mất cột. Spec mục 5 chỉ ghi "khớp regex thì ghi trần, còn lại `JSON.stringify`" | `formatPropertyKey` trả `["__proto__"]` (khóa tính toán tạo thuộc tính thật, hợp lệ cả trong type literal TypeScript); mọi object có khóa từ tên người dùng dựng bằng `Object.fromEntries` (mục "Quy ước chung"). Fixture `naming-edge` có cột này; Task 30 typecheck và parse dữ liệu có cột này | Theo đề xuất | Task 4, 6, 19, 20, 21, 22, 23, 24, 30 |
+| 6 | **Tham số kiểu chưa đủ trong ma trận.** (a) PostgreSQL `char(n)` cũng tối đa 10 485 760 nhưng spec chỉ ghi `varchar(n)`. (b) Spec không nói thứ tự giữa "vượt giới hạn" và "`text` trong khóa": `varchar(20000)` trong khóa MySQL thành `LONGTEXT`, không đánh index được. (c) SQL Server enum là `nvarchar(n)` với `n` là độ dài giá trị dài nhất, nhưng không nói đơn vị và trường hợp vượt 4000 | (a) Xử lý như `varchar`: `text` kèm `type-parameter-out-of-range`. (b) Áp giới hạn trước, rồi hẹp như `text` (`VARCHAR(255)`, `nvarchar(450)`) kèm cả hai diagnostic. (c) `n` tính theo code unit UTF-16 (đơn vị của `nvarchar`), tối thiểu 1; vượt 4000 thì `nvarchar(max)` kèm `type-parameter-out-of-range`. Đã viết vào Task 12, 16 | Theo đề xuất (spec mục 3, 4 đã sửa) | Task 12, 13, 16, 17, 18 |
+| 7 | **So tên không phân biệt dấu.** Spec mục 4 ghi MySQL so tên cột, index không phân biệt dấu. Tên ràng buộc do generator đặt (từ tên gốc có dấu) cũng là tên index trên MySQL: hai cột `ma`, `má` cùng `isUnique` cho `t_ma_key` và `t_má_key`, trùng trên MySQL. `NameAllocator` của spec chỉ có `isCaseInsensitive` | `NameAllocator` nhận `comparison` (`exact`, `caseInsensitive`, `caseAndAccentInsensitive`). Tên ràng buộc so không phân biệt dấu cho **mọi** dialect để tên vẫn giống nhau giữa ba dialect và Drizzle. Chưa rõ MySQL có coi `đ` và `d` là một không: Task 8 probe; nếu có, `toComparisonKey` đổi thêm `đ` → `d` | Theo đề xuất. Task 8 probe `đ` = `d`; nếu MySQL coi là một, orchestrator tạo task sửa `toComparisonKey` (Task 6) trước Task 15 | Task 6, 8, 9, 12 |
+| 8 | **Giây lẻ quá 7 chữ số.** Literal `time`, `timestamp`, `timestamptz` của phần 2 cho phép số chữ số giây lẻ bất kỳ. PostgreSQL và MySQL làm tròn về 6 chữ số, còn SQL Server báo lỗi chuyển kiểu khi quá 7 chữ số, nên giá trị mặc định hợp lệ làm DDL SQL Server lỗi | Đề xuất phần 2 giới hạn giây lẻ tối đa 6 chữ số (bằng độ chính xác cột của CG-01), sửa `isValidDefaultLiteral` trong một task riêng của phần 2, chạy trước Task 16. Phương án khác: SQL Server cắt về 7 chữ số, không diagnostic. Task 8 probe xác nhận | Không đổi phần 2. Hàm literal SQL Server cắt giây lẻ về 7 chữ số, không diagnostic (spec mục 3 "Giây lẻ trên SQL Server"). Đã viết vào Task 7, 16 | Spec phần 2 mục 3; plan phần 2 Task 10; Task 7, 10, 16, 21 |
+| 9 | **Điểm cần probe ngoài danh sách rủi ro của spec.** MySQL: literal `timestamptz` có `Z` và có độ lệch trên cột `TIMESTAMP(6)` (MySQL 8.0.19 trở lên nhận độ lệch, `Z` chưa rõ); `DEFAULT (UUID())` trên `CHAR(36)`; hai tên ràng buộc chỉ khác dấu (Vấn đề 7). SQL Server: `DECLARE` sau `CREATE TABLE` trong cùng batch; `sp_addextendedproperty` với `@level0name` là biến; literal `time` 7 chữ số giây lẻ | Task 8 viết probe cho từng điểm cùng các điểm ở mục "Rủi ro" của spec. Probe khác kỳ vọng thì dừng Task 15, 16 và user quyết định sửa spec | Task 8 probe mọi điểm, chạy local qua Docker, ghi kết quả vào execution log; khác kỳ vọng thì dừng generator của dialect đó | Task 8, 15, 16 |
+| 10 | **Index trùng tên bảng trên PostgreSQL.** PostgreSQL dùng chung một không gian tên cho bảng và index. Phần 2 chỉ bảo đảm tên index không trùng tên index khác (`index-name-duplicate`), và spec phần 6 không cho đổi tên index của người dùng, nên index tên `users` trên bảng khác làm DDL lỗi dù schema hợp lệ | Đề xuất phần 2 mở rộng `index-name-duplicate` cho trùng tên bảng (hoặc thêm issue mới). Cho tới khi đó, fixture tránh trường hợp này | Phần 2 thêm issue `index-name-conflicts-table` tại `["indexes", indexId, "name"]` khi tên index trùng tên một bảng (so bằng `toNameKey`); `suggestIndexName` tránh cả tên bảng. Task 36 | Spec phần 2 mục 8; Task 4, 14 |
+| 11 | **Mã `SeedIssue` không có bản dịch.** Spec không yêu cầu i18n cho `seed-value-invalid`, `seed-value-null`, `seed-unique-violation`, `seed-foreign-key-missing`, `seed-order-invalid`; code panel của phần 6 không hiển thị chúng | Không export danh mục này ở entry point chính và không có namespace dịch trong phần 6. Phần 5 (AI-06) quyết định khi cần hiển thị | Theo đề xuất | Task 21, 34 |
+| 12 | **Bảng không có cột.** 25 mã issue của phần 2 không có mã nào cho bảng rỗng. PostgreSQL nhận `CREATE TABLE "t" ();`, nhưng MySQL và SQL Server từ chối bảng không có cột, và Prisma từ chối model không có trường, nên schema hợp lệ vẫn cho output lỗi. AI hoặc import có thể tạo bảng rỗng | Đề xuất phần 2 thêm issue `table-columns-empty` tại `["tables", id, "columnIds"]`: bảng rỗng thành schema còn issue, và generator vẫn sinh output an toàn theo spec mục 2. Fixture không có bảng rỗng | Phần 2 thêm issue `table-columns-empty` tại `["tables", tableId, "columnIds"]`. Task 36 | Spec phần 2 mục 8; plan phần 2; Task 4, 14, 15, 16, 17, 34 |
+| 13 | **Cổng conformance và package conformance lúc mới tạo.** Spec mục 7 (sửa ngày 2026-10-02) đặt conformance local làm cổng chặn. Nếu Task 3 khai báo script `typecheck`, `lint` mà package chưa có file nguồn thì `pnpm typecheck` ở root đỏ cho tới khi Task 8 merge | — | Cổng áp cho task generator từ khi test conformance của đích đó đã có (Task 29, 30, 31); probe local của Task 8 là điều kiện của Task 15, 16; Task 29, 30, 31 phải pass hết trước khi phần 6 xong (orchestrator, 2026-10-02). Task 3 tạo luôn `tsconfig.json`, `vitest.config.ts`, `.gitignore` và helper `temp-directory.ts` có test, để package có file nguồn ngay từ đầu. CG-10 không có công cụ đích nên không có conformance | Task 3, 8, 29, 30, 31, 35 |
+| 14 | **Vị trí code của code panel.** Spec mục 8 đặt file ở `frontend/src/features/code-generator/`, nhưng `.claude/rules/nextjs.md` cấm một feature import phần bên trong của feature khác, trong khi code panel cần store của editor, `getIssueIndex`, `resolveIssueTarget`, `useRevealTable` và `PropertiesPanel` | — | Giữ đúng tên bảy file của spec, đặt trong `frontend/src/features/editor/code-generator/` (code panel là một chế độ của cột phải trong editor). Không đổi hành vi nào của spec. Orchestrator cho cập nhật đường dẫn ở spec mục 8 cùng Task 35 | Task 33, 34, 35; spec mục 8 |
+| 15 | **MSW 3 đã phát hành** (3.0.0 ngày 2026-09-28, `latest` là 3.0.1). Spec CG-06 chốt handler MSW 2; người dùng chạy `npm install msw` sẽ nhận MSW 3 | — | Giữ MSW 2 theo spec: conformance cài `msw@^2.15.0`, comment đầu `handlers.ts` ghi `npm install msw@^2` (Task 23). Chuyển sang MSW 3 là thay đổi spec riêng sau phần 6 | Task 23; spec CG-06 |
+| 16 | **Tài liệu phần 2 cho hai issue mới.** Spec phần 6 mục "Quyết định bổ sung 2026-10-02" ghi rằng spec và plan phần 2 (mục 8, danh mục 25 mã) được cập nhật ở một task sau | — | Task 36 cài đặt theo spec phần 6; Task 35 cập nhật spec phần 2 mục 8 (27 mã) và ghi chú trong plan phần 2 | Task 35 |
+| 17 | **Quyết định bổ sung khi duyệt spec (orchestrator, 2026-10-02; spec mục "Quyết định bổ sung 2026-10-02", R1–R18).** Các giới hạn database thật mà ma trận spec mục 4 chưa có: độ dài cố định của khóa SQL Server (Msg 1944), cột `char`, `varchar` vượt giới hạn trong khóa MySQL, cột `AUTO_INCREMENT` không đứng đầu index nào (lỗi 1075), kích thước dòng MySQL (lỗi 1118), giây lẻ MySQL, so định danh MySQL theo `utf8mb3_general_ci` | — | Theo spec: R1, R10 (`nchar` → `nvarchar` kèm `key-column-type-narrowed`, lan theo quan hệ; vẫn vượt thì bỏ); R2, R11 (`VARCHAR(768)` thẳng khi `n > 768`); R8, R14 (index `<bảng>_<cột>_idx`, tên cấp ở Task 9); R13 (cột `CHAR`, `VARCHAR` lớn nhất không thuộc khóa thành `LONGTEXT`); R15 (hàm literal MySQL luôn cắt về 6 chữ số); R12 (`caseAndAccentInsensitive` đổi `đ`, `ø`, `ł`, `ħ`); R9, R16 (sequence identity PostgreSQL: giới hạn đã chấp nhận, không có task); R17 (không đổi). Đã viết vào Task 4, 6, 7, 8, 9, 12, 13, 15, 16; Task 17, 18 dùng chung qua `resolveSchemaColumnTypes`, `findUnindexableConstraints` | Task 4, 6, 7, 8, 9, 12, 13, 15, 16, 17, 18 |
+
 
 ## Các task còn lại
 
-Phần này do lượt lập plan thứ hai viết.
+Thân của Task 3, 8, 17–36, theo đúng "Quy ước chung", "Điểm nóng" và bảng task ở trên.
+
+## Task 3: Manifest và dependency của package conformance
+
+**Mục tiêu:** package `@schemaforge/codegen-conformance` có manifest đầy đủ, dependency đã cài và lockfile, cùng cấu hình TypeScript, Vitest và một helper đầu tiên có test, để các task sau không phải sửa manifest hay lockfile và `pnpm typecheck`, `pnpm lint` ở root vẫn xanh (spec mục 7; Vấn đề 3, 13).
+
+**Phụ thuộc:** P2-26. **Đợt:** 1. Không chạy đồng thời với Task 32 hay task ghi lockfile của plan khác.
+
+**File sở hữu:** tạo `packages/codegen-conformance/package.json`, `tsconfig.json`, `vitest.config.ts`, `.gitignore`, `src/support/temp-directory.ts`, `src/support/temp-directory.test.ts`; sửa `pnpm-workspace.yaml` (chỉ mục `allowBuilds`), `pnpm-lock.yaml`.
+
+**Cài đặt:**
+
+- `package.json`:
+
+  ```json
+  {
+    "name": "@schemaforge/codegen-conformance",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+      "lint": "eslint .",
+      "typecheck": "tsc --noEmit",
+      "test:conformance": "vitest run"
+    },
+    "devDependencies": { "…": "đúng bảng bên dưới" }
+  }
+  ```
+
+  Không có script `test`, `build`, `dev` (spec mục 7: `pnpm test` ở root không cần Docker; package không có mã nguồn để build). `devDependencies`: `@schemaforge/core: workspace:*`; `catalog:` cho `@types/node`, `typescript`, `vite`, `vitest`, `zod`; còn lại đúng khai báo ở mục "Phiên bản": `prisma ^7.10.0`, `drizzle-orm ^0.45.2`, `msw ^2.15.0`, `@readme/openapi-parser ^9.0.0`, `openapi-types ^12.1.3`, `@dbml/core ^10.1.1`, `testcontainers`, `@testcontainers/postgresql`, `@testcontainers/mysql`, `@testcontainers/mssqlserver` cùng `^12.1.0`, `pg ^8.23.0`, `@types/pg ^8.23.1`, `mysql2 ^3.24.4`, `mssql ^12.7.2`, `@types/mssql ^12.3.0`.
+- `tsconfig.json`: `extends: "../../tsconfig.base.json"`, `compilerOptions`: `module: "nodenext"`, `moduleResolution: "nodenext"`, `lib: ["ES2023"]`, `types: ["node"]`, `noEmit: true`; `include: ["src", "vitest.config.ts"]`; `exclude: [".tmp"]`.
+- `vitest.config.ts`: `environment: "node"`, `include: ["src/**/*.test.ts"]`, `testTimeout: 120_000`, `hookTimeout: 300_000` (kéo image và khởi động SQL Server lâu), `fileParallelism: false` (mỗi file tự khởi động container; chạy tuần tự để máy dev không phải giữ ba SQL Server cùng lúc). Không có `coverage`.
+- `.gitignore`: một dòng `.tmp/`.
+- `src/support/temp-directory.ts`:
+
+  ```ts
+  export const CONFORMANCE_TEMP_ROOT: string; // thư mục .tmp/ của package, tính từ import.meta.url
+  export async function withTempDirectory<T>(run: (directory: string) => Promise<T>): Promise<T>;
+  ```
+
+  `mkdir(CONFORMANCE_TEMP_ROOT, { recursive: true })`, `mkdtemp(join(CONFORMANCE_TEMP_ROOT, "run-"))`, gọi `run`, rồi luôn `rm(directory, { recursive: true, force: true })` trong `finally`. Thư mục nằm trong package (không ở `os.tmpdir()`) để file `.ts` sinh ra resolve được `zod`, `drizzle-orm`, `msw` từ `node_modules` của package (Task 8, 18–20, 23).
+- `pnpm-workspace.yaml`, mục `allowBuilds`: giữ ba mục đang có (`"@prisma/engines": true`, `prisma: true`, `unrs-resolver: true`). Chạy `pnpm install`; với mỗi package mới mà pnpm báo có build script bị bỏ qua, thêm một mục: `false` cho `msw` (script `postinstall` chỉ chép worker vào thư mục public khi được cấu hình), `ssh2` và `cpu-features` (binding native tùy chọn, Testcontainers chạy được không cần), và mọi package khác pnpm liệt kê, trừ khi package đó cần build để chạy. Ghi từng mục và lý do vào execution log.
+
+**Test viết trước** (`src/support/temp-directory.test.ts`): `creates a fresh directory inside the package temp root`; `removes the directory after the callback resolves`; `removes the directory when the callback throws and rethrows the error`.
+
+**Kiểm tra:**
+
+```bash
+source ~/.nvm/nvm.sh >/dev/null 2>&1; nvm use 24 >/dev/null 2>&1;
+pnpm install
+pnpm install --frozen-lockfile
+pnpm --filter @schemaforge/codegen-conformance typecheck
+pnpm --filter @schemaforge/codegen-conformance lint
+pnpm --filter @schemaforge/codegen-conformance test:conformance
+pnpm --filter @schemaforge/codegen-conformance exec prisma --version
+pnpm typecheck && pnpm lint && pnpm test
+pnpm exec prettier --check packages/codegen-conformance pnpm-workspace.yaml
+git status --porcelain
+```
+
+Mong đợi: hai lần `pnpm install` thoát mã 0, lần thứ hai không còn cảnh báo build script bị bỏ qua; `test:conformance` chạy ba test của `temp-directory.test.ts` (chưa cần Docker) và pass; `prisma --version` in dòng `prisma` với `7.10.0` hoặc bản vá 7.10.x; `pnpm test` ở root không chạy gì trong package conformance; `git status` chỉ có file của task. `.tmp/` không còn sau khi test chạy xong.
+
+**Commit:** `build: add codegen conformance package and dependencies`
+
+## Task 8: Helper conformance, task `test:conformance` và probe database
+
+**Mục tiêu:** package conformance có đủ helper để task generator viết test của đích mình; `pnpm test:conformance` ở root chạy được; hành vi MySQL 8.4 và SQL Server 2022 mà spec dựa vào được probe trên database thật trước khi viết generator của hai dialect (spec mục 7 "Probe trước khi viết generator", mục "Rủi ro"; Vấn đề 1, 2, 3, 7, 8, 9).
+
+**Phụ thuộc:** Task 3, 4. **Đợt:** 3. Cần Docker.
+
+**File sở hữu:** tạo trong `packages/codegen-conformance/src/`: `support/containers.ts`, `support/fixtures.ts`, `support/fixtures.test.ts`, `support/typecheck.ts`, `support/typecheck.test.ts`, `support/prisma-cli.ts`, `support/prisma-cli.test.ts`, `probes/mysql.probe.test.ts`, `probes/sqlserver.probe.test.ts`; sửa `turbo.json`, `package.json` ở root.
+
+**Chữ ký và hành vi:**
+
+`support/containers.ts`:
+
+```ts
+export const POSTGRES_IMAGE = "postgres:18-alpine";
+export const MYSQL_IMAGE = "mysql:8.4";
+export const SQLSERVER_IMAGE = "mcr.microsoft.com/mssql/server:2022-latest";
+export type DatabaseSession = {
+  readonly execute: (sql: string) => Promise<void>;          // một lần gửi, nhiều câu lệnh
+  readonly query: (sql: string) => Promise<readonly Readonly<Record<string, unknown>>[]>;
+  readonly countTables: () => Promise<number>;               // bảng BASE TABLE của database hiện tại
+  readonly countRows: (tableName: string) => Promise<number>;
+  readonly close: () => Promise<void>;
+};
+export type DatabaseServer = {
+  readonly dialect: SqlDialect;
+  readonly createDatabase: (name: string) => Promise<DatabaseSession>;
+  readonly stop: () => Promise<void>;
+};
+export function startDatabaseServer(dialect: SqlDialect): Promise<DatabaseServer>;
+```
+
+- PostgreSQL: `new PostgreSqlContainer(POSTGRES_IMAGE).start()`; `createDatabase` chạy `CREATE DATABASE` qua client quản trị rồi mở `pg.Client` tới database mới; `execute` là `client.query(sql)` không tham số (simple query, chạy được nhiều câu).
+- MySQL: `new MySqlContainer(MYSQL_IMAGE).start()`; database mới tạo bằng `CREATE DATABASE … CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci`; kết nối `mysql2/promise` với `multipleStatements: true`. Không đổi `sql_mode` (strict mặc định của 8.4 là điều kiện của Vấn đề 2).
+- SQL Server: `new MSSQLServerContainer(SQLSERVER_IMAGE).acceptLicense().start()`; `CREATE DATABASE` qua pool tới `master`, rồi `mssql.ConnectionPool` tới database mới; `execute` là `pool.request().batch(sql)` (một batch, không `sp_executesql`, để `DECLARE` dùng được).
+- `countRows` quote tên bảng theo dialect bằng một hàm nội bộ của file (quy tắc giống spec mục 5); `SqlDialect` lấy bằng `import type` từ `@schemaforge/core`.
+
+`support/fixtures.ts`:
+
+```ts
+export type ConformanceFixtureName = "sample" | "naming-edge" | "target-limit" | "empty";
+export type ConformanceFixture = { readonly name: ConformanceFixtureName; readonly schema: SchemaDocument };
+export function listConformanceFixtures(): readonly ConformanceFixture[]; // theo thứ tự trên
+export const DIALECT_CUSTOM_TYPES: Readonly<Record<SqlDialect, { readonly typeName: string; readonly defaultLiteral: string }>>;
+// postgresql: inet, "127.0.0.1"; mysql: YEAR, "2024"; sqlserver: money, "12.50"
+export function withDialectCustomTypes(schema: SchemaDocument, dialect: SqlDialect): SchemaDocument;
+```
+
+- `listConformanceFixtures` dùng `createSampleSchema`, `createNamingEdgeSchema`, `createTargetLimitSchema` của `@schemaforge/core/testing` và `createEmptySchema("Empty")` của `@schemaforge/core`.
+- `withDialectCustomTypes` (Vấn đề 3): mỗi cột kiểu `custom` được đổi tên kiểu thành `typeName`, và nếu có giá trị mặc định literal thì đổi literal thành `defaultLiteral`, bằng `applyOperation` với thao tác `updateColumn` của core trong một `batch` (không sửa object trực tiếp); kết quả lỗi thì throw `Error` kèm mã lỗi. Dùng cho CG-01 và seed SQL; các đích khác dùng fixture nguyên trạng.
+
+`support/typecheck.ts`:
+
+```ts
+export type SourceFile = { readonly fileName: string; readonly content: string };
+export function typecheckFiles(files: readonly SourceFile[]): Promise<readonly string[]>; // rỗng là qua
+```
+
+Ghi file vào `withTempDirectory` (kèm `package.json` có `"type": "module"`), tạo `ts.createProgram` với option bằng `tsconfig.base.json` (`strict`, `noUncheckedIndexedAccess`, `noImplicitOverride`, `noFallthroughCasesInSwitch`, `verbatimModuleSyntax`, `isolatedModules`, `skipLibCheck`, `target: ES2023`) cộng `module`, `moduleResolution: NodeNext`, `noEmit`, `types: []`; trả `ts.getPreEmitDiagnostics` đã định dạng bằng `ts.formatDiagnostics` (mỗi diagnostic một chuỗi).
+
+`support/prisma-cli.ts`:
+
+```ts
+export function runPrismaValidate(schemaContent: string): Promise<{ readonly exitCode: number; readonly output: string }>;
+```
+
+Ghi `schema.prisma` vào `withTempDirectory`, chạy CLI `prisma` của package (đường dẫn lấy bằng `createRequire(import.meta.url).resolve("prisma/package.json")` rồi trường `bin`) bằng `execFile(process.execPath, [cli, "validate", "--schema", path])`, gộp stdout và stderr; không throw khi exit code khác 0.
+
+**Probe** (mỗi điểm một `it`, khẳng định đúng kỳ vọng; khác kỳ vọng thì test đỏ). Mỗi file khởi động database của mình một lần, mỗi `it` dùng một database mới.
+
+- `probes/mysql.probe.test.ts`, mỗi dòng: câu SQL → kỳ vọng.
+  1. Bảng có hai cột `ma`, `má` → bị từ chối (cột trùng, spec mục 4).
+  2. Hai index `ix_ma`, `ix_má` trên cùng bảng → bị từ chối.
+  3. Hai ràng buộc unique `t_ma_key`, `t_má_key` → bị từ chối (Vấn đề 7).
+  4. Từng cặp cột trong một bảng: `đa`/`da`, `øl`/`ol`, `łza`/`lza`, `ħal`/`hal` → bị từ chối (cột trùng, R12); cùng cặp `ENUM('đa', 'da')` → được nhận (R12 không áp cho giá trị enum).
+  5. `ENUM('ma', 'má')` trong bảng `COLLATE=utf8mb4_0900_as_ci` → được nhận.
+  6. Khóa ngoại `ON DELETE SET DEFAULT` → bị từ chối.
+  7. `DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)` → được nhận.
+  8. `LONGTEXT DEFAULT ('a''b')`, `JSON DEFAULT ('{"a":1}')` → được nhận; `LONGTEXT DEFAULT 'x'` (không ngoặc) → bị từ chối.
+  9. `CHAR(36) DEFAULT (UUID())` → được nhận.
+  10. `TIMESTAMP(6) DEFAULT '2026-01-02 03:04:05.123456+07:00'` và cùng giá trị dạng `2026-01-02T03:04:05.123456Z` → cả hai được nhận (literal của phần 2 có `T`).
+  11. Unique index bốn cột `VARCHAR(192)` → được nhận; năm cột `VARCHAR(700)` → bị từ chối (lỗi 1071); một cột `VARCHAR(768)` unique → được nhận; `VARCHAR(769)` unique → bị từ chối; bốn cột `VARCHAR(192)` cộng một cột `INT` → bị từ chối (cột không phải chuỗi cũng tính vào 3072 byte); ba cột `VARCHAR(255)` → được nhận, bốn cột → bị từ chối (Vấn đề 1).
+  12. Comment cột 1024 ký tự → được nhận, 1025 → bị từ chối; comment bảng 2048 → được nhận, 2049 → bị từ chối (Vấn đề 2).
+  13. Literal `'a\\b'` lưu thành `a\b` (đọc lại bằng `SELECT`).
+  14. `DATETIME(6)`, `TIME(6)`, `TIMESTAMP(6)` với `DEFAULT` có 9 chữ số giây lẻ ở strict mode → **ghi kết quả** cho từng kiểu (kiểm tra sanity; hàm literal MySQL luôn cắt về 6 chữ số theo R15); literal 6 chữ số → được nhận.
+  15. Cột `AUTO_INCREMENT` không đứng đầu khóa hay index nào (gồm khóa chính `(a, id)` với `id` đứng sau) → bị từ chối (lỗi 1075); thêm `INDEX` thường một cột cho nó → được nhận (R8, R14).
+  16. Bảng `id INT, v VARCHAR(16383)` → bị từ chối (lỗi 1118, dòng quá 65 535 byte); cùng bảng với `v LONGTEXT` → được nhận (R13).
+- `probes/sqlserver.probe.test.ts`:
+  1. Một batch gồm `CREATE TABLE`, `DECLARE @schema_name sysname = SCHEMA_NAME();` và `EXEC sys.sp_addextendedproperty … @level0name = @schema_name …` → được nhận (Vấn đề 9).
+  2. `MS_Description` 3750 ký tự `nvarchar` → được nhận; 3751 → bị từ chối (Vấn đề 2).
+  3. Cột `time` và `datetime2` mặc định có 7 chữ số giây lẻ → được nhận; 8 chữ số → bị từ chối (Vấn đề 8).
+  4. Khóa ngoại tham chiếu cột chỉ có unique index lọc → bị từ chối; tham chiếu `UNIQUE` thường trên cột nullable → được nhận; `UNIQUE` thường chỉ nhận một dòng `NULL`.
+  5. Vòng cascade giữa hai bảng, hai đường cascade tới một bảng, và tự tham chiếu `ON DELETE CASCADE` → mỗi trường hợp bị từ chối; cùng cấu trúc với `NO ACTION` → được nhận (spec "Phát hiện vòng cascade").
+  6. `ON DELETE RESTRICT` → lỗi cú pháp (xác nhận ánh xạ `restrict` → `NO ACTION`).
+  7. Khóa chính `nvarchar(450)` → được nhận; index trên `nvarchar(1000)` → được nhận (chỉ cảnh báo).
+  8. Khóa chính `nchar(451)` → bị từ chối (Msg 1944, quá 900 byte); ràng buộc unique `nchar(851)` → bị từ chối (quá 1700 byte); cùng hai khóa với `nvarchar(451)`, `nvarchar(851)` → được nhận (R1).
+  9. Khóa ngoại `nchar(500)` tham chiếu khóa chính `nvarchar(500)` → bị từ chối (Msg 1778 hoặc 1753); khóa ngoại `nvarchar(500)` → được nhận (R10).
+
+**Turborepo và script root:**
+
+- `turbo.json` thêm task `"test:conformance": { "dependsOn": ["^build"], "outputs": [], "passThroughEnv": ["DOCKER_HOST", "DOCKER_CONTEXT", "TESTCONTAINERS_HOST_OVERRIDE", "TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", "TESTCONTAINERS_RYUK_DISABLED"] }`. Có cache như spec mục 7 ghi: commit không đổi core hay package conformance thì không chạy lại. Biến môi trường của Docker được truyền qua vì Turborepo lọc biến môi trường ở chế độ strict.
+- `package.json` root thêm script `"test:conformance": "turbo run test:conformance"`, đặt sau `"test"`.
+
+**Test viết trước:** `fixtures.test.ts`: `lists the four fixtures in order`; `replaces every custom type with the dialect type` (`it.each` ba dialect); `replaces a custom literal default with the dialect literal`; `leaves the original fixture unchanged`; `returns a schema without semantic issues`. `typecheck.test.ts`: `returns no diagnostics for a strict module that imports zod`; `reports a type error`; `reports an unresolved import`. `prisma-cli.test.ts`: `validates a minimal postgresql schema with exit code 0`; `returns a non-zero exit code and the error for an invalid schema`. Probe như trên.
+
+**Kiểm tra:**
+
+```bash
+source ~/.nvm/nvm.sh >/dev/null 2>&1; nvm use 24 >/dev/null 2>&1;
+docker info >/dev/null && echo docker-ok
+pnpm test:conformance
+pnpm --filter @schemaforge/codegen-conformance typecheck
+pnpm --filter @schemaforge/codegen-conformance lint
+pnpm typecheck && pnpm lint && pnpm test
+pnpm exec prettier --check packages/codegen-conformance turbo.json package.json
+git status --porcelain
+```
+
+Mong đợi: `pnpm test:conformance` build core rồi chạy mọi test của package, tất cả pass; chạy lần hai báo cache hit. Execution log của task có mục **Kết quả probe** liệt kê từng probe với kết quả thật (được nhận hoặc lỗi kèm mã lỗi), riêng probe MySQL 10 và 14 ghi rõ kết quả quan sát được. Probe nào khác kỳ vọng thì không sửa kỳ vọng: dừng với trạng thái `Bị chặn`, ghi điểm khác biệt; orchestrator cho sửa spec trước khi chạy Task 15, 16.
+
+**Commit:** `test: add conformance helpers and database behavior probes`
+
+## Task 36: Hai issue mới của phần 2 và bản dịch
+
+**Mục tiêu:** schema có bảng không có cột, hoặc có index trùng tên một bảng, không còn là schema hợp lệ: `validateSchema` báo `table-columns-empty` và `index-name-conflicts-table`, editor hiện thông báo đã dịch, và gợi ý tên index không tự tạo issue mới (spec phần 6, mục "Quyết định bổ sung 2026-10-02", Vấn đề 10, 12; spec phần 2 mục 8 được cập nhật ở Task 35).
+
+**Phụ thuộc:** P2-26. **Đợt:** 1. Phải merge trước Task 4, 14, 15, 16, 17, 34.
+
+**Loại:** liên package (core và frontend trong một commit, vì `frontend/src/lib/i18n/locales/en/issues.ts` dùng `satisfies Record<IssueCode, string>`: thêm mã ở core mà chưa dịch thì frontend không biên dịch được).
+
+**File sở hữu:**
+
+- Sửa `packages/core/src/validation/issue-codes.ts`, `issue-codes.test.ts`, `validate-schema.ts`, `validate-schema.test.ts`, `rules/names.ts`, `rules/names.test.ts`; tạo `packages/core/src/validation/rules/tables.ts`, `rules/tables.test.ts`.
+- Sửa `packages/core/src/operations/suggest-index-name.ts`, `suggest-index-name.test.ts`.
+- Sửa `frontend/src/lib/i18n/locales/en/issues.ts`, `frontend/src/lib/i18n/locales/vi/issues.ts`.
+- Chỉ khi một test có sẵn đỏ vì schema thử của nó có bảng không cột hoặc index trùng tên bảng: sửa file test đó trong `packages/core/src/` hoặc `frontend/src/`, ưu tiên thêm một cột hay đổi tên index trong dữ liệu thử thay vì đổi kỳ vọng; liệt kê từng file trong execution log. Không sửa file nguồn nào khác.
+
+**Chữ ký và hành vi:**
+
+- `ISSUE_CODES` từ 25 lên 27 mã: thêm `"index-name-conflicts-table"` ngay sau `"index-name-duplicate"`, và `"table-columns-empty"` ngay sau `"subject-area-name-duplicate"`, trước `"enum-values-empty"` (spec phần 6, mục "Vấn đề với các spec đã duyệt", dòng 1).
+- `rules/tables.ts`: `export function validateTables(schema: SchemaDocument): readonly Issue[]`: mỗi bảng có `columnIds` rỗng một issue `{ code: "table-columns-empty", path: ["tables", table.id, "columnIds"] }`. `validate-schema.ts` gọi thêm `validateTables(schema)`; kết quả vẫn đi qua `sortByPathThenCode`.
+- `rules/names.ts`: hàm mới `findIndexTableConflicts(schema)` gọi trong `validateNames`: index có `toNameKey(index.name)` khác rỗng và bằng `toNameKey` tên của một bảng bất kỳ → `{ code: "index-name-conflicts-table", path: ["indexes", index.id, "name"] }`. Chỉ index bị báo, bảng không bị báo (spec: tên bảng không đổi, người dùng đổi tên index). Index trùng tên enum không bị báo (PostgreSQL để index và kiểu ở hai không gian tên khác nhau). Tên rỗng không so (đã có `name-empty`).
+- `suggestIndexName`: tập tên đã dùng gồm tên mọi index và tên mọi bảng (cùng `toNameKey`), nên tên gợi ý không bao giờ trùng tên bảng. Thêm một dòng vào JSDoc. Không đổi chữ ký.
+- `en/issues.ts`: `"index-name-conflicts-table": "Index “{{index}}” has the same name as a table."`, `"table-columns-empty": "Table “{{table}}” has no columns."`. `vi/issues.ts`: `"index-name-conflicts-table": "Index “{{index}}” trùng tên với một bảng."`, `"table-columns-empty": "Bảng “{{table}}” chưa có cột nào."`. Đặt theo đúng thứ tự của `ISSUE_CODES`. Biến nội suy chỉ dùng `index`, `table` (đã có trong `DOCUMENTED_VARIABLES` của `issue-and-error-messages.test.ts`, và `resolveIssueTarget` điền được hai biến này cho đường dẫn `["indexes", id, …]`, `["tables", id, …]`).
+
+**Test viết trước:**
+
+- `issue-codes.test.ts`: đổi tên và nội dung thành `lists the twenty-seven issue codes from the spec without duplicates` (danh sách đủ 27 mã, `new Set(...).size` là 27).
+- `tables.test.ts`: `reports a table without columns at its columnIds path`; `reports nothing for a table with one column`; `reports every empty table`.
+- `names.test.ts`: `reports an index named like a table at the index name path`; `compares index and table names without regard to case`; `does not report the table`; `does not report an index named like an enum`; `does not report an empty index name as a table conflict`.
+- `validate-schema.test.ts`: `reports table-columns-empty and index-name-conflicts-table through validateSchema`; test "mẫu không có issue" có sẵn vẫn pass.
+- `suggest-index-name.test.ts`: `skips a candidate that equals a table name`; `skips a table name that differs only in case`.
+- Frontend: `issue-and-error-messages.test.ts` đã duyệt mọi `ISSUE_CODES` theo hai locale, nên tự kiểm tra hai bản dịch mới; không cần test mới. Chạy để thấy đỏ trước khi thêm bản dịch (sau khi build core).
+
+**Kiểm tra:** như mục "Quy ước chung" cho core, thêm:
+
+```bash
+pnpm --filter @schemaforge/core build
+pnpm --filter @schemaforge/frontend typecheck
+pnpm --filter @schemaforge/frontend lint
+pnpm --filter @schemaforge/frontend test
+pnpm --filter @schemaforge/backend typecheck
+pnpm exec prettier --check frontend/src/lib/i18n/locales/en/issues.ts frontend/src/lib/i18n/locales/vi/issues.ts
+```
+
+Mong đợi: mọi lệnh thoát mã 0; frontend test không có dòng ngưỡng coverage bị vi phạm; `git status --porcelain` chỉ có file của task.
+
+**Commit:** `feat: add empty table and index name conflict issues`

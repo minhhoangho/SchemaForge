@@ -405,9 +405,9 @@ describe("text on tinted surfaces", () => {
 
 // button.tsx mixes --foreground into --primary on hover (color-mix in oklch,
 // shorter hue). The mix has to keep the focus ring at 3:1 against the hovered
-// fill (1.4.11) and the label at 4.5:1 (1.4.3). 6 is the largest whole percent
-// that holds in light (7 gives 2.96:1); dark has headroom.
-const HOVER_MIX_PERCENT = 6;
+// fill (1.4.11) and the label at 4.5:1 (1.4.3). 5 keeps headroom
+// in light (3.04:1; 6 only reaches 3.0000:1, too close to browser rounding).
+const HOVER_MIX_PERCENT = 5;
 const OKLCH_PARTS = /^oklch\(([\d.]+) ([\d.]+) ([\d.]+)\)$/;
 const HALF_TURN = 180;
 const FULL_TURN = 360;
@@ -415,7 +415,11 @@ const FULL_TURN = 360;
 function oklchParts(theme: ThemeName, name: string): readonly number[] {
   const parts = OKLCH_PARTS.exec(THEME_TOKENS[theme].get(name) ?? "");
 
-  return (parts ?? []).slice(1).map(Number);
+  if (parts === null) {
+    throw new Error(`--${name} in the ${theme} theme is not a plain oklch().`);
+  }
+
+  return parts.slice(1).map(Number);
 }
 
 function mixedOklch(theme: ThemeName, percent: number): SrgbColor {

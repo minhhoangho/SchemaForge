@@ -1,0 +1,1855 @@
+<title>SchemaForge visual refresh</title>
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, viewport-fit=cover"
+/>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+/>
+<style>
+  /* Layout: mockup sheet of four app screens stacked; every color is a token from
+   document/specs/2026-10-01-visual-refresh-design.md, section 2. */
+  :root {
+    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --radius: 0.5rem;
+
+    --background: oklch(0.99 0.003 255);
+    --foreground: oklch(0.24 0.025 262);
+    --card: oklch(1 0 0);
+    --popover: oklch(1 0 0);
+    --primary: oklch(0.55 0.18 259);
+    --primary-foreground: oklch(0.99 0.004 255);
+    --secondary: oklch(0.955 0.01 255);
+    --secondary-foreground: oklch(0.3 0.04 262);
+    --muted: oklch(0.965 0.007 255);
+    --muted-foreground: oklch(0.5 0.025 260);
+    --accent: oklch(0.945 0.025 258);
+    --accent-foreground: oklch(0.36 0.12 262);
+    --destructive: oklch(0.54 0.2 27);
+    --success: oklch(0.5 0.12 155);
+    --warning: oklch(0.54 0.12 60);
+    --border: oklch(0.915 0.01 258);
+    --input: oklch(0.62 0.02 260);
+    --ring: oklch(0.25 0.07 262);
+    --overlay: oklch(0.24 0.025 262 / 35%);
+    --canvas: oklch(0.97 0.006 255);
+    --canvas-dot: oklch(0.82 0.015 258);
+    --canvas-node-border: var(--input);
+    --canvas-node-header-foreground: oklch(0.99 0.004 255);
+    --canvas-relation: oklch(0.6 0.03 260);
+    --canvas-relation-hover: oklch(0.42 0.04 262);
+    --canvas-relation-selected: var(--primary);
+    --canvas-key: oklch(0.62 0.15 65);
+    --canvas-foreign-key: oklch(0.55 0.11 190);
+    --table-accent-1: oklch(0.52 0.16 259);
+    --table-accent-2: oklch(0.5 0.1 200);
+    --table-accent-3: oklch(0.5 0.12 155);
+    --table-accent-4: oklch(0.52 0.12 75);
+    --table-accent-5: oklch(0.54 0.16 40);
+    --table-accent-6: oklch(0.52 0.18 15);
+    --table-accent-7: oklch(0.52 0.17 340);
+    --table-accent-8: oklch(0.5 0.17 295);
+    --shadow-sm: 0 1px 2px oklch(0.24 0.025 262 / 6%);
+    --shadow-md:
+      0 1px 2px oklch(0.24 0.025 262 / 6%),
+      0 4px 12px oklch(0.24 0.025 262 / 8%);
+    --shadow-lg:
+      0 2px 6px oklch(0.24 0.025 262 / 6%),
+      0 12px 32px oklch(0.24 0.025 262 / 14%);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --background: oklch(0.185 0.012 262);
+      --foreground: oklch(0.95 0.006 255);
+      --card: oklch(0.225 0.014 262);
+      --popover: oklch(0.245 0.015 262);
+      --primary: oklch(0.88 0.07 255);
+      --primary-foreground: oklch(0.22 0.05 262);
+      --secondary: oklch(0.28 0.016 262);
+      --secondary-foreground: oklch(0.95 0.006 255);
+      --muted: oklch(0.26 0.014 262);
+      --muted-foreground: oklch(0.72 0.02 258);
+      --accent: oklch(0.3 0.03 262);
+      --accent-foreground: oklch(0.95 0.006 255);
+      --destructive: oklch(0.7 0.17 22);
+      --success: oklch(0.74 0.14 155);
+      --warning: oklch(0.8 0.13 75);
+      --border: oklch(1 0 0 / 10%);
+      --input: oklch(1 0 0 / 45%);
+      --ring: oklch(0.56 0.11 258);
+      --overlay: oklch(0 0 0 / 55%);
+      --canvas: oklch(0.165 0.012 262);
+      --canvas-dot: oklch(0.34 0.015 262);
+      --canvas-relation: oklch(0.6 0.025 260);
+      --canvas-relation-hover: oklch(0.82 0.02 258);
+      --canvas-key: oklch(0.83 0.15 85);
+      --canvas-foreign-key: oklch(0.78 0.12 185);
+      --table-accent-1: oklch(0.48 0.14 259);
+      --table-accent-2: oklch(0.46 0.09 200);
+      --table-accent-3: oklch(0.46 0.1 155);
+      --table-accent-4: oklch(0.48 0.1 75);
+      --table-accent-5: oklch(0.5 0.14 40);
+      --table-accent-6: oklch(0.48 0.16 15);
+      --table-accent-7: oklch(0.48 0.15 340);
+      --table-accent-8: oklch(0.47 0.15 295);
+      --shadow-sm: 0 1px 2px oklch(0 0 0 / 40%);
+      --shadow-md: 0 2px 8px oklch(0 0 0 / 45%);
+      --shadow-lg: 0 16px 40px oklch(0 0 0 / 55%);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --background: oklch(0.185 0.012 262);
+    --foreground: oklch(0.95 0.006 255);
+    --card: oklch(0.225 0.014 262);
+    --popover: oklch(0.245 0.015 262);
+    --primary: oklch(0.88 0.07 255);
+    --primary-foreground: oklch(0.22 0.05 262);
+    --secondary: oklch(0.28 0.016 262);
+    --secondary-foreground: oklch(0.95 0.006 255);
+    --muted: oklch(0.26 0.014 262);
+    --muted-foreground: oklch(0.72 0.02 258);
+    --accent: oklch(0.3 0.03 262);
+    --accent-foreground: oklch(0.95 0.006 255);
+    --destructive: oklch(0.7 0.17 22);
+    --success: oklch(0.74 0.14 155);
+    --warning: oklch(0.8 0.13 75);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 45%);
+    --ring: oklch(0.56 0.11 258);
+    --overlay: oklch(0 0 0 / 55%);
+    --canvas: oklch(0.165 0.012 262);
+    --canvas-dot: oklch(0.34 0.015 262);
+    --canvas-relation: oklch(0.6 0.025 260);
+    --canvas-relation-hover: oklch(0.82 0.02 258);
+    --canvas-key: oklch(0.83 0.15 85);
+    --canvas-foreign-key: oklch(0.78 0.12 185);
+    --table-accent-1: oklch(0.48 0.14 259);
+    --table-accent-2: oklch(0.46 0.09 200);
+    --table-accent-3: oklch(0.46 0.1 155);
+    --table-accent-4: oklch(0.48 0.1 75);
+    --table-accent-5: oklch(0.5 0.14 40);
+    --table-accent-6: oklch(0.48 0.16 15);
+    --table-accent-7: oklch(0.48 0.15 340);
+    --table-accent-8: oklch(0.47 0.15 295);
+    --shadow-sm: 0 1px 2px oklch(0 0 0 / 40%);
+    --shadow-md: 0 2px 8px oklch(0 0 0 / 45%);
+    --shadow-lg: 0 16px 40px oklch(0 0 0 / 55%);
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--muted);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 20px;
+  }
+  button,
+  input {
+    font: inherit;
+    color: inherit;
+  }
+  svg {
+    display: block;
+  }
+  .mono {
+    font-family: var(--font-mono);
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Mockup sheet */
+  .sheet {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding-inline: 16px;
+    padding-block: 24px 64px;
+    display: grid;
+    gap: 40px;
+  }
+  .sheet-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .sheet-head h1 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 700;
+    text-wrap: balance;
+  }
+  .sheet-head p {
+    margin: 4px 0 0;
+    color: var(--muted-foreground);
+    max-width: 65ch;
+  }
+  .screen {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+  }
+  .screen-label {
+    margin: 0;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .frame {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--background);
+    box-shadow: var(--shadow-md);
+  }
+  .scroll-x {
+    overflow-x: auto;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: calc(var(--radius) * 0.8);
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      box-shadow 0.15s,
+      color 0.15s;
+  }
+  .btn svg {
+    width: 16px;
+    height: 16px;
+  }
+  .btn:focus-visible {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px var(--ring);
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .btn-secondary {
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+  }
+  .btn-ghost:hover,
+  .btn-secondary:hover,
+  .btn-outline:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+  .btn-outline {
+    border-color: var(--input);
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-destructive {
+    background: color-mix(in oklab, var(--destructive) 10%, transparent);
+    color: var(--destructive);
+  }
+  .btn-icon {
+    width: 32px;
+    padding: 0;
+  }
+  .btn-lg {
+    height: 36px;
+  }
+  .btn[disabled] {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .sep {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 6px;
+    flex: none;
+  }
+
+  /* Pills and chips */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .pill .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .pill-success {
+    color: var(--success);
+    background: color-mix(in oklab, var(--success) 10%, transparent);
+  }
+  .pill-warning {
+    color: var(--warning);
+    background: color-mix(in oklab, var(--warning) 10%, transparent);
+  }
+  .pill-muted {
+    color: var(--muted-foreground);
+    border: 1px solid var(--border);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: calc(var(--radius) * 0.6);
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-size: 10px;
+    line-height: 16px;
+    font-weight: 600;
+  }
+
+  /* Brand */
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+  }
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: calc(var(--radius) * 0.8);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    display: grid;
+    place-items: center;
+  }
+  .brand-mark svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Fields */
+  .field {
+    display: grid;
+    gap: 6px;
+  }
+  .label {
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .input {
+    height: 32px;
+    width: 100%;
+    padding: 0 10px;
+    border-radius: calc(var(--radius) * 0.8);
+    border: 1px solid var(--input);
+    background: var(--card);
+    font-size: 14px;
+  }
+  .input:focus-visible {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px var(--ring);
+  }
+  .group-label {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition-duration: 0s !important;
+    }
+  }
+</style>
+<style>
+  .ic {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .ic-14 {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Editor */
+  .editor {
+    display: grid;
+    grid-template-columns: 232px 680px 288px;
+    grid-template-rows: 48px 500px;
+    min-width: 1200px;
+  }
+  .toolbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
+  }
+  .toolbar .schema-name {
+    font-weight: 600;
+  }
+  .toolbar .right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-foreground);
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .left {
+    border-right: 1px solid var(--border);
+    background: var(--background);
+    padding: 8px;
+    display: grid;
+    align-content: start;
+    gap: 8px;
+    min-width: 0;
+  }
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    padding: 3px;
+    border-radius: var(--radius);
+    background: var(--muted);
+  }
+  .tab {
+    height: 26px;
+    border: 0;
+    border-radius: calc(var(--radius) * 0.8);
+    background: transparent;
+    color: var(--muted-foreground);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .tab[aria-selected="true"] {
+    background: var(--card);
+    color: var(--foreground);
+    box-shadow: var(--shadow-sm);
+  }
+  .tlist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 2px;
+  }
+  .tlist button {
+    width: 100%;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: calc(var(--radius) * 0.8);
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+  }
+  .tlist button:hover,
+  .tlist button[aria-current="true"] {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+  .tlist .sq {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex: none;
+  }
+  .tlist .nm {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tlist .ct {
+    font-size: 12px;
+    color: var(--muted-foreground);
+  }
+
+  .canvas {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--canvas);
+    background-image: radial-gradient(
+      var(--canvas-dot) 1.2px,
+      transparent 1.4px
+    );
+    background-size: 20px 20px;
+  }
+  .edges {
+    position: absolute;
+    inset: 0;
+    width: 680px;
+    height: 500px;
+  }
+  .edge {
+    fill: none;
+    stroke: var(--canvas-relation);
+    stroke-width: 1.5;
+  }
+  .edge.hover {
+    stroke: var(--canvas-relation-hover);
+    stroke-width: 2;
+  }
+  .edge.selected {
+    stroke: var(--canvas-relation-selected);
+    stroke-width: 2.5;
+  }
+  .elabel {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    height: 18px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted-foreground);
+    font-size: 10px;
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+  }
+  .elabel.hover {
+    border-color: var(--canvas-relation-hover);
+    color: var(--foreground);
+  }
+
+  .node {
+    position: absolute;
+    width: 224px;
+    background: var(--card);
+    border: 1px solid var(--canvas-node-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    font-size: 12px;
+    line-height: 16px;
+    transition:
+      box-shadow 0.15s,
+      border-color 0.15s;
+  }
+  .node:hover {
+    box-shadow: var(--shadow-md);
+  }
+  .node.selected {
+    border-color: var(--primary);
+    box-shadow:
+      0 0 0 1px var(--primary),
+      var(--shadow-md);
+  }
+  .node-head {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
+    color: var(--canvas-node-header-foreground);
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 600;
+  }
+  .node-head .nm {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .rows li {
+    height: 28px;
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+  }
+  .rows li:last-child {
+    border-radius: 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px);
+  }
+  .rows .mk {
+    display: flex;
+    align-items: center;
+  }
+  .rows .k {
+    color: var(--canvas-key);
+  }
+  .rows .fk {
+    color: var(--canvas-foreign-key);
+  }
+  .rows .nm {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rows .pk .nm {
+    font-weight: 600;
+  }
+  .rows .tp {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    color: var(--muted-foreground);
+  }
+  .rows li.hl {
+    background: var(--accent);
+  }
+  .rows li.hl .nm {
+    color: var(--accent-foreground);
+  }
+  .handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--canvas-relation);
+  }
+  .minimap {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    width: 120px;
+    height: 80px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+  .minimap i {
+    position: absolute;
+    border-radius: 2px;
+  }
+  .minimap .vp {
+    position: absolute;
+    inset: 8px 10px 10px 8px;
+    border: 1px solid var(--primary);
+    border-radius: 2px;
+    background: color-mix(in oklab, var(--primary) 8%, transparent);
+  }
+
+  .props {
+    border-left: 1px solid var(--border);
+    background: var(--background);
+    padding: 16px;
+    display: grid;
+    align-content: start;
+    gap: 16px;
+    overflow: hidden;
+  }
+  .props-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+  }
+  .props-title .strip {
+    width: 4px;
+    height: 24px;
+    border-radius: 2px;
+  }
+  .xy {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .col-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+  }
+  .col-item .top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 104px;
+    gap: 6px;
+  }
+  .col-item .flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 12px;
+  }
+  .chk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chk i {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid var(--input);
+    background: var(--card);
+    display: grid;
+    place-items: center;
+  }
+  .chk i.on {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+</style>
+
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+  <symbol id="i-arrow-left" viewBox="0 0 24 24">
+    <path d="m12 19-7-7 7-7" />
+    <path d="M19 12H5" />
+  </symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24">
+    <path d="M5 12h14" />
+    <path d="M12 5v14" />
+  </symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24">
+    <path d="M9 14 4 9l5-5" />
+    <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+  </symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24">
+    <path d="m15 14 5-5-5-5" />
+    <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
+  </symbol>
+  <symbol id="i-zoom-in" viewBox="0 0 24 24">
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+    <path d="M11 8v6" />
+    <path d="M8 11h6" />
+  </symbol>
+  <symbol id="i-zoom-out" viewBox="0 0 24 24">
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+    <path d="M8 11h6" />
+  </symbol>
+  <symbol id="i-fit" viewBox="0 0 24 24">
+    <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+    <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+    <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+    <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+  </symbol>
+  <symbol id="i-key" viewBox="0 0 24 24">
+    <path
+      d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"
+    />
+    <circle cx="16.5" cy="7.5" r=".5" />
+  </symbol>
+  <symbol id="i-link" viewBox="0 0 24 24">
+    <path d="M9 17H7A5 5 0 0 1 7 7h2" />
+    <path d="M15 7h2a5 5 0 1 1 0 10h-2" />
+    <path d="M8 12h8" />
+  </symbol>
+  <symbol id="i-db" viewBox="0 0 24 24">
+    <ellipse cx="12" cy="5" rx="9" ry="3" />
+    <path d="M3 5v14a9 3 0 0 0 18 0V5" />
+    <path d="M3 12a9 3 0 0 0 18 0" />
+  </symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24">
+    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+  </symbol>
+  <symbol id="i-drive" viewBox="0 0 24 24">
+    <path d="M22 12H2" />
+    <path
+      d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
+    />
+    <path d="M6 16h.01" />
+    <path d="M10 16h.01" />
+  </symbol>
+  <symbol id="i-more" viewBox="0 0 24 24">
+    <circle cx="5" cy="12" r="1" />
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="19" cy="12" r="1" />
+  </symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="4" />
+    <path
+      d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+    />
+  </symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24">
+    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+  </symbol>
+  <symbol id="i-comment" viewBox="0 0 24 24">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    <path d="M13 8H7" />
+    <path d="M17 12H7" />
+  </symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" />
+    <path d="m9 12 2 2 4-4" />
+  </symbol>
+  <symbol id="i-alert-circle" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 8v4" />
+    <path d="M12 16h.01" />
+  </symbol>
+  <symbol id="i-x" viewBox="0 0 24 24">
+    <path d="M18 6 6 18" />
+    <path d="m6 6 12 12" />
+  </symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24">
+    <path
+      d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"
+    />
+    <circle cx="12" cy="12" r="3" />
+  </symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24">
+    <path d="M3 6h18" />
+    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+  </symbol>
+</svg>
+
+<main class="sheet">
+  <header class="sheet-head">
+    <div>
+      <h1>SchemaForge: làm mới giao diện</h1>
+      <p>
+        Mockup tĩnh cho spec phần 10. Mọi màu lấy từ bộ token của spec, ở cả
+        giao diện sáng và tối. Bố cục, luồng và chữ giữ như ứng dụng hiện tại.
+      </p>
+    </div>
+    <button class="btn btn-outline" id="theme-toggle" type="button">
+      <svg class="ic" aria-hidden="true"><use href="#i-moon" /></svg>
+      <span>Đổi giao diện sáng, tối</span>
+    </button>
+  </header>
+
+  <section class="screen" aria-labelledby="s-editor">
+    <h2 class="screen-label" id="s-editor">
+      Editor: toolbar, canvas, panel thuộc tính
+    </h2>
+    <div class="frame scroll-x">
+      <div class="editor">
+        <div class="toolbar">
+          <button
+            class="btn btn-ghost btn-icon"
+            type="button"
+            aria-label="Quay lại danh sách schema"
+          >
+            <svg class="ic" aria-hidden="true">
+              <use href="#i-arrow-left" />
+            </svg>
+          </button>
+          <button class="btn btn-ghost schema-name" type="button">Blog</button>
+          <span class="sep"></span>
+          <button class="btn btn-secondary" type="button">
+            <svg class="ic" aria-hidden="true"><use href="#i-plus" /></svg>Thêm
+            bảng
+          </button>
+          <button class="btn btn-ghost" type="button">
+            <svg class="ic" aria-hidden="true"><use href="#i-plus" /></svg>Thêm
+            enum
+          </button>
+          <span class="sep"></span>
+          <button
+            class="btn btn-ghost btn-icon"
+            type="button"
+            aria-label="Hoàn tác"
+          >
+            <svg class="ic" aria-hidden="true"><use href="#i-undo" /></svg>
+          </button>
+          <button
+            class="btn btn-ghost btn-icon"
+            type="button"
+            aria-label="Làm lại"
+            disabled
+          >
+            <svg class="ic" aria-hidden="true"><use href="#i-redo" /></svg>
+          </button>
+          <span class="sep"></span>
+          <button
+            class="btn btn-ghost btn-icon"
+            type="button"
+            aria-label="Thu nhỏ"
+          >
+            <svg class="ic" aria-hidden="true"><use href="#i-zoom-out" /></svg>
+          </button>
+          <button
+            class="btn btn-ghost btn-icon"
+            type="button"
+            aria-label="Phóng to"
+          >
+            <svg class="ic" aria-hidden="true"><use href="#i-zoom-in" /></svg>
+          </button>
+          <button
+            class="btn btn-ghost btn-icon"
+            type="button"
+            aria-label="Xem toàn bộ"
+          >
+            <svg class="ic" aria-hidden="true"><use href="#i-fit" /></svg>
+          </button>
+          <span class="sep"></span>
+          <span class="pill pill-muted">Không có vấn đề</span>
+          <span class="pill pill-success"
+            ><span class="dot"></span>Đã lưu lên cloud</span
+          >
+          <div class="right">
+            <button class="btn btn-ghost" type="button">
+              <span class="avatar">A</span>an@example.com
+            </button>
+            <button
+              class="btn btn-ghost btn-icon"
+              type="button"
+              aria-label="Giao diện"
+            >
+              <svg class="ic" aria-hidden="true"><use href="#i-sun" /></svg>
+            </button>
+            <button class="btn btn-ghost" type="button" aria-label="Ngôn ngữ">
+              VI
+            </button>
+          </div>
+        </div>
+
+        <aside class="left" aria-label="Tổng quan schema">
+          <div class="tabs" role="tablist">
+            <button class="tab" role="tab" aria-selected="true" type="button">
+              Bảng
+            </button>
+            <button class="tab" role="tab" aria-selected="false" type="button">
+              Enum
+            </button>
+            <button class="tab" role="tab" aria-selected="false" type="button">
+              Vấn đề (0)
+            </button>
+          </div>
+          <ul class="tlist">
+            <li>
+              <button type="button">
+                <span
+                  class="sq"
+                  style="background: var(--table-accent-3)"
+                ></span
+                ><span class="nm">comments</span
+                ><span class="ct num">4 cột</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" aria-current="true">
+                <span
+                  class="sq"
+                  style="background: var(--table-accent-5)"
+                ></span
+                ><span class="nm">posts</span><span class="ct num">5 cột</span>
+              </button>
+            </li>
+            <li>
+              <button type="button">
+                <span
+                  class="sq"
+                  style="background: var(--table-accent-1)"
+                ></span
+                ><span class="nm">users</span><span class="ct num">4 cột</span>
+              </button>
+            </li>
+          </ul>
+        </aside>
+        <div
+          class="canvas"
+          role="img"
+          aria-label="Canvas với ba bảng users, posts, comments và ba quan hệ một–nhiều"
+        >
+          <svg class="edges" viewBox="0 0 680 500" aria-hidden="true">
+            <defs>
+              <marker
+                id="m-many"
+                viewBox="0 0 12 12"
+                refX="12"
+                refY="6"
+                markerWidth="12"
+                markerHeight="12"
+                markerUnits="userSpaceOnUse"
+                orient="auto-start-reverse"
+              >
+                <path
+                  d="M0,6 L12,0 M0,6 L12,6 M0,6 L12,12 M2,1 L2,11"
+                  fill="none"
+                  style="stroke: var(--canvas-relation)"
+                  stroke-width="2"
+                />
+              </marker>
+              <marker
+                id="m-one"
+                viewBox="0 0 12 12"
+                refX="12"
+                refY="6"
+                markerWidth="12"
+                markerHeight="12"
+                markerUnits="userSpaceOnUse"
+                orient="auto-start-reverse"
+              >
+                <path
+                  d="M5,1 L5,11 M8,1 L8,11"
+                  fill="none"
+                  style="stroke: var(--canvas-relation)"
+                  stroke-width="2"
+                />
+              </marker>
+              <marker
+                id="m-many-hover"
+                viewBox="0 0 12 12"
+                refX="12"
+                refY="6"
+                markerWidth="12"
+                markerHeight="12"
+                markerUnits="userSpaceOnUse"
+                orient="auto-start-reverse"
+              >
+                <path
+                  d="M0,6 L12,0 M0,6 L12,6 M0,6 L12,12 M2,1 L2,11"
+                  fill="none"
+                  style="stroke: var(--canvas-relation-hover)"
+                  stroke-width="2"
+                />
+              </marker>
+              <marker
+                id="m-one-hover"
+                viewBox="0 0 12 12"
+                refX="12"
+                refY="6"
+                markerWidth="12"
+                markerHeight="12"
+                markerUnits="userSpaceOnUse"
+                orient="auto-start-reverse"
+              >
+                <path
+                  d="M5,1 L5,11 M8,1 L8,11"
+                  fill="none"
+                  style="stroke: var(--canvas-relation-hover)"
+                  stroke-width="2"
+                />
+              </marker>
+            </defs>
+            <!-- posts.author_id -> users.id -->
+            <path
+              class="edge"
+              d="M380 107 H326 Q318 107 318 115 V193 Q318 201 310 201 H256"
+              marker-start="url(#m-many)"
+              marker-end="url(#m-one)"
+            />
+            <!-- comments.post_id -> posts.id -->
+            <path
+              class="edge"
+              d="M604 329 H628 Q636 329 636 321 V87 Q636 79 628 79 H604"
+              marker-start="url(#m-many)"
+              marker-end="url(#m-one)"
+            />
+            <!-- comments.user_id -> users.id, shown hovered -->
+            <path
+              class="edge hover"
+              d="M380 357 H326 Q318 357 318 349 V209 Q318 201 310 201 H256"
+              marker-start="url(#m-many-hover)"
+              marker-end="url(#m-one-hover)"
+            />
+          </svg>
+          <span class="elabel" style="left: 318px; top: 154px">1-n</span>
+          <span class="elabel hover" style="left: 318px; top: 279px">1-n</span>
+          <span class="elabel" style="left: 636px; top: 204px">1-n</span>
+
+          <div class="node" style="left: 32px; top: 150px">
+            <div class="node-head" style="background: var(--table-accent-1)">
+              <span class="nm">users</span>
+            </div>
+            <ul class="rows">
+              <li class="pk hl">
+                <span class="mk k"
+                  ><svg class="ic ic-14" aria-hidden="true">
+                    <use href="#i-key" /></svg></span
+                ><span class="nm">id</span
+                ><span class="tp">bigint <span class="chip">AI</span></span>
+              </li>
+              <li>
+                <span class="mk"></span><span class="nm">email</span
+                ><span class="tp"
+                  >varchar(255) <span class="chip">U</span></span
+                >
+              </li>
+              <li>
+                <span class="mk"></span><span class="nm">display_name</span
+                ><span class="tp">text?</span>
+              </li>
+              <li>
+                <span class="mk"></span><span class="nm">created_at</span
+                ><span class="tp">timestamptz</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="node selected" style="left: 380px; top: 28px">
+            <div class="node-head" style="background: var(--table-accent-5)">
+              <span class="nm">posts</span
+              ><svg class="ic ic-14" aria-hidden="true">
+                <use href="#i-comment" />
+              </svg>
+            </div>
+            <ul class="rows">
+              <li class="pk">
+                <span class="mk k"
+                  ><svg class="ic ic-14" aria-hidden="true">
+                    <use href="#i-key" /></svg></span
+                ><span class="nm">id</span
+                ><span class="tp">bigint <span class="chip">AI</span></span>
+              </li>
+              <li>
+                <span class="mk fk"
+                  ><svg class="ic ic-14" aria-hidden="true">
+                    <use href="#i-link" /></svg></span
+                ><span class="nm">author_id</span><span class="tp">bigint</span>
+              </li>
+              <li>
+                <span class="mk"></span><span class="nm">title</span
+                ><span class="tp">varchar(200)</span>
+              </li>
+              <li>
+                <span class="mk"></span><span class="nm">status</span
+                ><span class="tp">post_status</span>
+              </li>
+              <li>
+                <span class="mk"></span><span class="nm">published_at</span
+                ><span class="tp">timestamptz?</span>
+              </li>
+            </ul>
+            <span class="handle" style="left: -6px; top: 13px"></span>
+            <span class="handle" style="right: -6px; top: 13px"></span>
+          </div>
+
+          <div class="node" style="left: 380px; top: 250px">
+            <div class="node-head" style="background: var(--table-accent-3)">
+              <span class="nm">comments</span>
+            </div>
+            <ul class="rows">
+              <li class="pk">
+                <span class="mk k"
+                  ><svg class="ic ic-14" aria-hidden="true">
+                    <use href="#i-key" /></svg></span
+                ><span class="nm">id</span><span class="tp">uuid</span>
+              </li>
+              <li>
+                <span class="mk fk"
+                  ><svg class="ic ic-14" aria-hidden="true">
+                    <use href="#i-link" /></svg></span
+                ><span class="nm">post_id</span><span class="tp">bigint</span>
+              </li>
+              <li class="hl">
+                <span class="mk fk"
+                  ><svg class="ic ic-14" aria-hidden="true">
+                    <use href="#i-link" /></svg></span
+                ><span class="nm">user_id</span><span class="tp">bigint</span>
+              </li>
+              <li>
+                <span class="mk"></span><span class="nm">body</span
+                ><span class="tp">text</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="minimap" aria-hidden="true">
+            <i
+              style="
+                left: 12px;
+                top: 36px;
+                width: 34px;
+                height: 22px;
+                background: var(--table-accent-1);
+              "
+            ></i>
+            <i
+              style="
+                left: 62px;
+                top: 12px;
+                width: 34px;
+                height: 26px;
+                background: var(--table-accent-5);
+              "
+            ></i>
+            <i
+              style="
+                left: 62px;
+                top: 46px;
+                width: 34px;
+                height: 22px;
+                background: var(--table-accent-3);
+              "
+            ></i>
+            <span class="vp"></span>
+          </div>
+        </div>
+
+        <aside class="props" aria-label="Thuộc tính">
+          <div class="group-label">Bảng</div>
+          <div class="props-title">
+            <span class="strip" style="background: var(--table-accent-5)"></span
+            >posts
+          </div>
+          <label class="field"
+            ><span class="label">Tên</span
+            ><input class="input" id="table-name" value="posts"
+          /></label>
+          <div class="xy">
+            <label class="field"
+              ><span class="label">X</span
+              ><input class="input num" id="table-x" value="380"
+            /></label>
+            <label class="field"
+              ><span class="label">Y</span
+              ><input class="input num" id="table-y" value="28"
+            /></label>
+          </div>
+          <div class="group-label">Cột</div>
+          <div class="col-item">
+            <div class="top">
+              <input
+                class="input"
+                id="col-1-name"
+                value="id"
+                aria-label="Tên cột"
+              /><span class="input select"
+                >bigint<svg class="ic ic-14" aria-hidden="true">
+                  <use href="#i-chevron" /></svg
+              ></span>
+            </div>
+            <div class="flags">
+              <span class="chk"><i></i>NULL</span
+              ><span class="chk"
+                ><i class="on"
+                  ><svg class="ic ic-14" aria-hidden="true">
+                    <use href="#i-check" /></svg></i
+                >Khóa chính</span
+              ><span class="chk"><i></i>Duy nhất</span
+              ><span class="chk"
+                ><i class="on"
+                  ><svg class="ic ic-14" aria-hidden="true">
+                    <use href="#i-check" /></svg></i
+                >Tự tăng</span
+              >
+            </div>
+          </div>
+          <div class="col-item">
+            <div class="top">
+              <input
+                class="input"
+                id="col-2-name"
+                value="author_id"
+                aria-label="Tên cột"
+              /><span class="input select"
+                >bigint<svg class="ic ic-14" aria-hidden="true">
+                  <use href="#i-chevron" /></svg
+              ></span>
+            </div>
+            <div class="flags">
+              <span class="chk"><i></i>NULL</span
+              ><span class="chk"><i></i>Khóa chính</span
+              ><span class="chk"><i></i>Duy nhất</span
+              ><span class="chk"><i></i>Tự tăng</span>
+            </div>
+          </div>
+          <button class="btn btn-outline" type="button">
+            <svg class="ic" aria-hidden="true"><use href="#i-plus" /></svg>Thêm
+            cột
+          </button>
+        </aside>
+      </div>
+    </div>
+  </section>
+  <style>
+    /* Schema list */
+    .app-head {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--background);
+    }
+    .app-head .right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .list-main {
+      max-width: 768px;
+      margin: 0 auto;
+      padding: 24px 16px 32px;
+      display: grid;
+      gap: 20px;
+    }
+    .list-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .list-top h3 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 32px;
+      font-weight: 700;
+    }
+    .list-section {
+      display: grid;
+      gap: 8px;
+    }
+    .list-section h4 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 28px;
+      font-weight: 600;
+    }
+    .srows {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+    .srow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.15s;
+    }
+    .srow:hover {
+      border-color: var(--input);
+    }
+    .srow .tile {
+      width: 36px;
+      height: 36px;
+      flex: none;
+      border-radius: calc(var(--radius) * 0.8);
+      background: var(--muted);
+      color: var(--muted-foreground);
+      display: grid;
+      place-items: center;
+    }
+    .srow .body {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+    .srow a {
+      color: var(--foreground);
+      font-weight: 600;
+      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-radius: 4px;
+    }
+    .srow a:hover {
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+    .srow a:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
+    .srow .meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted-foreground);
+    }
+    .invite {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .invite a {
+      color: var(--primary);
+      font-weight: 500;
+      text-underline-offset: 4px;
+    }
+
+    /* Auth */
+    .auth {
+      min-height: 560px;
+      display: grid;
+      place-items: center;
+      padding: 32px 16px;
+      background-color: var(--canvas);
+      background-image: radial-gradient(
+        var(--canvas-dot) 1.2px,
+        transparent 1.4px
+      );
+      background-size: 20px 20px;
+    }
+    .auth-stack {
+      width: 100%;
+      max-width: 400px;
+      display: grid;
+      gap: 20px;
+      justify-items: center;
+    }
+    .auth-card {
+      width: 100%;
+      padding: 32px;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) * 1.4);
+      background: var(--card);
+      box-shadow: var(--shadow-md);
+      display: grid;
+      gap: 20px;
+    }
+    .auth-card h3 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 32px;
+      font-weight: 700;
+    }
+    .pw {
+      display: flex;
+      gap: 8px;
+    }
+    .auth-foot {
+      display: grid;
+      gap: 8px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .auth-foot p {
+      margin: 0;
+      color: var(--muted-foreground);
+    }
+    .auth-foot a {
+      color: var(--primary);
+      text-underline-offset: 4px;
+    }
+    .btn-block {
+      width: 100%;
+    }
+
+    /* Dialog + toast */
+    .stage {
+      position: relative;
+      min-height: 460px;
+      display: grid;
+      place-items: center;
+      padding: 32px 16px 96px;
+      background: var(--background);
+      overflow: hidden;
+    }
+    .stage-bg {
+      position: absolute;
+      inset: 0;
+      padding: 24px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+    .stage-bg span {
+      height: 64px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--card);
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--overlay);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .dialog {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) * 1.4);
+      background: var(--popover);
+      box-shadow: var(--shadow-lg);
+      display: grid;
+      gap: 16px;
+    }
+    .dialog h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 28px;
+      font-weight: 600;
+      text-wrap: balance;
+    }
+    .dialog p {
+      margin: 0;
+      color: var(--muted-foreground);
+    }
+    .dialog .close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+    }
+    .dialog .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .toast {
+      position: absolute;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      width: min(356px, calc(100% - 32px));
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--popover);
+      color: var(--foreground);
+      box-shadow: var(--shadow-md);
+      font-size: 13px;
+    }
+    .toast .ic {
+      color: var(--success);
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .swatch {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 28px;
+      padding: 0 10px 0 4px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      font-size: 12px;
+    }
+    .swatch i {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+      gap: 40px;
+    }
+  </style>
+
+  <section class="screen" aria-labelledby="s-palette">
+    <h2 class="screen-label" id="s-palette">
+      Tám màu dải tiêu đề, chọn theo id bảng
+    </h2>
+    <div class="legend">
+      <span class="swatch"
+        ><i style="background: var(--table-accent-1)"></i>1 xanh lam</span
+      >
+      <span class="swatch"
+        ><i style="background: var(--table-accent-2)"></i>2 mòng két</span
+      >
+      <span class="swatch"
+        ><i style="background: var(--table-accent-3)"></i>3 xanh lá</span
+      >
+      <span class="swatch"
+        ><i style="background: var(--table-accent-4)"></i>4 vàng đất</span
+      >
+      <span class="swatch"
+        ><i style="background: var(--table-accent-5)"></i>5 cam</span
+      >
+      <span class="swatch"
+        ><i style="background: var(--table-accent-6)"></i>6 đỏ hồng</span
+      >
+      <span class="swatch"
+        ><i style="background: var(--table-accent-7)"></i>7 hồng tím</span
+      >
+      <span class="swatch"
+        ><i style="background: var(--table-accent-8)"></i>8 tím</span
+      >
+    </div>
+  </section>
+
+  <section class="screen" aria-labelledby="s-list">
+    <h2 class="screen-label" id="s-list">Danh sách schema</h2>
+    <div class="frame">
+      <div class="app-head">
+        <span class="brand"
+          ><span class="brand-mark"
+            ><svg class="ic" aria-hidden="true"><use href="#i-db" /></svg></span
+          >SchemaForge</span
+        >
+        <div class="right">
+          <button
+            class="btn btn-ghost btn-icon"
+            type="button"
+            aria-label="Giao diện"
+          >
+            <svg class="ic" aria-hidden="true"><use href="#i-sun" /></svg>
+          </button>
+          <button class="btn btn-ghost" type="button" aria-label="Ngôn ngữ">
+            VI
+          </button>
+        </div>
+      </div>
+      <div class="list-main">
+        <div class="list-top">
+          <h3>Schema của bạn</h3>
+          <button class="btn btn-primary" type="button">
+            <svg class="ic" aria-hidden="true"><use href="#i-plus" /></svg>Tạo
+            schema
+          </button>
+        </div>
+        <div class="invite">
+          <svg class="ic" aria-hidden="true"><use href="#i-cloud" /></svg
+          ><span><a href="#s-auth">Đăng nhập để lưu schema lên cloud</a></span>
+        </div>
+        <div class="list-section">
+          <h4>Chỉ trên trình duyệt này</h4>
+          <ul class="srows">
+            <li class="srow">
+              <span class="tile"
+                ><svg class="ic" aria-hidden="true"><use href="#i-drive" /></svg
+              ></span>
+              <div class="body">
+                <a href="#s-editor">Blog</a
+                ><span class="meta num">Cập nhật lúc 14:32 01/10/2026</span>
+              </div>
+              <button
+                class="btn btn-ghost btn-icon"
+                type="button"
+                aria-label="Thao tác cho Blog"
+              >
+                <svg class="ic" aria-hidden="true"><use href="#i-more" /></svg>
+              </button>
+            </li>
+            <li class="srow">
+              <span class="tile"
+                ><svg class="ic" aria-hidden="true"><use href="#i-drive" /></svg
+              ></span>
+              <div class="body">
+                <a href="#s-editor">Cửa hàng sách</a
+                ><span class="meta num">Cập nhật lúc 09:05 28/09/2026</span>
+              </div>
+              <button
+                class="btn btn-ghost btn-icon"
+                type="button"
+                aria-label="Thao tác cho Cửa hàng sách"
+              >
+                <svg class="ic" aria-hidden="true"><use href="#i-more" /></svg>
+              </button>
+            </li>
+            <li class="srow">
+              <span class="tile"
+                ><svg class="ic" aria-hidden="true"><use href="#i-drive" /></svg
+              ></span>
+              <div class="body">
+                <a href="#s-editor">Quản lý kho</a
+                ><span class="meta num">Cập nhật lúc 17:48 25/09/2026</span>
+              </div>
+              <button
+                class="btn btn-ghost btn-icon"
+                type="button"
+                aria-label="Thao tác cho Quản lý kho"
+              >
+                <svg class="ic" aria-hidden="true"><use href="#i-more" /></svg>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="two">
+    <section class="screen" aria-labelledby="s-auth">
+      <h2 class="screen-label" id="s-auth">Đăng nhập</h2>
+      <div class="frame auth">
+        <div class="auth-stack">
+          <span class="brand"
+            ><span class="brand-mark"
+              ><svg class="ic" aria-hidden="true">
+                <use href="#i-db" /></svg></span
+            >SchemaForge</span
+          >
+          <form class="auth-card" onsubmit="event.preventDefault()">
+            <h3>Đăng nhập</h3>
+            <label class="field"
+              ><span class="label">Email</span
+              ><input
+                class="input"
+                id="signin-email"
+                type="email"
+                autocomplete="email"
+                value="an@example.com"
+            /></label>
+            <div class="field">
+              <label class="label" for="signin-password">Mật khẩu</label>
+              <div class="pw">
+                <input
+                  class="input"
+                  id="signin-password"
+                  type="password"
+                  autocomplete="current-password"
+                  value="mockup-only"
+                />
+                <button
+                  class="btn btn-outline btn-icon"
+                  type="button"
+                  aria-label="Hiện mật khẩu"
+                >
+                  <svg class="ic" aria-hidden="true"><use href="#i-eye" /></svg>
+                </button>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-lg btn-block" type="submit">
+              Đăng nhập
+            </button>
+            <div class="auth-foot">
+              <p>Chưa có chức năng khôi phục mật khẩu.</p>
+              <a href="#s-auth">Chưa có tài khoản? Tạo tài khoản</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" aria-labelledby="s-dialog">
+      <h2 class="screen-label" id="s-dialog">Hộp thoại đang mở và toast</h2>
+      <div class="frame stage">
+        <div class="stage-bg" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="overlay" aria-hidden="true"></div>
+        <div
+          class="dialog"
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="dlg-title"
+        >
+          <button
+            class="btn btn-ghost btn-icon close"
+            type="button"
+            aria-label="Đóng"
+          >
+            <svg class="ic" aria-hidden="true"><use href="#i-x" /></svg>
+          </button>
+          <h3 id="dlg-title">Xóa "Cửa hàng sách"?</h3>
+          <p>
+            Schema sẽ bị xóa hẳn khỏi trình duyệt này. Thao tác này không hoàn
+            tác được.
+          </p>
+          <div class="actions">
+            <button class="btn btn-outline" type="button">Hủy</button>
+            <button class="btn btn-destructive" type="button">
+              <svg class="ic" aria-hidden="true"><use href="#i-trash" /></svg
+              >Xóa
+            </button>
+          </div>
+        </div>
+        <div class="toast" role="status">
+          <svg class="ic" aria-hidden="true"><use href="#i-check-circle" /></svg
+          >Đã lưu lên cloud
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var button = document.getElementById("theme-toggle");
+    var media = window.matchMedia("(prefers-color-scheme: dark)");
+    function isDark() {
+      var chosen = root.getAttribute("data-theme");
+      return chosen ? chosen === "dark" : media.matches;
+    }
+    button.addEventListener("click", function () {
+      root.setAttribute("data-theme", isDark() ? "light" : "dark");
+    });
+  })();
+</script>

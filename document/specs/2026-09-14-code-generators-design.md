@@ -4,11 +4,11 @@ Spec cho phần 6 trong [roadmap.md](../roadmap.md): các generator CG-01 đến
 
 Tính năng và tiêu chí nháp lấy từ [2026-09-14-feature-list-design.md](2026-09-14-feature-list-design.md). Model, bộ kiểu chung, giá trị mặc định, quan hệ, luật đặt tên, hàm sắp xếp xác định và hai tầng validation lấy từ [spec phần 2](2026-09-14-core-schema-model-design.md). Cách build, entry point, Vitest và ESLint lấy từ [spec phần 1](2026-09-14-scaffold-tooling-design.md).
 
-Trạng thái: đã duyệt. Người dùng xác nhận các quyết định cần xác nhận: biểu diễn JSON chung (mục 3), nguyên tắc diagnostic cho câu hỏi 7 (mục 4), Drizzle 0.45 chỉ PostgreSQL và MySQL với relations v1 (CG-03), Mock API là một file handler MSW 2 (CG-06), OpenAPI 3.1 dạng JSON có đường dẫn CRUD (CG-07), seed data dùng PRNG trong core, không faker, `SeedDataset` dùng chung với AI-06 (CG-08), và conformance test chỉ chạy trong CI (mục 7).
+Trạng thái: đã duyệt. Người dùng xác nhận các quyết định cần xác nhận: biểu diễn JSON chung (mục 3), nguyên tắc diagnostic cho câu hỏi 7 (mục 4), Drizzle 0.45 chỉ PostgreSQL và MySQL với relations v1 (CG-03), Mock API là một file handler MSW 2 (CG-06), OpenAPI 3.1 dạng JSON có đường dẫn CRUD (CG-07), seed data dùng PRNG trong core, không faker, `SeedDataset` dùng chung với AI-06 (CG-08), và conformance test chỉ chạy trong CI (mục 7) (đã thay ngày 2026-10-02: GitHub Actions bị bỏ, conformance test chạy local qua Docker trên máy dev). Ngày 2026-10-02 orchestrator (được người dùng giao quyết định) chốt thêm cách xử lý 12 vấn đề phát hiện khi lập plan, ghi ở mục [Quyết định bổ sung 2026-10-02](#quyết-định-bổ-sung-2026-10-02).
 
 Các đoạn TypeScript là phác thảo để hình dạng dữ liệu rõ ràng. Plan và code sẽ tinh chỉnh tên và chi tiết, nhưng không đổi quyết định.
 
-Phiên bản trong spec được kiểm tra ngày 2026-09-14 bằng `npm view` (phiên bản, dist-tag, dependency, kích thước), tài liệu qua Context7, và thử nghiệm trong thư mục tạm: `prisma validate` 7.10.0 trên các schema mẫu, typecheck output mẫu của Drizzle 0.45.2, Zod 4.6.5 và TypeScript 6.0.3 ở chế độ strict, parse DBML bằng `@dbml/core` 10.1.1, validate tài liệu OpenAPI 3.1 bằng hai validator, chạy handler MSW 2.15.0 trên Node, highlight bằng Shiki 4.4.3 với regex engine JavaScript và đo kích thước bundle bằng esbuild. Hành vi của database thật chưa được thử (conformance test là cổng chặn ở CI; máy dev có Docker nên chạy local cũng được, nhưng chưa thử trong lúc viết spec); các điểm cần xác nhận được ghi ở mục [Rủi ro](#rủi-ro-cần-kiểm-tra-khi-triển-khai).
+Phiên bản trong spec được kiểm tra ngày 2026-09-14 bằng `npm view` (phiên bản, dist-tag, dependency, kích thước), tài liệu qua Context7, và thử nghiệm trong thư mục tạm: `prisma validate` 7.10.0 trên các schema mẫu, typecheck output mẫu của Drizzle 0.45.2, Zod 4.6.5 và TypeScript 6.0.3 ở chế độ strict, parse DBML bằng `@dbml/core` 10.1.1, validate tài liệu OpenAPI 3.1 bằng hai validator, chạy handler MSW 2.15.0 trên Node, highlight bằng Shiki 4.4.3 với regex engine JavaScript và đo kích thước bundle bằng esbuild. Hành vi của database thật chưa được thử (conformance test chạy local qua Docker trên máy dev, chưa thử trong lúc viết spec); các điểm cần xác nhận được ghi ở mục [Rủi ro](#rủi-ro-cần-kiểm-tra-khi-triển-khai).
 
 ## Quyết định đã có từ trước
 
@@ -42,7 +42,7 @@ Spec này không bàn lại các điểm sau:
 | 14 | CG-08 Seed data (câu hỏi 9) | Dựng `SeedDataset` bằng PRNG có seed trong core, không dùng faker; xuất SQL `INSERT` theo dialect hoặc JSON. AI-06 dùng chung `SeedDataset`, hàm kiểm tra và hàm xuất |
 | 15 | CG-09 DBML | Tự sinh văn bản DBML; `@dbml/core` chỉ dùng trong conformance test. Round-trip đầy đủ kiểm tra ở phần 7 |
 | 16 | CG-10 Markdown | Cấu trúc cố định; nhãn tiêu đề do frontend truyền vào từ i18n |
-| 17 | Kiểm chứng output | Package riêng `packages/codegen-conformance` chạy công cụ đích thật (Testcontainers, `prisma validate`, `tsc`, validator OpenAPI, `@dbml/core`), chỉ chạy trong job CI riêng và là cổng chặn; core giữ unit test và snapshot, chạy cả local |
+| 17 | Kiểm chứng output | Package riêng `packages/codegen-conformance` chạy công cụ đích thật (Testcontainers, `prisma validate`, `tsc`, validator OpenAPI, `@dbml/core`), chạy local qua Docker trên máy dev, không có job CI; core giữ unit test và snapshot, chạy không cần Docker |
 | 18 | Code panel | Chọn đích và option, xem code highlight bằng Shiki 4 (regex engine JavaScript, theme CSS variables, render token thành React element), nút copy, danh sách diagnostic dịch qua i18n |
 | 19 | Hiệu năng | Sinh code và highlight chạy trong Web Worker; mỗi generator ≤ 100 ms với schema 200 bảng trên máy dev |
 | 20 | Test | Snapshot theo đích và fixture, unit test định danh, test theo mã diagnostic, property test xác định và không throw, conformance test |
@@ -140,6 +140,9 @@ Trả lời câu hỏi 4 của spec phần 2.
   - Tên kiểu custom chỉ được ghi nguyên văn khi qua cú pháp an toàn của phần 2 (dùng chung hàm kiểm tra với `column-custom-type-invalid`). Nếu không, generator SQL ghi kiểu dự phòng của dialect (`text`, `LONGTEXT`, `nvarchar(max)`) kèm diagnostic `custom-type-unsafe`. Các đích khác đặt tên kiểu trong chuỗi đã escape nên không cần dự phòng.
   - Literal mặc định chỉ được ghi khi qua đúng hàm kiểm tra của `column-default-invalid` và `column-default-incompatible`; nếu không thì bỏ giá trị mặc định kèm diagnostic `default-omitted`. Nhờ vậy literal số không bao giờ được ghi không quote khi nó không phải số.
 - **Output chỉ được đảm bảo đúng khi không có issue.** Ví dụ hai bảng trùng tên cho hai câu `CREATE TABLE` cùng tên; generator không cố sửa.
+- **Hai issue phần 2 thêm theo yêu cầu của phần 6** (quyết định ngày 2026-10-02, Vấn đề 10 và 12 ở mục [Quyết định bổ sung](#quyết-định-bổ-sung-2026-10-02)), để schema hợp lệ không cho DDL lỗi:
+  - `table-columns-empty` tại `['tables', id, 'columnIds']`: bảng không có cột. PostgreSQL nhận `CREATE TABLE "t" ();`, nhưng MySQL, SQL Server từ chối bảng không cột. Generator vẫn sinh output an toàn cho bảng rỗng (danh sách cột rỗng, không throw); output chỉ không chạy được ở đích đó.
+  - `index-name-conflicts-table` tại `['indexes', id, 'name']`: tên index trùng tên một bảng bất kỳ, so bằng `toNameKey` như các issue trùng tên khác của phần 2. PostgreSQL dùng chung không gian tên cho bảng và index, và phần 6 không đổi tên index của người dùng (mục 5). Mã riêng, không mở rộng `index-name-duplicate`, để thông báo cho người dùng nói đúng nguyên nhân.
 - **Panel code** (mục 8) lấy danh sách issue mà editor đã tính. Khi danh sách không rỗng, panel hiện cảnh báo phía trên code: schema còn N lỗi, output có thể không chạy được cho tới khi sửa, kèm nút mở danh sách issue. Code vẫn hiển thị và copy được. Diagnostic của generator hiện ở danh sách riêng.
 
 **Lý do:** người dùng đang sửa dở (đổi tên qua trạng thái trùng, đang nhập precision) vẫn thấy code cập nhật theo từng thao tác, thay vì panel trống. Bảo đảm an toàn là bất biến của generator, nên được test bằng property test trên tài liệu có issue (mục 10), trong khi bảo đảm đúng được test bằng conformance test trên schema hợp lệ (mục 7).
@@ -169,7 +172,7 @@ Spec phần 2 có bảng ánh xạ tham khảo cho ba dialect. Mục này chốt
 | `timestamptz` | `timestamptz` | `TIMESTAMP(6)`, phạm vi 1970–2038 | `datetimeoffset` |
 | `json` | `jsonb` | `JSON` | `nvarchar(max)` |
 | `binary` | `bytea` | `LONGBLOB` | `varbinary(max)` |
-| `enum` | `CREATE TYPE … AS ENUM` | `ENUM(…)` trên cột | `nvarchar(n)` với `n` là độ dài giá trị dài nhất, kèm `CHECK (… IN (…))` |
+| `enum` | `CREATE TYPE … AS ENUM` | `ENUM(…)` trên cột | `nvarchar(n)` với `n` là độ dài giá trị dài nhất tính theo code unit UTF-16, tối thiểu 1 (quá 4000 thì `nvarchar(max)`, mục 4), kèm `CHECK (… IN (…))` |
 | `custom` | ghi nguyên văn | ghi nguyên văn | ghi nguyên văn |
 | Auto-increment | `GENERATED BY DEFAULT AS IDENTITY` | `AUTO_INCREMENT` | `IDENTITY(1, 1)` |
 | `currentTimestamp` | `now()` | `CURRENT_TIMESTAMP(6)` | `sysdatetime()` cho `datetime2`, `sysdatetimeoffset()` cho `datetimeoffset` |
@@ -182,6 +185,8 @@ Chỉnh so với bảng tham khảo của phần 2, không đổi model:
 - PostgreSQL dùng identity `BY DEFAULT` (không phải `ALWAYS`) để seed data (CG-08) chèn được giá trị khóa tường minh.
 
 Literal mặc định được ghi theo kiểu cột: chuỗi trong nháy đơn đã escape (mục 5); số nguyên, số thập phân không quote sau khi qua hàm kiểm tra literal; boolean là `true`/`false` (PostgreSQL), `TRUE`/`FALSE` (MySQL), `1`/`0` (SQL Server); ngày giờ, `uuid`, `json`, enum là chuỗi. MySQL bọc literal của cột `LONGTEXT`, `JSON`, `LONGBLOB` trong ngoặc (`DEFAULT ('…')`) vì các kiểu này chỉ nhận giá trị mặc định dạng biểu thức.
+
+**Giây lẻ trên SQL Server** (quyết định ngày 2026-10-02, Vấn đề 8): literal `time`, `timestamp`, `timestamptz` của phần 2 cho phép số chữ số giây lẻ bất kỳ. SQL Server báo lỗi chuyển kiểu khi quá 7 chữ số, nên hàm literal SQL Server cắt phần giây lẻ về 7 chữ số (cắt, không làm tròn, để không phải nhớ sang giây, phút, ngày), không có diagnostic. Mọi output SQL Server dùng hàm này nên cùng hành vi: giá trị mặc định của CG-01, `dbgenerated("…")` của Prisma `sqlserver`, seed SQL `sqlserver`. PostgreSQL làm tròn về 6 chữ số theo độ chính xác cột, nên giữ nguyên literal. Hàm literal MySQL luôn cắt giây lẻ về 6 chữ số (độ chính xác cột của CG-01), không diagnostic, như SQL Server. Mọi output MySQL dùng hàm này nên cùng hành vi: giá trị mặc định của CG-01, `dbgenerated("…")` của Prisma `mysql`, giá trị mặc định của Drizzle MySQL, seed SQL `mysql`. Chữ số bị bỏ nằm dưới độ chính xác 1 µs của `DATETIME(6)`, `TIME(6)`, `TIMESTAMP(6)`, nên theo nguyên tắc 2 của mục 4 là ánh xạ tương đương. Cắt thay vì để MySQL làm tròn, vì làm tròn có thể nhớ sang giây, giờ, ngày kế tiếp (sửa sau review ngày 2026-10-02). Probe chỉ còn là kiểm tra sanity (mục [Rủi ro](#rủi-ro-cần-kiểm-tra-khi-triển-khai)). Không đổi validation phần 2: thay đổi nhỏ hơn, và schema đã lưu vẫn hợp lệ. Bỏ chữ số thứ 8 trở đi nằm dưới độ chính xác 100 ns của `datetime2`, `datetimeoffset`, `time`, nên theo nguyên tắc 2 của mục 4 là ánh xạ tương đương.
 
 ### Prisma
 
@@ -275,28 +280,41 @@ Trả lời câu hỏi 7 trong danh sách tính năng.
 
 ### Danh mục mã diagnostic
 
+`GENERATOR_DIAGNOSTIC_CODES` gồm đúng 17 mã dưới đây, theo thứ tự của bảng. Mã thứ 17 `comment-truncated` (đứng sau `null-character-removed`, trước `seed-table-skipped`) được thêm ngày 2026-10-02 (Vấn đề 2); các dòng `type-parameter-out-of-range`, `key-column-type-narrowed`, `key-column-type-not-indexable`, `referential-action-cycle` được bổ sung cùng ngày (Vấn đề 1, 4, 6).
+
 | Mã | Đích | Điều kiện | Output |
 |---|---|---|---|
 | `enum-not-supported` | Prisma `sqlserver` | Cột kiểu enum | `String @db.NVarChar(n)`, mất ràng buộc giá trị |
 | `type-not-supported` | Prisma `sqlserver` | Cột kiểu `json` | `String @db.NVarChar(Max)` |
-| `type-parameter-out-of-range` | SQL, Prisma, Drizzle | Tham số kiểu vượt giới hạn dialect: PostgreSQL `varchar(n)` > 10 485 760, `numeric` precision > 1000; MySQL `CHAR(n)` > 255, `VARCHAR(n)` > 16 383, `DECIMAL` precision > 65 hoặc scale > 30; SQL Server `nchar`, `nvarchar` > 4000, `decimal` precision > 38 | `CHAR` → `VARCHAR(n)`; `VARCHAR`, `nvarchar`, `nchar` quá dài → kiểu văn bản không giới hạn của dialect; precision, scale kẹp về giới hạn |
-| `key-column-type-narrowed` | MySQL, SQL Server (SQL, Prisma, Drizzle) | Cột `text` thuộc khóa chính, unique, index hoặc cặp cột quan hệ | MySQL `VARCHAR(255)`, SQL Server `nvarchar(450)` |
-| `key-column-type-not-indexable` | MySQL, SQL Server (SQL, Prisma, Drizzle) | Cột `json` hoặc `binary` thuộc khóa chính, unique hoặc index | Bỏ ràng buộc, index đó và khóa ngoại tham chiếu tới nó |
+| `type-parameter-out-of-range` | SQL, Prisma, Drizzle | Tham số kiểu vượt giới hạn dialect, hoặc MySQL: dòng vượt 65 535 byte (cột `CHAR`, `VARCHAR` lớn nhất không thuộc khóa chính, unique, index hay cặp cột quan hệ thành `LONGTEXT`, mục này). Giới hạn: PostgreSQL `char(n)`, `varchar(n)` > 10 485 760, `numeric` precision > 1000; MySQL `CHAR(n)` > 255, `VARCHAR(n)` > 16 383, `DECIMAL` precision > 65 hoặc scale > 30; SQL Server `nchar`, `nvarchar` > 4000, `decimal` precision > 38, enum có giá trị dài hơn 4000 code unit UTF-16 | `CHAR` → `VARCHAR(n)`; `VARCHAR`, `nvarchar`, `nchar` quá dài (PostgreSQL cả `char`) → kiểu văn bản không giới hạn của dialect; enum SQL Server → `nvarchar(max)`; precision, scale kẹp về giới hạn |
+| `key-column-type-narrowed` | MySQL, SQL Server (SQL, Prisma, Drizzle) | Cột `text` thuộc khóa chính, unique, index hoặc cặp cột quan hệ. MySQL: cả cột `char(n)`, `varchar(n)` có `n > 768` ở các vị trí đó, kể cả cột vượt giới hạn của `type-parameter-out-of-range` có `n > 768`: cột đó nhận cả hai diagnostic và thành thẳng `VARCHAR(768)`, không đi qua `LONGTEXT` rồi `VARCHAR(255)` (ví dụ `varchar(20000)` trong một unique). SQL Server: phần độ dài cố định của khóa vượt 900 byte (khóa chính) hoặc 1700 byte (unique, index) | MySQL `VARCHAR(255)` cho `text`, `VARCHAR(768)` cho `char`, `varchar` có `n > 768`; SQL Server `nvarchar(450)` cho `text`, mọi cột `nchar(n)` của khóa vượt giới hạn thành `nvarchar(n)`, lan bắc cầu tới mọi cột ghép cặp qua quan hệ (mỗi cột một diagnostic) |
+| `key-column-type-not-indexable` | MySQL, SQL Server (SQL, Prisma, Drizzle) | Cột `json` hoặc `binary` thuộc khóa chính, unique hoặc index; MySQL: tổng độ dài khóa sau khi hẹp vẫn vượt 3072 byte (4 byte mỗi ký tự với `utf8mb4`); SQL Server: phần độ dài cố định sau khi hẹp vẫn vượt 900 hoặc 1700 byte | Bỏ ràng buộc, index đó và khóa ngoại tham chiếu tới nó |
 | `referential-action-not-supported` | MySQL (SQL, Prisma, Drizzle) | `setDefault` (InnoDB từ chối) | `NO ACTION` |
-| `referential-action-cycle` | SQL Server (SQL, Prisma) | Hành động khác `noAction` làm xuất hiện vòng, hoặc đường cascade thứ hai giữa hai bảng | Cả ON DELETE và ON UPDATE của quan hệ đó thành `NO ACTION` |
+| `referential-action-cycle` | SQL Server (SQL, Prisma) | Hành động khác `noAction` và `restrict` làm xuất hiện vòng, hoặc đường cascade thứ hai giữa hai bảng | Cả ON DELETE và ON UPDATE của quan hệ đó thành `NO ACTION` |
 | `unique-nulls-restricted` | SQL Server: SQL khi ràng buộc unique có cột nullable được khóa ngoại tham chiếu; Prisma mọi unique có cột nullable | Unique trên cột nullable | `UNIQUE` của SQL Server chỉ cho một dòng `NULL` |
 | `table-without-identifier` | Prisma, OpenAPI, Mock API | Prisma: không có khóa chính hay unique nào chỉ gồm cột bắt buộc, không phải `Unsupported`. OpenAPI, Mock API: bảng không có khóa chính | Prisma: `@@ignore` trên model và `@ignore` trên trường quan hệ trỏ tới model. OpenAPI, Mock API: chỉ có đường dẫn danh sách và tạo mới |
 | `custom-type-unmapped` | TypeScript, Zod, OpenAPI, Mock API | Cột kiểu `custom` | `unknown`, `z.unknown()`, `{}` |
 | `custom-type-unsafe` | SQL | Tên kiểu custom sai cú pháp an toàn (schema có issue) | Kiểu văn bản không giới hạn của dialect |
 | `default-omitted` | Mọi đích ghi giá trị mặc định | Literal không hợp lệ với kiểu cột (schema có issue) | Bỏ giá trị mặc định |
-| `identifier-collision-renamed` | MySQL (SQL, Prisma, Drizzle) | Hai tên cột trong một bảng, hoặc hai tên index trong một bảng, chỉ khác nhau ở dấu (MySQL so định danh cột, index không phân biệt dấu) | Tên đứng sau theo thứ tự xác định được thêm hậu tố `_2`, `_3`… |
+| `identifier-collision-renamed` | MySQL (SQL, Prisma, Drizzle) | Hai tên cột trong một bảng, hoặc hai tên index trong một bảng, chỉ khác nhau ở dấu hoặc ở `đ`/`d`, `ø`/`o`, `ł`/`l`, `ħ`/`h` (MySQL so định danh cột, index theo `utf8mb3_general_ci`, mục 5) | Tên đứng sau theo thứ tự xác định được thêm hậu tố `_2`, `_3`… |
 | `null-character-removed` | PostgreSQL | Comment hoặc literal chứa U+0000 (PostgreSQL không lưu được) | Bỏ ký tự đó |
+| `comment-truncated` | MySQL, SQL Server (SQL) | Comment vượt giới hạn của đích: MySQL comment cột quá 1024 ký tự, comment bảng quá 2048 ký tự (strict mode mặc định từ chối); SQL Server giá trị `MS_Description` quá 3750 ký tự `nvarchar` (7500 byte) | Cắt comment về giới hạn ở ranh giới code point; `path` là đường dẫn `comment` của bảng hoặc cột (thêm ngày 2026-10-02) |
 | `seed-table-skipped` | Seed | Cột bắt buộc không sinh được giá trị (kiểu custom không có mặc định), vòng khóa ngoại chỉ gồm cột bắt buộc, hoặc bảng được tham chiếu bị bỏ | Bảng không có dòng nào |
 | `seed-rows-reduced` | Seed | Ràng buộc unique không đủ giá trị khác nhau (cột `boolean` unique, enum ít giá trị, quan hệ 1-1 với bảng cha ít dòng hơn) | Ít dòng hơn `rowsPerTable` |
 
-`path` trỏ tới phần tử gây ra diagnostic: cột (`['columns', id, 'type']`), hành động (`['relations', id, 'onDelete']`), bảng, index hoặc giá trị mặc định.
+`path` trỏ tới phần tử gây ra diagnostic: cột (`['columns', id, 'type']`), hành động (`['relations', id, 'onDelete']`), bảng, index, giá trị mặc định, hoặc comment (`['tables', id, 'comment']`, `['columns', id, 'comment']` cho `comment-truncated`).
 
-**Phát hiện vòng cascade trên SQL Server:** duyệt quan hệ theo thứ tự xác định của phần 2, giữ đồ thị các cạnh `toTableId → fromTableId` của những quan hệ có hành động khác `noAction`. Quan hệ nào khi thêm vào làm xuất hiện vòng (kể cả tự tham chiếu) hoặc đường thứ hai giữa hai bảng thì bị hạ về `NO ACTION` cho cả hai sự kiện. Hạ cả hai vì Prisma yêu cầu như vậy, và một quy tắc cho cả SQL lẫn Prisma giúp hai output khớp nhau.
+**Độ dài khóa trên MySQL** (Vấn đề 1, phương án (a)): InnoDB giới hạn tổng độ dài khóa 3072 byte, và với `utf8mb4` mỗi ký tự tính 4 byte. Generator MySQL xét từng khóa chính, unique, index sau khi đã hẹp `text`: cột `char(n)`, `varchar(n)` có `n > 768` thành `VARCHAR(768)` kèm `key-column-type-narrowed`. Cột vượt giới hạn của `type-parameter-out-of-range` có `n > 768` (`char(n)` với `n > 768`, `varchar(n)` với `n > 16 383`) mà thuộc khóa cũng thành thẳng `VARCHAR(768)` và nhận cả hai diagnostic, không đi qua `LONGTEXT` rồi `VARCHAR(255)`: `varchar(20000)` trong một unique cho `VARCHAR(768)`, `type-parameter-out-of-range` và `key-column-type-narrowed`. Cột vượt giới hạn có `n ≤ 768` chỉ đổi theo `type-parameter-out-of-range`: `char(300)` thành `VARCHAR(300)`. Sau đó, nếu tổng độ dài khóa vẫn vượt 3072 byte (cột `CHAR(n)`, `VARCHAR(n)` sau khi hẹp, kể cả `uuid` là `CHAR(36)`, tính `4 × n` byte; cột kiểu khác tính 32 byte, cận trên của mọi kiểu số, ngày giờ, boolean và enum trên MySQL vì `DECIMAL(65, 30)` lưu 30 byte; cột custom tính 0 vì không biết kích thước; ước lượng dư chỉ ảnh hưởng khóa sát ngưỡng) thì bỏ ràng buộc hoặc index đó cùng khóa ngoại tham chiếu tới nó, kèm `key-column-type-not-indexable`. Lý do: giữ tiêu chí "DDL chạy không lỗi với schema hợp lệ" mà không bắt phần 2 giới hạn độ dài.
+
+**Cột `AUTO_INCREMENT` trên MySQL** (sửa sau review ngày 2026-10-02, tổng quát hóa R8): MySQL báo lỗi 1075 khi cột `AUTO_INCREMENT` không phải cột đầu của một index nào. Sau khi đã bỏ các ràng buộc, index theo quy tắc trên, nếu không còn khóa chính, unique hay index nào của bảng bắt đầu bằng cột `AUTO_INCREMENT`, generator thêm `INDEX` thường chỉ trên cột đó, tên `<bảng>_<cột>_idx` cấp qua cùng allocator với tên ràng buộc (mục 5). Trường hợp này gồm cả khóa bị bỏ lẫn khóa chính nhiều cột có cột `AUTO_INCREMENT` không đứng đầu (hợp lệ theo phần 2). Không có diagnostic: index thêm vào không làm mất gì của schema. Prisma `mysql` ghi `@@index([cột], map: "<bảng>_<cột>_idx")` vì Prisma bắt `autoincrement()` có index; Drizzle MySQL ghi `index("<bảng>_<cột>_idx").on(…)`.
+
+**Kích thước dòng trên MySQL** (sửa sau review ngày 2026-10-02): tổng kích thước các cột của một dòng không được vượt 65 535 byte, nếu không MySQL báo lỗi 1118. Generator MySQL tính cho từng bảng, sau khi đã hẹp cột khóa: `CHAR(n)`, `VARCHAR(n)` tính `4 × n` byte, cộng 2 byte độ dài cho mỗi `VARCHAR`; cột `LONGTEXT`, `JSON`, `LONGBLOB` tính 12 byte (phần con trỏ tính vào giới hạn); cột kiểu khác tính 32 byte như quy tắc độ dài khóa; cột custom tính 0; cộng `⌈số cột nullable / 8⌉` byte bit null. Khi tổng vượt 65 535 byte, generator đổi cột `CHAR`, `VARCHAR` lớn nhất không thuộc khóa chính, unique, index hay cặp cột quan hệ (theo `n`, bằng nhau thì cột đứng trước theo `columnIds`) thành `LONGTEXT` kèm `type-parameter-out-of-range`, rồi tính lại, lặp tới khi không vượt. Cột thuộc khóa chính, unique, index hay cặp cột quan hệ không bị đổi: MySQL không cho khóa ngoại hay index không có độ dài tiền tố trên cột `LONGTEXT`, và các cột này đã tối đa `VARCHAR(768)`; nếu chỉ còn cột khóa mà vẫn vượt (cần trên 20 cột khóa 768 ký tự) thì giữ nguyên, là giới hạn đã chấp nhận. Giá trị mặc định của cột vừa đổi sang `LONGTEXT` ghi dạng biểu thức trong ngoặc như mục 3. Ví dụ bảng `id INT, v VARCHAR(16383)` (65 532 + 2 + 4 byte) thành `v LONGTEXT`.
+
+**Độ dài khóa trên SQL Server** (sửa sau review ngày 2026-10-02): SQL Server từ chối (Msg 1944) khóa có phần độ dài cố định vượt 900 byte với khóa chính (mặc định clustered) hoặc 1700 byte với unique và index (nonclustered); phần độ dài thay đổi chỉ gây cảnh báo lúc tạo. Ví dụ khóa chính `char(500)` thành `nchar(500)` = 1000 byte. Phần cố định tính: `nchar(n)` `2 × n` byte, `uniqueidentifier` 16 byte, kiểu cố định khác 17 byte (cận trên, `decimal(38)` lưu 17 byte), cột `nvarchar`, `varbinary` và custom tính 0. Khi vượt giới hạn, mọi cột `nchar(n)` trong khóa đó thành `nvarchar(n)` kèm `key-column-type-narrowed`. SQL Server bắt cột khóa ngoại và cột được tham chiếu cùng kiểu và cùng độ dài (Msg 1778, Msg 1753), nên việc hẹp lan theo quan hệ: mọi cột ghép cặp với một cột đã hẹp qua `columnPairs` của một quan hệ cũng thành `nvarchar(n)`, lan tiếp theo bắc cầu cho tới khi cả tập cột liên thông đổi xong; mỗi cột bị lan tới nhận `key-column-type-narrowed` riêng. Áp cho SQL Server SQL và Prisma `sqlserver`. Ngữ nghĩa đổi: cột không còn được đệm khoảng trắng tới đủ `n` ký tự như `nchar`. Nếu vẫn vượt (thực tế gần như không gặp) thì bỏ ràng buộc hoặc index đó cùng khóa ngoại tham chiếu tới nó, kèm `key-column-type-not-indexable`, như MySQL. `IDENTITY` không cần khóa nên không cần index thay thế.
+
+**Cắt comment** (Vấn đề 2): cắt ở ranh giới code point, giới hạn đếm theo đơn vị của đích (MySQL theo ký tự, SQL Server theo code unit UTF-16 của `nvarchar`). PostgreSQL không giới hạn độ dài comment. Prisma, Drizzle và các đích code giữ nguyên comment vì không ghi vào database.
+
+**Phát hiện vòng cascade trên SQL Server:** duyệt quan hệ theo thứ tự xác định của phần 2, giữ đồ thị các cạnh `toTableId → fromTableId` của những quan hệ có hành động khác `noAction` và `restrict` (SQL Server ghi `restrict` là `NO ACTION`, không gây lỗi vòng hay nhiều đường; Prisma `sqlserver` cũng ghi `restrict` là `NoAction`). Quan hệ nào khi thêm vào làm xuất hiện vòng (kể cả tự tham chiếu) hoặc đường thứ hai giữa hai bảng thì bị hạ về `NO ACTION` cho cả hai sự kiện. Hạ cả hai vì Prisma yêu cầu như vậy, và một quy tắc cho cả SQL lẫn Prisma giúp hai output khớp nhau.
 
 ### Ma trận cho SQL, Prisma và Drizzle
 
@@ -315,7 +333,13 @@ Trả lời câu hỏi 7 trong danh sách tính năng.
 | Quan hệ 1-1 | Khóa ngoại; unique đã có trong schema, không thêm | như PostgreSQL | như PostgreSQL | Trường quan hệ đơn, phía ngược là `Model?` | `one` ở cả hai phía |
 | Unique trên cột nullable | `UNIQUE` | `UNIQUE` | Unique index lọc `WHERE … IS NOT NULL`, tương đương; nếu được khóa ngoại tham chiếu thì `UNIQUE`, `unique-nulls-restricted` | `@unique`; `sqlserver`: `unique-nulls-restricted` | `unique` |
 | `text` trong khóa, index | `text` | `VARCHAR(255)`, `key-column-type-narrowed` | `nvarchar(450)`, `key-column-type-narrowed` | Theo dialect | Theo dialect |
+| `char(n)`, `varchar(n)` với `n > 768` trong khóa, index | Giữ nguyên | `VARCHAR(768)`, `key-column-type-narrowed`; cột vượt giới hạn (ví dụ `varchar(20000)` trong unique) cũng thành `VARCHAR(768)`, kèm thêm `type-parameter-out-of-range` | Theo dòng dưới | Theo dialect | Theo dialect |
+| Phần độ dài cố định của khóa vượt giới hạn | Giữ nguyên | Không áp dụng (theo dòng trên) | Khóa chính quá 900 byte, unique, index quá 1700 byte: mọi `nchar(n)` của khóa thành `nvarchar(n)`, `key-column-type-narrowed`, lan bắc cầu tới cột ghép cặp qua quan hệ (mỗi cột một diagnostic); vẫn vượt thì bỏ, `key-column-type-not-indexable` | `sqlserver`: như SQL Server | Không áp dụng (chưa có SQL Server) |
+| Tổng độ dài khóa vượt 3072 byte sau khi hẹp | Giữ nguyên | Bỏ ràng buộc, index đó, `key-column-type-not-indexable` | Theo dòng trên | Theo dialect | Theo dialect |
+| Cột `AUTO_INCREMENT` không đứng đầu khóa, index nào (khóa bị bỏ, hoặc khóa chính nhiều cột có nó ở sau) | Không áp dụng | Thêm `INDEX` `<bảng>_<cột>_idx`, tương đương | Không áp dụng (`IDENTITY` không cần index) | `mysql`: `@@index([cột], map: "<bảng>_<cột>_idx")` | MySQL: `index("<bảng>_<cột>_idx").on(…)` |
+| Dòng vượt 65 535 byte | Giữ nguyên | Cột `CHAR`, `VARCHAR` lớn nhất không thuộc khóa chính, unique, index hay cặp cột quan hệ thành `LONGTEXT`, lặp tới khi vừa, `type-parameter-out-of-range` | Giữ nguyên | `mysql`: như MySQL | MySQL: như MySQL |
 | `json`, `binary` trong khóa, index | Giữ nguyên | Bỏ ràng buộc, `key-column-type-not-indexable` | như MySQL | Theo dialect | Theo dialect |
+| Comment vượt giới hạn đích | Giữ nguyên | Cắt, `comment-truncated` | Cắt, `comment-truncated` | Giữ nguyên | Giữ nguyên |
 | `timestamptz` | `timestamptz` | `TIMESTAMP(6)` | `datetimeoffset` | Mục 3 | Mục 3 |
 | `uuid`, `json` | `uuid`, `jsonb` | `CHAR(36)`, `JSON` | `uniqueidentifier`, `nvarchar(max)` | Mục 3; `sqlserver` `json`: `type-not-supported` | Mục 3 |
 | Subject area, ghi chú, vị trí | Không áp dụng | Không áp dụng | Không áp dụng | Không áp dụng | Không áp dụng |
@@ -346,16 +370,25 @@ function toAsciiWords(name: string): readonly string[];
 function toPascalCaseIdentifier(name: string, fallback: string): string; // 'người dùng' → 'NguoiDung'
 function toCamelCaseIdentifier(name: string, fallback: string): string;  // 'author_id' → 'authorId'
 
+// exact: giữ nguyên; caseInsensitive: toNameKey của phần 2;
+// caseAndAccentInsensitive: toNameKey sau khi NFD, bỏ U+0300–U+036F và đổi đ → d, ø → o, ł → l, ħ → h
+// (cách so định danh của MySQL, utf8mb3_general_ci); chỉ dùng cho định danh, không cho giá trị enum hay dữ liệu
+type NameComparison = 'exact' | 'caseInsensitive' | 'caseAndAccentInsensitive';
+function toComparisonKey(name: string, comparison: NameComparison): string;
+
 type NameAllocator = { readonly allocate: (preferred: string) => string };
 function createNameAllocator(options: {
   readonly reserved: readonly string[];
-  readonly isCaseInsensitive: boolean;
+  readonly comparison: NameComparison;
 }): NameAllocator;
+
+// '__proto__' → '["__proto__"]'; khớp ^[A-Za-z_$][A-Za-z0-9_$]*$ → ghi trần; còn lại → JSON.stringify
+function formatPropertyKey(name: string): string;
 
 function buildConstraintName(
   tableName: string,
   columnNames: readonly string[],
-  suffix: 'pkey' | 'key' | 'fkey' | 'check',
+  suffix: 'pkey' | 'key' | 'fkey' | 'check' | 'idx', // 'idx': INDEX thay thế trên cột AUTO_INCREMENT của MySQL (mục 4)
 ): string;
 ```
 
@@ -387,7 +420,8 @@ Prisma, Drizzle, TypeScript, Zod, OpenAPI và Mock API cần định danh ASCII:
 | `用户` | `Table` | `field` | `"用户"` |
 | `order items` rồi `order_items` | `OrderItems`, `OrderItems2` | `orderItems`, `orderItems2` | giữ nguyên từng tên |
 
-- **Key thuộc tính** trong TypeScript, Zod, OpenAPI, Mock API và seed JSON là **tên cột gốc**, vì chúng mô tả đúng dữ liệu JSON có key là tên cột. Key khớp `^[A-Za-z_$][A-Za-z0-9_$]*$` thì ghi trần, còn lại ghi bằng `JSON.stringify`.
+- **Key thuộc tính** trong TypeScript, Zod, OpenAPI, Mock API và seed JSON là **tên cột gốc**, vì chúng mô tả đúng dữ liệu JSON có key là tên cột. Trong code TypeScript (type, schema Zod, dữ liệu của `handlers.ts`), key ghi qua `formatPropertyKey`: khớp `^[A-Za-z_$][A-Za-z0-9_$]*$` thì ghi trần, còn lại ghi bằng `JSON.stringify`.
+- **Cột tên `__proto__`** (Vấn đề 5, quyết định ngày 2026-10-02): tên này hợp lệ theo phần 2, nhưng trong object literal JavaScript cả `__proto__: …` lẫn `"__proto__": …` đặt prototype thay vì tạo thuộc tính. `formatPropertyKey` ghi `["__proto__"]` (khóa tính toán, tạo thuộc tính thật và hợp lệ cả trong type literal TypeScript). Trong core, mọi object có khóa lấy từ tên người dùng được dựng bằng `Object.fromEntries`, không bằng phép gán `obj[name] = …`. File JSON (OpenAPI, seed JSON) không bị ảnh hưởng vì `JSON.parse` tạo thuộc tính thật.
 - **Chuỗi trong code** (tên bảng của Drizzle, giá trị enum, đường dẫn) ghi bằng `JSON.stringify`. Comment JSDoc thay `*/` bằng `*\/`.
 - **Prisma:** `@@map`, `@map` chỉ ghi khi tên ánh xạ khác tên gốc. Giá trị enum không phải định danh hợp lệ được ánh xạ như trường và kèm `@map("giá trị gốc")`. Chuỗi Prisma escape `\` và `"`.
 - **DBML:** định danh luôn trong `"…"`, chuỗi trong `'…'`, cả hai escape bằng `\`; ghi chú nhiều dòng dùng `'''…'''`. Đã thử với `@dbml/core` 10.1.1: nháy kép và nháy đơn phải escape bằng `\`, nhân đôi dấu nháy là lỗi cú pháp.
@@ -395,7 +429,7 @@ Prisma, Drizzle, TypeScript, Zod, OpenAPI và Mock API cần định danh ASCII:
 
 | Đích | Không gian tên cấp tên | So sánh |
 |---|---|---|
-| SQL | Một tập cho cả output: tên bảng, tên enum, tên index của người dùng, tên ràng buộc do generator đặt | Không phân biệt hoa thường |
+| SQL | Một tập cho cả output: tên bảng, tên enum, tên index của người dùng, tên ràng buộc do generator đặt | Không phân biệt hoa thường; tên ràng buộc do generator đặt không phân biệt cả dấu (`caseAndAccentInsensitive`) ở mọi dialect |
 | Prisma | Model và enum chung một tập; trường (cột và quan hệ) trong một model; giá trị enum trong một enum | Phân biệt hoa thường |
 | Drizzle | Biến export (bảng, enum, `customType`, relations); key cột và tên quan hệ trong một bảng | Phân biệt hoa thường |
 | TypeScript, Zod | Type (hoặc biến schema) của bảng, enum và `JsonValue` | Phân biệt hoa thường |
@@ -403,9 +437,10 @@ Prisma, Drizzle, TypeScript, Zod, OpenAPI và Mock API cần định danh ASCII:
 
 ### Tên ràng buộc do generator đặt
 
-- **Quy ước PostgreSQL:** `<bảng>_pkey`, `<bảng>_<cột>_<cột>_key`, `<bảng>_<cột>_<cột>_fkey`, `<bảng>_<cột>_check`, dùng tên gốc (đã quote khi ghi). Prisma dùng cùng quy ước cho tên mặc định, nên database tạo từ CG-01 và từ Prisma có cùng tên ràng buộc.
+- **Quy ước PostgreSQL:** `<bảng>_pkey`, `<bảng>_<cột>_<cột>_key`, `<bảng>_<cột>_<cột>_fkey`, `<bảng>_<cột>_check` (và `<bảng>_<cột>_idx` cho index thay thế trên cột `AUTO_INCREMENT` của MySQL, mục 4), dùng tên gốc (đã quote khi ghi). Prisma dùng cùng quy ước cho tên mặc định, nên database tạo từ CG-01 và từ Prisma có cùng tên ràng buộc.
 - **Tối đa 63 byte UTF-8**, giới hạn chặt nhất trong ba dialect (PostgreSQL 63 byte, MySQL 64 ký tự, SQL Server 128 ký tự). Tên dài hơn được cắt ở ranh giới code point còn 54 byte, nối `_` và 8 chữ số hex của hash FNV-1a 32 bit trên tên đầy đủ.
-- **Tránh trùng:** tên đặt ra đi qua `NameAllocator` của output SQL, gồm cả tên bảng (PostgreSQL dùng chung không gian tên cho bảng và index) và tên index của người dùng. Trùng thì thêm `_2`, `_3`…, cắt lại để vẫn tối đa 63 byte. Tên index của người dùng không bao giờ bị đổi: phần 2 đã bảo đảm chúng không trùng trong schema.
+- **Tránh trùng:** tên đặt ra đi qua `NameAllocator` của output SQL, gồm cả tên bảng (PostgreSQL dùng chung không gian tên cho bảng và index) và tên index của người dùng. Trùng thì thêm `_2`, `_3`…, cắt lại để vẫn tối đa 63 byte. Tên index của người dùng không bao giờ bị đổi: phần 2 đã bảo đảm chúng không trùng nhau (`index-name-duplicate`) và không trùng tên bảng (`index-name-conflicts-table`, mục 2).
+- **So không phân biệt dấu cho mọi dialect** (Vấn đề 7, quyết định ngày 2026-10-02): allocator của tên ràng buộc dùng `comparison: 'caseAndAccentInsensitive'`. Trên MySQL tên ràng buộc unique cũng là tên index, mà MySQL so tên index không phân biệt dấu: hai cột `ma`, `má` cùng `isUnique` cho `t_ma_key` và `t_má_key`, trùng trên MySQL. So như vậy ở cả ba dialect và Drizzle để tên ràng buộc giống nhau giữa các đích. MySQL so tên cột, index và ràng buộc theo collation hệ thống `utf8mb3_general_ci`, không theo collation của bảng; collation này coi `đ` là `d`, và cả `ø` là `o`, `ł` là `l`, `ħ` là `h`. Vì vậy `toComparisonKey` ở mức `caseAndAccentInsensitive` luôn đổi thêm `đ` → `d`, `ø` → `o`, `ł` → `l`, `ħ` → `h` (chữ hoa đã thành chữ thường sau `toNameKey`), không phụ thuộc kết quả probe, dùng chung cho tên ràng buộc và `identifier-collision-renamed` (sửa sau review ngày 2026-10-02). Phép đổi này chỉ áp cho so sánh định danh: giá trị `ENUM` và dữ liệu vẫn theo collation `utf8mb4_0900_as_ci` của bảng (CG-01). Probe (mục [Rủi ro](#rủi-ro-cần-kiểm-tra-khi-triển-khai)) xác nhận quy tắc trên định danh, kể cả `ø`, `ł`, `ħ`.
 - MySQL không ghi tên khóa chính (luôn là `PRIMARY`). Prisma không ghi `map:` cho khóa chính, unique cột và khóa ngoại (dùng tên mặc định theo cùng quy ước); ghi `map:` cho index của người dùng. Drizzle truyền tên tường minh, trùng với SQL.
 
 **Phương án bị loại:** tiền tố kiểu `pk_`, `fk_`: không khớp tên mặc định của Prisma và PostgreSQL, nên hai đường tạo database cho hai bộ tên khác nhau.
@@ -550,6 +585,7 @@ function serializeSeedDataset(schema: SchemaDocument, dataset: SeedDataset, form
 ```
 
 - `SeedIssue` là `{ code, path }` với `path` dạng `['tables', i, 'rows', j, columnId]`. Mã: `seed-value-invalid` (sai biểu diễn JSON của kiểu hoặc không thuộc enum), `seed-value-null` (null ở cột bắt buộc), `seed-unique-violation`, `seed-foreign-key-missing`, `seed-order-invalid` (dòng tham chiếu tới bảng nạp sau, ngoài trường hợp vòng).
+- **Mã `SeedIssue` không dịch trong phần 6** (Vấn đề 11, quyết định ngày 2026-10-02): code panel không hiển thị `SeedIssue` (generator seed chỉ trả `GeneratorDiagnostic`), nên danh mục mã `SeedIssue` không được export ở entry point chính (type `SeedIssue` đi cùng `validateSeedDataset` ở subpath `@schemaforge/core/generators/seed`), và phần 6 không thêm namespace i18n cho chúng. Phần 5 (AI-06) quyết định export và bản dịch khi cần hiển thị.
 - **Option:** `format` (`postgresql`, `mysql`, `sqlserver`, `json`), `rowsPerTable` từ 1 đến 1000 (mặc định 10; SQL Server giới hạn 1000 dòng trong một danh sách `VALUES`), `seed` là số nguyên không âm 32 bit (mặc định 1).
 
 **Sinh giá trị xác định:**
@@ -615,13 +651,15 @@ Tiêu chí chung yêu cầu output "dùng được với công cụ đích", và
 
 | Tầng | Nơi | Chạy khi | Nội dung |
 |---|---|---|---|
-| Unit và snapshot | `packages/core`, trong `pnpm test` | Mọi lần `pnpm test`, local và CI | Mục 10 |
-| Conformance | Package mới `packages/codegen-conformance` (`@schemaforge/codegen-conformance`, `private`), script `test:conformance` | Job CI riêng cho mọi push và pull request, là cổng chặn. Chạy local là tùy chọn, dùng Docker sẵn có trên máy dev | Chạy output qua công cụ đích thật |
+| Unit và snapshot | `packages/core`, trong `pnpm test` | Mọi lần `pnpm test`, không cần Docker | Mục 10 |
+| Conformance | Package mới `packages/codegen-conformance` (`@schemaforge/codegen-conformance`, `private`), script `test:conformance` | Chạy local bằng `pnpm test:conformance`, dùng Docker sẵn có trên máy dev; không có job CI | Chạy output qua công cụ đích thật |
 
-- Package conformance chỉ có test, không có mã nguồn, nên không có ngưỡng coverage và không có script `test`: `pnpm test` ở root không cần Docker. Task Turborepo `test:conformance` phụ thuộc `^build` và được cache như các task khác, nên commit không sửa core không chạy lại. Root thêm script `pnpm test:conformance` cho ai có Docker; script này không thuộc các lệnh phải chạy trước khi commit (`git.md`), và lỗi conformance được phát hiện ở CI.
+- Package conformance chỉ có test, không có mã nguồn, nên không có ngưỡng coverage và không có script `test`: `pnpm test` ở root không cần Docker. Task Turborepo `test:conformance` phụ thuộc `^build` và được cache như các task khác, nên commit không sửa core không chạy lại. Root thêm script `pnpm test:conformance`. Script này không thuộc các lệnh mọi commit phải chạy (`git.md`), nhưng là cổng chặn của phần 6 (quyết định ngày 2026-10-02, vì không còn CI bắt lỗi sau khi push): khi conformance test của một đích đã có, task nào thêm hoặc sửa generator của đích đó chạy conformance của đích đó trước khi báo xong, và orchestrator chạy lại khi xác minh task. Trước khi conformance test của đích có, cổng của generator SQL MySQL và SQL Server là lần chạy probe (mục dưới) đã khớp spec. Phần 6 chỉ được tính là xong khi mọi bộ conformance test của mục này đều qua.
 - Package dùng core qua `@schemaforge/core` (bản build) và fixture qua `@schemaforge/core/testing` (plan phần 2 đã xuất bản entry point này).
 - Fixture là các schema hợp lệ (`validateSchema` rỗng): `createSampleSchema()` của phần 2, cùng các fixture phần 6 thêm vào `src/testing/` (mục 10).
-- CI thêm một job `conformance` trên `ubuntu-latest` (có sẵn Docker), song song với job hiện có, chạy `pnpm turbo run test:conformance`. Job phải xanh trước khi merge, như job hiện có.
+- **Kiểu custom khi chạy trên database thật** (Vấn đề 3, quyết định ngày 2026-10-02): `createSampleSchema()` có cột `location` kiểu `geometry(Point, 4326)`. `postgres:18-alpine` không có PostGIS, MySQL không có cú pháp này, SQL Server có `geometry` nhưng không nhận tham số, nên DDL của fixture nguyên trạng lỗi trên cả ba database. Package conformance có helper thay tên kiểu custom của fixture bằng một kiểu có thật của dialect trước khi sinh cho CG-01 và CG-08: `inet` (PostgreSQL), `YEAR` (MySQL), `money` (SQL Server), cả ba qua cú pháp an toàn của phần 2. Snapshot trong core vẫn dùng fixture nguyên trạng. Không dùng image PostGIS: nặng, và không giải quyết MySQL, SQL Server. Cột custom bắt buộc không có mặc định chỉ nằm ở bảng riêng của fixture, để seed bỏ bảng đó (`seed-table-skipped`) mà không bỏ bảng khác.
+- Không có job CI: GitHub Actions đã bị bỏ ngày 2026-10-02 (`architecture.md`). Nếu dự án thêm lại CI, conformance chạy được trên runner có Docker mà không đổi code test.
+- **Probe trước khi viết generator** (Vấn đề 9, quyết định ngày 2026-10-02): một task đầu của plan viết probe trong package conformance, chạy local qua Docker, cho mọi điểm ở mục [Rủi ro](#rủi-ro-cần-kiểm-tra-khi-triển-khai) cùng các giới hạn của mục 4 (độ dài khóa MySQL và SQL Server, độ dài comment, giây lẻ SQL Server, so tên không phân biệt dấu). Probe cho kết quả khác spec thì dừng generator của dialect đó cho tới khi orchestrator sửa spec theo kết quả.
 
 | Tiêu chí | Kiểm chứng |
 |---|---|
@@ -636,7 +674,7 @@ Tiêu chí chung yêu cầu output "dùng được với công cụ đích", và
 
 **Chọn validator OpenAPI:** `@readme/openapi-parser` kiểm tra theo JSON Schema của OpenAPI 3.1 và thêm kiểm tra ngữ nghĩa. Thử với một tài liệu thiếu tham số đường dẫn và trùng `operationId`: `@readme/openapi-parser` báo cả hai lỗi, còn `@seriousme/openapi-schema-validator` 2.9.1 cho là hợp lệ vì chỉ kiểm tra JSON Schema.
 
-**Chọn Testcontainers:** cùng một đoạn code chạy local và CI; test tự quản lý vòng đời container và cổng. **Phương án bị loại:** `services` của GitHub Actions: cấu hình database nằm trong YAML của CI, local phải có thêm file compose riêng, và test không tự tạo được database cho từng fixture một cách nhất quán giữa hai nơi.
+**Chọn Testcontainers:** test tự quản lý vòng đời container và cổng ngẫu nhiên, không cần bước khởi động tay và không đụng container Postgres 16 đang chạy sẵn trên máy dev (`architecture.md`). **Phương án bị loại:** file Docker Compose khởi động sẵn ba database: thêm một bước tay trước mỗi lần chạy, cổng cố định dễ trùng với container sẵn có, và vòng đời database tách khỏi test.
 
 **Phương án bị loại cho cả mục:** đặt conformance test trong `packages/core`: core sẽ có dev dependency vào Prisma CLI, driver database và Docker, và `pnpm test` của core cần Docker. Chỉ dùng snapshot: snapshot giữ output ổn định nhưng không chứng minh output chạy được.
 
@@ -676,10 +714,10 @@ Theo bố cục của [spec phần 3](2026-09-14-editor-mvp-design.md), mục 2:
 
 Chạy trong `pnpm test` của core, ngưỡng coverage 90% số dòng như phần 2.
 
-- **Fixture mới** trong `src/testing/`, xuất bản qua `@schemaforge/core/testing`: `createNamingEdgeSchema()` (tên có dấu, khoảng trắng, từ khóa, bắt đầu bằng chữ số, chứa `"`, `` ` ``, `]`, `'`, `\`, `*/`, tên dài 63 byte, tên trùng sau khi ánh xạ); `createTargetLimitSchema()` (vòng cascade và nhiều đường cascade, `text`/`json`/`binary` trong khóa, tham số kiểu vượt giới hạn, unique nullable được tham chiếu, bảng không có khóa chính, kiểu custom, `setDefault`); `createLargeSchema()` (mục 9). Mọi fixture hợp lệ theo `validateSchema`.
+- **Fixture mới** trong `src/testing/`, xuất bản qua `@schemaforge/core/testing`: `createNamingEdgeSchema()` (tên có dấu, khoảng trắng, từ khóa, bắt đầu bằng chữ số, chứa `"`, `` ` ``, `]`, `'`, `\`, `*/`, tên dài 63 byte, tên trùng sau khi ánh xạ, cột tên `__proto__`, hai cột unique chỉ khác dấu như `ma`, `má`); `createTargetLimitSchema()` (vòng cascade và nhiều đường cascade, quan hệ `restrict` nằm trên vòng, `text`/`json`/`binary` trong khóa, `varchar(n)` với `n > 768` trong khóa, khóa nhiều cột vượt 3072 byte trên MySQL, tham số kiểu vượt giới hạn kể cả cột vừa vượt giới hạn vừa thuộc khóa, comment vượt giới hạn MySQL và SQL Server, khóa chính `char(500)` (thành `nchar(500)` = 1000 byte trên SQL Server) cùng một quan hệ có cột khóa ngoại `char(500)` tham chiếu tới nó, unique `char(900)` (1800 byte), khóa chính nhiều cột có cột auto-increment và vượt 3072 byte trên MySQL, khóa chính `(a, id)` với `id` auto-increment đứng sau, bảng có cột `varchar(16383)` không thuộc khóa chính, unique, index hay cặp cột quan hệ (dòng vượt 65 535 byte trên MySQL), literal `time`, `timestamp` có hơn 7 chữ số giây lẻ, unique nullable được tham chiếu, bảng không có khóa chính, kiểu custom, `setDefault`); `createLargeSchema()` (mục 9). Mọi fixture hợp lệ theo `validateSchema`, nên không có bảng rỗng hay index trùng tên bảng (mục 2).
 - **Snapshot theo đích:** mỗi đích × fixture × option chính một snapshot bằng `toMatchFileSnapshot`, lưu ở `__snapshots__/<đích>/<fixture>.<phần mở rộng>` để đọc được bằng highlight của editor. Snapshot kèm danh sách diagnostic.
 - **Định danh:** bảng test cho `quoteSqlIdentifier`, `sqlStringLiteral`, `toPascalCaseIdentifier`, `toCamelCaseIdentifier`, `createNameAllocator`, `buildConstraintName` (ví dụ ở mục 5, tên 63 và 64 byte, cắt ở ranh giới code point của chữ có dấu, hash xác định).
-- **Diagnostic:** mỗi mã trong `GENERATOR_DIAGNOSTIC_CODES` có một test gây ra nó ở từng đích liên quan, kiểm tra đúng `code` và `path`, và một test ở trường hợp tương đương không có diagnostic (ví dụ `restrict` trên SQL Server, enum trên MySQL).
+- **Diagnostic:** mỗi mã trong 17 mã của `GENERATOR_DIAGNOSTIC_CODES` có một test gây ra nó ở từng đích liên quan, kiểm tra đúng `code` và `path`, và một test ở trường hợp tương đương không có diagnostic (ví dụ `restrict` trên SQL Server, enum trên MySQL). Trường hợp chỉ xảy ra khi schema còn issue (giá trị enum dài hơn 4000 code unit UTF-16 vượt giới hạn 63 byte của phần 2; `custom-type-unsafe`, `default-omitted`) dùng tài liệu dựng riêng trong test, không dùng fixture hợp lệ.
 - **Seed:** `validateSeedDataset` có test cho từng mã; `buildSeedDataset` cho kết quả qua `validateSeedDataset` trên mọi fixture; vòng có cột nullable, vòng toàn cột bắt buộc, tự tham chiếu, 1-1, unique trên `boolean`.
 - **Property test** bằng fast-check, seed cố định như phần 2, trên tài liệu đúng cấu trúc có thể còn issue:
   1. Không generator nào throw.
@@ -716,7 +754,9 @@ Kiểm tra ngày 2026-09-14. Package đã có trong catalog của phần 1 giữ
 
 - [ ] Mỗi đích có subpath `@schemaforge/core/generators/<đích>` export một hàm theo mục 1. Entry point chính export `GENERATOR_TARGETS`, `GENERATOR_DIAGNOSTIC_CODES`, type option, `MarkdownLabels`, `SeedDataset`. Core vẫn chỉ có runtime dependency là Zod và qua lint ranh giới của core.
 - [ ] Trên bản build production, không đăng nhập, sinh code cho mọi đích: tab Network không có request nào ngoài file tĩnh của ứng dụng; Console không có vi phạm CSP.
-- [ ] Conformance test ở mục 7 qua trong CI với mọi fixture.
+- [ ] Conformance test ở mục 7 qua với mọi fixture khi chạy local qua Docker (`pnpm test:conformance`).
+- [ ] Probe ở mục 7 chạy local qua Docker cho mọi điểm ở mục Rủi ro và cho kết quả khớp spec (hoặc spec đã được sửa theo kết quả trước khi viết generator của dialect đó).
+- [ ] Validation phần 2 báo `table-columns-empty` và `index-name-conflicts-table` (mục 2), có bản dịch `vi`, `en` trong namespace `issues`; generator vẫn sinh output không throw cho tài liệu có hai issue này.
 - [ ] Property test ở mục 10 qua: không throw, xác định kể cả khi xáo thứ tự khóa, an toàn với tên và comment chứa ký tự quote. Không output nào chứa thời gian.
 - [ ] Code panel: chọn đích và option, xem code có highlight, copy được, danh sách diagnostic đã dịch, cảnh báo khi schema còn issue. Component test qua.
 - [ ] Mỗi mã trong `GENERATOR_DIAGNOSTIC_CODES` có test gây ra nó và có bản dịch `vi`, `en` (frontend không biên dịch được nếu thiếu). Mỗi dòng "tương đương" của ma trận mục 4 có test không sinh diagnostic.
@@ -764,7 +804,8 @@ Kiểm tra ngày 2026-09-14. Package đã có trong catalog của phần 1 giữ
 - 12 generator (ba dialect SQL, Prisma, Drizzle, TypeScript, Zod, Mock API, OpenAPI, seed, DBML, Markdown) cùng các hàm dùng chung ở mục 5.
 - `SeedDataset`, `buildSeedDataset`, `validateSeedDataset`, `serializeSeedDataset`.
 - Fixture mới trong `@schemaforge/core/testing`, snapshot, property test, benchmark.
-- Package `packages/codegen-conformance`, task Turborepo `test:conformance`, job CI `conformance`.
+- Package `packages/codegen-conformance` (conformance test và probe, chạy local qua Docker), task Turborepo `test:conformance`, script root `pnpm test:conformance`.
+- Hai issue mới của validation phần 2, `table-columns-empty` và `index-name-conflicts-table` (mục 2), làm bằng task của plan phần 6.
 - Code panel, worker, namespace i18n `codeGenerator` và `generatorDiagnostics`, `worker-src 'self'` trong CSP.
 
 **Ngoài phạm vi:**
@@ -777,12 +818,23 @@ Kiểm tra ngày 2026-09-14. Package đã có trong catalog của phần 1 giữ
 | Drizzle cho SQL Server, relations v2 | Khi Drizzle 1.0 phát hành chính thức |
 | Câu lệnh `DROP`, migration giữa hai phiên bản schema; OpenAPI dạng YAML; dữ liệu giống thật; kiểm tra body, phân trang trong Mock API; highlight DBML; SQLite | Chưa có tính năng nào cần |
 
+## Vấn đề với các spec đã duyệt
+
+Vấn đề 10, 12 (mục [Quyết định bổ sung 2026-10-02](#quyết-định-bổ-sung-2026-10-02)) đổi [spec phần 2](2026-09-14-core-schema-model-design.md). Việc này làm bằng task trong plan phần 6; spec và plan phần 2 được cập nhật ở một task sau, nên tới lúc đó bảng này là nguồn của các thay đổi. Bản dịch `vi`, `en` của hai mã mới nằm trong namespace `issues` của frontend.
+
+| # | Spec, mục | Hiện ghi | Thay đổi do spec này |
+|---|---|---|---|
+| 1 | Phần 2, mục 8 ("Danh mục mã issue ngữ nghĩa") | 25 mã; `ISSUE_CODES` trong `packages/core/src/validation/issue-codes.ts` theo nhóm: trùng tên, giá trị enum, kiểu và mặc định của cột, auto-increment, quan hệ | 27 mã. `index-name-conflicts-table` (`indexes/<id>/name`, tên index trùng tên một bảng bất kỳ, so bằng `toNameKey`, tiêu chí ED-04) đứng ngay sau `index-name-duplicate`. `table-columns-empty` (`tables/<id>/columnIds`, bảng không có cột, tiêu chí ED-01) đứng ngay sau `subject-area-name-duplicate`, trước `enum-values-empty`, cùng nhóm "không có phần tử" với `enum-values-empty` |
+| 2 | Phần 2, mục 7 ("Phạm vi không được trùng", dòng Index) | Tên index không trùng trong cả schema | Tên index không trùng tên index khác trong schema, và không trùng tên bảng nào (PostgreSQL dùng chung không gian tên cho bảng và index) |
+| 3 | Phần 2, mục 6 (Index) và mục 9 ("Tạo quan hệ kèm cột khóa ngoại"); `suggestIndexName` trong `packages/core/src/operations/suggest-index-name.ts` | `suggestIndexName` đề xuất tên không trùng tên index khác | `suggestIndexName` tránh cả tên index khác lẫn tên bảng (so bằng `toNameKey`), để editor, importer và AI không tự tạo issue `index-name-conflicts-table` |
+
 ## Rủi ro cần kiểm tra khi triển khai
 
-- **Conformance test chỉ chạy trong CI.** Lỗi của output với công cụ đích chỉ lộ ra sau khi push. Plan đặt conformance test cho các điểm MySQL dưới đây ở những commit đầu tiên của generator MySQL, để CI xác nhận trước khi viết phần còn lại.
-- **Hành vi MySQL chưa được thử trên database thật:** tên cột, tên index chỉ khác dấu bị coi là trùng; `utf8mb4_0900_as_ci` chấp nhận `ENUM` có giá trị chỉ khác dấu; InnoDB từ chối `SET DEFAULT`; `DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6)`; giá trị mặc định dạng biểu thức cho `LONGTEXT`, `JSON`; nhiều cột `VARCHAR(255)` trong một index không vượt giới hạn 3072 byte. Plan viết conformance test cho từng điểm trước khi viết generator MySQL; kết quả khác thì sửa ma trận ở mục 4 trong cùng thay đổi.
-- **SQL Server:** thuật toán phát hiện nhiều đường cascade phải khớp kiểm tra của SQL Server và của Prisma; unique index lọc được tạo trước khóa ngoại.
+- **Conformance chỉ chạy local.** Không có CI, nên lỗi của output với công cụ đích chỉ lộ ra khi có người chạy `pnpm test:conformance`. Cổng conformance của mục 7 áp cho task generator khi conformance test của đích đã có; trước đó probe là cổng (MySQL, SQL Server), chạy local qua Docker trước khi viết generator của hai dialect này.
+- **Hành vi MySQL chưa được thử trên database thật:** tên cột, tên index chỉ khác dấu bị coi là trùng; `utf8mb4_0900_as_ci` chấp nhận `ENUM` có giá trị chỉ khác dấu; InnoDB từ chối `SET DEFAULT`; `DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6)`; giá trị mặc định dạng biểu thức cho `LONGTEXT`, `JSON`; nhiều cột `VARCHAR(255)` trong một index không vượt giới hạn 3072 byte; khóa vượt 3072 byte (một cột `VARCHAR(769)` hoặc tổng nhiều cột) báo lỗi 1071; comment cột quá 1024 ký tự, comment bảng quá 2048 ký tự bị từ chối ở strict mode mặc định; literal `timestamptz` có `Z` và có độ lệch trên cột `TIMESTAMP(6)`; `DEFAULT (UUID())` trên `CHAR(36)`; định danh (tên cột, index, ràng buộc) chỉ khác dấu hoặc ở `đ`/`d`, `ø`/`o`, `ł`/`l`, `ħ`/`h` bị coi là trùng, xác nhận quy tắc `caseAndAccentInsensitive` (mục 5); literal đã cắt về 6 chữ số giây lẻ làm `DEFAULT` của `DATETIME(6)`, `TIME(6)`, `TIMESTAMP(6)` chạy được ở strict mode (sanity, mục 3); cột `AUTO_INCREMENT` không đứng đầu index nào (khóa bị bỏ, hoặc khóa chính `(a, id)` với `id` là `AUTO_INCREMENT`) báo lỗi 1075, và `INDEX` thường trên cột đó đủ để tạo bảng (mục 4); bảng `id INT, v VARCHAR(16383)` báo lỗi 1118, còn bảng đã đổi `v` sang `LONGTEXT` tạo được (mục 4). Probe chạy local qua Docker cho từng điểm trước khi viết generator MySQL; kết quả khác thì dừng generator MySQL cho tới khi orchestrator sửa ma trận ở mục 4.
+- **SQL Server:** thuật toán phát hiện nhiều đường cascade (bỏ `noAction` và `restrict` khỏi đồ thị) phải khớp kiểm tra của SQL Server và của Prisma; unique index lọc được tạo trước khóa ngoại; `DECLARE` đứng sau `CREATE TABLE` trong cùng batch; `sp_addextendedproperty` nhận `@level0name` là biến; giá trị `MS_Description` quá 3750 ký tự bị từ chối; literal `time`, `datetime2`, `datetimeoffset` 7 chữ số giây lẻ chạy được, 8 chữ số trở lên báo lỗi chuyển kiểu; khóa chính `nchar(451)` (902 byte) và unique `nchar(851)` (1702 byte) bị từ chối với Msg 1944, còn khóa có cột `nvarchar` dài chỉ gây cảnh báo; sau khi đổi sang `nvarchar(451)`, `nvarchar(851)` thì tạo được; khóa ngoại `nchar(500)` tham chiếu khóa chính `nvarchar(500)` bị từ chối. Probe chạy local qua Docker cho từng điểm trước khi viết generator SQL Server; kết quả khác thì dừng generator SQL Server cho tới khi orchestrator sửa spec.
 - **Drizzle:** callback cấu hình bảng tham chiếu tới bảng khai báo sau (khi quan hệ tạo vòng). Plan xác nhận typecheck và `getTableConfig` chạy đúng với trường hợp này.
+- **PostgreSQL, tên sequence của identity (giới hạn đã chấp nhận, quyết định ngày 2026-10-02):** cột identity tạo sequence ngầm tên `<bảng>_<cột>_seq` trong cùng không gian tên với bảng và index. Nếu tên đó đã có, PostgreSQL chọn `<bảng>_<cột>_seq1` (rồi `seq2`…), nên tạo bảng không lỗi. DDL chỉ lỗi khi một đối tượng của người dùng trùng tên được tạo **sau** sequence (index tên `t_id_seq`, hoặc bảng đứng sau theo thứ tự tên), hoặc khi tên dài bị cắt về 63 byte làm đổi tên. Không thêm mã issue: trường hợp hiếm, và người dùng sửa được bằng cách đổi tên.
 - **Prisma:** từng native type trong bảng ở mục 3 được xác nhận bằng `prisma validate`. Nếu Prisma 8 phát hành chính thức trước khi triển khai, kiểm tra lại đầu file và kết quả validate.
 - **Next.js 16:** worker khai báo bằng `new Worker(new URL("./code-generator.worker.ts", import.meta.url), { type: "module" })` build đúng với Turbopack và chạy dưới CSP có `worker-src 'self'`.
 - **Shiki:** regex engine JavaScript chạy đúng với năm grammar trên mẫu nhỏ; plan đo thời gian tách token với output của `createLargeSchema()`.
@@ -794,4 +846,48 @@ Kiểm tra ngày 2026-09-14. Package đã có trong catalog của phần 1 giữ
 | 1 | Drizzle chưa có SQL Server cho tới khi 1.0 phát hành chính thức. Chấp nhận, hay nhắm 1.0 RC ngay? | Chấp nhận: Drizzle 0.45, chỉ PostgreSQL và MySQL, relations v1. SQL Server và relations v2 làm khi Drizzle 1.0 phát hành chính thức |
 | 2 | Mock API và OpenAPI chỉ có CRUD tối thiểu. Có đủ cho CG-06, CG-07 không? | Đủ: Mock API là một file handler MSW 2; OpenAPI 3.1 dạng JSON có đường dẫn CRUD trùng Mock API |
 | 3 | Seed data có giá trị theo kiểu, không giống dữ liệu thật. Có đồng ý không? | Đồng ý: PRNG có seed trong core, không faker; dữ liệu giống thật thuộc AI-06 |
-| 4 | Cài Docker cho máy dev, hay chỉ chạy conformance trong CI? | Conformance test là cổng chặn ở CI; máy dev có Docker nên chạy conformance local cũng được (tùy chọn). Unit test và snapshot test vẫn chạy local |
+| 4 | Cài Docker cho máy dev, hay chỉ chạy conformance trong CI? | Máy dev có Docker. Từ ngày 2026-10-02 (GitHub Actions bị bỏ), conformance test và probe chạy local qua Docker và là cổng chặn của task generator (mục 7). Unit test và snapshot test chạy không cần Docker |
+
+## Quyết định bổ sung 2026-10-02
+
+Task 0 của [plan phần 6](../plans/2026-09-15-code-generators-plan.md) (mục "Vấn đề phát hiện khi lập plan"). Người dùng giao toàn quyền quyết định cho orchestrator; các quyết định dưới đây là của orchestrator ngày 2026-10-02 và người dùng có thể đổi sau. Số thứ tự là số vấn đề trong plan.
+
+| # | Vấn đề | Quyết định | Ghi ở |
+|---|---|---|---|
+| 1 | MySQL giới hạn tổng độ dài khóa 3072 byte | Phương án (a): cột `char(n)`, `varchar(n)` có `n > 768` trong khóa hẹp về `VARCHAR(768)` kèm `key-column-type-narrowed`; tổng vẫn vượt 3072 byte thì bỏ ràng buộc hoặc index kèm `key-column-type-not-indexable` | Mục 4 (danh mục, "Độ dài khóa trên MySQL", ma trận) |
+| 2 | Giới hạn độ dài comment của MySQL, SQL Server | Thêm mã thứ 17 `comment-truncated`, đứng sau `null-character-removed`, trước `seed-table-skipped`; cắt ở ranh giới code point; `path` là đường dẫn `comment` của bảng hoặc cột | Mục 4 (danh mục, "Cắt comment", ma trận) |
+| 3 | Kiểu custom của fixture trên database thật | Helper của package conformance thay kiểu custom bằng `inet`, `YEAR`, `money`; snapshot core giữ fixture nguyên trạng; không dùng image PostGIS | Mục 7 |
+| 4 | `restrict` trong đồ thị cascade của SQL Server | Đồ thị bỏ cả `noAction` và `restrict` | Mục 4 (danh mục, "Phát hiện vòng cascade") |
+| 5 | Cột tên `__proto__` | `formatPropertyKey` trả `["__proto__"]`; object có khóa từ tên người dùng dựng bằng `Object.fromEntries` | Mục 5 ("Định danh code") |
+| 6 | Tham số kiểu chưa đủ trong ma trận | (a) PostgreSQL `char(n)` như `varchar(n)`; (b) áp giới hạn trước rồi hẹp như `text`, kèm cả hai diagnostic; (c) enum SQL Server `nvarchar(n)` tính theo code unit UTF-16, tối thiểu 1, quá 4000 thì `nvarchar(max)` kèm `type-parameter-out-of-range` | Mục 3 (bảng SQL), mục 4 (danh mục) |
+| 7 | So tên không phân biệt dấu | `NameAllocator` nhận `comparison` (`exact`, `caseInsensitive`, `caseAndAccentInsensitive`); tên ràng buộc do generator đặt so không phân biệt dấu ở mọi dialect; `caseAndAccentInsensitive` luôn đổi thêm `đ` → `d`, `ø` → `o`, `ł` → `l`, `ħ` → `h` theo `utf8mb3_general_ci` của MySQL, chỉ cho định danh (sửa ở R12, thay điều kiện chờ probe) | Mục 5 |
+| 8 | Giây lẻ quá 7 chữ số | Không đổi validation phần 2. Hàm literal SQL Server cắt giây lẻ về 7 chữ số, không diagnostic | Mục 3 ("Giây lẻ trên SQL Server") |
+| 9 | Điểm cần probe ngoài danh sách rủi ro | Probe mọi điểm, chạy local qua Docker; kết quả khác spec thì dừng generator của dialect đó cho tới khi orchestrator sửa spec | Mục 7, mục Rủi ro |
+| 10 | Index trùng tên bảng trên PostgreSQL | Phần 2 thêm issue mới `index-name-conflicts-table` tại `['indexes', id, 'name']` khi tên index trùng tên một bảng bất kỳ (so bằng `toNameKey`) | Mục 2, mục 5 |
+| 11 | Mã `SeedIssue` không có bản dịch | Không export danh mục mã ở entry point chính, không có namespace i18n trong phần 6; phần 5 quyết định | CG-08 |
+| 12 | Bảng không có cột | Phần 2 thêm issue `table-columns-empty` tại `['tables', id, 'columnIds']`; generator vẫn sinh output an toàn | Mục 2 |
+
+Thay đổi với spec phần 2 do vấn đề 10, 12 nằm ở mục [Vấn đề với các spec đã duyệt](#vấn-đề-với-các-spec-đã-duyệt). Vấn đề 8 không đổi phần 2.
+
+**Sửa sau review ngày 2026-10-02** (project-reviewer trả needs-fix; các quyết định dưới đây là của orchestrator):
+
+| # | Hạng mục | Quyết định | Ghi ở |
+|---|---|---|---|
+| R1 | Độ dài khóa trên SQL Server | SQL Server từ chối (Msg 1944) khóa có phần độ dài cố định vượt 900 byte (khóa chính) hoặc 1700 byte (unique, index), không chỉ cảnh báo. Khi vượt, mọi `nchar(n)` của khóa thành `nvarchar(n)` kèm `key-column-type-narrowed`; vẫn vượt thì bỏ kèm `key-column-type-not-indexable`. Probe `nchar(451)` khóa chính, `nchar(851)` unique; fixture có khóa chính `char(500)` (bổ sung ở R10) | Mục 4, mục 10, mục Rủi ro |
+| R2 | Cột `char`, `varchar` vượt giới hạn trong khóa MySQL | Thành thẳng `VARCHAR(768)` kèm cả `type-parameter-out-of-range` và `key-column-type-narrowed`, không qua `LONGTEXT` rồi `VARCHAR(255)` (thay phần (b) của vấn đề 6 cho MySQL) (thu hẹp ở R11) | Mục 4 (danh mục, "Độ dài khóa trên MySQL", ma trận) |
+| R3 | Cổng conformance | Áp cho task generator khi conformance test của đích đã có; trước đó, probe là cổng của generator SQL MySQL, SQL Server. Phần 6 chỉ xong khi mọi bộ conformance test qua | Mục 7 |
+| R4 | Thay đổi với phần 2 | Chuyển vào mục "Vấn đề với các spec đã duyệt"; `suggestIndexName` phải tránh cả tên bảng (đã quyết, không còn là đề xuất) | Mục Vấn đề với các spec đã duyệt |
+| R5 | Giây lẻ trên MySQL | Probe literal 9 chữ số giây lẻ trên `DATETIME(6)`, `TIME(6)`, `TIMESTAMP(6)` ở strict mode; nếu MySQL từ chối thì hàm literal MySQL cắt về 6 chữ số, không diagnostic (thay bằng R15) | Mục 3, mục Rủi ro |
+| R6 | Bảng không cột với Prisma | Bỏ câu "Prisma từ chối model không trường": generator ghi `@@ignore` và `prisma validate` nhận | Mục 2 |
+| R7 | Dòng trạng thái | Giữ nguyên văn quyết định CI cũ của người dùng, thêm ghi chú đã thay ngày 2026-10-02 | Đầu spec |
+| R8 | Cột `AUTO_INCREMENT` mất khóa trên MySQL | Khi khóa chính hoặc unique bị bỏ là khóa duy nhất của cột `AUTO_INCREMENT`, thêm `INDEX` thường `<bảng>_<cột>_idx` trên cột đó để tránh lỗi 1075; có probe (tổng quát hóa ở R14) | Mục 4, mục 5, mục Rủi ro |
+| R9 | Tên sequence identity trên PostgreSQL | Giới hạn đã chấp nhận: bảng hoặc index tên `<bảng>_<cột>_seq` trùng sequence ngầm; không thêm mã issue | Mục Rủi ro |
+| R10 | Hẹp `nchar` trên SQL Server lan theo quan hệ | SQL Server bắt cột khóa ngoại và cột được tham chiếu cùng kiểu, cùng độ dài (Msg 1778, 1753): việc hẹp `nchar(n)` → `nvarchar(n)` lan bắc cầu tới mọi cột ghép cặp qua quan hệ, mỗi cột một `key-column-type-narrowed`, cho SQL Server SQL và Prisma `sqlserver`; cột không còn đệm khoảng trắng. Fixture thêm quan hệ tham chiếu khóa chính `char(500)`; probe khóa ngoại `nchar(500)` → khóa chính `nvarchar(500)` bị từ chối | Mục 4, mục 10, mục Rủi ro |
+| R11 | Phạm vi của R2 | Chỉ cột vượt giới hạn có `n > 768` (`char(n)` với `n > 768`, `varchar(n)` với `n > 16 383`) thành thẳng `VARCHAR(768)`; `char(300)` thành `VARCHAR(300)` | Mục 4 |
+| R12 | So định danh trên MySQL | MySQL so tên cột, index, ràng buộc theo `utf8mb3_general_ci`; `caseAndAccentInsensitive` luôn đổi thêm `đ` → `d`, `ø` → `o`, `ł` → `l`, `ħ` → `h`, không chờ probe; không áp cho giá trị `ENUM` hay dữ liệu; probe xác nhận trên định danh | Mục 4 (`identifier-collision-renamed`), mục 5, mục Rủi ro, vấn đề 7 |
+| R13 | Kích thước dòng trên MySQL | Dòng tối đa 65 535 byte (lỗi 1118): khi vượt, đổi cột `CHAR`, `VARCHAR` lớn nhất không thuộc khóa chính, unique, index hay cặp cột quan hệ thành `LONGTEXT` kèm `type-parameter-out-of-range`, lặp tới khi vừa. Có dòng ma trận, probe và fixture | Mục 4, mục 10, mục Rủi ro |
+| R14 | Cột `AUTO_INCREMENT` trên MySQL | Tổng quát hóa R8: khi không còn index nào của bảng bắt đầu bằng cột `AUTO_INCREMENT` (khóa bị bỏ, hoặc khóa chính nhiều cột có nó đứng sau), thêm `INDEX` `<bảng>_<cột>_idx`; Prisma `mysql` `@@index([cột], map: "<bảng>_<cột>_idx")`, Drizzle `index(…)` | Mục 4, mục 10, mục Rủi ro |
+| R15 | Giây lẻ trên MySQL | Hàm literal MySQL luôn cắt về 6 chữ số, không diagnostic (thay R5), dùng cho mặc định CG-01, `dbgenerated` của Prisma `mysql`, mặc định Drizzle MySQL, seed SQL `mysql`; tương đương vì dưới độ chính xác 1 µs; probe chỉ còn là kiểm tra sanity | Mục 3, mục Rủi ro |
+| R16 | Tên sequence identity trên PostgreSQL | Viết lại giới hạn R9: PostgreSQL chọn `…_seq1` khi tên đã có, nên chỉ lỗi khi đối tượng của người dùng cùng tên được tạo sau sequence, hoặc khi tên dài bị cắt đổi tên; vẫn là giới hạn đã chấp nhận | Mục Rủi ro |
+| R17 | Tên enum trùng row type của bảng trên PostgreSQL | Phần 2 đã cấm: bảng và enum chung một không gian tên (phần 2 mục 7, `table-name-duplicate`, `enum-name-duplicate`), nên schema hợp lệ không có enum trùng tên bảng. Không thêm quy tắc đổi tên hay hợp đồng `path` mới cho `identifier-collision-renamed` | Không đổi spec |
+| R18 | Bullet đầu mục Rủi ro | Cổng conformance áp khi conformance test của đích đã có; trước đó probe là cổng (MySQL, SQL Server) | Mục Rủi ro |

@@ -179,6 +179,7 @@ export default defineConfig([
     "**/coverage/",
     "**/next-env.d.ts",
     "backend/src/generated/",
+    "**/__snapshots__/",
   ]),
   {
     linterOptions: { reportUnusedDisableDirectives: "error" },

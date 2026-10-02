@@ -2,3 +2,4 @@ pnpm-lock.yaml
 *.md
 document/reference/
 backend/src/generated/
+**/__snapshots__/

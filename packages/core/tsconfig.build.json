@@ -10,6 +10,8 @@
   "exclude": [
     "src/**/*.test.ts",
     "src/testing/arbitraries.ts",
-    "src/testing/operation-plans*.ts"
+    "src/testing/operation-plans*.ts",
+    "src/**/__snapshots__/**",
+    "src/**/*.bench.ts"
   ]
 }

@@ -117,16 +117,16 @@ Báo cáo gồm: file đã tạo hoặc sửa, lệnh đã chạy kèm kết qu�
 | `src/index.ts`, `src/index.test.ts` của core | Task 5 thêm giá trị và type chung của generator. Task 22 chỉ thêm một dòng `export type { SeedDataset }` vào `src/index.ts` (không đổi danh sách giá trị lúc chạy, nên không sửa `index.test.ts`). Không task nào khác sửa. Task 5 chạy sau Task 27 của phần 2 (Task 27 cũng sửa hai file này) |
 | `src/testing/index.ts`, `src/testing/index.test.ts` | Chỉ Task 4 sửa (export ba fixture mới). Helper test của task khác nằm trong file riêng không export (ví dụ `src/testing/generator-snapshot.ts` của Task 2) |
 | `src/validation/issue-codes.ts`, `issue-codes.test.ts`, `validation/rules/names.ts`, `validation/rules/tables.ts` (mới), `validate-schema.ts`, `frontend/src/lib/i18n/locales/{en,vi}/issues.ts` | Chỉ Task 36 sửa (hai issue mới của phần 2, Vấn đề 10, 12). Core và bản dịch đi chung một task vì `issues.ts` dùng `satisfies Record<IssueCode, string>`: tách ra thì frontend không biên dịch được giữa hai commit |
-| `generators/shared/*` | Mỗi file thuộc đúng một task nền và được merge **trước** mọi task đích dùng nó: Task 2 (`generator-types.ts`, `diagnostic-codes.ts`, `diagnostics.ts`, `render-file.ts`), Task 6 (`identifiers.ts`, `name-allocator.ts`, `javascript-reserved-words.ts`), Task 7 (`sql-literals.ts`), Task 9 (`constraint-names.ts`), Task 10 (`json-representation.ts`, `rest-resources.ts`), Task 11 (`relation-graph.ts`, `relation-field-names.ts`), Task 12 (`dialect-types.ts`, `dialect-constraints.ts`, `mysql-identifiers.ts`), Task 13 (`sql-ddl-model*.ts`). Task đích chỉ import. Cần hành vi dùng chung mới thì dừng và báo; orchestrator tạo task sửa file nền, chạy khi không còn task đích nào đang dùng file đó |
+| `generators/shared/*` | Mỗi file thuộc đúng một task nền và được merge **trước** mọi task đích dùng nó: Task 2 (`generator-types.ts`, `diagnostic-codes.ts`, `diagnostics.ts`, `render-file.ts`), Task 6 (`identifiers.ts`, `name-allocator.ts`, `javascript-reserved-words.ts`), Task 7 (`sql-literals.ts`), Task 9 (`constraint-names.ts`), Task 10 (`json-representation.ts`, `rest-resources.ts`), Task 11 (`relation-graph.ts`, `relation-field-names.ts`), Task 12 (`dialect-types.ts`, `dialect-constraints.ts`, `dialect-column-types.ts`, `mysql-identifiers.ts`), Task 13 (`sql-ddl-model*.ts`), và một ngoại lệ là task đích: Task 17 tạo `sqlserver-enum-length.ts` (`sqlServerEnumLength`, dùng chung cho Prisma `sqlserver` và SQL Server SQL), merge trước Task 16, nên Task 16 phụ thuộc Task 17. Task đích chỉ import. Cần hành vi dùng chung mới thì dừng và báo; orchestrator tạo task sửa file nền, chạy khi không còn task đích nào đang dùng file đó |
 | Import giữa các thư mục đích | Cấm, trừ `mock-api/` import `buildSeedDataset` từ `seed/` (spec CG-06). Phần dùng chung giữa hai đích phải nằm trong `shared/` |
 | Hàm nội bộ của phần 2 cần export thêm | Task 7 tách hàm kiểm tra giá trị mặc định dùng chung khỏi `validation/rules/column-defaults.ts` và `default-literals.ts`; Task 12 tách hàm kiểm tra cú pháp kiểu custom khỏi `validation/rules/columns.ts`. Cả hai chỉ tách hàm, không đổi hành vi (test cũ phải pass nguyên vẹn); hai task sửa các file khác nhau nên chạy song song được. Ngoài hai task này, chỉ Task 36 sửa `src/validation/` (thêm rule, không đụng file của Task 7, 12) |
 | `GENERATOR_DIAGNOSTIC_CODES` | Task 2 tạo đủ 17 mã theo spec mục 4 (gồm `comment-truncated`, lựa chọn của Task 0 cho Vấn đề 2) kèm hợp đồng `path` cho từng mã; test ghim danh sách. Task sau chỉ import. Thiếu mã là thay đổi spec: dừng và báo. Frontend (Task 34) dùng `satisfies Record<GeneratorDiagnosticCode, string>`, nên danh sách phải cố định trước Task 34. Mã `SeedIssue` của CG-08 là danh mục riêng do Task 21 tạo trong `generators/seed/` |
 | `pnpm-lock.yaml`, `pnpm-workspace.yaml` | Chỉ Task 3 (dependency của package conformance, mục `allowBuilds`) và Task 32 (`shiki` cho frontend) ghi lockfile. Hai task này không chạy đồng thời với nhau, và orchestrator không chạy chúng đồng thời với task ghi lockfile của plan khác (ví dụ phần 5, phần 7). Sau khi merge, worktree đang mở chạy lại `pnpm install --frozen-lockfile` |
 | Package mới `packages/codegen-conformance` | Task 3 viết toàn bộ `package.json` của package (tên, script, dependency) để task sau không sửa manifest. Task 3 tạo thêm `tsconfig.json`, `vitest.config.ts`, `.gitignore` và `src/support/temp-directory.ts`; Task 8 tạo mọi helper dùng chung còn lại trong `src/support/` và probe trong `src/probes/`. Task 29 sở hữu `src/postgresql.test.ts`, `mysql.test.ts`, `sqlserver.test.ts`, `seed-sql.test.ts`; Task 30 `prisma.test.ts`, `drizzle.test.ts`, `typescript.test.ts`, `zod.test.ts`; Task 31 `mock-api.test.ts`, `openapi.test.ts`, `dbml.test.ts`. Ba task chỉ import helper. Cần helper mới thì đặt trong file test của mình hoặc dừng và báo |
 | `turbo.json`, script root `test:conformance` | Chỉ Task 8 sửa `turbo.json` (thêm task `test:conformance`) và `package.json` root (thêm script). Không có `.github/workflows/ci.yml` và không task nào tạo lại nó |
-| Probe hành vi database trước generator MySQL, SQL Server | Task 8 chạy probe local bằng Docker và ghi kết quả từng điểm (Vấn đề 1, 2, 7, 8, 9 và mục "Rủi ro" của spec) vào execution log của Task 8. Task 15, 16 chỉ bắt đầu khi log đó có kết quả và mọi probe khớp kỳ vọng. Probe khác ma trận của spec mục 4 thì dừng, orchestrator cho sửa spec trước, rồi mới chạy Task 15, 16 |
+| Probe hành vi database trước generator MySQL, SQL Server | Task 8 chạy probe local bằng Docker và ghi kết quả từng điểm (Vấn đề 1, 2, 7, 8, 9 và mục "Rủi ro" của spec) vào execution log của Task 8. Task 15, 16 chỉ bắt đầu khi log đó có kết quả và mọi probe khớp kỳ vọng. Probe ghi kết quả MySQL 17 (`-00:00`), 18 (`ß`, `ð`) không chặn; kết quả khác kỳ vọng thì task tiếp theo do Task 8 nêu (sửa `sql-literals.ts` hoặc danh sách gộp R12 trong `name-allocator.ts`) chạy và merge trước Task 15. Probe khác ma trận của spec mục 4 thì dừng, orchestrator cho sửa spec trước, rồi mới chạy Task 15, 16 |
 | Snapshot | Mỗi task đích chỉ ghi `__snapshots__/<đích>/`. Fixture của Task 4 đổi sau khi đã có snapshot thì orchestrator tạo một task riêng sửa fixture và ghi lại mọi snapshot bị ảnh hưởng, không chạy song song với task đích |
-| File i18n và CSP của frontend | Task 34 sở hữu `frontend/src/lib/i18n/locales/{en,vi}/code-generator.ts`, `generator-diagnostics.ts`, phần đăng ký namespace trong `resources.ts` (và `resources.test.ts` nếu test ghim danh sách namespace), và `buildContentSecurityPolicy`. `i18next.d.ts` lấy kiểu từ `enResources` nên không cần sửa. Task 33 (worker) không có chuỗi hiển thị. Task 36 chỉ sửa `issues.ts` và chạy trước Task 34 |
+| File i18n và CSP của frontend | Task 34 sở hữu `frontend/src/lib/i18n/locales/{en,vi}/code-generator.ts`, `generator-diagnostics.ts`, test mới `frontend/src/lib/i18n/code-generator-messages.test.ts`, phần đăng ký namespace trong `resources.ts` (và `resources.test.ts` nếu test ghim danh sách namespace), và `buildContentSecurityPolicy`. `i18next.d.ts` lấy kiểu từ `enResources` nên không cần sửa. Task 33 (worker) không có chuỗi hiển thị. Task 36 chỉ sửa `issues.ts` và chạy trước Task 34 |
 | File của editor (phần 3) mà code panel chạm vào | Chỉ Task 34 sửa `create-editor-store.ts` (chế độ cột phải, đích và option), `editor-toolbar.tsx`, `editor-workspace.tsx`, `issue-list-tab.tsx` (tách `useGoToIssue` ra hook dùng chung) và test của chúng. Orchestrator đối chiếu với task đang chạy của plan khác trước khi giao |
 
 ## Phiên bản
@@ -191,30 +191,31 @@ Không dùng: `@faker-js/faker`, `json-server` (spec CG-06, CG-08).
 | 11 | Đồ thị quan hệ và tên trường quan hệ (`relation-graph.ts`, `relation-field-names.ts`) | 2, 6 | 3 |
 | 12 | Quy tắc kiểu và khóa theo dialect cho SQL, Prisma, Drizzle (`dialect-types.ts`, `dialect-constraints.ts`, `mysql-identifiers.ts`) | 2, 6 | 3 |
 | 13 | Mô hình DDL dùng chung cho ba dialect (`sql-ddl-model.ts`) | 4, 7, 9, 11, 12 | 4 |
-| 17 | CG-02 Prisma schema | 1, 4, 5, 7, 9, 11, 12, 36 | 4 |
-| 18 | CG-03 Drizzle schema (PostgreSQL, MySQL) | 1, 4, 5, 7, 9, 11, 12 | 4 |
-| 19 | CG-04 TypeScript types | 1, 4, 5, 10 | 4 |
+| 19 | CG-04 TypeScript types | 1, 4, 5, 10, 11 | 4 |
 | 20 | CG-05 Zod schema | 1, 4, 5, 10 | 4 |
+| 21 | CG-08 `SeedDataset`: PRNG, `buildSeedDataset`, `validateSeedDataset`, `parseSeedDataset`, mã `SeedIssue` | 2, 4, 9, 10, 11 | 4 |
+| 24 | CG-07 OpenAPI 3.1 | 1, 4, 5, 10 | 4 |
 | 14 | CG-01 SQL DDL PostgreSQL | 1, 4, 5, 13, 36 | 5 |
 | 15 | CG-01 SQL DDL MySQL | 1, 4, 5, 8 (kết quả probe local trong log), 13, 36 | 5 |
-| 16 | CG-01 SQL DDL SQL Server | 1, 4, 5, 8 (kết quả probe local trong log), 13, 36 | 5 |
-| 21 | CG-08 `SeedDataset`: PRNG, `buildSeedDataset`, `validateSeedDataset`, mã `SeedIssue` | 2, 4, 9, 10, 11 | 5 |
-| 24 | CG-07 OpenAPI 3.1 | 1, 4, 5, 10 | 5 |
-| 22 | CG-08 `serializeSeedDataset`, `generateSeed`, export type `SeedDataset` | 1, 4, 5, 7, 21 | 6 |
+| 17 | CG-02 Prisma schema; tạo `generators/shared/sqlserver-enum-length.ts` | 1, 4, 5, 7, 9, 11, 12, 13, 36 | 5 |
+| 18 | CG-03 Drizzle schema (PostgreSQL, MySQL) | 1, 4, 5, 7, 8, 9, 11, 12, 13 | 5 |
+| 16 | CG-01 SQL DDL SQL Server | 1, 4, 5, 8 (kết quả probe local trong log), 13, 17 (`sqlserver-enum-length.ts`), 36 | 6 |
+| 22 | CG-08 `serializeSeedDataset`, `generateSeed`, export type `SeedDataset` | 1, 4, 5, 7, 11, 12, 21 | 6 |
 | 23 | CG-06 Mock API (handler MSW 2) | 1, 4, 5, 10, 21 | 6 |
-| 25 | CG-09 DBML | 1, 4, 5 | 6 |
-| 26 | CG-10 Markdown | 1, 4, 5 | 6 |
+| 25 | CG-09 DBML | 1, 4, 5, 7 | 6 |
+| 26 | CG-10 Markdown | 1, 4, 5, 7 | 6 |
 | 27 | Property test cho mọi generator: không throw, xác định, xáo thứ tự khóa, an toàn với ký tự quote | 14–26 | 7 |
-| 28 | Benchmark `vitest bench` với `createLargeSchema`, script `bench` | 14–26 | 7 |
 | 29 | Conformance: DDL và seed SQL trên PostgreSQL 18, MySQL 8.4, SQL Server 2022 | 8, 14, 15, 16, 22 | 7 |
 | 30 | Conformance: `prisma validate`; typecheck Drizzle, TypeScript, Zod; parse seed JSON bằng schema Zod | 8, 17, 18, 19, 20, 22 | 7 |
 | 31 | Conformance: Mock API trên `msw/node`, validator OpenAPI, parse DBML | 8, 23, 24, 25 | 7 |
-| 32 | Dependency `shiki` cho frontend, lockfile | P3, 3 | 8 |
+| 32 | Dependency `shiki` cho frontend, lockfile | P3, 3 | 7 |
+| 28 | Benchmark `vitest bench` với `createLargeSchema`, script `bench`; dùng `listGeneratorCases()` của Task 27 | 14–26, 27 | 8 |
 | 33 | Worker sinh code và tách token Shiki, hook `use-generated-code`; worker import `zod-config.ts` của phần 3 đầu tiên | 5, 14–26, 32, P3 | 9 |
 | 34 | Code panel, nút "Code" trên toolbar, i18n `codeGenerator` và `generatorDiagnostics`, CSP `worker-src 'self'` | 33, 36 | 10 |
 | 35 | Tài liệu (`roadmap.md`, `architecture.md`, `CLAUDE.md`, spec phần 2), kết quả benchmark, chạy lại toàn bộ `pnpm test:conformance`, kiểm tra toàn repo | 27–31, 34 | 11 |
 
-- Đường tới hạn của core: Task 2 → 6 → 12 → 13 → 14, 15, 16. Task 32 bắt đầu được ngay khi Task 3 đã merge (hai task cùng ghi lockfile), không cần chờ đợt 7.
+- Đường tới hạn: Task 2 → 6 → 12 → 13 → 17 → 16 → 33 (cần mọi generator) → 34 → 35. Task 32 bắt đầu được ngay khi Task 3 đã merge (hai task cùng ghi lockfile), không cần chờ tới đợt 7.
+- Task 17, 18 phụ thuộc Task 13 (dùng chung kiểu đích và ràng buộc bị bỏ với `buildSqlDdlModel`, và test so khớp với nó), nên đợt 4 gồm Task 13 cùng các generator không cần mô hình DDL (19, 20, 21, 24), đợt 5 gồm bốn generator dùng Task 13 (14, 15, 17, 18). Task 16 sang đợt 6 vì import `sqlServerEnumLength` từ file `generators/shared/sqlserver-enum-length.ts` do Task 17 tạo. Task 28 sang đợt 8 vì dùng `listGeneratorCases()` của Task 27.
 - Task 15, 16 chỉ bắt đầu khi execution log của Task 8 có kết quả probe local và mọi probe khớp kỳ vọng (mục "Điểm nóng").
 - Task 33: import đầu tiên của `code-generator.worker.ts` là `zod-config.ts` của phần 3 (đặt `z.config({ jitless: true })`), đứng trước mọi module import `@schemaforge/core`, vì Zod đọc `jitless` khi tạo schema chứ không phải khi parse, còn core tạo schema lúc được import (spec mục 8, "CSP"; `packages/core/src/zod-jitless.test.ts`). Thân Task 33 có bước kiểm tra rằng dòng import đầu tiên của file worker là `zod-config`.
 - Task 0 đã xong (2026-10-02): mọi task có thể giao theo phụ thuộc trong bảng.
@@ -373,7 +374,7 @@ export type Generate<T extends GeneratorTarget> = (schema: SchemaDocument, optio
 
 - `tableCount` là số nguyên từ 2 trở lên, nếu không thì throw `RangeError`.
 - `enum_00`… với `max(1, floor(tableCount / 10))` enum, mỗi enum 5 giá trị. Bảng `table_000`… với đúng 20 cột mỗi bảng (xoay vòng qua các kiểu, gồm cột enum và cột khóa ngoại). Bảng có chỉ số chia hết cho 10 có khóa chính hai cột; bảng khác có `id` `bigint` auto-increment.
-- `floor(tableCount * 1.5)` quan hệ: mỗi bảng `i` tham chiếu bảng `(i + 1) % tableCount` với `onDelete: "cascade"` (tạo vòng), và mỗi bảng có chỉ số chẵn tham chiếu thêm bảng `(i + 7) % tableCount` với `noAction`. Quan hệ tới bảng có khóa chính hai cột là khóa ngoại hai cột.
+- `floor(tableCount * 1.5)` quan hệ: mỗi bảng `i` tham chiếu bảng `(i + 1) % tableCount` với `onDelete: "cascade"` (tạo vòng), cột khóa ngoại của vòng này nullable (vòng cascade vẫn còn cho SQL Server, còn seed coi quan hệ trong vòng là quan hệ hoãn thay vì bỏ cả 200 bảng), và mỗi bảng có chỉ số chẵn tham chiếu thêm bảng `(i + 7) % tableCount` với `noAction`. Quan hệ tới bảng có khóa chính hai cột là khóa ngoại hai cột.
 - `tableCount` index, mỗi bảng một index hai cột, index thứ tư là unique.
 - Với `tableCount: 200`: 200 bảng, 4000 cột, 300 quan hệ, 200 index, 20 enum (spec mục 9).
 
@@ -748,7 +749,7 @@ export function buildRelationFieldNames(schema: SchemaDocument, tableModelNames:
 
 **Phụ thuộc:** Task 2, Task 6. **Đợt:** 3.
 
-**File sở hữu:** tạo, mỗi file kèm `<name>.test.ts`: `packages/core/src/generators/shared/dialect-types.ts`, `dialect-constraints.ts`, `mysql-identifiers.ts`, `packages/core/src/validation/rules/custom-type-name.ts`; sửa `packages/core/src/validation/rules/columns.ts` (chỉ import hàm mới thay cho kiểm tra tại chỗ; `columns.test.ts` không sửa và phải pass nguyên vẹn). Spec mục 1 không liệt kê các file này; plan tách để ba đích dùng chung mà không import chéo.
+**File sở hữu:** tạo, mỗi file kèm `<name>.test.ts`: `packages/core/src/generators/shared/dialect-types.ts`, `dialect-constraints.ts`, `dialect-column-types.ts`, `mysql-identifiers.ts`, `packages/core/src/validation/rules/custom-type-name.ts`; sửa `packages/core/src/validation/rules/columns.ts` (chỉ import hàm mới thay cho kiểm tra tại chỗ; `columns.test.ts` không sửa và phải pass nguyên vẹn). Spec mục 1 không liệt kê các file này; plan tách để ba đích dùng chung mà không import chéo. Khi cài đặt, `resolveSchemaColumnTypes`, `SchemaColumnTypes`, bước lan hẹp `nchar` của SQL Server, bước kích thước dòng MySQL, `mysqlRowBytes` và `MYSQL_MAX_ROW_BYTES` được tách sang `dialect-column-types.ts` (orchestrator duyệt); chữ ký và hành vi mô tả dưới đây không đổi, chỉ đổi file. Task 13, 17, 18 import các tên này từ `dialect-column-types.ts`.
 
 **Chữ ký và hành vi:**
 
@@ -887,7 +888,7 @@ export function buildSqlDdlModel(schema: SchemaDocument, dialect: SqlDialect): S
 
 **Hành vi:**
 
-1. Chuẩn bị: `resolveSchemaColumnTypes(schema, dialect)` (kiểu mọi cột cùng diagnostic kiểu), `findUnindexableConstraints(schema, dialect, types)`, `allocateConstraintNames(schema, (relation) => orderColumnPairsByReferencedKey(schema, relation))`; MySQL thêm `allocateMysqlNames(schema)`; SQL Server thêm `findCascadeConflicts(schema)`. Tên cột ghi ra luôn lấy qua một hàm tra cứu duy nhất (tên MySQL đã đổi, hoặc tên gốc), dùng cho cột, khóa chính, unique, index, khóa ngoại và CHECK.
+1. Chuẩn bị: `resolveSchemaColumnTypes(schema, dialect)` (import từ `dialect-column-types.ts`; kiểu mọi cột cùng diagnostic kiểu), `findUnindexableConstraints(schema, dialect, types.types)`, `allocateConstraintNames(schema, (relation) => orderColumnPairsByReferencedKey(schema, relation))`; MySQL thêm `allocateMysqlNames(schema)`; SQL Server thêm `findCascadeConflicts(schema)`. Tên cột ghi ra luôn lấy qua một hàm tra cứu duy nhất (tên MySQL đã đổi, hoặc tên gốc), dùng cho cột, khóa chính, unique, index, khóa ngoại và CHECK.
 2. **Enum** theo `sortEnums`. PostgreSQL: giá trị qua `removeNullCharacters`, bỏ thì thêm `null-character-removed` tại `["enums", id, "values", i]`.
 3. **Bảng** theo `sortTables`, cột theo `columnIds`:
    - Kiểu: lấy từ `resolveSchemaColumnTypes`, không gọi `resolveDialectColumnType` trực tiếp. Kiểu `custom` có `isSafe: false` → thay bằng `{ kind: "text" }` kèm `custom-type-unsafe`.
@@ -1037,7 +1038,7 @@ export function renderMysqlType(type: DialectColumnType, enums: SchemaDocument["
 
 **Mục tiêu:** `@schemaforge/core/generators/sqlserver` export `generateSqlServer`, in T-SQL cho SQL Server 2022 từ `SqlDdlModel` (spec CG-01, mục 3 bảng "SQL" cột SQL Server, mục 4 ma trận và "Phát hiện vòng cascade trên SQL Server").
 
-**Phụ thuộc:** Task 1, 4, 5, 13, 36, và Task 8 với kết quả probe SQL Server đã ghi trong execution log của Task 8. **Đợt:** 5.
+**Phụ thuộc:** Task 1, 4, 5, 13, 17 (`generators/shared/sqlserver-enum-length.ts`), 36, và Task 8 với kết quả probe SQL Server đã ghi trong execution log của Task 8. **Đợt:** 6.
 
 **Trước khi bắt đầu:** đọc mục kết quả probe SQL Server trong execution log của Task 8 và quyết định ở Vấn đề 2, 8, 9 (cột "Quyết định"). Điểm nào khác spec thì dừng và báo.
 
@@ -1049,12 +1050,13 @@ export function renderMysqlType(type: DialectColumnType, enums: SchemaDocument["
 export type SqlServerOptions = GeneratorOptions["sqlserver"];
 export function generateSqlServer(schema: SchemaDocument, options: SqlServerOptions): GenerateResult;
 export function renderSqlServerType(type: DialectColumnType, enums: SchemaDocument["enums"]): string; // không export qua index.ts
-export function sqlServerEnumLength(values: readonly string[]): number | null; // null nghĩa là nvarchar(max)
 ```
+
+`sqlServerEnumLength` import từ `generators/shared/sqlserver-enum-length.ts` (Task 17 tạo); không viết lại trong `sqlserver/`.
 
 `index.ts` chỉ export `generateSqlServer` và type `SqlServerOptions`. `file` là `{ fileName: "schema.sql", language: "sql", content }`.
 
-**Kiểu:** `smallint`, `int`, `bigint`, `decimal(p, s)`, `real`, `float(53)`, `bit`, `nchar(n)`, `nvarchar(n)`, `nvarchar(max)` cho `text` và `json`, `nvarchar(n)` cho `keyText`, `uniqueidentifier`, `date`, `time`, `datetime2` cho `timestamp`, `datetimeoffset` cho `timestamptz`, `varbinary(max)`; `custom` ghi nguyên văn. Enum là `nvarchar(n)` với `n = sqlServerEnumLength(values)`: độ dài giá trị dài nhất tính theo code unit UTF-16 (`value.length`), tối thiểu 1; lớn hơn 4000 → `nvarchar(max)`, và `generateSqlServer` thêm `type-parameter-out-of-range` tại `["columns", id, "type"]` cho từng cột enum đó, gộp với `model.diagnostics` bằng `finalizeDiagnostics` (Vấn đề 6). Enum không tìm thấy → `nvarchar(max)`.
+**Kiểu:** `smallint`, `int`, `bigint`, `decimal(p, s)`, `real`, `float(53)`, `bit`, `nchar(n)`, `nvarchar(n)`, `nvarchar(max)` cho `text` và `json`, `nvarchar(n)` cho `keyText`, `uniqueidentifier`, `date`, `time`, `datetime2` cho `timestamp`, `datetimeoffset` cho `timestamptz`, `varbinary(max)`; `custom` ghi nguyên văn. Enum là `nvarchar(n)` với `n = sqlServerEnumLength(values)` (độ dài giá trị dài nhất tính theo code unit UTF-16, tối thiểu 1); `null` → `nvarchar(max)`, và `generateSqlServer` thêm `type-parameter-out-of-range` tại `["columns", id, "type"]` cho từng cột enum đó, gộp với `model.diagnostics` bằng `finalizeDiagnostics` (Vấn đề 6). Enum không tìm thấy → `nvarchar(max)`.
 
 **Output** ghép bằng `renderFileContent`:
 
@@ -1092,7 +1094,7 @@ Không có `GO`, `USE`, `BEGIN`, `COMMIT`, `DROP` hay thời gian.
 
 ## Vấn đề phát hiện khi lập plan
 
-Task 0 đã chốt mọi vấn đề dưới đây ngày 2026-10-02 (user giao quyền quyết định cho orchestrator; spec phần 6, mục "Quyết định bổ sung 2026-10-02"). Cột "Quyết định" ghi lựa chọn; các task đã được viết theo lựa chọn đó. Vấn đề 13–16 phát hiện ở lượt lập plan thứ hai và do plan quyết định, theo spec và rule hiện có.
+Task 0 đã chốt mọi vấn đề dưới đây ngày 2026-10-02 (user giao quyền quyết định cho orchestrator; spec phần 6, mục "Quyết định bổ sung 2026-10-02"). Cột "Quyết định" ghi lựa chọn; các task đã được viết theo lựa chọn đó. Vấn đề 13–20 phát hiện ở lượt lập plan thứ hai và các lượt duyệt plan, do plan hoặc orchestrator quyết định, theo spec và rule hiện có.
 
 | # | Vấn đề | Đề xuất | Quyết định | Ảnh hưởng |
 |---|---|---|---|---|
@@ -1113,6 +1115,9 @@ Task 0 đã chốt mọi vấn đề dưới đây ngày 2026-10-02 (user giao q
 | 15 | **MSW 3 đã phát hành** (3.0.0 ngày 2026-09-28, `latest` là 3.0.1). Spec CG-06 chốt handler MSW 2; người dùng chạy `npm install msw` sẽ nhận MSW 3 | — | Giữ MSW 2 theo spec: conformance cài `msw@^2.15.0`, comment đầu `handlers.ts` ghi `npm install msw@^2` (Task 23). Chuyển sang MSW 3 là thay đổi spec riêng sau phần 6 | Task 23; spec CG-06 |
 | 16 | **Tài liệu phần 2 cho hai issue mới.** Spec phần 6 mục "Quyết định bổ sung 2026-10-02" ghi rằng spec và plan phần 2 (mục 8, danh mục 25 mã) được cập nhật ở một task sau | — | Task 36 cài đặt theo spec phần 6; Task 35 cập nhật spec phần 2 mục 8 (27 mã) và ghi chú trong plan phần 2 | Task 35 |
 | 17 | **Quyết định bổ sung khi duyệt spec (orchestrator, 2026-10-02; spec mục "Quyết định bổ sung 2026-10-02", R1–R18).** Các giới hạn database thật mà ma trận spec mục 4 chưa có: độ dài cố định của khóa SQL Server (Msg 1944), cột `char`, `varchar` vượt giới hạn trong khóa MySQL, cột `AUTO_INCREMENT` không đứng đầu index nào (lỗi 1075), kích thước dòng MySQL (lỗi 1118), giây lẻ MySQL, so định danh MySQL theo `utf8mb3_general_ci` | — | Theo spec: R1, R10 (`nchar` → `nvarchar` kèm `key-column-type-narrowed`, lan theo quan hệ; vẫn vượt thì bỏ); R2, R11 (`VARCHAR(768)` thẳng khi `n > 768`); R8, R14 (index `<bảng>_<cột>_idx`, tên cấp ở Task 9); R13 (cột `CHAR`, `VARCHAR` lớn nhất không thuộc khóa thành `LONGTEXT`); R15 (hàm literal MySQL luôn cắt về 6 chữ số); R12 (`caseAndAccentInsensitive` đổi `đ`, `ø`, `ł`, `ħ`); R9, R16 (sequence identity PostgreSQL: giới hạn đã chấp nhận, không có task); R17 (không đổi). Đã viết vào Task 4, 6, 7, 8, 9, 12, 13, 15, 16; Task 17, 18 dùng chung qua `resolveSchemaColumnTypes`, `findUnindexableConstraints` | Task 4, 6, 7, 8, 9, 12, 13, 15, 16, 17, 18 |
+| 18 | **Phía ngược của quan hệ 1-1 có tên trong Drizzle.** Spec CG-03 ghi phía ngược 1-1 là `one(source)` và tên quan hệ theo mục 5 khi có tự tham chiếu hoặc nhiều quan hệ giữa hai bảng. Typings `drizzle-orm` 0.45.3 đã cài (`relations.d.ts`, `RelationConfig`, kiểm tra ngày 2026-10-02) bắt buộc `fields` và `references` mỗi khi truyền config cho `one`, nên không truyền được `relationName` một mình | — | Quan hệ 1-1 có tên không có trường phía ngược trong `relations()`; phía khóa ngoại vẫn có `one(…, { fields, references, relationName })`, đủ cho relational query của Drizzle v1. Quan hệ 1-1 không tên vẫn có `one(source)` ở phía ngược. Không có diagnostic: `relations()` là metadata truy vấn, không đổi schema database (plan quyết định, 2026-10-02). Task 35 sửa mục 4 và CG-03 của spec theo quyết định này | Task 18, 35 |
+| 19 | **`parseSeedDataset` cho AI-06.** Duyệt spec phần 5 (2026-10-02) quyết định frontend của AI-06 parse dữ liệu mẫu từ backend bằng một hàm Zod của phần 6, export ở `@schemaforge/core/generators/seed` cạnh type `SeedDataset`, khớp với spec phần 5 (AI-R43) | — | Task 21 viết `parseSeedDataset(input: unknown): Result<SeedDataset, readonly StructuralError[]>` trong `seed-dataset.ts` (chỉ kiểm tra hình dạng, mã lỗi `invalid-shape` qua `toStructuralErrors`; kiểm tra theo schema là việc của `validateSeedDataset`); Task 22 export nó ở `seed/index.ts`. Task 35 ghi `parseSeedDataset` vào CG-08 của spec phần 6 | Task 21, 22, 35 |
+| 20 | **Hết lượt sinh lại một dòng của seed.** Spec CG-08 bullet "Unique" ghi dòng vi phạm được sinh lại tối đa một số lần cố định, "sau đó bỏ dòng và báo `seed-rows-reduced`", tức là bỏ dòng đó rồi thử dòng sau. Task 21 bước 5 dừng sinh cả bảng khi một dòng hết `SEED_MAX_ROW_ATTEMPTS` lượt | — | Giữ hành vi của plan: hết lượt thì dừng sinh bảng đó, giữ các dòng đã có, một `seed-rows-reduced` tại `["tables", id]`. Lý do: các dòng sau gặp cùng giới hạn (cột `boolean` unique, enum ít giá trị, bảng cha 1-1 đã hết dòng), nên thử tiếp chỉ tốn thêm tới 20 lần công cho mỗi dòng còn lại mà diagnostic vẫn như nhau (orchestrator, 2026-10-02). Task 35 sửa bullet "Unique" của CG-08 trong spec theo quyết định này | Task 21, 35 |
 
 
 ## Các task còn lại
@@ -1267,6 +1272,8 @@ Ghi `schema.prisma` vào `withTempDirectory`, chạy CLI `prisma` của package 
   14. `DATETIME(6)`, `TIME(6)`, `TIMESTAMP(6)` với `DEFAULT` có 9 chữ số giây lẻ ở strict mode → **ghi kết quả** cho từng kiểu (kiểm tra sanity; hàm literal MySQL luôn cắt về 6 chữ số theo R15); literal 6 chữ số → được nhận.
   15. Cột `AUTO_INCREMENT` không đứng đầu khóa hay index nào (gồm khóa chính `(a, id)` với `id` đứng sau) → bị từ chối (lỗi 1075); thêm `INDEX` thường một cột cho nó → được nhận (R8, R14).
   16. Bảng `id INT, v VARCHAR(16383)` → bị từ chối (lỗi 1118, dòng quá 65 535 byte); cùng bảng với `v LONGTEXT` → được nhận (R13).
+  17. `TIMESTAMP(6) DEFAULT '2026-01-02 03:04:05.123456-00:00'` (độ lệch `-00:00`, literal `timestamptz` của phần 2 cho phép) → **ghi kết quả**. Kỳ vọng được nhận như probe 10. Nếu bị từ chối: probe vẫn ghi kết quả thật (không đỏ), và orchestrator tạo task tiếp theo sửa `generators/shared/sql-literals.ts` (file của Task 7) để hàm literal MySQL của `timestamptz` đổi hậu tố `Z` và `-00:00` thành `+00:00`, chạy trước Task 15 và mọi task dùng literal MySQL (17, 18, 22).
+  18. Hai cặp cột trong một bảng: `ßa`/`sa` và `ða`/`da` → **ghi kết quả** cho từng cặp (MySQL so định danh theo `utf8mb3_general_ci`, R12). Kỳ vọng hiện tại: được nhận (danh sách gộp của R12 chỉ có `đ`, `ø`, `ł`, `ħ`). Nếu cặp nào bị từ chối (hai tên bị coi là một): probe vẫn ghi kết quả thật (không đỏ), và orchestrator tạo task tiếp theo thêm ký tự đó vào danh sách gộp của R12 trong `generators/shared/name-allocator.ts` (file của Task 6, cùng test của nó), chạy trước Task 15, 17, 18.
 - `probes/sqlserver.probe.test.ts`:
   1. Một batch gồm `CREATE TABLE`, `DECLARE @schema_name sysname = SCHEMA_NAME();` và `EXEC sys.sp_addextendedproperty … @level0name = @schema_name …` → được nhận (Vấn đề 9).
   2. `MS_Description` 3750 ký tự `nvarchar` → được nhận; 3751 → bị từ chối (Vấn đề 2).
@@ -1298,7 +1305,7 @@ pnpm exec prettier --check packages/codegen-conformance turbo.json package.json
 git status --porcelain
 ```
 
-Mong đợi: `pnpm test:conformance` build core rồi chạy mọi test của package, tất cả pass; chạy lần hai báo cache hit. Execution log của task có mục **Kết quả probe** liệt kê từng probe với kết quả thật (được nhận hoặc lỗi kèm mã lỗi), riêng probe MySQL 10 và 14 ghi rõ kết quả quan sát được. Probe nào khác kỳ vọng thì không sửa kỳ vọng: dừng với trạng thái `Bị chặn`, ghi điểm khác biệt; orchestrator cho sửa spec trước khi chạy Task 15, 16.
+Mong đợi: `pnpm test:conformance` build core rồi chạy mọi test của package, tất cả pass; chạy lần hai báo cache hit. Execution log của task có mục **Kết quả probe** liệt kê từng probe với kết quả thật (được nhận hoặc lỗi kèm mã lỗi), riêng probe MySQL 10, 14, 17 và 18 ghi rõ kết quả quan sát được. Probe 17, 18 là probe ghi kết quả: kết quả khác kỳ vọng không làm task `Bị chặn` mà ghi vào mục **Ghi chú cho người tiếp theo** của log, kèm việc tiếp theo tương ứng nêu ở probe 17, 18. Probe nào khác kỳ vọng thì không sửa kỳ vọng: dừng với trạng thái `Bị chặn`, ghi điểm khác biệt; orchestrator cho sửa spec trước khi chạy Task 15, 16.
 
 **Commit:** `test: add conformance helpers and database behavior probes`
 
@@ -1348,3 +1355,975 @@ pnpm exec prettier --check frontend/src/lib/i18n/locales/en/issues.ts frontend/s
 Mong đợi: mọi lệnh thoát mã 0; frontend test không có dòng ngưỡng coverage bị vi phạm; `git status --porcelain` chỉ có file của task.
 
 **Commit:** `feat: add empty table and index name conflict issues`
+
+## Task 17: CG-02 Prisma schema
+
+**Mục tiêu:** `@schemaforge/core/generators/prisma` export `generatePrisma`, in `schema.prisma` cho Prisma 7 với ba provider, cùng kiểu đích, ràng buộc bị bỏ và hành động như CG-01 cùng dialect (spec CG-02, mục 3 bảng "Prisma", mục 4 ma trận cột Prisma, mục 5 "Định danh code", "Tên ràng buộc do generator đặt", "Tên trường quan hệ").
+
+**Phụ thuộc:** Task 1, 4, 5, 7, 9, 11, 12, 13 (test so khớp với `buildSqlDdlModel`), 36. **Đợt:** 5.
+
+**File sở hữu (tạo):** `packages/core/src/generators/prisma/index.ts`, `generate-prisma.ts`, `generate-prisma.test.ts`, `prisma-field-type.ts`, `prisma-field-type.test.ts`, `prisma-model.ts`, `prisma-model.test.ts`; `packages/core/src/generators/shared/sqlserver-enum-length.ts`, `sqlserver-enum-length.test.ts` (dùng chung với Task 16, xem "Điểm nóng"); mọi file trong `packages/core/src/generators/__snapshots__/prisma/`. Vượt 300 dòng thì tách thêm `prisma-<phần>.ts` kèm test trong cùng thư mục.
+
+**Chữ ký:**
+
+```ts
+export type PrismaOptions = GeneratorOptions["prisma"];
+export function generatePrisma(schema: SchemaDocument, options: PrismaOptions): GenerateResult;
+// Không export qua index.ts:
+export const PRISMA_RESERVED_WORDS: readonly string[]; // String, Boolean, Int, BigInt, Float, Decimal, DateTime, Json, Bytes, Unsupported, PrismaClient
+export function formatPrismaString(value: string): string; // JSON.stringify(value)
+export function renderPrismaFieldType(input: {
+  readonly provider: SqlDialect; readonly column: Column; readonly type: DialectColumnType;
+  readonly enumNames: ReadonlyMap<EnumId, string>; readonly enums: SchemaDocument["enums"];
+}): { readonly typeName: string; readonly nativeAttribute: string | null; readonly diagnostics: readonly GeneratorDiagnostic[] };
+```
+
+`generators/shared/sqlserver-enum-length.ts` (Task 16 import, không export qua `index.ts` nào):
+
+```ts
+export const SQLSERVER_MAX_NVARCHAR_LENGTH = 4000;
+export function sqlServerEnumLength(values: readonly string[]): number | null; // null là nvarchar(max)
+```
+
+Độ dài giá trị dài nhất theo code unit UTF-16 (`value.length`, đơn vị của `nvarchar`), tối thiểu 1 (enum rỗng hoặc chỉ có giá trị rỗng); lớn hơn `SQLSERVER_MAX_NVARCHAR_LENGTH` → `null` (Vấn đề 6).
+
+`index.ts` chỉ export `generatePrisma` và type `PrismaOptions`. `file` là `{ fileName: "schema.prisma", language: "prisma", content }`. `provider` ngoài ba dialect là lỗi lập trình: throw `RangeError`.
+
+**Chuẩn bị (trong `generatePrisma`):** `types` từ `resolveSchemaColumnTypes(schema, provider)` (import từ `generators/shared/dialect-column-types.ts`) (không gọi `resolveDialectColumnType` trực tiếp); `dropped` từ `findUnindexableConstraints(schema, provider, types.types)`; `constraintNames` từ `allocateConstraintNames(schema, (relation) => orderColumnPairsByReferencedKey(schema, relation))` (chỉ dùng `autoIncrementIndexes`); MySQL thêm `allocateMysqlNames(schema)`; SQL Server thêm `findCascadeConflicts(schema)`; `allocateModelNames(schema, PRISMA_RESERVED_WORDS)`; `buildRelationFieldNames(schema, tableNames)`. Diagnostic của mọi bước gộp lại rồi qua `finalizeDiagnostics`. Tên cột trong database (cho `@map`) lấy qua một hàm tra cứu duy nhất: tên MySQL đã đổi, hoặc tên gốc.
+
+**Kiểu (`renderPrismaFieldType`)**, đúng bảng spec mục 3 "Prisma" trên `DialectColumnType` đã qua quy tắc dialect:
+
+- `smallint` → `Int` + `@db.SmallInt`; `integer` → `Int`; `bigint` → `BigInt`; `decimal` → `Decimal` + `@db.Decimal(p, s)` (p, s đã kẹp); `real` → `Float` + `@db.Real` (MySQL `@db.Float`); `double` → `Float`; `boolean` → `Boolean`.
+- `char(n)` → `String` + `@db.Char(n)` (SQL Server `@db.NChar(n)`); `varchar(n)` → `String` + `@db.VarChar(n)` (SQL Server `@db.NVarChar(n)`); `keyText` → MySQL `@db.VarChar(255)`, SQL Server `@db.NVarChar(450)`; `text` → PostgreSQL `String` không native, MySQL `@db.LongText`, SQL Server `@db.NVarChar(Max)`.
+- `uuid` → `String` + `@db.Uuid` / `@db.Char(36)` / `@db.UniqueIdentifier`; `date` → `DateTime @db.Date`; `time` → `@db.Time(6)` (SQL Server `@db.Time`); `timestamp` → `@db.Timestamp(6)` / `@db.DateTime(6)` / `@db.DateTime2`; `timestamptz` → `@db.Timestamptz(6)` / `@db.Timestamp(6)` / `@db.DateTimeOffset`.
+- `json` → `Json`; SQL Server → `String` + `@db.NVarChar(Max)` kèm `type-not-supported` tại `["columns", id, "type"]`.
+- `binary` → `Bytes` (MySQL thêm `@db.LongBlob`).
+- `enum` → PostgreSQL, MySQL: tên enum Prisma từ `enumNames` (enum không tìm thấy → `String`). SQL Server: `String` + `@db.NVarChar(n)` với `n = sqlServerEnumLength(values)` của `generators/shared/sqlserver-enum-length.ts` (`null` → `@db.NVarChar(Max)` kèm `type-parameter-out-of-range`), luôn kèm `enum-not-supported` tại `["columns", id, "type"]`. Hàm nằm trong `shared/` để Prisma `sqlserver` và SQL Server SQL (Task 16) cùng một quy tắc, vì cấm import giữa các thư mục đích.
+- `custom` → `Unsupported(<formatPrismaString(name)>)`, không native, không có `custom-type-unsafe` (tên nằm trong chuỗi đã escape).
+- Cột nullable thêm `?` sau tên kiểu.
+
+**Giá trị mặc định** của trường cột (thuộc tính `@default(…)`):
+
+- `isAutoIncrement` → `autoincrement()`, bỏ qua `defaultValue`.
+- `findDefaultValueProblem(column.type, column.defaultValue, schema.enums)` (Task 7) khác `null` → không ghi, kèm `default-omitted` tại `["columns", id, "defaultValue"]`.
+- `currentTimestamp` → `now()`; `generateUuid` → `uuid()`.
+- `literal`, xét theo thứ tự, quy tắc đầu tiên khớp thắng:
+  1. `provider` là `mysql` và kiểu đích đã phân giải (`DialectColumnType.kind` từ `types`) là `text`, `json` hoặc `binary` (gồm cột `char`, `varchar` đã thành `LONGTEXT` theo R13) → `dbgenerated(<formatPrismaString(sql)>)` với `sql` của `formatSqlDefault({ dialect: "mysql", column, enums: schema.enums, shouldParenthesizeLiteral: true })`, tức literal trong ngoặc như `('a''b')` (spec R19: MySQL chỉ nhận mặc định dạng biểu thức trong ngoặc trên TEXT, JSON, BLOB, và `prisma validate` không bắt lỗi này). Cùng quy tắc chọn ngoặc với Task 13, 18.
+  2. `real`, `double` mà literal chứa `e` hoặc `E` → `dbgenerated(<formatPrismaString(formatSqlLiteral(provider, column.type, value))>)`, vì `prisma validate` 7.10 từ chối `@default(1e10)` (P1012).
+  3. `smallint`, `integer`, `bigint`, `decimal`, `real`, `double` còn lại ghi trần; `boolean` → `true`/`false`; `char`, `varchar`, `text`, `uuid`, `json` → `formatPrismaString(value)`; enum → PostgreSQL, MySQL là tên giá trị enum đã cấp (bên dưới), SQL Server là `formatPrismaString(value)`.
+  4. `date`, `time`, `timestamp`, `timestamptz` và `custom` → `dbgenerated(<formatPrismaString(formatSqlLiteral(provider, column.type, value))>)` (Prisma không có literal cho các kiểu này; literal SQL dùng chung Task 7 nên giây lẻ được cắt như CG-01).
+
+**Enum** (chỉ PostgreSQL, MySQL; SQL Server không có khối `enum`), theo `sortEnums`:
+
+```prisma
+enum OrderStatus {
+  pending
+  daGiao @map("đã giao")
+
+  @@map("order_status")
+}
+```
+
+- Tên giá trị: mỗi enum một allocator `comparison: "exact"`, `separator: ""`; giá trị khớp `^[A-Za-z][A-Za-z0-9_]*$` giữ nguyên, còn lại `toCamelCaseIdentifier(value, "value")`; cấp theo thứ tự `values`; tên cấp khác giá trị gốc thì thêm ` @map(<formatPrismaString(giá trị gốc)>)`. `@@map` chỉ khi tên Prisma khác tên gốc, cách dòng giá trị cuối một dòng trống.
+
+**Model**, theo `sortTables`; dòng trống giữa nhóm trường và nhóm thuộc tính khối:
+
+1. Comment bảng: `///` mỗi dòng (tách theo `\r\n`, `\r`, `\n`; dòng rỗng ghi `///`), đứng trên `model`. Comment cột tương tự, thụt hai khoảng, đứng trên trường.
+2. Trường cột theo `columnIds`: `<tên trường> <kiểu>[?] [@id] [@unique] [@default(…)] [@map(…)] [@db.…]`, các phần cách nhau một khoảng trắng, không căn cột. `@id` khi khóa chính một cột còn giữ. `@unique` khi cột `isUnique` không nằm trong `dropped.uniqueColumnIds`; SQL Server thêm `unique-nulls-restricted` tại `["columns", id, "isUnique"]` khi cột nullable. `@map` khi tên trường khác tên cột trong database.
+3. Trường phía khóa ngoại của mọi quan hệ có `fromTableId` là bảng này (theo `sortRelations`, bỏ quan hệ trong `dropped.relationIds`): `<trường> <Model đích>[?] @relation([<formatPrismaString(tên quan hệ)>, ]fields: [a, b], references: [x, y], onDelete: <A>, onUpdate: <B>)`. Cặp cột theo `orderColumnPairsByReferencedKey`. `?` khi có ít nhất một cột nguồn nullable. Hành động: SQL Server, quan hệ trong `findCascadeConflicts` → cả hai `NoAction` kèm `referential-action-cycle` tại `["relations", id]`; còn lại `resolveReferentialAction(provider, action)`, `isLossy` → `referential-action-not-supported` tại `["relations", id, "onDelete"]` hoặc `"onUpdate"`. Tên hành động: `NoAction`, `Restrict`, `Cascade`, `SetNull`, `SetDefault`.
+4. Trường phía ngược của mọi quan hệ có `toTableId` là bảng này (theo `sortRelations`, cùng điều kiện bỏ): `oneToMany` → `<trường> <Model nguồn>[]`, `oneToOne` → `<trường> <Model nguồn>?`; thêm `@relation(<formatPrismaString(tên quan hệ)>)` khi quan hệ có tên. Quan hệ tự tham chiếu cho hai trường trong cùng model (phía khóa ngoại ở bước 3, phía ngược ở bước 4).
+5. Thuộc tính khối theo thứ tự: `@@id([…])` khi khóa chính nhiều cột còn giữ (trường theo `primaryKeyColumnIds`); `@@unique([…], map: "…")` cho index unique của người dùng không bị bỏ, theo `sortIndexes`; `@@index([…], map: "…")` cho index thường không bị bỏ, theo `sortIndexes`, rồi (chỉ MySQL) cho mỗi cột trong `dropped.autoIncrementIndexColumnIds` một `@@index([<trường>], map: "<autoIncrementIndexes của cột>")` (R14); `@@map(<tên gốc>)` khi tên model khác tên bảng; `@@ignore` theo quy tắc dưới. Tên `map:` của index người dùng là tên MySQL đã đổi hoặc tên gốc, qua `formatPrismaString`. SQL Server: index unique có cột nullable thêm `unique-nulls-restricted` tại `["indexes", id]`.
+
+**Model không định danh được (`table-without-identifier`):** model có định danh khi còn một trong các khóa sau, mọi cột của khóa đều không nullable và không phải `custom`: khóa chính không bị bỏ; cột `isUnique` không bị bỏ; index unique không bị bỏ. Không có → `@@ignore` kèm `table-without-identifier` tại `["tables", id]`. Bảng không có cột (schema có issue `table-columns-empty`) theo cùng quy tắc nên có `@@ignore` (R6). Trường quan hệ (bước 3, 4) mà model ở đầu kia có `@@ignore` và model chứa trường không có `@@ignore` thì thêm ` @ignore` ở cuối dòng; trong model đã `@@ignore` thì không thêm (Prisma cảnh báo thuộc tính thừa).
+
+**Output** ghép bằng `renderFileContent`, mỗi block một khối theo thứ tự: khối `generator client` (hai dòng `provider = "prisma-client"`, `output = "../src/generated/prisma"`, thụt hai khoảng, không căn `=`); khối `datasource db` (`provider = "<provider>"`, không có `url`); mỗi enum; mỗi model. Không có comment đầu file hay thời gian.
+
+**Test viết trước:**
+
+- `sqlserver-enum-length.test.ts`: `sizes by the longest value in UTF-16 code units` (gồm một ký tự ngoài BMP tính 2); `returns 1 for an enum without values or with only empty values`; `returns 4000 for a value of exactly 4000 code units and null above`.
+- `prisma-field-type.test.ts`: `maps every dialect column type for each provider` (`it.each` theo bảng spec mục 3); `uses NChar and NVarChar on sqlserver`; `maps a narrowed key text to VarChar(255) on mysql and NVarChar(450) on sqlserver`; `maps json to NVarChar(Max) on sqlserver and reports type-not-supported`; `maps an enum to NVarChar sized by its longest value on sqlserver and reports enum-not-supported`; `uses NVarChar(Max) for an enum value longer than 4000 code units and reports type-parameter-out-of-range`; `writes a custom type as Unsupported with an escaped name`; `appends a question mark to a nullable column type`; `references the allocated enum name on postgresql and mysql`.
+- `prisma-model.test.ts`: `writes column fields in column order with id, unique, default, map and native type`; `writes a composite primary key as @@id in key order`; `writes unique and plain user indexes with map names`; `writes forward relation fields before inverse relation fields`; `always writes both referential actions`; `orders relation fields and references by the referenced key`; `makes the forward field optional when a foreign key column is nullable`; `writes Model[] for one-to-many and Model? for one-to-one inverse fields`; `adds a relation name to both fields of a self-reference`; `adds a relation name for two relations between the same models`; `writes block attributes in the order id, unique, index, map, ignore`; `ignores a model without a required unique key and reports table-without-identifier`; `does not count a nullable or Unsupported unique as an identifier`; `ignores a model whose only key was dropped`; `ignores a model without columns`; `adds @ignore to a relation field that points to an ignored model`; `does not add @ignore inside an ignored model`; `writes table and column comments as triple-slash lines`; `maps an enum value that is not an identifier with @map`.
+- `generate-prisma.test.ts`: `names the file schema.prisma with language prisma`; `writes the prisma-client generator and a datasource without url`; `writes the provider of the option`; `throws RangeError for an unknown provider`; `writes enums only for postgresql and mysql`; `suffixes a model named like a reserved word` (bảng `String` → `String_` kèm `@@map("String")`); `maps a model and field to the original names with @@map and @map`; `writes literal defaults by column type` (`it.each`: số, boolean, chuỗi có `"` và `\`, enum, json); `writes dbgenerated with the dialect sql literal for date, time and timestamp defaults` (gồm `time` 9 chữ số giây lẻ: SQL Server còn 7, MySQL còn 6); `writes an exponent real default as dbgenerated` (`it.each`: `real` `1e10` và `double` `-2.5E-3` trên ba provider, ví dụ `@default(dbgenerated("1e10"))`; `1.5` vẫn ghi trần); `writes a mysql default on longtext, json and a varchar widened to longtext as a parenthesized dbgenerated` (`it.each`: `text` `a'b` → `@default(dbgenerated("('a''b')"))`, `json` `{"a":1}`, cột `varchar(16000)` có mặc định nằm cạnh cột `varchar(15000)` để R13 đổi cột lớn nhất là nó sang `LONGTEXT`, dựng bằng factory; cùng cột trên `postgresql` vẫn là `@default("…")`); `omits an invalid default and reports default-omitted`; `writes autoincrement, now and uuid defaults`; `downgrades a cascade cycle to NoAction on sqlserver and reports referential-action-cycle`; `writes restrict as NoAction on sqlserver without a diagnostic`; `writes set default as NoAction on mysql and reports referential-action-not-supported`; `reports unique-nulls-restricted for every nullable unique on sqlserver`; `does not report unique-nulls-restricted on postgresql`; `drops json keys on mysql and sqlserver like the sql generators` (so `key-column-type-not-indexable` với tập của `buildSqlDdlModel` cùng dialect trên `createTargetLimitSchema()`); `narrows key columns like the sql generator of the same dialect` (so kiểu đích của các cột trong khóa với `resolveSchemaColumnTypes`); `adds an @@index named <table>_<column>_idx for a mysql auto-increment column that leads no key` (bảng có khóa chính `(tenant_id, id)` với `id` auto-increment đứng sau, không cột nào bị đổi kiểu; khẳng định thêm `diagnostics` rỗng: R14 là tương đương, không có mã); `renames a mysql column that differs only by an accent and reports identifier-collision-renamed`; `writes an empty schema as the generator and datasource blocks only`; `returns the same content when map keys were inserted in a different order`.
+- Snapshot: `matches the snapshot for <fixture> with <provider>` (`it.each` bốn fixture × ba provider), tên file `<fixture>.<provider>.prisma` và `<fixture>.<provider>.diagnostics.txt`.
+
+**Kiểm tra:** như mục "Quy ước chung", thêm lệnh `node` như Task 14 với `@schemaforge/core/generators/prisma`, gọi `generatePrisma(testing.createSampleSchema(), { provider: "postgresql" })`, mong đợi `function schema.prisma`. Conformance của Prisma (`prisma validate`) do Task 30 viết; task sửa generator Prisma sau khi Task 30 đã merge chạy cổng conformance với `src/prisma.test.ts`.
+
+**Commit:** `feat(core): add prisma schema generator`
+
+## Task 18: CG-03 Drizzle schema
+
+**Mục tiêu:** `@schemaforge/core/generators/drizzle` export `generateDrizzle`, in một file `schema.ts` cho `drizzle-orm` 0.45 với `dialect` là `postgresql` hoặc `mysql`, cùng tên ràng buộc, kiểu đích và ràng buộc bị bỏ như CG-01 cùng dialect (spec CG-03, mục 3 bảng "Drizzle", mục 4 ma trận cột Drizzle, mục 5, mục "Rủi ro" dòng Drizzle; Vấn đề 18).
+
+**Phụ thuộc:** Task 1, 4, 5, 7, 9, 11, 12, 13 (test so khớp với `buildSqlDdlModel`), và Task 8 (`typecheckFiles` cho bước kiểm chứng sớm). **Đợt:** 5.
+
+**File sở hữu (tạo):** `packages/core/src/generators/drizzle/index.ts`, `generate-drizzle.ts`, `generate-drizzle.test.ts`, `drizzle-columns.ts`, `drizzle-columns.test.ts`, `drizzle-names.ts`, `drizzle-names.test.ts`; mọi file trong `packages/core/src/generators/__snapshots__/drizzle/`. Vượt 300 dòng thì tách thêm `drizzle-<phần>.ts` kèm test. File thử ở bước kiểm chứng sớm nằm trong thư mục tạm của `withTempDirectory`, không commit.
+
+**Bước kiểm chứng sớm (làm trước mọi test):** viết tay một file `schema.ts` PostgreSQL và một file MySQL theo đúng dạng output dưới đây, gồm hai bảng `a`, `b` mà khóa ngoại của `a` tham chiếu `b` (khai báo sau) và khóa ngoại của `b` tham chiếu `a` trong callback cấu hình, một bảng tự tham chiếu, `relations()` cho cả ba, một `customType`, một `pgEnum`. Chạy `typecheckFiles` của `packages/codegen-conformance/src/support/typecheck.ts` (Task 8) bằng một lệnh `pnpm --filter @schemaforge/codegen-conformance exec node --input-type=module -e '…'` hoặc một file test tạm không commit. Đồng thời đọc typings đã cài (`drizzle-orm/pg-core`, `drizzle-orm/mysql-core`, `drizzle-orm/relations.d.ts`) để xác nhận mọi builder và option dùng ở mục "Kiểu". Kết quả typecheck có diagnostic (ví dụ TS7022 do tham chiếu vòng) hoặc builder, option nào không có thì dừng với trạng thái `Bị chặn`, ghi nguyên văn diagnostic vào execution log; không tự đổi cấu trúc output.
+
+**Chữ ký:**
+
+```ts
+export type DrizzleOptions = GeneratorOptions["drizzle"];
+export function generateDrizzle(schema: SchemaDocument, options: DrizzleOptions): GenerateResult;
+// Không export qua index.ts:
+export const DRIZZLE_IMPORT_NAMES: Readonly<Record<"postgresql" | "mysql", readonly string[]>>;
+export type DrizzleVariableNames = {
+  readonly enumVariables: ReadonlyMap<EnumId, string>;      // chỉ PostgreSQL
+  readonly customTypeVariables: ReadonlyMap<string, string>; // khóa: dataType ("bytea", "longblob" hoặc tên kiểu custom)
+  readonly tableVariables: ReadonlyMap<TableId, string>;
+  readonly relationsVariables: ReadonlyMap<TableId, string>;
+};
+export function allocateDrizzleVariableNames(schema: SchemaDocument, dialect: "postgresql" | "mysql"): DrizzleVariableNames;
+export function renderDrizzleColumn(input: {
+  readonly dialect: "postgresql" | "mysql"; readonly column: Column; readonly columnName: string;
+  readonly type: DialectColumnType; readonly names: DrizzleVariableNames; readonly enums: SchemaDocument["enums"];
+}): { readonly expression: string; readonly builders: readonly string[]; readonly diagnostics: readonly GeneratorDiagnostic[] };
+```
+
+`index.ts` chỉ export `generateDrizzle` và type `DrizzleOptions`. `file` là `{ fileName: "schema.ts", language: "typescript", content }`. `dialect` khác `postgresql`, `mysql` (kể cả `sqlserver`) là lỗi lập trình: throw `RangeError`.
+
+**Tên biến** (`allocateDrizzleVariableNames`): một allocator `comparison: "exact"`, `separator: ""`, `reserved` là `JAVASCRIPT_RESERVED_WORDS` cộng mọi tên trong `DRIZZLE_IMPORT_NAMES[dialect]`, `relations`, `sql`, và tên tham số của callback trong output: `table` (callback cấu hình bảng), `one`, `many` (callback của `relations()`); tham số callback che biến module cùng tên, nên bảng tên `table` sẽ làm `foreignKey` trỏ nhầm. Cả danh sách cố định, không chỉ tên được dùng, để tên biến không đổi khi schema đổi. Cấp theo thứ tự: enum (chỉ PostgreSQL, `sortEnums`) `toCamelCaseIdentifier(name, "enum") + "Enum"`; `customType` theo thứ tự xuất hiện đầu tiên (bảng theo `sortTables`, cột theo `columnIds`), `toCamelCaseIdentifier(dataType, "custom") + "Type"`; bảng (`sortTables`) `toCamelCaseIdentifier(name, "table")`; relations (`sortTables`, chỉ bảng có trường quan hệ) `<biến bảng> + "Relations"`. Mỗi ứng viên qua `withReservedWordSuffix` trước khi cấp. "Bảng có trường quan hệ" là bảng có ít nhất một trường thật sự được ghi vào block `relations()` theo mục 5 của "Cấu trúc file" bên dưới: trường phía khóa ngoại của quan hệ không bị bỏ, hoặc trường phía ngược được ghi; trường phía ngược của quan hệ 1-1 có tên bị bỏ theo Vấn đề 18 không tính, nên bảng chỉ có trường đó không có biến `…Relations` và không có block. `DRIZZLE_IMPORT_NAMES`: PostgreSQL `bigint`, `boolean`, `char`, `customType`, `date`, `doublePrecision`, `foreignKey`, `index`, `integer`, `jsonb`, `numeric`, `pgEnum`, `pgTable`, `primaryKey`, `real`, `smallint`, `text`, `time`, `timestamp`, `unique`, `uniqueIndex`, `uuid`, `varchar`; MySQL `bigint`, `boolean`, `char`, `customType`, `date`, `datetime`, `decimal`, `double`, `float`, `foreignKey`, `index`, `int`, `json`, `longtext`, `mysqlEnum`, `mysqlTable`, `primaryKey`, `smallint`, `time`, `timestamp`, `unique`, `uniqueIndex`, `varchar`.
+
+**Chuẩn bị:** `types` từ `resolveSchemaColumnTypes(schema, dialect)` (import từ `generators/shared/dialect-column-types.ts`); `dropped` từ `findUnindexableConstraints(schema, dialect, types.types)`; `constraintNames` từ `allocateConstraintNames(schema, (relation) => orderColumnPairsByReferencedKey(schema, relation))`; MySQL thêm `allocateMysqlNames(schema)`; `buildRelationFieldNames(schema, tableVariables)` cho key cột, trường quan hệ và `relationName`. Tên cột trong database lấy qua một hàm tra cứu duy nhất (tên MySQL đã đổi, hoặc tên gốc).
+
+**Kiểu (`renderDrizzleColumn`)**, đúng bảng spec mục 3 "Drizzle"; tên cột luôn là đối số đầu, ghi bằng `JSON.stringify`:
+
+- PostgreSQL: `smallint("c")`, `integer("c")`, `bigint("c", { mode: "bigint" })`, `numeric("c", { precision: p, scale: s })`, `real`, `doublePrecision`, `boolean`, `char("c", { length: n })`, `varchar("c", { length: n })`, `text`, `uuid`, `date`, `time("c", { precision: 6 })`, `timestamp("c", { precision: 6 })`, `timestamp("c", { precision: 6, withTimezone: true })`, `jsonb`, `binary` → biến `customType` có `dataType` `bytea`; enum → `<biến enum>("c")` (enum không tìm thấy → `text`).
+- MySQL: `smallint`, `int`, `bigint("c", { mode: "bigint" })`, `decimal("c", { precision: p, scale: s })`, `float`, `double`, `boolean`, `char("c", { length: n })`, `varchar("c", { length: n })`, `keyText` → `varchar("c", { length: 255 })`, `text` → `longtext`, `uuid` → `char("c", { length: 36 })`, `date`, `time("c", { fsp: 6 })`, `timestamp` → `datetime("c", { fsp: 6 })`, `timestamptz` → `timestamp("c", { fsp: 6 })`, `json`, `binary` → biến `customType` có `dataType` `longblob`; enum → `mysqlEnum("c", [<giá trị qua JSON.stringify>])` (enum không tìm thấy → `longtext`).
+- `custom` → biến `customType` có `dataType` là tên kiểu nguyên văn; không có `custom-type-unsafe` (tên nằm trong chuỗi đã escape). Kiểu `keyText` không xuất hiện ở PostgreSQL; nếu có thì như `varchar`.
+- Phần nối sau builder, theo thứ tự: `.notNull()` khi không nullable; auto-increment: PostgreSQL `.generatedByDefaultAsIdentity()`, MySQL `.autoincrement()` (bỏ qua `defaultValue`); giá trị mặc định. Không dùng `.primaryKey()`, `.unique()`, `.references()` trên cột.
+- `builders` trả tên builder đã dùng để `generate-drizzle.ts` ghép dòng import.
+
+**Giá trị mặc định:**
+
+- `findDefaultValueProblem` khác `null` → không ghi, kèm `default-omitted` tại `["columns", id, "defaultValue"]`.
+- PostgreSQL `currentTimestamp` → `.defaultNow()`; PostgreSQL `generateUuid` → `.defaultRandom()`.
+- Cách ghi literal chọn theo **kiểu đích đã phân giải** (`DialectColumnType.kind` của cột trong `types`), không theo `column.type`, để cột đổi kiểu theo quy tắc dialect (R13, hẹp khóa) nhận đúng dạng mặc định của kiểu thật trong database.
+- Literal có API có kiểu: `smallint`, `integer` → `.default(<String(Number(value))>)`; `boolean` → `.default(true)`/`.default(false)`; `char`, `varchar`, `keyText`, `uuid`, `decimal`, `enum`, và `text` chỉ trên PostgreSQL → `.default(<JSON.stringify(value)>)`.
+- Mọi trường hợp còn lại (MySQL `currentTimestamp`, `generateUuid`; literal `bigint`, `real`, `double`, `date`, `time`, `timestamp`, `timestamptz`, `json`, `binary`, `custom`; MySQL `text`) → `` .default(sql.raw(<JSON.stringify(defaultSql)>)) `` với `defaultSql` là `sql` của `formatSqlDefault({ dialect, column, enums, shouldParenthesizeLiteral })`. `shouldParenthesizeLiteral` đúng khi dialect là MySQL và kiểu đích là `text`, `json` hoặc `binary` (cùng quy tắc Task 13 và R19 của Prisma): MySQL `text` (gồm cột `char`, `varchar` đã thành `LONGTEXT` theo R13), `json`, `binary` luôn đi qua `sql.raw` với biểu thức trong ngoặc như `('a''b')`, vì MySQL chỉ nhận mặc định dạng biểu thức trên TEXT, JSON, BLOB. Literal MySQL được cắt giây lẻ về 6 chữ số (R15). Drizzle không có `null-character-removed` (spec mục 4: chỉ PostgreSQL SQL); cờ `hasRemovedNullCharacter` bị bỏ qua.
+
+**Cấu trúc file**, ghép bằng `renderFileContent`, block theo thứ tự:
+
+1. Import: `import { <builder đã dùng, sắp theo tên bằng < và >> } from "drizzle-orm/pg-core";` (hoặc `"drizzle-orm/mysql-core"`), và khi có dùng `relations` hoặc `sql`: `import { relations, sql } from "drizzle-orm";` chỉ với tên được dùng. Mỗi import một dòng.
+2. Enum (PostgreSQL), mỗi enum một dòng: `export const orderStatusEnum = pgEnum("order_status", ["pending", "paid"]);`.
+3. Mỗi `customType` một block: `export const byteaType = customType<{ data: Uint8Array }>({ dataType() { return "bytea"; } });` viết nhiều dòng như Prettier; `data` là `Uint8Array` cho `bytea`, `longblob`, `unknown` cho kiểu custom; `dataType` trả `JSON.stringify(dataType)`.
+4. Mỗi bảng một block: JSDoc của comment bảng (`formatJsDocLines(comment, "")`), rồi
+
+   ```ts
+   export const posts = pgTable(
+     "posts",
+     {
+       /** Tác giả */
+       authorId: bigint("author_id", { mode: "bigint" }).notNull(),
+     },
+     (table) => [
+       primaryKey({ name: "posts_pkey", columns: [table.id] }),
+       unique("posts_slug_key").on(table.slug),
+       uniqueIndex("posts_tenant_slug").on(table.tenantId, table.slug),
+       index("posts_created_at").on(table.createdAt),
+       foreignKey({ name: "posts_author_id_fkey", columns: [table.authorId], foreignColumns: [users.id] })
+         .onDelete("cascade")
+         .onUpdate("no action"),
+     ],
+   );
+   ```
+
+   Key cột là `columnFieldNames` của Task 11 (ghi trần, đã là định danh ASCII), comment cột là JSDoc thụt bốn khoảng. Callback gồm theo thứ tự: `primaryKey` khi khóa chính còn giữ (kể cả một cột, `columns` theo `primaryKeyColumnIds`, tên từ `primaryKeys`); `unique(<tên>).on(…)` cho cột `isUnique` không bị bỏ, theo `columnIds`; index người dùng không bị bỏ theo `sortIndexes` (`uniqueIndex` hoặc `index`, tên MySQL đã đổi hoặc tên gốc); chỉ MySQL, `index(<autoIncrementIndexes của cột>).on(table.<key>)` cho mỗi cột trong `dropped.autoIncrementIndexColumnIds` (R14); `foreignKey` cho quan hệ có `fromTableId` là bảng này, theo `sortRelations`, bỏ quan hệ trong `dropped.relationIds`, cặp cột theo `orderColumnPairsByReferencedKey`, `foreignColumns` dùng `table.<key>` khi tự tham chiếu và `<biến bảng đích>.<key>` khi khác bảng. Hành động: `resolveReferentialAction(dialect, action)` (`isLossy` → `referential-action-not-supported` tại đường dẫn sự kiện), ghi `"no action"`, `"restrict"`, `"cascade"`, `"set null"`, `"set default"`. Mảng rỗng thì không có tham số callback. Tên ràng buộc và tên index ghi bằng `JSON.stringify`.
+5. Mỗi bảng có trường quan hệ (định nghĩa ở mục "Tên biến": có ít nhất một trường được ghi) một block `relations()` theo `sortTables`:
+
+   ```ts
+   export const postsRelations = relations(posts, ({ one, many }) => ({
+     author: one(users, { fields: [posts.authorId], references: [users.id] }),
+     comments: many(comments),
+   }));
+   ```
+
+   Trường theo thứ tự của Task 17: mọi trường phía khóa ngoại (quan hệ có `fromTableId` là bảng này, theo `sortRelations`, không bị bỏ) rồi mọi trường phía ngược. Phía khóa ngoại: `one(<đích>, { fields: […], references: […][, relationName: "…"] })`. Phía ngược: `oneToMany` → `many(<nguồn>[, { relationName: "…" }])`; `oneToOne` → `one(<nguồn>)` khi quan hệ không có tên; quan hệ `oneToOne` có tên thì **không ghi trường phía ngược** (Vấn đề 18: `RelationConfig` của `one` trong `drizzle-orm` 0.45 bắt buộc `fields`, nên không truyền được `relationName` một mình; phía khóa ngoại có `fields` đã đủ cho relational query). Destructure chỉ `one`, `many` được dùng. Tên quan hệ ghi bằng `JSON.stringify`.
+
+Không có comment đầu file hay thời gian. Bảng không có cột: `pgTable("t", {})`.
+
+**Test viết trước:**
+
+- `drizzle-names.test.ts`: `suffixes enum variables with Enum and custom type variables with Type`; `allocates enums, custom types, tables, then relations`; `appends an underscore to a JavaScript reserved word` (bảng `default`); `appends 2 to a table named like a builder import` (bảng `index` → `index2`, vì tên import nằm trong `reserved`); `appends 2 to a table named like a callback parameter` (`it.each`: bảng `table` → `table2`, `one` → `one2`, `many` → `many2`); `reserves the full import list even when a builder is unused`; `returns the same names regardless of map key order`.
+- `drizzle-columns.test.ts`: `renders every dialect column type for postgresql` (`it.each`); `renders every dialect column type for mysql` (`it.each`); `uses bigint mode bigint on both dialects`; `uses a customType for binary columns`; `uses mysqlEnum with escaped values on mysql`; `appends notNull, identity and autoincrement`; `uses typed defaults where drizzle has them` (`it.each`); `uses sql.raw with the dialect literal for other defaults` (`it.each`, gồm MySQL `CURRENT_TIMESTAMP(6)`, `(UUID())`, `time` 9 chữ số giây lẻ còn 6); `parenthesizes a mysql literal default on longtext and json`; `uses sql.raw for a mysql varchar widened to longtext` (cột `varchar(16000)` có mặc định cạnh cột `varchar(15000)`, R13 đổi nó sang `longtext`: output `.default(sql.raw("('…')"))`, không phải `.default("…")`); `uses a typed default for a text key column narrowed to varchar on mysql` (kiểu đích `keyText`); `omits an invalid default and reports default-omitted`; `reports the type diagnostics of the dialect rules`.
+- `generate-drizzle.test.ts`: `names the file schema.ts with language typescript`; `throws RangeError for sqlserver`; `imports only used builders sorted by name`; `imports sql and relations from drizzle-orm only when used`; `declares enums and custom types before tables`; `writes every primary key with its constraint name`; `writes unique, index, unique index and foreign key constraints in the table callback`; `uses the same constraint names as the sql ddl model` (so với `buildSqlDdlModel` cùng dialect trên `createSampleSchema()`); `references the table parameter for a self-referencing foreign key`; `writes set default as no action on mysql and reports referential-action-not-supported`; `drops json keys on mysql and reports key-column-type-not-indexable`; `adds an index named <table>_<column>_idx for a mysql auto-increment column that leads no key` (bảng có khóa chính `(tenant_id, id)` với `id` auto-increment đứng sau, không cột nào bị đổi kiểu; khẳng định thêm `diagnostics` rỗng: R14 là tương đương, không có mã); `renames a mysql column that differs only by an accent`; `writes relations with one, many and relation names`; `omits the inverse field of a named one-to-one relation`; `writes no relations block for a table whose only field is an omitted named one-to-one inverse` (không có biến `…Relations` của bảng đó, `relations` vẫn được import nếu bảng khác dùng); `writes table and column comments as JSDoc`; `escapes a comment terminator in JSDoc`; `writes an empty schema as a single newline`; `returns the same content when map keys were inserted in a different order`.
+- Snapshot: `matches the snapshot for <fixture> with <dialect>` (`it.each` bốn fixture × `postgresql`, `mysql`), file `<fixture>.<dialect>.ts` và `.diagnostics.txt`.
+
+**Kiểm tra:** như mục "Quy ước chung", thêm lệnh `node` như Task 14 với `@schemaforge/core/generators/drizzle`, gọi `generateDrizzle(testing.createSampleSchema(), { dialect: "postgresql" })`, mong đợi `function schema.ts`. Ghi kết quả bước kiểm chứng sớm vào execution log. Typecheck đầy đủ output do Task 30 viết; task sửa generator Drizzle sau khi Task 30 đã merge chạy cổng conformance với `src/drizzle.test.ts`.
+
+**Commit:** `feat(core): add drizzle schema generator`
+
+## Task 19: CG-04 TypeScript types
+
+**Mục tiêu:** `@schemaforge/core/generators/typescript` export `generateTypeScript`, in `types.ts` mô tả dòng dữ liệu JSON của từng bảng theo biểu diễn JSON chung (spec CG-04, mục 3 "Biểu diễn JSON…", mục 4 "Ma trận cho các đích còn lại" cột TypeScript, mục 5 "Định danh code").
+
+**Phụ thuộc:** Task 1, 4, 5, 10, 11 (`allocateModelNames`). **Đợt:** 4.
+
+**File sở hữu (tạo):** `packages/core/src/generators/typescript/index.ts`, `generate-typescript.ts`, `generate-typescript.test.ts`; mọi file trong `packages/core/src/generators/__snapshots__/typescript/`.
+
+**Chữ ký:**
+
+```ts
+export type TypeScriptOptions = GeneratorOptions["typescript"];
+export function generateTypeScript(schema: SchemaDocument, options: TypeScriptOptions): GenerateResult;
+// Không export qua index.ts:
+export function renderJsonFieldTypeScript(fieldType: JsonFieldType, enumTypeNames: ReadonlyMap<EnumId, string>): string;
+```
+
+`index.ts` chỉ export `generateTypeScript` và type `TypeScriptOptions`. `file` là `{ fileName: "types.ts", language: "typescript", content }`.
+
+**Hành vi:**
+
+- Tên type: `allocateModelNames(schema, ["JsonValue", "Record"])` của Task 11 (enum trước bảng, fallback `Enum`, `Table`, phân biệt hoa thường; bảng tên `JsonValue` nhận `JsonValue_`, bảng tên `Record` nhận `Record_`). `JsonValue` và `Record` luôn nằm trong danh sách dành riêng, kể cả khi không có cột `json` hay bảng không cột, để tên type không đổi khi schema đổi: type `Record` của người dùng sẽ che `Record<string, never>` mà bảng không cột dùng.
+- `renderJsonFieldTypeScript` trên `toJsonFieldType(column.type)` (Task 10): `smallint`, `int32`, `float`, `double` → `number`; `bigintString`, `decimalString`, `string`, `uuid`, `date`, `time`, `localDateTime`, `offsetDateTime`, `base64` → `string`; `boolean` → `boolean`; `json` → `JsonValue`; `enum` → tên type của enum (enum không tìm thấy → `string`); `unknown` → `unknown`. Cột `custom` thêm `custom-type-unmapped` tại `["columns", id, "type"]`. Cột nullable nối ` | null` (kể cả `unknown`, để quy tắc đồng nhất).
+- Output ghép bằng `renderFileContent`, mỗi phần tử một block:
+  1. Khi có ít nhất một cột kiểu `json`: `export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };`.
+  2. Mỗi enum theo `sortEnums`: `export type OrderStatus = "pending" | "đã giao";` (giá trị qua `JSON.stringify`, nối bằng ` | `); enum rỗng → `never`.
+  3. Mỗi bảng theo `sortTables`: JSDoc của comment bảng (`formatJsDocLines(comment, "")`), rồi `export type NguoiDung = {`, mỗi cột theo `columnIds` là JSDoc của comment cột (thụt hai khoảng) và dòng `  <formatPropertyKey(tên cột gốc)>: <kiểu>;`, rồi `};`. Bảng không có cột → `export type X = Record<string, never>;`.
+- Không có comment đầu file, option hay thời gian. Schema rỗng → `"\n"`.
+
+**Test viết trước:**
+
+- `names the file types.ts with language typescript`.
+- `maps every json field type to a typescript type` (`it.each` đủ 17 loại của `JsonFieldType`).
+- `declares JsonValue only when a json column exists`; `suffixes a table named JsonValue`; `suffixes a table named Record so an empty table still uses the global Record`.
+- `writes an enum as a union of escaped string literals`; `writes an empty enum as never`.
+- `writes properties in column order with original column names as keys` (gồm `họ tên` → `"họ tên"`, `USER_ID` trần, `__proto__` → `["__proto__"]`).
+- `appends | null to nullable columns`.
+- `writes unknown for a custom column and reports custom-type-unmapped`; `reports nothing for a schema without custom columns`.
+- `writes table and column comments as JSDoc and escapes a comment terminator`.
+- `names types with PascalCase and suffixes repeated names` (`order items`, `order_items` → `OrderItems`, `OrderItems2`).
+- `writes a table without columns as Record<string, never>`; `writes an empty schema as a single newline`; `returns the same content when map keys were inserted in a different order`.
+- Snapshot: `matches the snapshot for <fixture>` (bốn fixture), file `<fixture>.ts` và `.diagnostics.txt`.
+
+**Kiểm tra:** như mục "Quy ước chung", thêm lệnh `node` như Task 14 với `@schemaforge/core/generators/typescript` và `generateTypeScript(…, {})`, mong đợi `function types.ts`. Typecheck output do Task 30 viết; task sửa generator này sau khi Task 30 đã merge chạy cổng conformance với `src/typescript.test.ts`.
+
+**Commit:** `feat(core): add typescript types generator`
+
+## Task 20: CG-05 Zod schema
+
+**Mục tiêu:** `@schemaforge/core/generators/zod` export `generateZod`, in `schemas.ts` với cú pháp Zod 4, khớp biểu diễn JSON của Task 10 để seed JSON của cùng fixture parse được (spec CG-05, mục 3 "Biểu diễn JSON…", mục 4 cột Zod, mục 7 dòng "CG-05 đúng ngữ nghĩa").
+
+**Phụ thuộc:** Task 1, 4, 5, 10. **Đợt:** 4.
+
+**File sở hữu (tạo):** `packages/core/src/generators/zod/index.ts`, `generate-zod.ts`, `generate-zod.test.ts`; mọi file trong `packages/core/src/generators/__snapshots__/zod/`.
+
+**Chữ ký:**
+
+```ts
+export type ZodOptions = GeneratorOptions["zod"];
+export function generateZod(schema: SchemaDocument, options: ZodOptions): GenerateResult;
+// Không export qua index.ts:
+export function renderJsonFieldZod(fieldType: JsonFieldType, enumSchemaNames: ReadonlyMap<EnumId, string>): string;
+```
+
+`index.ts` chỉ export `generateZod` và type `ZodOptions`. `file` là `{ fileName: "schemas.ts", language: "typescript", content }`.
+
+**Hành vi:**
+
+- Tên biến: một allocator `comparison: "exact"`, `separator: ""`, `reserved: ["z"]`; enum theo `sortEnums` rồi bảng theo `sortTables`; ứng viên là `toCamelCaseIdentifier(name, "enum")` hoặc `toCamelCaseIdentifier(name, "table")` nối `"Schema"` (`order_status` → `orderStatusSchema`, `用户` → `tableSchema`).
+- `renderJsonFieldZod` trên `toJsonFieldType(column.type)`, đúng bảng spec mục 3:
+  - `smallint` → `z.int().min(${SMALLINT_MINIMUM}).max(${SMALLINT_MAXIMUM})`; `int32` → `z.int32()`; `float`, `double` → `z.number()`; `boolean` → `z.boolean()`.
+  - `bigintString` → `z.string().regex(new RegExp(${JSON.stringify(BIGINT_STRING_PATTERN)}))`; `decimalString` → cùng dạng với `decimalStringPattern(precision, scale)`. Pattern ghi qua `new RegExp(JSON.stringify(…))`, không ghi regex literal, để không phải escape `/`.
+  - `string` → `z.string().max(n)` khi có `maxLength`, `z.string()` khi không; `uuid` → `z.guid()`; `date` → `z.iso.date()`; `time` → `z.iso.time()`; `localDateTime` → `z.iso.datetime({ local: true })`; `offsetDateTime` → `z.iso.datetime({ offset: true })`; `json` → `z.json()`; `base64` → `z.base64()`.
+  - `enum` → biến schema của enum (enum không tìm thấy → `z.string()`); `unknown` → `z.unknown()` kèm `custom-type-unmapped` tại `["columns", id, "type"]`.
+  - Cột nullable nối `.nullable()`.
+- Output ghép bằng `renderFileContent`:
+  1. `import { z } from "zod";` (chỉ khi có ít nhất một enum hoặc bảng).
+  2. Mỗi enum một block: `export const orderStatusSchema = z.enum(["pending", "đã giao"]);` (giá trị qua `JSON.stringify`); enum rỗng → `z.never()`.
+  3. Mỗi bảng một block: JSDoc của comment bảng, `export const nguoiDungSchema = z.object({`, mỗi cột theo `columnIds` là JSDoc của comment cột và dòng `  <formatPropertyKey(tên cột gốc)>: <schema>,`, rồi `});`. Bảng không có cột → `z.object({})`.
+- Enum đứng trước bảng nên không có tham chiếu tới biến khai báo sau. Không export `z.infer`, không comment đầu file. Schema rỗng → `"\n"`.
+
+**Test viết trước:**
+
+- `names the file schemas.ts with language typescript`; `imports z from zod once`.
+- `maps every json field type to a zod 4 schema` (`it.each` đủ 17 loại).
+- `writes bigint and decimal patterns through new RegExp with a json string`; `writes the decimal pattern of decimalStringPattern for the column precision and scale`.
+- `writes an enum schema with escaped values before table schemas`; `writes an empty enum as z.never()`.
+- `writes object keys with original column names in column order` (gồm `__proto__` → `["__proto__"]`).
+- `appends .nullable() to nullable columns`.
+- `writes z.unknown() for a custom column and reports custom-type-unmapped`.
+- `writes comments as JSDoc and escapes a comment terminator`.
+- `suffixes repeated schema names with 2`; `names a table without latin letters tableSchema`.
+- `writes a table without columns as z.object({})`; `writes an empty schema as a single newline`; `returns the same content when map keys were inserted in a different order`.
+- Snapshot: `matches the snapshot for <fixture>` (bốn fixture), file `<fixture>.ts` và `.diagnostics.txt`.
+
+**Kiểm tra:** như mục "Quy ước chung", thêm lệnh `node` như Task 14 với `@schemaforge/core/generators/zod` và `generateZod(…, {})`, mong đợi `function schemas.ts`. Typecheck và parse seed JSON do Task 30 viết; task sửa generator Zod sau khi Task 30 đã merge chạy cổng conformance với `src/zod.test.ts`.
+
+**Commit:** `feat(core): add zod schema generator`
+
+## Task 21: CG-08 `SeedDataset`, PRNG và kiểm tra dữ liệu mẫu
+
+**Mục tiêu:** phần lõi của seed data dùng chung với AI-06: dựng `SeedDataset` xác định theo `seed`, kiểm tra một dataset bất kỳ theo schema (`validateSeedDataset`), và parse dữ liệu chưa biết thành `SeedDataset` (`parseSeedDataset`, Vấn đề 19) (spec CG-08 "Sinh giá trị xác định", mã `SeedIssue`, "Quan hệ với AI-06"; mục 3 "Biểu diễn JSON…"; mục 10 "Seed").
+
+**Phụ thuộc:** Task 2, 4, 9, 10, 11. **Đợt:** 4.
+
+**File sở hữu (tạo), mỗi file kèm `<name>.test.ts`:** `packages/core/src/generators/seed/seed-dataset.ts`, `seed-random.ts`, `seed-values.ts`, `build-seed-dataset.ts`, `validate-seed-dataset.ts`. Không tạo `seed/index.ts` (Task 22 tạo, để subpath chỉ xuất hiện khi đã có `generateSeed`).
+
+**Chữ ký và hành vi:**
+
+`seed-dataset.ts`:
+
+```ts
+export type SeedRow = Readonly<Partial<Record<ColumnId, JsonValue>>>; // thiếu khóa = giá trị mặc định của database
+export type SeedDataset = {
+  readonly tables: readonly { readonly tableId: TableId; readonly rows: readonly SeedRow[] }[]; // thứ tự nạp
+};
+export const SEED_ISSUE_CODES = ["seed-value-invalid", "seed-value-null", "seed-unique-violation",
+  "seed-foreign-key-missing", "seed-order-invalid"] as const;
+export type SeedIssueCode = (typeof SEED_ISSUE_CODES)[number];
+export type SeedIssue = { readonly code: SeedIssueCode; readonly path: DocumentPath };
+export const SEED_ROWS_PER_TABLE_MAXIMUM = 1000;
+export const SEED_DATASET_MAX_DEPTH = 64;
+export type SeedDatasetOptions = { readonly rowsPerTable: number; readonly seed: number };
+export function assertSeedDatasetOptions(options: SeedDatasetOptions): void;
+export function parseSeedDataset(input: unknown): Result<SeedDataset, readonly StructuralError[]>;
+```
+
+- `assertSeedDatasetOptions`: `rowsPerTable` là số nguyên từ 1 đến `SEED_ROWS_PER_TABLE_MAXIMUM`, `seed` là số nguyên từ 0 đến `0xffffffff`; sai thì throw `RangeError` (spec mục 1: option sai miền là lỗi lập trình).
+- `parseSeedDataset` (Vấn đề 19, cho frontend của AI-06), theo đúng thứ tự của `parseOperation` (`packages/core/src/parse/parse-operation.ts`): trước tiên quét độ sâu bằng stack tường minh (không đệ quy) trên input chưa biết, vì `z.json()` của Zod đệ quy theo độ sâu lồng và input lồng quá sâu làm tràn call stack thay vì trả lỗi. Hằng `SEED_DATASET_MAX_DEPTH = 64` (export trong `seed-dataset.ts`): gốc có độ sâu 0, mỗi mảng hoặc object lồng thêm một cấp (container sâu nhất của dataset do `buildSeedDataset` dựng là object `{ value: n }` của cột `json`, ở cấp 5); node vượt hằng → `err([{ code: "invalid-shape", path }])` với `path` của node vượt đầu tiên theo thứ tự đọc (đẩy con theo thứ tự ngược như `findTooDeepBatchPath`). Sau đó `z.strictObject({ tables: z.array(z.strictObject({ tableId: tableIdShape, rows: z.array(z.partialRecord(columnIdShape, z.json())).max(SEED_ROWS_PER_TABLE_MAXIMUM) })) })` dựng một lần ở cấp module (shape bất biến, như các shape của `src/model/`), `safeParse`; lỗi → `err(toStructuralErrors(error.issues))` (mã `invalid-shape`, đường dẫn theo input), thành công → `ok(dataset)`. Chỉ kiểm tra hình dạng; tableId, columnId có thật hay không, kiểu, nullable, unique, khóa ngoại là việc của `validateSeedDataset`. Kiểm tra trong typings Zod đã cài rằng `z.partialRecord` và `z.json()` cho kiểu gán được vào `SeedRow`; không gán được thì dừng và báo, không dùng `as`.
+
+`seed-random.ts` (không state cấp module):
+
+```ts
+export type SeedRandom = { readonly nextUint32: () => number; readonly nextInt: (maxExclusive: number) => number };
+export function createSeedRandom(state: number): SeedRandom;            // mulberry32, state trong closure
+export function createTableSeedRandom(seed: number, tableName: string): SeedRandom; // state = (seed ^ parseInt(fnv1a32Hex(tableName), 16)) >>> 0
+export function formatSeedDate(dayOffset: number): string;              // 0 → "2026-01-01", 364 → "2026-12-31"
+export function formatSeedTime(secondOfDay: number): string;            // 0 → "00:00:00", 86399 → "23:59:59"
+export function encodeBase64(bytes: readonly number[]): string;
+export function formatUuidV4(bytes: readonly number[]): string;         // 16 byte, đặt nibble phiên bản 4 và bit variant 10
+```
+
+- mulberry32: `state = (state + 0x6d2b79f5) | 0; t = Math.imul(state ^ (state >>> 15), state | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return (t ^ (t >>> 14)) >>> 0`. `nextInt(n)` là `nextUint32() % n` (`n` từ 1 trở lên, nếu không thì throw `RangeError`). `fnv1a32Hex` lấy từ Task 9.
+- `formatSeedDate` tính từ bảng số ngày mỗi tháng của năm 2026 (không nhuận), không dùng `Date` (spec: không đọc đồng hồ; `Date` bị cấm trong core). Ngoài 0–364 thì throw `RangeError`.
+- `encodeBase64` tự mã hóa theo bảng chữ cái chuẩn có `=` đệm (không `btoa`, không `Buffer`), kết quả khớp `BASE64_PATTERN`.
+
+`seed-values.ts`:
+
+```ts
+export const SEED_NULL_RATE_DENOMINATOR = 5; // cột nullable ngoài khóa nhận null khi nextInt(5) === 0
+export type SeedValue = { readonly kind: "value"; readonly value: JsonValue } | { readonly kind: "omit" } | { readonly kind: "none" };
+export function generateColumnValue(input: {
+  readonly column: Column; readonly enums: SchemaDocument["enums"]; readonly random: SeedRandom;
+  readonly sequence: number;            // bộ đếm riêng của cột, bắt đầu từ 1 (CG-08), tăng sau mỗi lần sinh (kể cả lần sinh lại)
+  readonly isKeyColumn: boolean;        // thuộc khóa chính, cột isUnique, index unique hoặc cặp cột quan hệ
+}): SeedValue;
+```
+
+- Thứ tự quyết định: kiểu `custom`, hoặc enum không tìm thấy hoặc rỗng → nullable: `value: null`; có giá trị mặc định: `omit`; còn lại `none` (bảng không sinh được). Cột nullable với `isKeyColumn` sai và `nextInt(SEED_NULL_RATE_DENOMINATOR) === 0` → `null`. Cột thuộc khóa không bao giờ nhận `null` ở bước này.
+- Theo `toJsonFieldType`: `isAutoIncrement` hoặc cột số nguyên thuộc khóa chính (`smallint`, `integer`, `bigint`) → `sequence` (`bigint` là chuỗi); `smallint` → `nextInt(65536) − 32768`; `int32` → `nextUint32() | 0`; `bigintString` → `String(nextUint32())`; `decimalString` → phần nguyên `nextInt(10^min(p − s, 9))` (bằng `"0"` khi `p − s ≤ 0`), phần lẻ gồm `s` chữ số `nextInt(10)`, nối bằng `.` khi `s > 0`; `float`, `double` → `nextInt(1_000_000) / 100`; `boolean` → `nextInt(2) === 1`; `string` → `<từ ASCII của tên cột nối bằng _, chữ thường, rỗng thì value>_<sequence>`, quá `maxLength` thì giữ `maxLength` ký tự **cuối** (giữ số thứ tự để vẫn khác nhau); `uuid` → `formatUuidV4` của 16 byte `nextInt(256)`; `date` → `formatSeedDate(nextInt(365))`; `time` → `formatSeedTime(nextInt(86400))`; `localDateTime` → ngày, `T`, giờ; `offsetDateTime` → như trên nối `Z`; `json` → `{ value: nextInt(1000) }` dựng bằng `Object.fromEntries`; `base64` → `encodeBase64` của 4 byte; `enum` → `values[nextInt(values.length)]`.
+- Mọi giá trị sinh ra qua `isValidJsonValue` (Task 10); test kiểm tra điều này cho mọi kiểu.
+
+`build-seed-dataset.ts`:
+
+```ts
+export const SEED_MAX_ROW_ATTEMPTS = 20;
+export function buildSeedDataset(schema: SchemaDocument, options: SeedDatasetOptions):
+  { readonly dataset: SeedDataset; readonly diagnostics: readonly GeneratorDiagnostic[] };
+```
+
+1. `assertSeedDatasetOptions(options)`. `loadOrder = buildLoadOrder(schema)` (Task 11).
+2. Bảng không sinh được: bảng có cột cho `none` (kiểm tra trước bằng thuộc tính cột, không cần PRNG), cộng `loadOrder.skippedTableIds`, rồi `propagateSkippedTables(schema, …)`. Mỗi bảng bị bỏ một `seed-table-skipped` tại `["tables", id]`; bảng bị bỏ không có trong `dataset.tables`.
+3. Bảng còn lại theo `loadOrder.tableIds`, mỗi bảng một `createTableSeedRandom(options.seed, table.name)` và bộ đếm `sequence` riêng mỗi cột, bắt đầu từ 1 (spec CG-08: khóa chính và cột auto-increment đánh số từ 1): lần sinh đầu tiên của cột dùng `1` (khóa `1`, chuỗi `<tên>_1`). Bảng không có cột có `rows: []`, không diagnostic (schema đã có issue `table-columns-empty`).
+4. Mỗi dòng: cột theo `columnIds`. Cột nguồn của quan hệ (mọi quan hệ có `fromTableId` là bảng này) được gán theo quan hệ, sau khi các cột khác của dòng đã sinh. Duyệt các quan hệ không hoãn theo `sortRelations`; một cột nguồn có thể thuộc nhiều quan hệ (schema đa tenant: `orders.tenant_id → tenants.id` cùng `(tenant_id, user_id) → users(tenant_id, id)`), nên quan hệ gán trước đặt giá trị của cột chung và quan hệ sau phải khớp với nó:
+   - **Ứng viên** của một quan hệ: các dòng của bảng đích có đủ mọi giá trị `toColumnId` khác `null`, và với mỗi cặp cột mà cột nguồn đã được một quan hệ trước đó gán trong cùng dòng, giá trị `toColumnId` bằng giá trị đã gán (so bằng `JSON.stringify`); `oneToOne` chỉ giữ các dòng chưa được chọn.
+   - **Quy tắc null** khi không còn ứng viên: gán `null` cho các cột nguồn chưa gán chỉ khi mọi cột nguồn chưa gán của quan hệ đều nullable và quan hệ không có cột nguồn nào đã được gán; nếu không thì dòng thất bại (bước 5 sinh lại).
+   - Quan hệ không tự tham chiếu: chọn `nextInt(số ứng viên)` trong các ứng viên, sao giá trị `toColumnId` vào các cột nguồn chưa gán.
+   - Tự tham chiếu: ứng viên duy nhất là dòng `r − 1` (dòng đầu không có), áp điều kiện khớp như trên; không có ứng viên thì áp quy tắc null; quy tắc null không cho thì trỏ tới chính dòng đó khi mọi `toColumnId` của chính dòng đã có giá trị khác `null` và khớp các cột đã gán, nếu không thì dòng thất bại.
+   - Quan hệ hoãn (`loadOrder.deferredRelationIds`): không duyệt ở bước này; sau khi duyệt xong, cột nguồn của chúng chưa được quan hệ nào gán nhận `null`, gán lại ở bước 6.
+5. Unique: khóa chính, mỗi cột `isUnique`, mỗi index unique; giá trị khóa so bằng `JSON.stringify` của mảng giá trị theo thứ tự cột của khóa; khóa có giá trị `null` hoặc thiếu không tính. Dòng trùng hoặc thất bại ở bước 4 được sinh lại (cùng PRNG, `sequence` tiếp tục tăng) tối đa `SEED_MAX_ROW_ATTEMPTS` lần; hết lượt thì dừng sinh bảng đó và thêm `seed-rows-reduced` tại `["tables", id]` (bảng giữ các dòng đã có). Dừng thay vì thử dòng sau vì dòng sau gặp cùng giới hạn (cột `boolean` unique, enum ít giá trị); quyết định ở Vấn đề 20.
+6. Quan hệ hoãn theo `sortRelations`: bảng nguồn có khóa chính → mỗi dòng chọn một dòng của bảng đích bằng PRNG của bảng nguồn (tiếp tục state), theo đúng quy tắc ứng viên và quy tắc null của bước 4, trong đó "đã gán" gồm cột do quan hệ không hoãn gán ở bước 4 và cột do quan hệ hoãn đứng trước gán ở bước này. Bước này không sinh lại dòng (dòng đã được bảng khác tham chiếu): khi quy tắc null không cho, các cột nguồn chưa gán của quan hệ giữ `null` (hợp lệ vì mọi cột nguồn của quan hệ hoãn nullable, và khóa ngoại có cột `null` không được kiểm tra). Bảng nguồn không có khóa chính → giữ `null` (không có cách `UPDATE` đúng dòng).
+7. Dòng dựng bằng `Object.fromEntries` (khóa là `ColumnId`), không chứa khóa của cột `omit`. Diagnostic qua `finalizeDiagnostics`.
+
+`validate-seed-dataset.ts`:
+
+```ts
+export function validateSeedDataset(schema: SchemaDocument, dataset: SeedDataset): readonly SeedIssue[];
+export function findDeferredSeedRelations(schema: SchemaDocument, dataset: SeedDataset): readonly RelationId[];
+```
+
+- Không throw với mọi dataset đúng kiểu, kể cả tableId, columnId không có trong schema, bảng lặp, dòng rỗng. Duyệt bằng chỉ số và tra cứu qua `schema.tables[id]` có kiểm tra `undefined`; không dùng `Object.keys` của dòng cho thứ tự (duyệt `columnIds` của bảng rồi mới duyệt khóa lạ theo thứ tự `<`).
+- Đường dẫn `["tables", i, "rows", j, columnId]` (`i`, `j` là chỉ số trong dataset). Kết quả qua `sortByPathThenCode`.
+- `tableId` không có trong schema → `seed-value-invalid` tại `["tables", i, "tableId"]`; bảng xuất hiện lần thứ hai → `seed-order-invalid` tại `["tables", i, "tableId"]`.
+- Khóa của dòng không phải cột của bảng → `seed-value-invalid`. Giá trị `null` ở cột không nullable, hoặc thiếu khóa ở cột không nullable, không auto-increment và không có giá trị mặc định → `seed-value-null`. Giá trị khác `null` mà `isValidJsonValue` trả `false` → `seed-value-invalid`.
+- Unique như bước 5 ở trên: dòng sau của cặp trùng → `seed-unique-violation` tại cột đầu tiên của khóa.
+- Khóa ngoại, theo `sortRelations` với `fromTableId` là bảng của dòng, khi mọi cột nguồn có giá trị khác `null`: bảng đích không có trong dataset hoặc không có dòng khớp mọi `toColumnId` → `seed-foreign-key-missing` tại cột nguồn đầu tiên. Bảng đích nạp sau bảng nguồn: hợp lệ chỉ khi mọi cột nguồn nullable và bảng nguồn có khóa chính (dữ liệu được chèn `NULL` trước rồi `UPDATE`), nếu không → `seed-order-invalid`. Tự tham chiếu tới dòng đứng sau → `seed-order-invalid`; tới chính dòng đó hợp lệ.
+- `findDeferredSeedRelations` (Task 22 dùng): quan hệ không tự tham chiếu có bảng đích nạp sau bảng nguồn trong `dataset.tables`, theo `sortRelations`. Với dataset của `buildSeedDataset`, tập này là `loadOrder.deferredRelationIds` không gồm quan hệ chạm bảng bị bỏ.
+
+**Test viết trước:**
+
+- `seed-dataset.test.ts`: `accepts rows per table from 1 to 1000 and seeds from 0 to 2^32 - 1`; `throws RangeError for rows per table 0, 1001 or 1.5` (`it.each`); `throws RangeError for a negative or fractional seed` (`it.each`); `parses a valid dataset`; `rejects a dataset with an unknown key, a bad table id or a non-json value with invalid-shape errors at their paths` (`it.each`); `parses rows that omit columns`; `parses a row keyed by a column id that the schema does not have` (hình dạng đúng; `validateSeedDataset` mới báo); `rejects a table with more than 1000 rows with invalid-shape`; `returns invalid-shape instead of throwing for deeply nested values` (một giá trị cột lồng 100 000 mảng, dựng bằng `JSON.parse("[".repeat(100_000) + "]".repeat(100_000))` để test không có vòng lặp, kết quả `err` với `path` bắt đầu bằng `["tables", 0, "rows", 0, <columnId>]`); `accepts a json value nested up to the depth limit` (container sâu nhất ở đúng cấp `SEED_DATASET_MAX_DEPTH`).
+- `seed-random.test.ts`: `returns the same sequence for the same state`; `returns different sequences for different table names`; `matches the first mulberry32 outputs for state 1` (giá trị mong đợi tính một lần bằng một script ngoài core, ghi cứng); `throws RangeError for nextInt of 0`; `formats day offsets 0, 31, 58 and 364 as 2026 dates` (`it.each`); `formats seconds of day as times`; `encodes bytes as base64 with padding` (`it.each`: 0, 1, 2, 3, 4 byte, so với vector RFC 4648 `""`, `Zg==`, `Zm8=`, `Zm9v`, `Zm9vYg==`); `formats a version 4 uuid with the variant bits`.
+- `seed-values.test.ts`: `generates a value accepted by isValidJsonValue for every column type` (`it.each` 18 kiểu không custom); `numbers auto-increment and integer primary key columns by sequence starting at 1`; `keeps the sequence suffix when truncating a string to its max length`; `returns null for a nullable custom column`; `omits a custom column with a default`; `returns none for a required custom column without a default`; `never returns null for a key column`; `returns null for a nullable column at the fixed rate` (đếm trên 1000 lần gọi với seed cố định, kỳ vọng số null cố định).
+- `build-seed-dataset.test.ts`: `returns the same dataset for the same seed`; `returns different values for a different seed`; `keeps the rows of other tables when a table is added`; `orders tables so referenced tables come first`; `points a self-reference to the previous row and the first row to null`; `points the first row of a required self-reference to itself`; `picks distinct parent rows for one-to-one relations and reduces rows when parents run out`; `picks a parent row that agrees with a column shared by two relations` (schema dựng bằng factory: `tenants(id)`, `users(tenant_id, id)` có khóa chính hoặc index unique `(tenant_id, id)` và `tenant_id → tenants.id`, `orders(tenant_id, user_id)` với `tenant_id → tenants.id` và `(tenant_id, user_id) → users(tenant_id, id)`, mọi cột bắt buộc; `rowsPerTable` từ 5 trở lên; khẳng định `validateSeedDataset(schema, dataset)` trả mảng rỗng và `orders` đủ số dòng); `defers a nullable relation in a cycle and fills it after every table`; `keeps a deferred value null when the source table has no primary key`; `skips the tables of a required cycle and their dependants and reports seed-table-skipped`; `skips a table with a required custom column and its dependants`; `reduces rows for a unique boolean column and reports seed-rows-reduced`; `omits columns whose value is left to the database default`; `passes validateSeedDataset for every fixture` (`it.each` `sample`, `naming-edge`, `target-limit`, `createLargeSchema({ tableCount: 20 })`); `throws RangeError for invalid options`.
+- `validate-seed-dataset.test.ts`: một test cho mỗi mã và mỗi nhánh: `reports seed-value-invalid for a value of the wrong representation` (`it.each`), `reports seed-value-invalid for an unknown table and an unknown column`, `reports seed-value-null for null and for a missing required column without default`, `accepts a missing column that has a default or auto-increment`, `reports seed-unique-violation on the later row`, `ignores null in unique keys`, `reports seed-foreign-key-missing for a missing parent row and for a parent table absent from the dataset`, `reports seed-order-invalid for a reference to a later table through a required column`, `accepts a reference to a later table through nullable columns of a table with a primary key`, `reports seed-order-invalid for a later table referenced from a table without a primary key`, `reports seed-order-invalid for a repeated table and for a self-reference to a later row`, `accepts a self-reference to the same row`, `returns issues sorted by path then code`, `does not throw for a dataset that mentions nothing in the schema`; `findDeferredSeedRelations`: `returns relations whose target table is loaded later`, `ignores self-references`.
+
+**Kiểm tra:** như mục "Quy ước chung".
+
+**Commit:** `feat(core): add seed dataset builder and validation`
+
+## Task 22: CG-08 xuất seed data và `generateSeed`
+
+**Mục tiêu:** `@schemaforge/core/generators/seed` export `generateSeed` cùng các hàm dùng chung với AI-06; `serializeSeedDataset` xuất một `SeedDataset` bất kỳ thành `seed.sql` cho ba dialect hoặc `seed.json`; entry point chính export type `SeedDataset` (spec CG-08 "Xuất", mục 1 "Nơi đặt và entry point"; Vấn đề 19).
+
+**Phụ thuộc:** Task 1, 4, 5, 7, 11 (`orderColumnPairsByReferencedKey`), 12 (`allocateMysqlNames`), 21. **Đợt:** 6.
+
+**File sở hữu:** tạo `packages/core/src/generators/seed/index.ts`, `serialize-seed-dataset.ts`, `serialize-seed-dataset.test.ts`, `seed-sql-values.ts`, `seed-sql-values.test.ts`, `generate-seed.ts`, `generate-seed.test.ts`, mọi file trong `packages/core/src/generators/__snapshots__/seed/`; sửa `packages/core/src/index.ts` (chỉ thêm một dòng `export type { SeedDataset } from "./generators/seed/seed-dataset.js";`, không sửa `index.test.ts` vì danh sách giá trị lúc chạy không đổi).
+
+**Chữ ký:**
+
+```ts
+export type SeedOptions = GeneratorOptions["seed"];
+export function generateSeed(schema: SchemaDocument, options: SeedOptions): GenerateResult;
+export function serializeSeedDataset(schema: SchemaDocument, dataset: SeedDataset, format: SqlDialect | "json"): GeneratedFile;
+// Không export qua index.ts:
+export function formatSeedSqlValue(dialect: SqlDialect, column: Column, value: JsonValue | undefined,
+  enums: SchemaDocument["enums"]): string;
+```
+
+`seed/index.ts` export: hàm `generateSeed`, `buildSeedDataset`, `validateSeedDataset`, `serializeSeedDataset`, `parseSeedDataset` (Vấn đề 19); type `SeedOptions`, `SeedDataset`, `SeedRow`, `SeedIssue`, `SeedIssueCode`, `SeedDatasetOptions`. Không export `SEED_ISSUE_CODES` hay hàm nội bộ khác (Vấn đề 11).
+
+**`generateSeed`:** `format` ngoài bốn giá trị thì throw `RangeError`; `buildSeedDataset(schema, { rowsPerTable, seed })` (option sai miền throw ở Task 21); `file` là `serializeSeedDataset(schema, dataset, format)`; `diagnostics` là diagnostic của `buildSeedDataset`.
+
+**`formatSeedSqlValue`** (`seed-sql-values.ts`), dùng chung hàm literal của Task 7 như giá trị mặc định:
+
+- `undefined` (khóa thiếu) → `DEFAULT`. `null`, hoặc giá trị mà `isValidJsonValue(column.type, value, enums)` trả `false` → `NULL` (dataset đã qua `validateSeedDataset` thì không gặp; giữ output an toàn với dataset bất kỳ).
+- `smallint`, `integer`, `real`, `double` → `String(value)`; `boolean` → `formatSqlLiteral(dialect, column.type, value ? "true" : "false")`; `json` → `formatSqlLiteral(dialect, column.type, JSON.stringify(value))`; `binary` (chuỗi base64 đã khớp `BASE64_PATTERN`, chỉ gồm `A-Za-z0-9+/=`) → PostgreSQL `decode('<b64>', 'base64')`, MySQL `FROM_BASE64('<b64>')`, SQL Server `CAST(N'' AS XML).value('xs:base64Binary("<b64>")', 'varbinary(max)')`; `custom` → `formatSqlLiteral` của chuỗi (giá trị chuỗi giữ nguyên, giá trị khác qua `JSON.stringify`); mọi kiểu còn lại → `formatSqlLiteral(dialect, column.type, value)` (giây lẻ được cắt như CG-01). PostgreSQL: chuỗi qua `removeNullCharacters` trước (seed không có diagnostic riêng; dữ liệu của `buildSeedDataset` không có U+0000).
+
+**`serializeSeedDataset`, định dạng `json`:** `{ fileName: "seed.json", language: "json" }`, nội dung `JSON.stringify(mảng, null, 2)` cộng `\n`. Mảng theo thứ tự `dataset.tables`, mỗi phần tử `{ "table": <tên bảng>, "rows": [...] }`; mỗi dòng là object dựng bằng `Object.fromEntries`, key là tên cột gốc, theo `columnIds`, chỉ cột có khóa trong dòng (giá trị giữ nguyên, kể cả quan hệ hoãn: JSON ghi giá trị cuối). Bảng hoặc cột không có trong schema bị bỏ qua.
+
+**Định dạng SQL:** `{ fileName: "seed.sql", language: "sql" }`, ghép bằng `renderFileContent`, mỗi bảng có dòng một block theo thứ tự `dataset.tables`, rồi một block `UPDATE`:
+
+- Danh sách cột của bảng: cột theo `columnIds` xuất hiện trong ít nhất một dòng; tên quote bằng `quoteSqlIdentifier`, MySQL dùng tên của `allocateMysqlNames` (cùng tên với DDL). **Cột chỉ thuộc quan hệ hoãn** là cột nguồn của một quan hệ trong `findDeferredSeedRelations(schema, dataset)` mà không là cột nguồn của quan hệ nào khác có cùng `fromTableId` ngoài tập đó (kể cả tự tham chiếu). Chỉ các cột này ghi `NULL` trong `INSERT`; cột dùng chung với quan hệ không hoãn (ví dụ `tenant_id`) giữ giá trị của dòng, vì dòng cha của quan hệ không hoãn đã được nạp trước. Nhờ vậy `seed.sql` và `seed.json` luôn khớp, kể cả khi `UPDATE` của dòng bị bỏ.
+- `INSERT INTO <bảng> (<cột>) VALUES` rồi mỗi dòng `  (<giá trị>),` trên một dòng, dòng cuối kết thúc `;`. Tối đa 1000 dòng mỗi câu (giới hạn danh sách `VALUES` của SQL Server, áp cho mọi dialect); nhiều hơn thì thêm câu mới.
+- Bảng có dòng nhưng danh sách cột rỗng: mỗi dòng một câu `INSERT INTO <bảng> DEFAULT VALUES;` (PostgreSQL, SQL Server) hoặc `` INSERT INTO `t` () VALUES (); `` (MySQL). Bảng có `rows` rỗng không có câu lệnh.
+- SQL Server: bảng có cột `isAutoIncrement` trong danh sách cột thì bọc bằng `SET IDENTITY_INSERT <bảng> ON;` và `SET IDENTITY_INSERT <bảng> OFF;`.
+- PostgreSQL: sau `INSERT`, mỗi cột `isAutoIncrement` trong danh sách cột một câu `SELECT setval(pg_get_serial_sequence(<sqlStringLiteral(quoteSqlIdentifier(tên bảng))>, <sqlStringLiteral(tên cột)>), (SELECT max(<cột>) FROM <bảng>));` (tham số đầu là tên bảng có quote vì hàm phân tích nó như định danh SQL; tham số hai là tên cột trần). MySQL không cần câu nào thêm.
+- Block cuối: với mỗi quan hệ của `findDeferredSeedRelations` và mỗi dòng của bảng nguồn có mọi cột nguồn khác `null` và mọi cột khóa chính có giá trị: `UPDATE <bảng> SET <cột> = <giá trị>[, …] WHERE <cột khóa> = <giá trị> [AND …];`, `SET` chỉ gồm các cột chỉ thuộc quan hệ hoãn của quan hệ đó (theo `orderColumnPairsByReferencedKey`; cột dùng chung đã có giá trị từ `INSERT` nên không ghi lại), cột khóa theo `primaryKeyColumnIds`. Quan hệ không có cột chỉ thuộc quan hệ hoãn nào thì không có `UPDATE`. Bảng nguồn không có khóa chính bị bỏ qua.
+- Dataset rỗng → `"\n"`. Không có `BEGIN`, `COMMIT`, comment hay thời gian.
+
+**Test viết trước:**
+
+- `seed-sql-values.test.ts`: `writes DEFAULT for a missing key and NULL for null`; `writes NULL for a value of the wrong representation`; `formats values by column type for each dialect` (`it.each`: số, `bigint`, `decimal`, `boolean`, chuỗi có `'` và `\`, `uuid`, `date`, `timestamptz`, `json`, enum); `decodes base64 binary values for each dialect` (`it.each`); `truncates fractional seconds like the ddl defaults` (SQL Server 7, MySQL 6); `removes a null character from a PostgreSQL string`.
+- `serialize-seed-dataset.test.ts`: `writes seed.json as an array of tables with original column names in column order`; `keeps a __proto__ column as an own property in json`; `writes one INSERT per table in dataset order`; `lists only columns present in some row and writes DEFAULT for missing keys`; `splits more than 1000 rows into several INSERT statements`; `writes DEFAULT VALUES for rows without columns`; `wraps identity inserts in SET IDENTITY_INSERT on sqlserver`; `resets identity sequences with setval on postgresql`; `writes NULL for deferred relation columns and UPDATE statements at the end`; `keeps a column shared with a non-deferred relation in the insert` (cột `tenant_id` là cột nguồn của một quan hệ hoãn và một quan hệ không hoãn: `INSERT` ghi giá trị của dòng, `UPDATE` của quan hệ hoãn không có `tenant_id` trong `SET`); `skips UPDATE for a source table without a primary key`; `uses renamed mysql column names`; `ignores tables and columns missing from the schema`; `writes an empty dataset as a single newline`.
+- `generate-seed.test.ts`: `names the file by format` (`it.each`: `seed.sql`, `seed.json`); `returns the diagnostics of buildSeedDataset`; `returns the same content for the same seed`; `throws RangeError for an unknown format`; `throws RangeError for rows per table outside 1 to 1000`.
+- Snapshot: `matches the snapshot for <fixture> as <format>` (`it.each` bốn fixture × `postgresql`, `mysql`, `sqlserver`, `json`, với `rowsPerTable: 3`, `seed: 1`), file `<fixture>.<format>.sql` hoặc `<fixture>.json.json` và `<fixture>.<format>.diagnostics.txt`.
+
+**Kiểm tra:** như mục "Quy ước chung", thêm:
+
+```bash
+pnpm --filter @schemaforge/backend exec node --input-type=module -e 'const seed = await import("@schemaforge/core/generators/seed"); const testing = await import("@schemaforge/core/testing"); console.log(typeof seed.generateSeed, typeof seed.parseSeedDataset, seed.generateSeed(testing.createSampleSchema(), { format: "json", rowsPerTable: 2, seed: 1 }).file.fileName)'
+pnpm --filter @schemaforge/backend typecheck
+pnpm --filter @schemaforge/frontend typecheck
+```
+
+Mong đợi: in `function function seed.json`; hai lệnh typecheck thoát mã 0 (`src/index.ts` đổi). Seed SQL chạy trên database thật và seed JSON parse bằng schema Zod do Task 29, 30 viết; task sửa phần seed sau khi hai task đó đã merge chạy cổng conformance với `src/seed-sql.test.ts` và `src/zod.test.ts`.
+
+**Commit:** `feat(core): add seed data serialization and generator`
+
+## Task 23: CG-06 Mock API (handler MSW 2)
+
+**Mục tiêu:** `@schemaforge/core/generators/mock-api` export `generateMockApi`, in một file `handlers.ts` gồm dữ liệu trong bộ nhớ lấy từ seed và mảng `handlers` của MSW 2, với đường dẫn trùng OpenAPI (spec CG-06, mục 4 cột Mock API, mục 5 bảng không gian tên; Vấn đề 5, 15).
+
+**Phụ thuộc:** Task 1, 4, 5, 10, 21. **Đợt:** 6.
+
+**File sở hữu (tạo):** `packages/core/src/generators/mock-api/index.ts`, `generate-mock-api.ts`, `generate-mock-api.test.ts`, `render-js-value.ts`, `render-js-value.test.ts`, `mock-api-handlers.ts`, `mock-api-handlers.test.ts`; mọi file trong `packages/core/src/generators/__snapshots__/mock-api/`.
+
+**Chữ ký:**
+
+```ts
+export type MockApiOptions = GeneratorOptions["mock-api"];
+export function generateMockApi(schema: SchemaDocument, options: MockApiOptions): GenerateResult;
+// Không export qua index.ts:
+export const MOCK_ROWS_PER_TABLE = 5;
+export const MOCK_SEED = 1;
+export function renderJsValue(value: JsonValue): string;
+export function renderResourceHandlers(input: {
+  readonly resource: RestResource; readonly rowsVariable: string; readonly keyColumnNames: readonly string[];
+}): readonly string[]; // các dòng phần tử của mảng handlers cho một tài nguyên
+```
+
+`index.ts` chỉ export `generateMockApi` và type `MockApiOptions`. `file` là `{ fileName: "handlers.ts", language: "typescript", content }`. Import `buildSeedDataset` từ `../seed/build-seed-dataset.js` (ngoại lệ duy nhất cho import giữa hai đích, spec CG-06).
+
+**Hành vi:**
+
+- Dữ liệu: `buildSeedDataset(schema, { rowsPerTable: MOCK_ROWS_PER_TABLE, seed: MOCK_SEED })`; diagnostic của seed được chuyển tiếp. Cột `custom` thêm `custom-type-unmapped` tại `["columns", id, "type"]` (giá trị vẫn theo seed). Bảng không có khóa chính thêm `table-without-identifier` tại `["tables", id]`. Gộp bằng `finalizeDiagnostics`.
+- Tên: `buildRestApiNames(schema)` (Task 10) cho đường dẫn và tên tham số; biến dữ liệu của mỗi bảng là `rows` nối `typeName` (`rowsNguoiDung`), không trùng vì `typeName` đã không trùng. Đường dẫn bằng `formatMswPath`, ghi qua `JSON.stringify`.
+- `renderJsValue` ghi giá trị JSON thành biểu thức JavaScript: `null`, boolean, số, chuỗi qua `JSON.stringify`; mảng `[a, b]`; object `{ <formatPropertyKey(key)>: <giá trị>, … }` theo thứ tự `Object.entries` (khóa `__proto__` thành `["__proto__"]`, Vấn đề 5); object rỗng `{}`. Không dùng `JSON.stringify` cho object vì khóa `"__proto__"` trong object literal đặt prototype.
+- Mỗi dòng dữ liệu: object literal một dòng, key là `formatPropertyKey(tên cột gốc)` theo `columnIds`, chỉ cột có trong dòng, giá trị qua `renderJsValue`. Bảng bị seed bỏ có mảng rỗng.
+- Output ghép bằng `renderFileContent`:
+  1. Comment đầu file, cố định, tiếng Anh (comment trong code), dạng `//`: dòng 1 `Mock REST API handlers for MSW 2 (npm install msw@^2).`; dòng 2 `Browser: run npx msw init <public dir>, then setupWorker(...handlers).start().`; dòng 3 `Node: setupServer(...handlers).listen() from msw/node.` (Vấn đề 15: ghi rõ MSW 2).
+  2. Khi có ít nhất một bảng: `import { http, HttpResponse } from "msw";`.
+  3. Helper, chỉ khi có bảng: `type Row = Record<string, unknown>;`, `function isRow(value: unknown): value is Row` (object khác `null`, không phải mảng), và khi có bảng có khóa chính `function hasKey(row: Row, columns: readonly string[], values: readonly unknown[]): boolean` (so `String(row[column]) === String(values[index])` cho mọi cột).
+  4. Mỗi bảng theo `sortTables` một block `const rowsX: Row[] = [` … `];`.
+  5. `export const handlers = [` các dòng của `renderResourceHandlers` theo thứ tự `resources` `];`.
+- `renderResourceHandlers`, đường dẫn danh sách `C`, đường dẫn dòng `I`, mảng tên cột khóa `K` (tên gốc theo `primaryKeyColumnIds`, qua `JSON.stringify`), mảng giá trị tham số `P` (`params[<JSON.stringify(tên tham số)>]` theo thứ tự khóa):
+  - `http.get(C, () => HttpResponse.json(rowsX))`.
+  - `http.post(C, async ({ request }) => { … })`: `const body: unknown = await request.json().catch(() => null)`; không phải `isRow` → `new HttpResponse(null, { status: 400 })`; bảng có khóa chính và `rowsX.some((row) => hasKey(row, K, K.map((column) => body[column])))` → status 409; nếu không thì `rowsX.push(body)` và `HttpResponse.json(body, { status: 201 })`.
+  - Chỉ bảng có khóa chính: `http.get(I, …)` trả dòng đầu tiên thỏa `hasKey(row, K, P)` hoặc 404; `http.put(I, async ({ request, params }) => …)`: body không phải `isRow` → 400, không có dòng → 404, nếu không thì dòng mới là `{ ...body }` với các cột khóa lấy lại từ dòng cũ (giữ kiểu số của khóa), thay vào vị trí cũ, trả `HttpResponse.json(dòng mới)`; `http.delete(I, …)`: không có dòng → 404, nếu không `splice` rồi trả status 204.
+- Không mô phỏng kiểm tra kiểu, khóa ngoại, unique ngoài khóa chính, lọc, phân trang hay tự sinh khóa (spec CG-06). Schema rỗng: chỉ comment đầu file và `export const handlers = [];`. Không có thời gian.
+
+**Test viết trước:**
+
+- `render-js-value.test.ts`: `renders primitives with JSON.stringify` (`it.each`); `renders arrays and nested objects`; `renders a __proto__ key as a computed key`; `quotes keys that are not identifiers`; `renders an empty object`.
+- `mock-api-handlers.test.ts`: `writes list, create, get, replace and delete handlers for a table with a primary key`; `writes only list and create handlers for a table without a primary key`; `uses colon parameters in primary key order for a composite key`; `returns 400 for a body that is not an object and 409 for an existing key` (kiểm tra đoạn code sinh ra); `keeps key values from the stored row on replace`.
+- `generate-mock-api.test.ts`: `names the file handlers.ts with language typescript`; `starts with the MSW 2 usage comment`; `imports http and HttpResponse from msw`; `fills each table with five seed rows`; `matches the rows of buildSeedDataset with seed 1` (so giá trị của một bảng với `buildSeedDataset`); `writes original column names as keys`; `forwards seed diagnostics`; `reports table-without-identifier for a table without a primary key`; `reports custom-type-unmapped for a custom column`; `matches every handler path with */api`; `writes an empty schema as the comment and an empty handlers array`; `returns the same content when map keys were inserted in a different order`.
+- Snapshot: `matches the snapshot for <fixture>` (bốn fixture), file `<fixture>.ts` và `.diagnostics.txt`.
+
+**Kiểm tra:** như mục "Quy ước chung", thêm lệnh `node` như Task 14 với `@schemaforge/core/generators/mock-api` và `generateMockApi(…, {})`, mong đợi `function handlers.ts`. Typecheck và gọi route bằng `msw/node` do Task 31 viết; task sửa generator này sau khi Task 31 đã merge chạy cổng conformance với `src/mock-api.test.ts`.
+
+**Commit:** `feat(core): add msw mock api generator`
+
+## Task 24: CG-07 OpenAPI 3.1
+
+**Mục tiêu:** `@schemaforge/core/generators/openapi` export `generateOpenApi`, in `openapi.json` (OpenAPI 3.1.1) với component cho từng enum, bảng và đường dẫn CRUD trùng Mock API (spec CG-07, mục 3 cột OpenAPI 3.1, mục 4 cột OpenAPI).
+
+**Phụ thuộc:** Task 1, 4, 5, 10. **Đợt:** 4.
+
+**File sở hữu (tạo):** `packages/core/src/generators/openapi/index.ts`, `generate-openapi.ts`, `generate-openapi.test.ts`, `openapi-schemas.ts`, `openapi-schemas.test.ts`, `openapi-paths.ts`, `openapi-paths.test.ts`; mọi file trong `packages/core/src/generators/__snapshots__/openapi/`.
+
+**Chữ ký:**
+
+```ts
+export type OpenApiOptions = GeneratorOptions["openapi"];
+export function generateOpenApi(schema: SchemaDocument, options: OpenApiOptions): GenerateResult;
+// Không export qua index.ts:
+export function buildPropertySchema(column: Column, enumTypeNames: ReadonlyMap<EnumId, string>): JsonValue;
+export function buildPathItems(resource: RestResource, schema: SchemaDocument, enumTypeNames: ReadonlyMap<EnumId, string>):
+  readonly (readonly [string, JsonValue])[]; // cặp [đường dẫn, path item]
+```
+
+`index.ts` chỉ export `generateOpenApi` và type `OpenApiOptions`. `file` là `{ fileName: "openapi.json", language: "json", content: JSON.stringify(document, null, 2) + "\n" }`. Mọi object có khóa từ tên người dùng (`paths`, `schemas`, `properties`) dựng bằng `Object.fromEntries`.
+
+**Tài liệu**, khóa theo đúng thứ tự: `openapi: "3.1.1"`; `info: { title: <tên schema>, version: "1.0.0" }`; `servers: [{ url: "/api" }]`; `paths`; `components: { schemas }`.
+
+**`components.schemas`**, tên từ `buildRestApiNames` (enum trước bảng):
+
+- Enum: `{ type: "string", enum: [giá trị theo thứ tự] }`.
+- Bảng: `{ type: "object", description?: comment bảng (chỉ khi khác rỗng), properties, required: [mọi tên cột gốc theo columnIds] }`.
+- `buildPropertySchema` theo `toJsonFieldType`, đúng bảng spec mục 3: `smallint` → `{ type: "integer", minimum: SMALLINT_MINIMUM, maximum: SMALLINT_MAXIMUM }`; `int32` → `{ type: "integer", format: "int32" }`; `bigintString` → `{ type: "string", pattern: BIGINT_STRING_PATTERN }`; `decimalString` → `{ type: "string", pattern: decimalStringPattern(p, s) }`; `float`, `double` → `{ type: "number", format: "float" | "double" }`; `boolean`; `string` → `{ type: "string", maxLength?: n }`; `uuid` → `format: "uuid"`; `date` → `format: "date"`; `time` → `pattern: TIME_PATTERN`; `localDateTime` → `pattern: LOCAL_DATE_TIME_PATTERN`; `offsetDateTime` → `format: "date-time"`; `json` → `{}`; `base64` → `{ type: "string", contentEncoding: "base64" }`; `enum` → `{ $ref: "#/components/schemas/<tên enum>" }` (enum không tìm thấy → `{ type: "string" }`); `unknown` → `{}` kèm `custom-type-unmapped` tại `["columns", id, "type"]`.
+- Nullable: schema có `type` → `type: [T, "null"]`; `$ref` → `{ anyOf: [{ $ref }, { type: "null" }] }`; `{}` giữ nguyên (đã nhận `null`). Comment cột khác rỗng → thêm khóa `description` cuối cùng (cạnh `$ref` hợp lệ ở 3.1).
+
+**`paths`** (`buildPathItems`), theo thứ tự `resources`, đường dẫn bằng `formatOpenApiPath`; response có body dùng `content: { "application/json": { schema } }`; mô tả response cố định tiếng Anh: `OK`, `Created`, `No Content`, `Bad Request`, `Not Found`, `Conflict`:
+
+- Đường dẫn danh sách: `get` (`operationId: "list<Type>"`, 200 với `{ type: "array", items: { $ref } }`); `post` (`create<Type>`, `requestBody: { required: true, content }`, 201 với `$ref`, 400, và 409 chỉ khi bảng có khóa chính).
+- Chỉ bảng có khóa chính, đường dẫn dòng: `parameters` ở cấp path item, mỗi tham số `{ name, in: "path", required: true, schema }` với `schema` là `buildPropertySchema` của cột khóa bỏ phần nullable; `get` (`get<Type>`, 200, 404); `put` (`replace<Type>`, body, 200, 400, 404); `delete` (`delete<Type>`, 204, 404).
+- Bảng không có khóa chính: chỉ đường dẫn danh sách, kèm `table-without-identifier` tại `["tables", id]`.
+- Không có `tags`, `security`, YAML hay thời gian. Schema rỗng: `paths: {}`, `components: { schemas: {} }`.
+
+**Test viết trước:**
+
+- `openapi-schemas.test.ts`: `maps every json field type to an openapi 3.1 schema` (`it.each` 17 loại); `writes nullable types as a type array`; `wraps a nullable enum reference in anyOf with null`; `keeps an empty schema for nullable json`; `adds a column comment as description`; `reports custom-type-unmapped for a custom column`; `writes required with every column in column order`; `writes an enum component with its values`.
+- `openapi-paths.test.ts`: `writes list and create operations on the collection path`; `writes get, replace and delete operations with path parameters on the item path`; `writes path parameters in primary key order with non-null schemas`; `writes only the collection path for a table without a primary key and reports table-without-identifier`; `adds 409 to create only when the table has a primary key`; `names operation ids from the component name`.
+- `generate-openapi.test.ts`: `names the file openapi.json with language json`; `writes openapi 3.1.1, info with the schema name and version 1.0.0, and servers /api`; `orders top-level keys as openapi, info, servers, paths, components`; `keeps a __proto__ column as a property in the parsed document` (`JSON.parse` rồi `Object.hasOwn`); `writes an empty schema with empty paths and schemas`; `returns the same content when map keys were inserted in a different order`.
+- Snapshot: `matches the snapshot for <fixture>` (bốn fixture), file `<fixture>.json` và `.diagnostics.txt`.
+
+**Kiểm tra:** như mục "Quy ước chung", thêm lệnh `node` như Task 14 với `@schemaforge/core/generators/openapi` và `generateOpenApi(…, {})`, mong đợi `function openapi.json`. Validator `@readme/openapi-parser` do Task 31 viết; task sửa generator này sau khi Task 31 đã merge chạy cổng conformance với `src/openapi.test.ts`.
+
+**Commit:** `feat(core): add openapi 3.1 generator`
+
+## Task 25: CG-09 DBML
+
+**Mục tiêu:** `@schemaforge/core/generators/dbml` export `generateDbml`, tự sinh văn bản DBML mang đủ bảng, cột, kiểu chung, quan hệ, hành động, enum, index, subject area và ghi chú để `@dbml/core` parse được và import lại không mất thông tin (spec CG-09, mục 5 "DBML").
+
+**Phụ thuộc:** Task 1, 4, 5, 7 (`findDefaultValueProblem`). **Đợt:** 6.
+
+**File sở hữu (tạo):** `packages/core/src/generators/dbml/index.ts`, `generate-dbml.ts`, `generate-dbml.test.ts`, `dbml-strings.ts`, `dbml-strings.test.ts`; mọi file trong `packages/core/src/generators/__snapshots__/dbml/`.
+
+**Chữ ký:**
+
+```ts
+export type DbmlOptions = GeneratorOptions["dbml"];
+export function generateDbml(schema: SchemaDocument, options: DbmlOptions): GenerateResult;
+// dbml-strings.ts, không export qua index.ts:
+export function quoteDbmlIdentifier(name: string): string; // "…", \ → \\, " → \"
+export function dbmlString(text: string): string;          // không xuống dòng: '…' với \ → \\, ' → \'; có \r hoặc \n: '''…''' với \ → \\, ''' → \'''
+```
+
+`index.ts` chỉ export `generateDbml` và type `DbmlOptions`. `file` là `{ fileName: "schema.dbml", language: "dbml", content }`. Hai hàm escape nằm trong thư mục `dbml/` vì chỉ đích này dùng và `shared/` không có hàm tương đương (ngoại lệ có chủ đích với quy ước "quote trong `generators/shared/`": quy ước cấm viết lại hàm đã có, không cấm hàm riêng của một đích); mọi tên và chuỗi người dùng chỉ đi qua hai hàm này.
+
+**Hành vi**, ghép bằng `renderFileContent`, block theo thứ tự spec:
+
+1. `Project <quoteDbmlIdentifier(tên schema)> {` và `}` (khối rỗng; `@dbml/core` 10.2.0 đã cài nhận khối này, kiểm tra ngày 2026-10-02).
+2. Mỗi enum theo `sortEnums` một block: `Enum "tên" {`, mỗi giá trị một dòng `  <quoteDbmlIdentifier(giá trị)>`, `}`. Enum rỗng vẫn ghi khối rỗng (schema có issue `enum-values-empty`; `@dbml/core` từ chối, output vẫn an toàn).
+3. Mỗi bảng theo `sortTables` một block: `Table "tên" {`; mỗi cột theo `columnIds` một dòng `  "cột" <kiểu>[ [<thiết lập>]]`; khi có khóa chính nhiều cột hoặc index: `  indexes {` … `  }`; khi comment bảng khác rỗng: `  Note: <dbmlString(comment)>`; `}`.
+   - Kiểu ghi bằng tên kiểu chung của core: `smallint`, `integer`, `bigint`, `decimal(p,s)` (không khoảng trắng), `real`, `double`, `boolean`, `char(n)`, `varchar(n)`, `text`, `uuid`, `date`, `time`, `timestamp`, `timestamptz`, `json`, `binary`; enum → `quoteDbmlIdentifier(tên enum)` (không tìm thấy → `text`); custom → `quoteDbmlIdentifier(tên kiểu)`.
+   - Thiết lập theo thứ tự, cách nhau `, `: `pk` (khóa chính một cột), `increment`, `not null`, `unique` (cột `isUnique`), `default: …`, `note: <dbmlString(comment cột)>`. Không có thiết lập nào thì không có `[]`.
+   - `default`: `findDefaultValueProblem` khác `null` → bỏ, kèm `default-omitted` tại `["columns", id, "defaultValue"]`; `currentTimestamp` → `` `now()` ``; `generateUuid` → `` `gen_random_uuid()` ``; literal `smallint`, `integer`, `bigint`, `decimal`, `real`, `double` ghi trần (đã kiểm tra với 10.2.0: số âm và dạng mũ như `1.5e-3` được nhận), `boolean` → `true`/`false`, kiểu khác → `dbmlString(value)`.
+   - `indexes`: khóa chính nhiều cột trước, `    (<cột theo primaryKeyColumnIds>) [pk]`; rồi index theo `sortIndexes`: `    ("a", "b") [unique, name: <dbmlString(tên)>]` hoặc `[name: …]`. Luôn dùng dạng ngoặc, kể cả một cột (10.2.0 nhận `("a")`).
+4. Một block `Ref` theo `sortRelations`, mỗi quan hệ một dòng: một cặp cột → `Ref: "posts"."author_id" > "users"."id" [delete: cascade, update: no action]`; nhiều cặp → `Ref: "posts".("a", "b") > "users".("x", "y") […]`, cặp theo thứ tự `columnPairs`. `>` cho `oneToMany`, `-` cho `oneToOne`. Hành động: `no action`, `restrict`, `cascade`, `set null`, `set default`, luôn ghi cả hai. Quan hệ trỏ tới bảng hoặc cột không tìm thấy thì bỏ qua.
+5. Mỗi subject area theo `sortSubjectAreas` một block `TableGroup "tên" {`, mỗi bảng thành viên (`subjectAreaId`, theo `sortTables`) một dòng `  "bảng"`, `}`; nhóm rỗng vẫn ghi (10.2.0 nhận).
+6. Mỗi ghi chú theo `sortNotes` một block `Note "note <n>" {`, `  <dbmlString(text)>`, `}`, `n` từ 1.
+
+Diagnostic chỉ có `default-omitted`. Không có thời gian. Schema rỗng chỉ có khối `Project`.
+
+**Giới hạn đã biết của `'''…'''`:** `@dbml/core` 10.2 bỏ phần thụt đầu dòng chung của mọi dòng khỏi chuỗi `'''…'''` khi parse (project-reviewer kiểm tra ngày 2026-10-02). Comment hay ghi chú nhiều dòng mà mọi dòng đều bắt đầu bằng khoảng trắng vì vậy mất phần thụt chung khi import lại; DBML không có cú pháp giữ khoảng trắng đó, nên generator không bù và không có diagnostic (output vẫn đúng cú pháp). Task 31 loại trường hợp này khỏi phép so round-trip.
+
+**Test viết trước:**
+
+- `dbml-strings.test.ts`: `quotes identifiers and escapes double quotes and backslashes` (`it.each`); `writes single-line strings in single quotes with escapes`; `writes multi-line strings in triple quotes and escapes a triple quote`.
+- `generate-dbml.test.ts`: `names the file schema.dbml with language dbml`; `writes Project, enums, tables, refs, table groups and notes in order`; `writes generic type names including decimal without spaces`; `quotes enum and custom type names`; `writes pk, increment, not null, unique, default and note settings in order`; `writes defaults by kind` (`it.each`); `omits an invalid default and reports default-omitted`; `writes a composite primary key and indexes inside indexes`; `writes a table note`; `writes one-to-many and one-to-one refs with both actions` (`it.each` năm hành động); `writes a composite ref with column lists`; `writes subject areas as table groups`; `numbers notes by note order`; `escapes names and comments with quotes, backslashes and triple quotes`; `writes an empty schema as the Project block`; `returns the same content when map keys were inserted in a different order`.
+- Snapshot: `matches the snapshot for <fixture>` (bốn fixture), file `<fixture>.dbml` và `.diagnostics.txt`.
+
+**Kiểm tra:** như mục "Quy ước chung", thêm lệnh `node` như Task 14 với `@schemaforge/core/generators/dbml` và `generateDbml(…, {})`, mong đợi `function schema.dbml`. Parse và so khớp bằng `@dbml/core` do Task 31 viết; task sửa generator này sau khi Task 31 đã merge chạy cổng conformance với `src/dbml.test.ts`.
+
+**Commit:** `feat(core): add dbml generator`
+
+## Task 26: CG-10 tài liệu Markdown
+
+**Mục tiêu:** `@schemaforge/core/generators/markdown` export `generateMarkdown`, in `schema.md` mô tả enum, bảng, cột, ràng buộc, comment, index và quan hệ, với nhãn do frontend truyền vào (spec CG-10, mục 5 "Markdown").
+
+**Phụ thuộc:** Task 1, 4, 5, 7 (`findDefaultValueProblem`). **Đợt:** 6.
+
+**File sở hữu (tạo):** `packages/core/src/generators/markdown/index.ts`, `generate-markdown.ts`, `generate-markdown.test.ts`, `markdown-text.ts`, `markdown-text.test.ts`; mọi file trong `packages/core/src/generators/__snapshots__/markdown/`.
+
+**Chữ ký:**
+
+```ts
+export type MarkdownOptions = GeneratorOptions["markdown"];
+export function generateMarkdown(schema: SchemaDocument, options: MarkdownOptions): GenerateResult;
+// markdown-text.ts, không export qua index.ts:
+export function escapeMarkdownText(text: string): string; // thêm \ trước \ ` * _ { } [ ] ( ) # + - . ! | < > ~
+export function formatMarkdownInline(text: string): string; // escapeMarkdownText rồi đổi \r\n, \r, \n thành <br>
+```
+
+`index.ts` chỉ export `generateMarkdown` và type `MarkdownOptions`. `file` là `{ fileName: "schema.md", language: "markdown", content }`. Hàm escape nằm trong `markdown/` với cùng lý do như Task 25. Mọi tên, comment, giá trị enum, giá trị mặc định **và mọi nhãn** đều qua `formatMarkdownInline` (nhãn đến từ i18n nhưng vẫn là chuỗi bên ngoài core).
+
+**Hành vi**, ghép bằng `renderFileContent`, mỗi tiêu đề và phần thân là block riêng:
+
+1. `# <tên schema>`.
+2. Khi có enum: `## <enumsHeading>`; mỗi enum theo `sortEnums`: `### <tên>` rồi danh sách `- <giá trị>` (enum rỗng chỉ có tiêu đề).
+3. Khi có bảng: `## <tablesHeading>`; mỗi bảng theo `sortTables`:
+   - `### <tên>`; comment bảng khác rỗng thì một đoạn `formatMarkdownInline(comment)`.
+   - Bảng cột (khi bảng có cột): tiêu đề `| <columnNameHeader> | <columnTypeHeader> | <columnNullableHeader> | <columnDefaultHeader> | <columnConstraintsHeader> | <columnCommentHeader> |`, dòng `|---|---|---|---|---|---|`, mỗi cột theo `columnIds` một dòng: tên; kiểu chung như Task 25 (enum → tên enum, custom → tên kiểu); `yes`/`no`; mặc định (literal → giá trị, `currentTimestamp` → `now()`, `generateUuid` → `gen_random_uuid()`, `findDefaultValueProblem` khác `null` → ô rỗng kèm `default-omitted`); ràng buộc là các nhãn `primaryKey` (cột thuộc khóa chính), `unique`, `autoIncrement`, `foreignKey` (cột nguồn của một quan hệ) nối bằng `, `; comment.
+   - Khi bảng có index: `#### <indexesHeading>`, bảng `| <indexNameHeader> | <indexColumnsHeader> | <indexUniqueHeader> |`, mỗi index theo `sortIndexes`: tên, tên cột nối `, `, `yes`/`no`.
+   - Khi bảng có quan hệ đi ra hoặc đi vào: `#### <relationsHeading>`; nhóm đi ra (`fromTableId` là bảng này, theo `sortRelations`): dòng `<outgoingRelations>` rồi mỗi quan hệ `- <cột nguồn nối , > → <bảng đích>.<cột đích nối , > (<oneToOne|oneToMany>, ON DELETE <HÀNH ĐỘNG>, ON UPDATE <HÀNH ĐỘNG>)`; nhóm đi vào (`toTableId` là bảng này): dòng `<incomingRelations>` rồi `- <bảng nguồn>.<cột nguồn nối , > → <cột đích nối , > (…)`. Hành động ghi bằng từ khóa SQL `NO ACTION`, `RESTRICT`, `CASCADE`, `SET NULL`, `SET DEFAULT`. Tự tham chiếu xuất hiện ở cả hai nhóm. Nhóm rỗng không ghi.
+4. Không có mục lục, liên kết nội bộ, sơ đồ hay thời gian. Kiểu không theo dialect.
+
+Diagnostic chỉ có `default-omitted`. Không có option nào khác `labels`.
+
+**Test viết trước** (test dùng một hằng `TEST_MARKDOWN_LABELS` tiếng Anh khai báo trong file test, đủ 23 khóa của `MarkdownLabels`; snapshot dùng cùng hằng):
+
+- `markdown-text.test.ts`: `escapes every markdown special character` (`it.each`); `keeps letters, digits, spaces and Vietnamese text`; `turns line breaks into <br> after escaping`.
+- `generate-markdown.test.ts`: `names the file schema.md with language markdown`; `starts with the schema name as a level one heading`; `lists enums with their values`; `writes a column table with the six labelled headers`; `writes yes and no labels for nullable`; `lists primary key, unique, auto-increment and foreign key constraints`; `writes defaults and omits an invalid one with default-omitted`; `writes the table comment as a paragraph`; `writes an index table only when the table has indexes`; `writes outgoing and incoming relations with kind and actions`; `lists a self-reference in both groups`; `skips empty sections and subsections`; `escapes pipes and line breaks inside table cells`; `escapes labels`; `uses the labels passed in the options`; `returns the same content when map keys were inserted in a different order`.
+- Snapshot: `matches the snapshot for <fixture>` (bốn fixture), file `<fixture>.md` và `.diagnostics.txt`.
+
+**Kiểm tra:** như mục "Quy ước chung", thêm lệnh `node` như Task 14 với `@schemaforge/core/generators/markdown`, gọi `generateMarkdown` với một object nhãn tối thiểu đủ 23 khóa, mong đợi `function schema.md`. CG-10 không có conformance (Vấn đề 13).
+
+**Commit:** `feat(core): add markdown documentation generator`
+
+## Task 27: Property test cho mọi generator
+
+**Mục tiêu:** bất biến chung của 12 generator được kiểm tra trên tài liệu đúng cấu trúc có thể còn issue: không throw, xác định (kể cả khi xáo thứ tự khóa map, kể cả khi đồng hồ đổi), an toàn với tên và comment chứa ký tự quote; seed hợp lệ với schema hợp lệ (spec mục 10 "Property test", tiêu chí chung về property test).
+
+**Phụ thuộc:** Task 14–26. **Đợt:** 7.
+
+**File sở hữu (tạo):** `packages/core/src/testing/generator-cases.ts`, `generator-cases.test.ts` (không export qua `@schemaforge/core/testing`), `packages/core/src/generators/generators.properties.test.ts`, `packages/core/src/generators/sql-safety.properties.test.ts`, `packages/core/src/generators/seed/seed.properties.test.ts`.
+
+**Cài đặt:**
+
+- `generator-cases.ts`: `listGeneratorCases(): readonly { readonly name: string; readonly run: (schema: SchemaDocument) => GenerateResult }[]`, một mục cho mỗi biến thể option chính: ba dialect SQL, Prisma × ba provider, Drizzle × hai dialect, TypeScript, Zod, Mock API, OpenAPI, seed × bốn `format` (`rowsPerTable: 3`, `seed: 1`), DBML, Markdown (nhãn tiếng Anh cố định). Import từ `src/generators/<đích>/index.ts`. Test: `lists one case per generator variant` (đủ 18 tên: 3 SQL, 3 Prisma, 2 Drizzle, TypeScript, Zod, Mock API, OpenAPI, 4 seed, DBML, Markdown; không trùng).
+- Dùng `PROPERTY_SEED`, `PROPERTY_RUNS`, `schemaDocumentArbitrary`, `keyOrderArbitrary`, `withShuffledKeys` của `src/testing/arbitraries.ts` như `apply-operation.properties.test.ts`; `fc.assert(…, { seed: PROPERTY_SEED, numRuns: PROPERTY_RUNS })`, timeout riêng mỗi test (60 000 ms như file mẫu). Không thêm arbitrary vào `arbitraries.ts` (file của phần 2); arbitrary mới đặt trong file test.
+- `generators.properties.test.ts` (`describe.each(listGeneratorCases())`):
+  - `does not throw for any well-formed document`.
+  - `returns the same result when called twice`.
+  - `returns the same result when map keys are shuffled` (`withShuffledKeys`).
+  - `returns the same result at two different system times`: `vi.useFakeTimers()`, `vi.setSystemTime` hai thời điểm khác nhau (2001-01-01 và 2099-12-31), so `toStrictEqual`; `vi.useRealTimers()` trong `afterEach`.
+  - `ends the content with exactly one newline`; `returns diagnostics sorted by path then code without repeats` (so với `finalizeDiagnostics` của chính nó).
+- `sql-safety.properties.test.ts`: arbitrary dựng từ `schemaDocumentArbitrary()` rồi thay mọi tên (schema, bảng, cột, index, enum, subject area), comment, giá trị enum, literal mặc định và tên kiểu custom bằng chuỗi `§` nối với chuỗi lấy từ `fc.string` trên bảng ký tự `"`, `'`, `` ` ``, `[`, `]`, `\`, `*/`, `/*`, `--`, `;`, `\n`, `\r`, U+0000, `a`, `é`; tài liệu mới dựng lại qua JSON rồi `parseSchemaDocument` (bảo đảm đúng cấu trúc). Với output của `generatePostgresql`, `generateMysql`, `generateSqlServer` và seed SQL ba dialect: bỏ mọi định danh và chuỗi đã quote bằng regex theo dialect (PostgreSQL `"(?:[^"]|"")*"` và `'(?:[^']|'')*'`; MySQL `` `(?:[^`]|``)*` `` và `'(?:[^'\\]|''|\\[\s\S])*'`; SQL Server `\[(?:[^\]]|\]\])*\]` và `N'(?:[^']|'')*'`), test `leaves no user text outside quoted identifiers and strings` khẳng định phần còn lại không chứa `§`. Thêm `writes no unsafe custom type name outside a string` (kiểm tra tương tự với tên kiểu custom không qua cú pháp an toàn).
+- `seed.properties.test.ts`: với `createSampleSchema()`, `createNamingEdgeSchema()`, `createTargetLimitSchema()` (`it.each`) và `fc.integer({ min: 0, max: 0xffffffff })` cho `seed`, `fc.integer({ min: 1, max: 20 })` cho `rowsPerTable`: `produces a dataset that passes validateSeedDataset`; `produces the same dataset for the same seed`.
+
+**Kiểm tra:** như mục "Quy ước chung". Ghi thời gian chạy của ba file vào execution log; `pnpm --filter @schemaforge/core test` phải dưới 5 phút trên máy dev, nếu không thì giảm `numRuns` riêng cho file chậm (ghi lý do), không giảm `PROPERTY_RUNS` chung.
+
+**Commit:** `test(core): add property tests for code generators`
+
+## Task 28: Benchmark generator
+
+**Mục tiêu:** đo mục tiêu hiệu năng của spec mục 9 bằng `vitest bench` trên `createLargeSchema({ tableCount: 200 })`, ngoài `pnpm test`.
+
+**Phụ thuộc:** Task 14–26, 27 (`listGeneratorCases()`). **Đợt:** 8.
+
+**File sở hữu:** tạo `packages/core/src/generators/generators.bench.ts`; sửa `packages/core/package.json` (chỉ thêm script `"bench": "vitest bench --run"` sau `"test"`).
+
+**Cài đặt:**
+
+- Một `describe` với một `bench` cho mỗi biến thể của `listGeneratorCases()` (Task 27), schema dựng một lần ngoài `bench`; thêm `bench("seed postgresql with 100 rows per table", …)` gọi `generateSeed(schema, { format: "postgresql", rowsPerTable: 100, seed: 1 })`. Không có `expect` trong `bench`. Một lần ngoài `bench`, ở cấp module ngay sau khi dựng schema: khẳng định `buildSeedDataset(schema, { rowsPerTable: 100, seed: 1 }).dataset.tables` có ít nhất một bảng có dòng (throw `Error` nếu không), để bench seed không đo một dataset rỗng khi mọi bảng bị bỏ (Task 4: vòng khóa ngoại của `createLargeSchema` là nullable nên thành quan hệ hoãn). Task 1 đã loại `*.bench.ts` khỏi build và coverage; `vitest run` không chạy file bench.
+- Vitest in `min`, `max`, `mean`, `p75`, `p99`… nhưng không in trung vị; mục tiêu "trung vị ≤ 100 ms" (spec mục 9) được đọc theo cột `p75` (chặt hơn trung vị): mỗi generator `p75` ≤ 100 ms, seed 100 dòng `p75` ≤ 500 ms.
+
+**Test viết trước:** không có test đơn vị (file bench không phải test). Bước đỏ là chạy `pnpm --filter @schemaforge/core bench` trước khi có script: lệnh báo thiếu script.
+
+**Kiểm tra:** như mục "Quy ước chung", thêm `pnpm --filter @schemaforge/core bench` (Node 24, máy dev, không chạy việc nặng khác). Execution log ghi bảng kết quả (tên, `mean`, `p75`, `p99`) và cấu hình máy. Biến thể nào vượt mục tiêu thì không sửa generator trong task này: ghi rõ, báo `Dừng giữa chừng`, orchestrator tạo task tối ưu riêng.
+
+**Commit:** `perf(core): add generator benchmarks`
+
+## Task 29: Conformance DDL và seed SQL trên ba database
+
+**Mục tiêu:** DDL của CG-01 và seed SQL của CG-08 chạy không lỗi trên PostgreSQL 18, MySQL 8.4 và SQL Server 2022 với mọi fixture, và database tạo ra có đúng những gì generator hứa (spec mục 7 dòng CG-01, CG-08; tiêu chí CG-01, CG-08).
+
+**Phụ thuộc:** Task 8, 14, 15, 16, 22. **Đợt:** 7. Cần Docker.
+
+**File sở hữu (tạo):** `packages/codegen-conformance/src/postgresql.test.ts`, `mysql.test.ts`, `sqlserver.test.ts`, `seed-sql.test.ts`. Chỉ import helper của `src/support/` và `@schemaforge/core`, `@schemaforge/core/testing`, `@schemaforge/core/generators/<đích>`.
+
+**Cài đặt chung:** mỗi file `beforeAll` khởi động server bằng `startDatabaseServer(dialect)`, `afterAll` gọi `stop()`; `describe.each(listConformanceFixtures())`, mỗi fixture một database mới tên `f_<chỉ số>` (tránh ký tự đặc biệt) đóng trong `afterEach`. Schema đưa vào generator là `withDialectCustomTypes(fixture.schema, dialect)`. Output rỗng (`content.trim()` rỗng, fixture `empty`) thì không gọi `execute` (driver MySQL từ chối câu rỗng) và chỉ khẳng định số bảng là 0. Query kiểm tra viết bằng SQL cố định trong test, tên bảng, cột lấy từ schema và đưa vào bằng tham số của driver hoặc so trong JavaScript, không nối vào SQL.
+
+**`postgresql.test.ts`, `mysql.test.ts`, `sqlserver.test.ts`**, mỗi fixture:
+
+- `runs the ddl without errors and creates every table`: `execute(file.content)` không lỗi; `countTables()` bằng số bảng của schema.
+- `creates one foreign key per relation that the generator kept`: đếm khóa ngoại trong catalog (PostgreSQL, MySQL `information_schema.TABLE_CONSTRAINTS` với `CONSTRAINT_TYPE = 'FOREIGN KEY'`; SQL Server `sys.foreign_keys`) bằng số quan hệ trừ số diagnostic `key-column-type-not-indexable` tại đường dẫn `["relations", …]` của output.
+- Riêng `mysql.test.ts`: `stores truncated comments at the MySQL limits` (fixture `target-limit`: `CHAR_LENGTH(COLUMN_COMMENT)` của cột comment dài là 1024, `CHAR_LENGTH(TABLE_COMMENT)` của bảng comment dài là 2048); `renames a column that differs only by an accent` (fixture `naming-edge`: `information_schema.COLUMNS` của bảng `người dùng` có cả `ma` và tên đã đổi, đúng như output); `uses the accent-sensitive collation` (`TABLE_COLLATION` là `utf8mb4_0900_as_ci` cho mọi bảng).
+- Riêng `sqlserver.test.ts`: `stores truncated descriptions at 3750 characters` (`sys.extended_properties`, `LEN(CAST(value AS nvarchar(max)))` lớn nhất là 3750); `writes cascade conflicts as no action` (fixture `target-limit`: mọi khóa ngoại của quan hệ có `referential-action-cycle` có `delete_referential_action_desc` và `update_referential_action_desc` là `NO_ACTION` trong `sys.foreign_keys`); `accepts more than one null in a filtered unique index` (chèn hai dòng có `NULL` ở cột unique nullable không được tham chiếu của `target-limit`).
+- Riêng `postgresql.test.ts`: `stores comments with every quote character` (fixture `naming-edge`: `obj_description` của bảng `người dùng` bằng comment gốc).
+
+**`seed-sql.test.ts`:** một `describe` cho mỗi dialect (khởi động và dừng server trong `beforeAll`, `afterAll` của `describe` đó, tuần tự), mỗi fixture: chạy DDL rồi `generateSeed(schema, { format: dialect, rowsPerTable: 5, seed: 1 })` trong cùng database. Test: `runs the seed after the ddl without errors`; `inserts the row count of the dataset into every table` (`countRows(tên bảng)` bằng số dòng của bảng trong `buildSeedDataset(schema, { rowsPerTable: 5, seed: 1 })`, bảng bị bỏ là 0); `fills deferred relations by update` (fixture `target-limit`, PostgreSQL: cột khóa ngoại của quan hệ hoãn có giá trị khác `NULL` sau khi chạy).
+
+**Test viết trước:** chính các test trên; bước đỏ là chạy file khi generator có lỗi đã biết, hoặc nếu mọi thứ xanh ngay thì ghi rõ trong execution log rằng test xanh từ lần đầu và kiểm tra test bắt được lỗi bằng cách tạm sửa một câu SQL trong bản sao output ở test cục bộ (không commit).
+
+**Kiểm tra:** mục "Conformance của task generator" với lần lượt bốn file, và `pnpm test:conformance` ở root một lần cuối. Conformance đỏ là lỗi của generator: dừng, ghi output lỗi nguyên văn, orchestrator tạo task sửa generator (task này không sửa `packages/core`).
+
+**Commit:** `test: add ddl and seed sql conformance tests`
+
+## Task 30: Conformance Prisma, Drizzle, TypeScript, Zod
+
+**Mục tiêu:** output CG-02 qua `prisma validate` không cảnh báo với ba provider; CG-03, CG-04, CG-05 qua typecheck strict với thư viện đã cài; schema Zod parse được seed JSON của cùng fixture (spec mục 7 các dòng CG-02 đến CG-05; tiêu chí CG-02 đến CG-05).
+
+**Phụ thuộc:** Task 8, 17, 18, 19, 20, 22. **Đợt:** 7.
+
+**File sở hữu (tạo):** `packages/codegen-conformance/src/prisma.test.ts`, `drizzle.test.ts`, `typescript.test.ts`, `zod.test.ts`.
+
+**Cài đặt** (`describe.each(listConformanceFixtures())`, fixture nguyên trạng, không `withDialectCustomTypes`):
+
+- `prisma.test.ts`, `it.each` ba provider: `passes prisma validate without warnings`: `runPrismaValidate(content)` có `exitCode` 0 và `output` không chứa `warn` (không phân biệt hoa thường). Log ghi dòng phiên bản Prisma in ra. Nếu fixture `naming-edge` đỏ vì comment `///` chứa U+0000 thì dừng và báo (spec giữ nguyên comment ở Prisma; orchestrator quyết định), không sửa test.
+- `drizzle.test.ts`, `it.each` `postgresql`, `mysql`: `typechecks with drizzle-orm`: `typecheckFiles([{ fileName: "schema.ts", content }])` rỗng. Thêm `builds table configs for every table`: ghi file vào `withTempDirectory`, `await import(pathToFileURL(file).href)` (Vitest chuyển TypeScript), với mỗi export là bảng gọi `getTableConfig` của `drizzle-orm/pg-core` hoặc `drizzle-orm/mysql-core`; tổng số `foreignKeys` bằng số quan hệ không bị bỏ (spec mục "Rủi ro": callback tham chiếu bảng khai báo sau).
+- `typescript.test.ts`: `typechecks the generated types`: `typecheckFiles([{ fileName: "types.ts", content }])` rỗng.
+- `zod.test.ts`: `typechecks the generated schemas`; `parses every seed json row with the schema of its table`: sinh `seed.json` bằng `generateSeed(schema, { format: "json", rowsPerTable: 5, seed: 1 })`, import `schemas.ts` như trên; với mỗi bảng trong seed JSON, ứng viên là các export `ZodObject` có tập key của `shape` bằng tập tên cột của bảng cùng tên trong schema; dòng hợp lệ khi `safeParse` thành công với ít nhất một ứng viên (tên biến schema là nội bộ của core nên khớp theo tập key; bảng không cột bị bỏ qua). Mọi dòng phải hợp lệ.
+
+**Test viết trước:** như Task 29.
+
+**Kiểm tra:** mục "Conformance của task generator" với lần lượt bốn file, và `pnpm test:conformance` ở root một lần cuối. Đỏ thì dừng như Task 29.
+
+**Commit:** `test: add prisma, drizzle, typescript and zod conformance tests`
+
+## Task 31: Conformance Mock API, OpenAPI, DBML
+
+**Mục tiêu:** `handlers.ts` qua typecheck với `msw` 2 và chạy đủ route trên `msw/node`; `openapi.json` hợp lệ theo `@readme/openapi-parser`; DBML parse được bằng `@dbml/core` và khớp schema (spec mục 7 các dòng CG-06, CG-07, CG-09; tiêu chí CG-06, CG-07, CG-09).
+
+**Phụ thuộc:** Task 8, 23, 24, 25. **Đợt:** 7.
+
+**File sở hữu (tạo):** `packages/codegen-conformance/src/mock-api.test.ts`, `openapi.test.ts`, `dbml.test.ts`.
+
+**Cài đặt:**
+
+- `mock-api.test.ts`, mỗi fixture: `typechecks with msw`. Thêm `serves the crud routes of a single-key and a composite-key table` cho `sample` và `target-limit`: import `handlers.ts` từ thư mục tạm, `setupServer(...handlers)` của `msw/node`, `listen({ onUnhandledRequest: "error" })`, `close()` cuối test. Đường dẫn và tham số lấy từ `paths` của `generateOpenApi` cùng fixture (không import nội bộ core): bảng một cột khóa là đường dẫn dòng đầu tiên có một tham số, bảng nhiều cột khóa là đường dẫn đầu tiên có từ hai tham số (fixture không có thì bỏ qua phần đó và ghi vào log). Chỉ chọn bảng có mọi cột khóa không phải kiểu `json`: `hasKey` của Task 23 so khóa bằng `String()`, nên khóa `json` thành `"[object Object]"` và khớp mọi dòng, làm bước "GET lại (404)" sai; không sửa `hasKey` (fixture không có bảng phù hợp thì xử lý như trường hợp thiếu đường dẫn ở trên). Gọi `fetch("http://localhost/api…")` theo thứ tự: GET danh sách (200, 5 dòng), GET dòng đầu (200), PUT dòng đó với một cột không khóa đổi giá trị (200, khóa giữ nguyên), DELETE (204), GET lại (404), POST lại dòng ban đầu (201), POST lần nữa (409), POST `[]` (400).
+- `openapi.test.ts`, mỗi fixture: `is a valid openapi 3.1 document`: `validate()` của `@readme/openapi-parser` trên object đã `JSON.parse` cho `valid` là `true` (in lỗi khi sai). Kiểm tra tên export và kiểu kết quả trong typings đã cài trước khi viết.
+- `dbml.test.ts`, mỗi fixture: `parses with @dbml/core`: `new Parser().parse(content, "dbmlv2")` không throw. `matches the schema`: từ model trả về (đọc typings đã cài để lấy đường dẫn thuộc tính), so với schema: tên bảng theo thứ tự; tên cột và tên kiểu của từng bảng; số quan hệ cùng hai hành động của từng quan hệ; tên enum và giá trị; tên index và cột; tên nhóm và bảng thành viên; số ghi chú và nội dung. Chuỗi nhiều dòng (comment bảng, comment cột, ghi chú) mà mọi dòng đều bắt đầu bằng khoảng trắng bị loại khỏi phép so nội dung, vì `@dbml/core` 10.2 bỏ thụt đầu dòng chung của `'''…'''` (giới hạn đã biết của Task 25); chỉ so số lượng của chúng. Fixture `empty` chỉ khẳng định không có bảng.
+
+**Test viết trước:** như Task 29.
+
+**Kiểm tra:** mục "Conformance của task generator" với lần lượt ba file, và `pnpm test:conformance` ở root một lần cuối. Đỏ thì dừng như Task 29.
+
+**Commit:** `test: add mock api, openapi and dbml conformance tests`
+
+## Task 32: Dependency `shiki` cho frontend
+
+**Mục tiêu:** frontend có `shiki` để Task 33 highlight code trong worker (spec mục 8 "Highlight", mục "Phiên bản").
+
+**Phụ thuộc:** P3, Task 3 (hai task cùng ghi lockfile, không chạy đồng thời). **Đợt:** 7 (bắt đầu được ngay khi Task 3 đã merge).
+
+**File sở hữu (sửa):** `frontend/package.json` (chỉ `dependencies`), `pnpm-lock.yaml`.
+
+**Cài đặt:**
+
+- Trước khi cài, chạy `npm view shiki dist-tags time --json` và chọn bản mới nhất của nhánh 4 đã phát hành quá 24 giờ (`minimumReleaseAge`); ngày 2026-10-02, 4.5.0 phát hành 2026-10-01 06:46 UTC. Khai báo `"shiki": "^4.4.3"` như mục "Phiên bản"; ghi bản thật được cài vào execution log.
+- `pnpm --filter @schemaforge/frontend add shiki@^4.4.3`. Nếu pnpm báo build script bị bỏ qua thì dừng và báo (Task 32 không sở hữu `pnpm-workspace.yaml`).
+- Đọc typings đã cài và ghi vào execution log đường import thật của: `createHighlighterCore`, `createCssVariablesTheme` (dự kiến `shiki/core`), `createJavaScriptRegexEngine` (dự kiến `shiki/engine/javascript`), và năm grammar `sql`, `prisma`, `typescript`, `json`, `markdown` (dự kiến `@shikijs/langs/<tên>` hoặc `shiki/langs/<tên>.mjs`), cùng cách import không đi qua bundle đầy đủ của `shiki`. Task 33 dùng đúng các đường này.
+
+**Test viết trước:** không có (chỉ dependency). Bước kiểm chứng là lệnh `node` dưới đây chạy được sau khi cài.
+
+**Kiểm tra:**
+
+```bash
+source ~/.nvm/nvm.sh >/dev/null 2>&1; nvm use 24 >/dev/null 2>&1;
+pnpm install --frozen-lockfile
+pnpm --filter @schemaforge/frontend exec node --input-type=module -e 'const core = await import("shiki/core"); const engine = await import("shiki/engine/javascript"); console.log(typeof core.createHighlighterCore, typeof core.createCssVariablesTheme, typeof engine.createJavaScriptRegexEngine)'
+pnpm --filter @schemaforge/frontend typecheck
+pnpm --filter @schemaforge/frontend lint
+pnpm --filter @schemaforge/frontend test
+pnpm exec prettier --check frontend/package.json
+git status --porcelain
+```
+
+Mong đợi: lệnh `node` in `function function function` (đường import khác thì ghi đường thật vào log); các lệnh khác thoát mã 0; `git status` chỉ có hai file của task.
+
+**Commit:** `build(frontend): add shiki for code highlighting`
+
+## Task 33: Worker sinh code và highlight
+
+**Mục tiêu:** luồng chính không bao giờ chạy generator: một Web Worker nhận `{ requestId, target, options, document }`, `import()` động subpath của đích và grammar Shiki khi cần, trả `{ requestId, file, diagnostics, tokens }`; hook `useGeneratedCode` gửi yêu cầu và bỏ kết quả cũ (spec mục 8 "Cập nhật", "Highlight", "CSP", mục 9; Vấn đề 14).
+
+**Phụ thuộc:** Task 5, 14–26, 32, P3. **Đợt:** 9.
+
+**File sở hữu (tạo), trong `frontend/src/features/editor/code-generator/`:** `worker-protocol.ts`, `worker-protocol.test.ts`, `generator-registry.ts`, `generator-registry.test.ts`, `highlight-code.ts`, `highlight-code.test.ts`, `code-generator.worker.ts`, `code-generator.worker.test.ts`, `use-generated-code.ts`, `use-generated-code.test.tsx`. Không có chuỗi hiển thị (Task 34 làm giao diện và i18n).
+
+**Chữ ký và hành vi:**
+
+```ts
+// worker-protocol.ts
+export type CodeToken = { readonly content: string; readonly color: string | null }; // color dạng var(--code-…)
+export type GenerateCodeRequest<T extends GeneratorTarget = GeneratorTarget> = {
+  readonly requestId: number; readonly target: T; readonly options: GeneratorOptions[T]; readonly document: SchemaDocument;
+};
+export type GenerateCodeResponse =
+  | { readonly requestId: number; readonly kind: "ok"; readonly file: GeneratedFile;
+      readonly diagnostics: readonly GeneratorDiagnostic[]; readonly tokens: readonly (readonly CodeToken[])[] | null }
+  | { readonly requestId: number; readonly kind: "failed" };
+export function isGenerateCodeRequest(value: unknown): value is GenerateCodeRequest;
+// generator-registry.ts
+export function loadGenerator<T extends GeneratorTarget>(target: T): Promise<Generate<T>>;
+// highlight-code.ts
+export type HighlightLanguage = "sql" | "prisma" | "typescript" | "json" | "markdown";
+export function toHighlightLanguage(language: OutputLanguage): HighlightLanguage | null; // dbml → null
+export function highlightCode(code: string, language: HighlightLanguage): Promise<readonly (readonly CodeToken[])[]>;
+// use-generated-code.ts
+export type GeneratedCodeState =
+  | { readonly status: "idle" } | { readonly status: "loading"; readonly previous: GenerateCodeResponse | null }
+  | { readonly status: "ready"; readonly response: Extract<GenerateCodeResponse, { kind: "ok" }> }
+  | { readonly status: "failed" };
+export function useGeneratedCode(input: {
+  readonly isEnabled: boolean; readonly document: SchemaDocument; readonly target: GeneratorTarget;
+  readonly options: GeneratorOptions[GeneratorTarget]; readonly createWorker?: () => Worker;
+}): GeneratedCodeState;
+```
+
+- `isGenerateCodeRequest`: kiểm tra `requestId` là số nguyên, `target` thuộc `GENERATOR_TARGETS`, `options` và `document` là object; worker bỏ qua message không qua (không parse lại tài liệu: tài liệu đến từ store đã hợp lệ).
+- `loadGenerator`: một record ánh xạ ở cấp module, `const loaders: { readonly [K in GeneratorTarget]: () => Promise<Generate<K>> } = { postgresql: async () => (await import("@schemaforge/core/generators/postgresql")).generatePostgresql, … }`, thân hàm là `return loaders[target]();`. Mỗi mục dùng một `import("@schemaforge/core/generators/<đích>")` với chuỗi literal (để bundler tách chunk theo đích) và trả hàm theo bảng tên của Task 5. Kiểu mapped bắt thiếu đích lúc biên dịch, nên không cần kiểm tra vét cạn. Không dùng `switch`: `switch` trên tham số generic `T` không thu hẹp `T`, nên mỗi nhánh trả `Generate<"postgresql">`… cho `Promise<Generate<T>>` và báo TS2322 với TypeScript 6.0.3 strict (project-reviewer đã thử ngày 2026-10-02). Kiểu tham số option được thu hẹp ở nơi gọi qua `GenerateCodeRequest<T>`; không dùng `as` ngoài `as const`.
+- `highlightCode`: một promise highlighter tạo lười ở cấp module của worker bằng `createHighlighterCore({ themes: [createCssVariablesTheme({ name: "schemaforge", variablePrefix: "--code-", variableDefaults: {}, fontStyle: true })], langs: [], engine: createJavaScriptRegexEngine() })`; grammar nạp bằng `import()` động theo ngôn ngữ ở lần dùng đầu (`loadLanguage`), đúng đường import Task 32 ghi trong log. `codeToTokens(code, { lang, theme: "schemaforge" })` → mỗi dòng một mảng `{ content, color }` (`color` là `token.color` hoặc `null`). Không tạo HTML string.
+- `code-generator.worker.ts`: **dòng import đầu tiên là `import "@/lib/zod-config";`** (như `frontend/src/components/app-providers.tsx`), đứng trước mọi import khác, vì core tạo schema Zod lúc được import và Zod đọc `jitless` khi tạo schema. `self.onmessage`: bỏ message không hợp lệ; `loadGenerator(target)` rồi gọi với `document`, `options`; `toHighlightLanguage(file.language)` khác `null` thì `highlightCode`; `postMessage` kết quả `ok`. Lỗi bất kỳ (kể cả `RangeError` của option) → `{ requestId, kind: "failed" }`, không log nội dung tài liệu.
+- `useGeneratedCode`: tạo worker lười khi `isEnabled` lần đầu, bằng `createWorker` hoặc mặc định `new Worker(new URL("./code-generator.worker.ts", import.meta.url), { type: "module" })`; `terminate()` khi unmount. Mỗi lần `document`, `target`, `options` đổi (so tham chiếu; tài liệu chỉ đổi khi commit thao tác nên không debounce) gửi yêu cầu với `requestId` tăng dần (giữ trong `useRef`); phản hồi có `requestId` khác yêu cầu mới nhất bị bỏ. `isEnabled` sai thì không gửi và trả `idle`.
+
+**Test viết trước** (Vitest của frontend; worker mock ở biên bằng một lớp giả có `postMessage`, `terminate`, `onmessage`):
+
+- `worker-protocol.test.ts`: `accepts a well-formed request`; `rejects a request with an unknown target, a non-integer id or a missing document` (`it.each`).
+- `generator-registry.test.ts`: `loads a generate function for every generator target` (`it.each(GENERATOR_TARGETS)`, gọi với `createEmptySchema("Empty")` và option tối thiểu, kết quả có `file.content` là chuỗi).
+- `highlight-code.test.ts`: `maps output languages to highlight languages and dbml to null`; `tokenizes sql into lines of colored tokens` (màu bắt đầu bằng `var(--code-`); `tokenizes prisma, typescript, json and markdown` (`it.each`); `loads each grammar once`.
+- `code-generator.worker.test.ts`: `imports zod-config before any other module` (đọc file nguồn bằng `node:fs` trong test, dòng import đầu là `import "@/lib/zod-config";`); `answers a request with the file, diagnostics and tokens`; `answers failed when the generator throws`; `ignores a malformed message`.
+- `use-generated-code.test.tsx`: `stays idle and creates no worker while disabled`; `sends a request when enabled`; `sends a new request when the document, target or options change`; `ignores a stale response`; `reports failed for a failed response`; `terminates the worker on unmount`.
+
+**Kiểm tra:**
+
+```bash
+source ~/.nvm/nvm.sh >/dev/null 2>&1; nvm use 24 >/dev/null 2>&1;
+pnpm --filter @schemaforge/core build
+pnpm --filter @schemaforge/frontend typecheck
+pnpm --filter @schemaforge/frontend lint
+pnpm --filter @schemaforge/frontend test
+pnpm --filter @schemaforge/frontend build
+head -n 1 frontend/src/features/editor/code-generator/code-generator.worker.ts
+pnpm exec prettier --check frontend/src/features/editor/code-generator
+git status --porcelain
+```
+
+Mong đợi: mọi lệnh thoát mã 0, không vi phạm ngưỡng coverage; `head` in `import "@/lib/zod-config";`; `next build` (Turbopack) tạo chunk worker riêng (ghi tên chunk vào log; spec mục "Rủi ro" dòng Next.js 16). Đo một lần thời gian tách token output TypeScript của `createLargeSchema({ tableCount: 200 })` trong test cục bộ không commit và ghi vào log (spec mục "Rủi ro" dòng Shiki).
+
+**Commit:** `feat(frontend): add code generation worker and highlighting`
+
+## Task 34: Code panel, nút "Code", i18n và CSP
+
+**Mục tiêu:** người dùng mở code panel ở cột phải, chọn đích và option, xem code có highlight, copy, xem diagnostic đã dịch và bấm để tới phần tử, thấy cảnh báo khi schema còn issue (spec mục 8, mục 10 dòng "Frontend"; Vấn đề 2, 11, 14).
+
+**Phụ thuộc:** Task 33, 36. **Đợt:** 10.
+
+**File sở hữu:**
+
+- Tạo trong `frontend/src/features/editor/code-generator/`: `code-panel.tsx`, `generator-target-select.tsx`, `generator-options.tsx`, `code-view.tsx`, `generator-diagnostic-list.tsx`, `generator-request.ts`, mỗi file kèm test (`.test.tsx` hoặc `.test.ts`).
+- Tạo `frontend/src/features/editor/hooks/use-go-to-issue.ts`, `use-go-to-issue.test.tsx`.
+- Sửa `frontend/src/features/editor/state/create-editor-store.ts` và test của nó, `components/toolbar/editor-toolbar.tsx` và `editor-toolbar.test.tsx`, `components/editor-workspace.tsx` và `editor-workspace.test.tsx`, `components/panels/issue-list-tab.tsx` (dùng hook mới, test có sẵn phải pass nguyên vẹn).
+- Tạo `frontend/src/lib/i18n/locales/{en,vi}/code-generator.ts`, `generator-diagnostics.ts` và `frontend/src/lib/i18n/code-generator-messages.test.ts`; sửa `frontend/src/lib/i18n/resources.ts` (và `resources.test.ts` nếu test ghim danh sách namespace).
+- Sửa `frontend/src/lib/security/content-security-policy.ts` và test của nó; `frontend/src/app/globals.css` (chỉ thêm biến `--code-*`).
+
+**Chữ ký và hành vi:**
+
+- Store (spec mục 8: không lưu khi tải lại trang): `rightPanelMode: "properties" | "code"` (mặc định `properties`), `setRightPanelMode`; `codeTarget: CodeTarget` với `CodeTarget = "sql" | "prisma" | "drizzle" | "typescript" | "zod" | "mock-api" | "openapi" | "seed" | "dbml" | "markdown"` (mặc định `sql`); `codeOptions: { sqlDialect: SqlDialect; prismaProvider: SqlDialect; drizzleDialect: "postgresql" | "mysql"; seedFormat: SqlDialect | "json"; seedRowsPerTable: number; seedSeed: number }` (mặc định `postgresql`, `postgresql`, `postgresql`, `postgresql`, 10, 1), `setCodeTarget`, `updateCodeOptions(patch)`. Chọn phần tử trên canvas không đổi `rightPanelMode`.
+- `generator-request.ts`: `toGeneratorRequest(target: CodeTarget, options: CodeOptions, markdownLabels: MarkdownLabels): { target: GeneratorTarget; options: GeneratorOptions[GeneratorTarget] }` (`sql` → `sqlDialect`; `markdown` nhận nhãn); `clampSeedRowsPerTable` kẹp về 1–1000 và `clampSeed` về 0–`0xffffffff` cho ô nhập (giao diện chặn giá trị sai để core không throw).
+- Toolbar: nút "Code" là `<Button aria-pressed={rightPanelMode === "code"}>` bật tắt chế độ, nhãn qua `codeGenerator:toggle`.
+- `editor-workspace.tsx`: chế độ `properties` giữ `PropertiesPanel`; chế độ `code` hiện `CodePanel` tải bằng `next/dynamic` (`ssr: false`, fallback là khung rỗng cùng độ rộng) trong cột `w-[32rem]` (quyết định của plan: đủ cho dòng DDL thường gặp mà canvas vẫn còn chỗ; `PropertiesPanel` giữ `w-80`). Cột code giữ `id` của cột phải để link "bỏ qua tới panel" vẫn đúng.
+- `useGoToIssue(options: { readonly shouldRequestFocus: boolean })` tách nguyên văn từ `issue-list-tab.tsx` sang `hooks/use-go-to-issue.ts`; `IssueListTab` gọi với `true` (hành vi cũ); danh sách diagnostic gọi với `false` (panel vẫn ở chế độ code, không có ô thuộc tính để nhận focus).
+- `CodePanel`, từ trên xuống (spec mục 8): `GeneratorTargetSelect` (10 đích); `GeneratorOptions` (dialect cho SQL; provider cho Prisma; dialect Drizzle có SQL Server hiện nhưng `disabled` kèm chú thích; `format`, số dòng, seed cho Seed data; Markdown không có option); cảnh báo khi `getIssueIndex(document)` có issue (số lượng, nút mở tab `issues` bằng `setLeftPanelTab("issues")`); `CodeView`; `GeneratorDiagnosticList`. Dùng `useGeneratedCode` với `isEnabled` đúng khi panel đang mở; trạng thái `loading` giữ code cũ và báo bận bằng `aria-busy`; `failed` hiện thông báo lỗi đã dịch.
+- `CodeView`: `<pre tabIndex={0} aria-label={t("codeGenerator:codeArea", { target })}>` cuộn hai chiều; token render thành `<span style={{ color }}>` (không HTML string, không `dangerouslySetInnerHTML`); `tokens` là `null` (DBML) thì hiện văn bản thô. Nút "Copy" gọi `navigator.clipboard.writeText(file.content)` rồi `notify` thành công, bị từ chối thì `notify` lỗi (qua `useNotify` của phần 3).
+- `GeneratorDiagnosticList`: tiêu đề có số lượng; mỗi dòng là nút có thông báo `t(\`generatorDiagnostics:${code}\`, variables)` với biến lấy từ `resolveIssueTarget` như `IssueRow`; bấm gọi `useGoToIssue({ shouldRequestFocus: false })`.
+- i18n: namespace `codeGenerator` (`vi`, `en`): tên 10 đích, nhãn option và giá trị dialect, chú thích Drizzle SQL Server, `toggle`, `copy`, `copied`, `copyFailed`, `codeArea`, `loading`, `failed`, cảnh báo issue có số nhiều, `openIssues`, tiêu đề diagnostic có số lượng, và object `markdownLabels` đủ 23 khóa của `MarkdownLabels` (`satisfies MarkdownLabels`). Namespace `generatorDiagnostics`: 17 mã, `satisfies Record<GeneratorDiagnosticCode, string>`, biến nội suy chỉ dùng tên có trong `resolveIssueTarget` (`table`, `column`, `index`, `relation`, `enum`). Mã `SeedIssue` không có bản dịch (Vấn đề 11). Đăng ký hai namespace trong `NAMESPACES`, `enResources`, `viResources` của `resources.ts`.
+- CSP: `buildContentSecurityPolicy` thêm `worker-src 'self'`; không thêm `'wasm-unsafe-eval'`, `'unsafe-eval'`.
+- `globals.css`: biến `--code-foreground`, `--code-background`, `--code-token-constant`, `--code-token-string`, `--code-token-comment`, `--code-token-keyword`, `--code-token-parameter`, `--code-token-function`, `--code-token-string-expression`, `--code-token-punctuation`, `--code-token-link` trong `:root` và `.dark`, trỏ về token màu của shadcn/ui như cách phần 3 làm với `--xy-*`; tương phản với nền panel đạt 4,5:1 ở cả hai theme (kiểm tra tay).
+
+**Test viết trước:**
+
+- Store: `starts in properties mode with sql and default options`; `toggles the right panel mode`; `keeps the code mode when the selection changes`; `updates code options partially`.
+- `generator-request.test.ts`: `maps every code target and option to a generator request` (`it.each`); `passes markdown labels`; `clamps rows per table and seed`.
+- `use-go-to-issue.test.tsx`: `selects and reveals the element of an issue`; `requests focus only when asked`.
+- `editor-toolbar.test.tsx`: `toggles the code panel with an aria-pressed button`.
+- `editor-workspace.test.tsx`: `shows the properties panel by default and the code panel in code mode`.
+- `code-panel.test.tsx` (worker mock ở biên qua `createWorker`): `sends the selected target and options to the worker`; `shows a warning with the issue count and opens the issues tab`; `shows no warning for a schema without issues`; `disables sql server for drizzle with a note`.
+- `code-view.test.tsx`: `renders tokens as spans without html strings`; `renders plain text when there are no tokens`; `copies the code and shows a toast`; `shows an error toast when the clipboard is denied`; `exposes a focusable code region with a label`.
+- `generator-diagnostic-list.test.tsx`: `shows translated messages with the element name and a count`; `selects the element on click and keeps the code panel open`.
+- `frontend/src/lib/i18n/code-generator-messages.test.ts` (file mới, cạnh `issue-and-error-messages.test.ts` theo cách đặt test của `lib/i18n/`; không sửa `issue-and-error-messages.test.ts`): `translates every generator diagnostic code in vi and en`; `has every markdown label in vi and en`.
+- CSP: `allows workers from self only`.
+
+**Kiểm tra:** như Task 33 (không có lệnh `head`), thêm `pnpm --filter @schemaforge/frontend test` có các test trên, và `pnpm exec prettier --check` trên mọi file sở hữu. Execution log ghi các kiểm tra tay đã làm trên `pnpm dev`: mở, đổi đích, copy, bấm diagnostic, bàn phím tới vùng code và nút copy, hai theme.
+
+**Commit:** `feat(frontend): add code generator panel`
+
+## Task 35: Tài liệu, kết quả đo và kiểm tra cuối
+
+**Mục tiêu:** tài liệu khớp với những gì đã làm, mọi tiêu chí hoàn thành của spec được kiểm chứng, và toàn bộ conformance chạy lại một lần trên `master` (spec "Tiêu chí hoàn thành"; Vấn đề 13, 14, 16, 18, 19, 20).
+
+**Phụ thuộc:** Task 27–31, 34. **Đợt:** 11. Cần Docker.
+
+**File sở hữu (sửa):** `document/roadmap.md`, `document/architecture.md`, `CLAUDE.md` (chỉ mục "Commands"), `document/specs/2026-09-14-core-schema-model-design.md` (mục 6, 7, 8, 9 theo bảng "Vấn đề với các spec đã duyệt" của spec phần 6), `document/plans/2026-09-14-core-schema-model-plan.md` (một ghi chú dẫn tới Task 36 của plan này, không đánh dấu tiến độ), `document/specs/2026-09-14-code-generators-design.md` (mục 4 dòng "Quan hệ 1-1" của ma trận SQL, Prisma, Drizzle; CG-03 bullet "Relations v1"; CG-08 bullet "Unique" và đoạn "Quan hệ với AI-06"; mục 8 đường dẫn code; mục 9 kết quả đo). Task này giao cho `spec-writer` vì chỉ sửa `document/` và `CLAUDE.md`; các lệnh kiểm tra do orchestrator chạy và ghi vào log.
+
+**Cài đặt:**
+
+- `roadmap.md`: phần 6 sang "Xong".
+- `architecture.md`: chuyển các mục của phần 6 ở "Chưa chốt" (nếu còn) sang "Quyết định đã chốt" (`| Hạng mục | Quyết định | Lý do |`), sửa dòng đã có thay vì thêm bản thứ hai: generator thuần trong core theo subpath, Shiki 4 cho highlight, Testcontainers và conformance local, `@readme/openapi-parser`, MSW 2 cho Mock API, Drizzle 0.45 relations v1.
+- `CLAUDE.md`: thêm một câu về `pnpm test:conformance` (cần Docker, cổng chặn của task generator).
+- Spec phần 2: mục 8 danh mục 27 mã; mục 7 dòng Index; mục 6 và 9 hành vi `suggestIndexName`.
+- Spec phần 6: mục 4 dòng "Quan hệ 1-1" của ma trận, ô Drizzle, đổi `one` ở cả hai phía thành `one` ở phía khóa ngoại; phía ngược `one(source)` chỉ khi quan hệ không có tên (Vấn đề 18); CG-03 bullet "Relations v1" thêm câu: quan hệ 1-1 có tên không có trường phía ngược vì `one()` của `drizzle-orm` 0.45 bắt buộc `fields` khi có config (Vấn đề 18); CG-08 bullet "Unique" đổi "sau đó bỏ dòng và báo `seed-rows-reduced`" thành: hết lượt sinh lại thì dừng sinh bảng đó, giữ các dòng đã có và báo `seed-rows-reduced` (Vấn đề 20); CG-08 đoạn "Quan hệ với AI-06" thêm `parseSeedDataset(input: unknown): Result<SeedDataset, readonly StructuralError[]>` ở subpath `@schemaforge/core/generators/seed`: quét độ sâu bằng stack tường minh rồi kiểm tra hình dạng bằng Zod, mã `invalid-shape`, tối đa 1000 dòng mỗi bảng; kiểm tra theo schema vẫn là `validateSeedDataset` (Vấn đề 19); mục 8 đổi đường dẫn code sang `frontend/src/features/editor/code-generator/` (Vấn đề 14); mục 9 thêm bảng kết quả `vitest bench` từ log Task 28 (ngày đo, máy, `p75` từng generator).
+
+**Kiểm tra** (orchestrator chạy trên `master` sau khi mọi task đã merge, ghi kết quả vào log):
+
+```bash
+source ~/.nvm/nvm.sh >/dev/null 2>&1; nvm use 24 >/dev/null 2>&1;
+pnpm install --frozen-lockfile
+pnpm typecheck && pnpm lint && pnpm test && pnpm build
+docker info >/dev/null && pnpm test:conformance --force
+git status --porcelain
+```
+
+Mong đợi: mọi lệnh thoát mã 0, `pnpm test:conformance --force` chạy lại mọi file (không dùng cache). Kiểm tra tay trên bản build production (`pnpm --filter @schemaforge/frontend build` rồi `start`), không đăng nhập: sinh code cho mọi đích, tab Network không có request ngoài file tĩnh của ứng dụng, Console không có vi phạm CSP; với `createLargeSchema({ tableCount: 200 })` nạp vào editor, đổi đích tới khi code hiện ≤ 1 giây và kéo bảng trong lúc sinh code không giật. Ghi từng kết quả vào log.
+
+**Commit:** `docs: record code generators decisions and mark part 6 done`
+
+## Đối chiếu tiêu chí hoàn thành
+
+| Tiêu chí của spec | Task |
+|---|---|
+| Chung: mỗi đích có subpath `@schemaforge/core/generators/<đích>`; entry point chính export `GENERATOR_TARGETS`, `GENERATOR_DIAGNOSTIC_CODES`, type option, `MarkdownLabels`, `SeedDataset`; core chỉ có runtime dependency Zod và qua lint ranh giới | 2, 5, 14–26 (mỗi đích một `index.ts`), 22 (`SeedDataset`) |
+| Chung: bản build production, không đăng nhập, sinh code mọi đích không có request mạng, không vi phạm CSP | 33, 34 (worker, `worker-src 'self'`), 35 (kiểm tra tay) |
+| Chung: conformance mục 7 qua với mọi fixture khi chạy local (`pnpm test:conformance`) | 3, 8, 29, 30, 31, 35 |
+| Chung: probe mục 7 chạy local, khớp spec trước khi viết generator MySQL, SQL Server | 8 (điều kiện của 15, 16) |
+| Chung: validation phần 2 báo `table-columns-empty`, `index-name-conflicts-table`, có bản dịch; generator không throw với hai issue này | 36, 27 (không throw), 35 (spec phần 2) |
+| Chung: property test qua (không throw, xác định kể cả xáo khóa, an toàn với ký tự quote); không output nào có thời gian | 27 |
+| Chung: code panel chọn đích, option, highlight, copy, diagnostic đã dịch, cảnh báo issue; component test qua | 32, 33, 34 |
+| Chung: mỗi mã diagnostic có test gây ra nó và bản dịch `vi`, `en`; mỗi dòng "tương đương" của ma trận có test không diagnostic | 2, 12, 13, 14–26 (test theo mã), 34 (`generatorDiagnostics`) |
+| Chung: comment xuất hiện trong output SQL ba dialect, Prisma, Drizzle, TypeScript, Zod, OpenAPI, DBML, Markdown, kiểm tra bằng snapshot | 14, 15, 16, 17, 18, 19, 20, 24, 25, 26 |
+| Chung: `vitest bench` đạt mục tiêu mục 9; mục tiêu giao diện kiểm tra tay | 28, 35 |
+| CG-01: ba dialect; đủ phần tử; DDL mọi fixture chạy không lỗi trên ba database | 13, 14, 15, 16, 29, 34 (chọn dialect) |
+| CG-02: model, quan hệ hai phía, enum, index; `prisma validate` qua không cảnh báo với ba provider | 17, 30 |
+| CG-03: bảng, khóa ngoại, `relations()`, enum, index cho PostgreSQL, MySQL; typecheck strict | 18, 30 |
+| CG-04: type mỗi bảng, `\| null`, union chuỗi; typecheck strict | 19, 30 |
+| CG-05: schema Zod 4 mỗi bảng, `.nullable()`, `z.enum`; typecheck; seed JSON parse được | 20, 22, 30 |
+| CG-06: handler MSW mọi bảng, CRUD khi có khóa chính; typecheck; route chạy trên `msw/node` | 23, 31 |
+| CG-07: OpenAPI 3.1 JSON, component bảng và enum, đường dẫn CRUD; `@readme/openapi-parser` hợp lệ | 24, 31 |
+| CG-08: SQL ba dialect và JSON; qua `validateSeedDataset`; thứ tự theo tham chiếu, cạnh phá vòng bằng `UPDATE`; chạy sau DDL trên ba database; cùng `seed` cùng output | 21, 22, 27, 29, 30 |
+| CG-09: `@dbml/core` parse không lỗi và khớp schema | 25, 31 |
+| CG-10: tài liệu đủ bảng, cột, kiểu, ràng buộc, comment, index, quan hệ, enum; nhãn theo ngôn ngữ giao diện | 26, 34 (`markdownLabels`) |
+| Khi xong: `roadmap.md` phần 6 "Xong"; quyết định ghi vào `architecture.md` | 35 |

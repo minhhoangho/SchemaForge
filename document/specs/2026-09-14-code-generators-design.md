@@ -208,7 +208,7 @@ Literal mặc định được ghi theo kiểu cột: chuỗi trong nháy đơn 
 | `custom` | `Unsupported("…")` | `Unsupported("…")` | `Unsupported("…")` |
 
 - Native type (`@db.*`) được chọn để database do Prisma tạo có đúng kiểu như DDL của CG-01 cùng dialect. Plan xác nhận từng thuộc tính bằng `prisma validate` (mục 7).
-- Giá trị mặc định: `autoincrement()`, `now()`, `uuid()` theo phần 2; literal dùng dạng Prisma nhận được cho kiểu (số, chuỗi, boolean, giá trị enum); literal Prisma không biểu diễn được (ví dụ `time`, `date`) dùng `dbgenerated("…")` với literal SQL của CG-01 cùng dialect, đặt trong chuỗi Prisma đã escape.
+- Giá trị mặc định: `autoincrement()`, `now()`, `uuid()` theo phần 2; literal dùng dạng Prisma nhận được cho kiểu (số, chuỗi, boolean, giá trị enum); literal Prisma không biểu diễn được (ví dụ `time`, `date`) dùng `dbgenerated("…")` với literal SQL của CG-01 cùng dialect, đặt trong chuỗi Prisma đã escape. Với `mysql`, literal trên cột có kiểu đích là `LONGTEXT`, `JSON` hoặc `LONGBLOB` (gồm cột `char`, `varchar` đổi sang `LONGTEXT` theo R13) là `dbgenerated("(<literal>)")`, ví dụ `@default(dbgenerated("('a''b')"))`, không phải `@default("…")`: MySQL chỉ nhận mặc định dạng biểu thức trong ngoặc trên các kiểu này (như CG-01), và `prisma validate` không bắt lỗi này (R19).
 - `prisma validate` 7.10.0 xác nhận: SQL Server không có enum, không có kiểu `Json`, không nhận `Restrict`; `Unsupported` dùng được trong `@@unique`, `@@index`.
 
 ### Drizzle
@@ -331,6 +331,7 @@ Trả lời câu hỏi 7 trong danh sách tính năng.
 | Khóa ngoại nhiều cột | `FOREIGN KEY (…)`, cặp cột theo thứ tự khóa được tham chiếu | như PostgreSQL | như PostgreSQL | `@relation(fields, references)` | `foreignKey({ columns, foreignColumns })` |
 | Tự tham chiếu | Như quan hệ thường | như PostgreSQL | Hành động theo dòng "vòng" | `@relation("…")` ở hai phía | `foreignKey` trong cấu hình bảng, `relationName` |
 | Quan hệ 1-1 | Khóa ngoại; unique đã có trong schema, không thêm | như PostgreSQL | như PostgreSQL | Trường quan hệ đơn, phía ngược là `Model?` | `one` ở cả hai phía |
+| Literal mặc định trên `LONGTEXT`, `JSON`, `LONGBLOB` | Không áp dụng | `DEFAULT ('…')`, tương đương | Không áp dụng | `mysql`: `@default(dbgenerated("('…')"))` (R19) | MySQL: `.default(sql.raw("('…')"))` |
 | Unique trên cột nullable | `UNIQUE` | `UNIQUE` | Unique index lọc `WHERE … IS NOT NULL`, tương đương; nếu được khóa ngoại tham chiếu thì `UNIQUE`, `unique-nulls-restricted` | `@unique`; `sqlserver`: `unique-nulls-restricted` | `unique` |
 | `text` trong khóa, index | `text` | `VARCHAR(255)`, `key-column-type-narrowed` | `nvarchar(450)`, `key-column-type-narrowed` | Theo dialect | Theo dialect |
 | `char(n)`, `varchar(n)` với `n > 768` trong khóa, index | Giữ nguyên | `VARCHAR(768)`, `key-column-type-narrowed`; cột vượt giới hạn (ví dụ `varchar(20000)` trong unique) cũng thành `VARCHAR(768)`, kèm thêm `type-parameter-out-of-range` | Theo dòng dưới | Theo dialect | Theo dialect |
@@ -891,3 +892,4 @@ Thay đổi với spec phần 2 do vấn đề 10, 12 nằm ở mục [Vấn đ�
 | R16 | Tên sequence identity trên PostgreSQL | Viết lại giới hạn R9: PostgreSQL chọn `…_seq1` khi tên đã có, nên chỉ lỗi khi đối tượng của người dùng cùng tên được tạo sau sequence, hoặc khi tên dài bị cắt đổi tên; vẫn là giới hạn đã chấp nhận | Mục Rủi ro |
 | R17 | Tên enum trùng row type của bảng trên PostgreSQL | Phần 2 đã cấm: bảng và enum chung một không gian tên (phần 2 mục 7, `table-name-duplicate`, `enum-name-duplicate`), nên schema hợp lệ không có enum trùng tên bảng. Không thêm quy tắc đổi tên hay hợp đồng `path` mới cho `identifier-collision-renamed` | Không đổi spec |
 | R18 | Bullet đầu mục Rủi ro | Cổng conformance áp khi conformance test của đích đã có; trước đó probe là cổng (MySQL, SQL Server) | Mục Rủi ro |
+| R19 | Mặc định Prisma `mysql` trên TEXT, JSON, BLOB | Literal mặc định trên cột có kiểu đích MySQL là `LONGTEXT`, `JSON` hoặc `LONGBLOB` ghi `dbgenerated("(<literal>)")` thay vì `@default("…")`, vì MySQL chỉ nhận mặc định dạng biểu thức trong ngoặc trên các kiểu này và `prisma validate` không bắt lỗi (sửa sau review plan ngày 2026-10-02); Drizzle MySQL dùng cùng quy tắc ngoặc qua `sql.raw` | Mục 3 (Prisma), mục 4 (ma trận) |

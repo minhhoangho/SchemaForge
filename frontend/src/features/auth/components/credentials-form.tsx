@@ -6,7 +6,7 @@ import {
   PASSWORD_MIN_LENGTH,
 } from "@schemaforge/api-contract";
 import type { TFunction } from "i18next";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { CircleAlertIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import type { JSX } from "react";
 import { useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -50,7 +50,8 @@ const MODE_SETTINGS = {
   },
 } as const;
 
-const FIELD_ERROR_CLASS_NAME = "text-sm text-destructive";
+const FIELD_ERROR_CLASS_NAME =
+  "flex items-center gap-1.5 text-sm text-destructive";
 
 const SECONDS_PER_MINUTE = 60;
 
@@ -137,6 +138,7 @@ function FieldErrorText({
 }: FieldErrorTextProps): JSX.Element | null {
   return message === undefined ? null : (
     <p id={id} className={FIELD_ERROR_CLASS_NAME}>
+      <CircleAlertIcon aria-hidden="true" className="size-3.5 shrink-0" />
       {message}
     </p>
   );
@@ -280,6 +282,7 @@ export function CredentialsForm({
       </div>
       {failure === null ? null : (
         <p role="alert" className={FIELD_ERROR_CLASS_NAME}>
+          <CircleAlertIcon aria-hidden="true" className="size-3.5 shrink-0" />
           {isRateLimited
             ? describeRateLimitWait(rateLimitSeconds, t)
             : tApiErrors(toApiErrorMessageKey(failure))}
@@ -294,7 +297,12 @@ export function CredentialsForm({
           })}
         </p>
       ) : null}
-      <Button type="submit" disabled={isSubmitting || isRateLimited}>
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        disabled={isSubmitting || isRateLimited}
+      >
         {isSubmitting ? t("credentialsForm.submitting") : t(settings.submitKey)}
       </Button>
     </form>

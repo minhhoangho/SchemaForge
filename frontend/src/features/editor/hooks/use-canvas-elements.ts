@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import { useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { describeRelation, describeTable } from "../lib/aria-label-config";
 import type { MeasuredSize } from "../lib/apply-canvas-changes";
@@ -8,6 +9,8 @@ import { toRelationEdges } from "../lib/to-relation-edges";
 import type { RelationEdge } from "../lib/to-relation-edges";
 import { toTableNodes } from "../lib/to-table-nodes";
 import type { TableNode } from "../lib/to-table-nodes";
+import { selectCanvasDocument } from "../state/create-editor-store";
+import type { DiffMark } from "../state/create-editor-store";
 import { useEditorStore } from "../state/use-editor-store";
 
 export type CanvasElements = {
@@ -30,8 +33,24 @@ function lookup<Value>(
   return elements[elementId];
 }
 
+// A preview names the diff state of an element in its accessible name, so a
+// screen reader hears it without the visual marks (AI-R34).
+function useDescribeDiffMark(): (label: string, elementId: string) => string {
+  const { t } = useTranslation("ai");
+  const marks = useEditorStore((state) => state.proposal?.marks);
+  return useMemo(
+    () => (label: string, elementId: string) => {
+      const mark: DiffMark | undefined = marks?.get(elementId);
+      return mark === undefined
+        ? label
+        : t("diff.elementLabel", { label, state: t(`diff.${mark}`) });
+    },
+    [marks, t],
+  );
+}
+
 function useBaseNodes(): readonly TableNode[] {
-  const tables = useEditorStore((state) => state.document.tables);
+  const tables = useEditorStore((state) => selectCanvasDocument(state).tables);
   const selection = useEditorStore((state) => state.selection);
   const dragPositions = useEditorStore((state) => state.dragPositions);
   // The previous output of the mapper, never React Flow's own node objects,
@@ -54,7 +73,10 @@ function useBaseNodes(): readonly TableNode[] {
 }
 
 function useBaseEdges(): readonly RelationEdge[] {
-  const document = useEditorStore((state) => state.document);
+  const document = useEditorStore(selectCanvasDocument);
+  // Issues come from the document the user has, even during a preview
+  // (plan issue 30).
+  const issueDocument = useEditorStore((state) => state.document);
   const selection = useEditorStore((state) => state.selection);
   const previous = useRef<readonly RelationEdge[]>([]);
 
@@ -67,11 +89,11 @@ function useBaseEdges(): readonly RelationEdge[] {
       relations: document.relations,
       tables: document.tables,
       selection,
-      issueIndex: getIssueIndex(document),
+      issueIndex: getIssueIndex(issueDocument),
       previousEdges: previous.current,
     });
     return previous.current;
-  }, [document, selection]);
+  }, [document, issueDocument, selection]);
 }
 
 function useLabeledNodes(
@@ -79,14 +101,18 @@ function useLabeledNodes(
   measuredSizes: ReadonlyMap<string, MeasuredSize>,
 ): TableNode[] {
   const baseNodes = useBaseNodes();
-  const tables = useEditorStore((state) => state.document.tables);
+  const tables = useEditorStore((state) => selectCanvasDocument(state).tables);
+  const describeDiffMark = useDescribeDiffMark();
   const previous = useRef<TableNode[]>([]);
   const [labeled] = useState(() => new WeakMap<TableNode, TableNode>());
 
   return useMemo(() => {
     const next = baseNodes.map((base) => {
       const table = tables[base.data.tableId];
-      const ariaLabel = table === undefined ? "" : describeTable(table, t);
+      const ariaLabel =
+        table === undefined
+          ? ""
+          : describeDiffMark(describeTable(table, t), base.id);
       // Measured sizes ride along: the minimap draws only nodes that carry
       // one, and React Flow does not hide a node to measure it again every
       // time its object changes (during a drag).
@@ -106,12 +132,13 @@ function useLabeledNodes(
     // the array and the cache only preserve object identity for equal content.
     previous.current = reuseArray(next, previous.current);
     return previous.current;
-  }, [baseNodes, tables, labeled, measuredSizes, t]);
+  }, [baseNodes, tables, labeled, measuredSizes, t, describeDiffMark]);
 }
 
 function useLabeledEdges(t: TFunction<"canvas">): RelationEdge[] {
   const baseEdges = useBaseEdges();
-  const document = useEditorStore((state) => state.document);
+  const document = useEditorStore(selectCanvasDocument);
+  const describeDiffMark = useDescribeDiffMark();
   const previous = useRef<RelationEdge[]>([]);
   const [labeled] = useState(() => new WeakMap<RelationEdge, RelationEdge>());
 
@@ -122,7 +149,10 @@ function useLabeledEdges(t: TFunction<"canvas">): RelationEdge[] {
       const ariaLabel =
         relation === undefined
           ? ""
-          : describeRelation({ relation, document, hasIssue, t });
+          : describeDiffMark(
+              describeRelation({ relation, document, hasIssue, t }),
+              base.id,
+            );
       const cached = labeled.get(base);
       if (cached?.ariaLabel === ariaLabel) {
         return cached;
@@ -135,7 +165,7 @@ function useLabeledEdges(t: TFunction<"canvas">): RelationEdge[] {
     // the array and the cache only preserve object identity for equal content.
     previous.current = reuseArray(next, previous.current);
     return previous.current;
-  }, [baseEdges, document, labeled, t]);
+  }, [baseEdges, document, labeled, t, describeDiffMark]);
 }
 
 /**

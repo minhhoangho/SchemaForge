@@ -149,6 +149,31 @@ describe("useDeleteSelection", () => {
     expect(store.getState().document).toStrictEqual(initialDocument);
   });
 
+  it("does nothing during a preview", async () => {
+    const { user, store, initialDocument, focusCanvas } =
+      renderDeleteSelection(PRODUCTS);
+    act(() => {
+      store.getState().startProposalPreview("msg_1", {
+        type: "renameSchema",
+        name: "store",
+      });
+    });
+
+    await deleteSelection(user);
+
+    expect({
+      document: store.getState().document,
+      selection: store.getState().selection,
+      focusCalls: focusCanvas.mock.calls.length,
+      toasts: within(getToastRegion()).queryAllByRole("listitem").length,
+    }).toStrictEqual({
+      document: initialDocument,
+      selection: PRODUCTS,
+      focusCalls: 0,
+      toasts: 0,
+    });
+  });
+
   it("does nothing for an empty selection", async () => {
     const { user, store, initialDocument, focusCanvas } =
       renderDeleteSelection(EMPTY_SELECTION);

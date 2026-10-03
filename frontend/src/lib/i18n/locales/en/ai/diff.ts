@@ -5,4 +5,6 @@ export const enAiDiff = {
   columnAdded: "New column",
   columnChanged: "Changed column",
   columnRemoved: "Removed column",
+  // Accessible name of a table or relation drawn with a diff mark.
+  elementLabel: "{{label}}, {{state}}",
 } as const;

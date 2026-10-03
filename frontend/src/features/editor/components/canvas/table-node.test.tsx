@@ -1,4 +1,4 @@
-import type { SchemaDocument } from "@schemaforge/core";
+import type { Operation, SchemaDocument } from "@schemaforge/core";
 import {
   buildSchema,
   createCounterIdGenerator,
@@ -60,11 +60,13 @@ class MeasuringResizeObserver implements ResizeObserver {
 
 type RenderOptions = {
   readonly themePreference?: ThemePreference;
+  // Previewed as an AI proposal before the first render.
+  readonly proposal?: Operation;
 };
 
 function renderCanvas(
   document: SchemaDocument,
-  { themePreference = "light" }: RenderOptions = {},
+  { themePreference = "light", proposal }: RenderOptions = {},
 ): ReturnType<typeof renderWithProviders> {
   const store = createEditorStore({
     schemaId: SCHEMA_ID,
@@ -73,6 +75,12 @@ function renderCanvas(
     notify: vi.fn<Notify>(),
     logger: { error: vi.fn<Logger["error"]>(), warn: vi.fn<Logger["warn"]>() },
   });
+  if (proposal !== undefined) {
+    const result = store.getState().startProposalPreview("msg_1", proposal);
+    if (!result.isOk) {
+      throw new Error(`The test proposal is ${result.error}.`);
+    }
+  }
   return renderWithProviders(
     <EditorStoreProvider store={store}>
       <EditorFlowProvider>
@@ -127,6 +135,76 @@ function createUsersDocument(): SchemaDocument {
       }),
     ],
   });
+}
+
+function createShopDocument(): SchemaDocument {
+  return buildSchema({
+    tables: [
+      makeTable({ id: "tbl_users", name: "users", position: { x: 0, y: 0 } }),
+      makeTable({
+        id: "tbl_orders",
+        name: "orders",
+        position: { x: 400, y: 0 },
+      }),
+    ],
+    columns: [
+      makeColumn({ id: "col_user_email", tableId: "tbl_users", name: "email" }),
+      makeColumn({
+        id: "col_user_nickname",
+        tableId: "tbl_users",
+        name: "nickname",
+        type: { kind: "text" },
+      }),
+    ],
+  });
+}
+
+const DIFF_PROPOSAL: Operation = {
+  type: "batch",
+  operations: [
+    {
+      type: "addTable",
+      table: {
+        id: "tbl_tags",
+        name: "tags",
+        comment: "",
+        position: { x: 0, y: 400 },
+        subjectAreaId: null,
+      },
+    },
+    {
+      type: "addColumn",
+      column: makeColumn({
+        id: "col_tag_id",
+        tableId: "tbl_tags",
+        name: "id",
+      }),
+      insertAt: 0,
+    },
+    {
+      type: "setPrimaryKey",
+      tableId: "tbl_tags",
+      columnIds: ["col_tag_id"],
+    },
+    { type: "updateTable", tableId: "tbl_users", changes: { name: "members" } },
+    {
+      type: "updateColumn",
+      columnId: "col_user_email",
+      changes: { type: { kind: "text" } },
+    },
+    { type: "removeColumn", columnId: "col_user_nickname" },
+    { type: "removeTable", tableId: "tbl_orders" },
+  ],
+};
+
+function getColumnRow(name: string): HTMLElement {
+  const row = within(getTableNode(/^Table members/))
+    .getByText(name)
+    .closest("li");
+  if (row === null) {
+    throw new Error(`Column ${name} has no row.`);
+  }
+  return row;
 }
 
 beforeEach(() => {
@@ -333,6 +411,97 @@ describe("TableNode", () => {
       expect.stringContaining("nickname"),
     ]);
   });
+
+  it.each([
+    { table: /^Table tags/, label: "New" },
+    { table: /^Table members/, label: "Changed" },
+    { table: /^Table orders/, label: "Removed" },
+  ])(
+    "labels a table with its diff state in text ($label)",
+    ({ table, label }) => {
+      renderCanvas(createShopDocument(), { proposal: DIFF_PROPOSAL });
+
+      expect(within(getTableNode(table)).getByText(label)).toBeDefined();
+    },
+  );
+
+  it("dims a removed table", () => {
+    renderCanvas(createShopDocument(), { proposal: DIFF_PROPOSAL });
+
+    expect(
+      within(getTableNode(/^Table orders/))
+        .getByText("orders")
+        .closest(".table-node-card")
+        ?.classList.contains("opacity-60"),
+    ).toBe(true);
+  });
+
+  it("prefixes a changed column with a symbol and hidden text", () => {
+    renderCanvas(createShopDocument(), { proposal: DIFF_PROPOSAL });
+    const row = getColumnRow("email");
+
+    expect({
+      symbol: within(row).getByText("~").getAttribute("aria-hidden"),
+      hiddenText: within(row).getByText("Changed column").className,
+    }).toStrictEqual({ symbol: "true", hiddenText: "sr-only" });
+  });
+
+  it("strikes through a removed column", () => {
+    renderCanvas(createShopDocument(), { proposal: DIFF_PROPOSAL });
+    const row = getColumnRow("nickname");
+
+    expect({
+      hiddenText: within(row).queryByText("Removed column") !== null,
+      isNameStruck: within(row)
+        .getByText("nickname")
+        .classList.contains("line-through"),
+      isTypeStruck: within(row)
+        .getByText("text")
+        .classList.contains("line-through"),
+    }).toStrictEqual({
+      hiddenText: true,
+      isNameStruck: true,
+      isTypeStruck: true,
+    });
+  });
+
+  it("reads issue counts from the current document during a preview", () => {
+    // The proposal clears the issue (an empty column name), but the badge
+    // keeps counting the document the user has, not the preview.
+    renderCanvas(
+      buildSchema({
+        tables: [makeTable({ id: "tbl_users", name: "users" })],
+        columns: [
+          makeColumn({ id: "col_user_email", tableId: "tbl_users", name: "" }),
+        ],
+      }),
+      {
+        proposal: {
+          type: "updateColumn",
+          columnId: "col_user_email",
+          changes: { name: "email" },
+        },
+      },
+    );
+
+    expect(
+      within(getTableNode(/^Table users/)).getByRole("img", {
+        name: "1 issue",
+      }),
+    ).toBeDefined();
+  });
+
+  it.each<ThemePreference>(["light", "dark"])(
+    "has no axe violations for a table node with diff marks in the %s theme",
+    async (themePreference) => {
+      const { container } = renderCanvas(createShopDocument(), {
+        themePreference,
+        proposal: DIFF_PROPOSAL,
+      });
+
+      await expectNoAxeViolations(container);
+    },
+  );
 
   it.each<ThemePreference>(["light", "dark"])(
     "reports no axe violations in the %s theme",

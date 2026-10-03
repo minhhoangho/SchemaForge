@@ -7,6 +7,7 @@ import {
   matchShortcut,
   shouldHandleShortcut,
 } from "../lib/should-handle-shortcut";
+import { selectIsPreviewing } from "../state/create-editor-store";
 import type { EditorStore } from "../state/create-editor-store";
 
 export type UseEditorShortcutsInput = {
@@ -50,7 +51,9 @@ export function useEditorShortcuts({
 
     function handleKeyDown(event: KeyboardEvent): void {
       const action = matchShortcut(event, platform);
-      if (action === null) {
+      // Every shortcut here edits the schema, which an AI proposal preview
+      // locks; the key is left untouched for React Flow's viewport keys.
+      if (action === null || selectIsPreviewing(store.getState())) {
         return;
       }
       const latest = latestRef.current;

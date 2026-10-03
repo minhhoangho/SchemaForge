@@ -8,4 +8,5 @@ export const viAiDiff = {
   columnAdded: "Cột mới",
   columnChanged: "Cột đã sửa",
   columnRemoved: "Cột bị xóa",
+  elementLabel: "{{label}}, {{state}}",
 } as const satisfies LocaleNamespace<typeof enAiDiff>;

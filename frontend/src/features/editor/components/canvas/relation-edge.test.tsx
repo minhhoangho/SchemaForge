@@ -1,4 +1,4 @@
-import type { ColumnType, SchemaDocument } from "@schemaforge/core";
+import type { ColumnType, Operation, SchemaDocument } from "@schemaforge/core";
 import {
   buildSchema,
   createCounterIdGenerator,
@@ -61,6 +61,7 @@ class MeasuringResizeObserver implements ResizeObserver {
 function renderCanvas(
   document: SchemaDocument,
   themePreference: ThemePreference = "light",
+  proposal?: Operation,
 ): ReturnType<typeof renderWithProviders> {
   const store = createEditorStore({
     schemaId: SCHEMA_ID,
@@ -69,6 +70,9 @@ function renderCanvas(
     notify: vi.fn<Notify>(),
     logger: { error: vi.fn<Logger["error"]>(), warn: vi.fn<Logger["warn"]>() },
   });
+  if (proposal !== undefined) {
+    store.getState().startProposalPreview("msg_1", proposal);
+  }
   return renderWithProviders(
     <EditorStoreProvider store={store}>
       <EditorFlowProvider>
@@ -174,6 +178,24 @@ describe("RelationEdge", () => {
         name: "posts.author_id → users.id, one-to-many, has issues",
       }).tagName,
     ).toBe("g");
+  });
+
+  it("draws a removed relation dashed", () => {
+    renderCanvas(createPostsDocument(), "light", {
+      type: "removeRelation",
+      relationId: "rel_posts_users",
+    });
+
+    const path = screen
+      .getByRole("group", {
+        name: "posts.author_id → users.id, one-to-many, Removed",
+      })
+      .querySelector<SVGPathElement>("path.react-flow__edge-path");
+
+    expect({
+      stroke: path?.style.stroke,
+      dashArray: path?.style.strokeDasharray,
+    }).toStrictEqual({ stroke: "var(--diff-removed)", dashArray: "2 4" });
   });
 
   it("draws the relation as a right-angle path", () => {

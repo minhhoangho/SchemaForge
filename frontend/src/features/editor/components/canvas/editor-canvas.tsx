@@ -43,7 +43,14 @@ import {
   MAX_ZOOM,
   MIN_ZOOM,
 } from "../../lib/viewport-controls";
-import { useEditorStoreApi } from "../../state/use-editor-store";
+import {
+  selectCanvasDocument,
+  selectIsPreviewing,
+} from "../../state/create-editor-store";
+import {
+  useEditorStore,
+  useEditorStoreApi,
+} from "../../state/use-editor-store";
 import { CanvasEmptyState } from "./canvas-empty-state";
 import { RelationEdge } from "./relation-edge";
 import { RelationMarkers } from "./relation-markers";
@@ -89,7 +96,8 @@ function useCanvasHandlers(
         const sizes = applyNodeChanges(store, changes);
         // Only a measurement re-renders the canvas; a drag sends no sizes.
         if (sizes.length > 0) {
-          const { document } = store.getState();
+          // A table drawn only during a preview keeps its size too.
+          const document = selectCanvasDocument(store.getState());
           setMeasuredSizes((current) =>
             mergeMeasuredSizes(current, sizes, document),
           );
@@ -133,6 +141,8 @@ export function EditorCanvas({
   >(() => new Map());
   const { nodes, edges } = useCanvasElements(t, measuredSizes);
   const handlers = useCanvasHandlers(setMeasuredSizes);
+  // An AI proposal preview is read-only; zoom, pan and the minimap stay.
+  const isEditable = !useEditorStore(selectIsPreviewing);
   const ariaLabelConfig = useMemo(() => buildAriaLabelConfig(t), [t]);
   useRevealFocusedElement(canvasElement);
 
@@ -157,6 +167,9 @@ export function EditorCanvas({
         onBeforeDelete={refuseDelete}
         deleteKeyCode={null}
         connectionMode={ConnectionMode.Loose}
+        nodesDraggable={isEditable}
+        nodesConnectable={isEditable}
+        elementsSelectable={isEditable}
         nodesFocusable
         edgesFocusable
         autoPanOnNodeFocus={false}

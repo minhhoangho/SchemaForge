@@ -7,6 +7,7 @@ import { useNotify } from "@/lib/use-notify";
 
 import { buildDeleteSelectionOperation } from "../lib/build-delete-selection-operation";
 import { countSelection, EMPTY_SELECTION } from "../lib/selection";
+import { selectIsPreviewing } from "../state/create-editor-store";
 import type { EditorState, EditorStore } from "../state/create-editor-store";
 import { useEditorStoreApi } from "../state/use-editor-store";
 
@@ -61,6 +62,11 @@ export function useDeleteSelection(focusCanvas: () => void): () => void {
 
   return useCallback(() => {
     const state = store.getState();
+    // A preview locks every edit: dispatch would ignore the deletion, and the
+    // toast would report one that never happened.
+    if (selectIsPreviewing(state)) {
+      return;
+    }
     const operation = buildDeleteSelectionOperation(state.selection);
     // A rejected batch already reported its error and changed nothing.
     if (operation === null || !state.dispatch(operation).isOk) {

@@ -21,6 +21,11 @@ import { getForeignKeyColumnIds } from "../../lib/foreign-key-columns";
 import { formatColumnType } from "../../lib/format-column-type";
 import { formatColumnHandleId } from "../../lib/handle-ids";
 import { getIssueIndex } from "../../lib/issue-index";
+import {
+  selectCanvasDocument,
+  selectDiffMark,
+} from "../../state/create-editor-store";
+import type { DiffMark } from "../../state/create-editor-store";
 import { useEditorStore } from "../../state/use-editor-store";
 
 // Schema notation, the same in every language; the translated meaning sits
@@ -30,6 +35,28 @@ const AUTO_INCREMENT_MARK = "AI";
 const NULLABLE_MARK = "?";
 const NOT_IN_PRIMARY_KEY = -1;
 const COMPOSITE_KEY_SIZE = 2;
+
+// Diff tokens reach 3:1 only as strokes and tints, never as text (plan
+// issue 31): a left bar and a light background.
+const DIFF_ROW_CLASS_NAMES = {
+  added: "border-l-2 border-diff-added bg-diff-added/10",
+  changed: "border-l-2 border-diff-changed bg-diff-changed/10",
+  removed: "border-l-2 border-diff-removed bg-diff-removed/10",
+} as const satisfies Record<DiffMark, string>;
+
+// Diff notation, the same in every language; the translated meaning sits
+// next to it in screen reader text.
+const DIFF_SYMBOLS = {
+  added: "+",
+  changed: "~",
+  removed: "\u2212",
+} as const satisfies Record<DiffMark, string>;
+
+const DIFF_LABEL_KEYS = {
+  added: "diff.columnAdded",
+  changed: "diff.columnChanged",
+  removed: "diff.columnRemoved",
+} as const satisfies Record<DiffMark, string>;
 
 export type ColumnRowProps = {
   readonly columnId: ColumnId;
@@ -45,14 +72,17 @@ function KeyMarks({ columnId, tableId }: KeyMarksProps): JSX.Element {
   const { t } = useTranslation("canvas");
   const keyIndex = useEditorStore(
     (state) =>
-      state.document.tables[tableId]?.primaryKeyColumnIds.indexOf(columnId) ??
-      NOT_IN_PRIMARY_KEY,
+      selectCanvasDocument(state).tables[tableId]?.primaryKeyColumnIds.indexOf(
+        columnId,
+      ) ?? NOT_IN_PRIMARY_KEY,
   );
   const keySize = useEditorStore(
-    (state) => state.document.tables[tableId]?.primaryKeyColumnIds.length ?? 0,
+    (state) =>
+      selectCanvasDocument(state).tables[tableId]?.primaryKeyColumnIds.length ??
+      0,
   );
   const isForeignKey = useEditorStore((state) =>
-    getForeignKeyColumnIds(state.document.relations).has(columnId),
+    getForeignKeyColumnIds(selectCanvasDocument(state).relations).has(columnId),
   );
   const isPrimaryKey = keyIndex !== NOT_IN_PRIMARY_KEY;
   const isComposite = keySize >= COMPOSITE_KEY_SIZE;
@@ -140,19 +170,38 @@ function CommentMark({ comment }: CommentMarkProps): JSX.Element {
   );
 }
 
+type DiffSymbolProps = {
+  readonly mark: DiffMark;
+};
+
+function DiffSymbol({ mark }: DiffSymbolProps): JSX.Element {
+  const { t } = useTranslation("ai");
+
+  return (
+    <span className="shrink-0 font-mono font-semibold">
+      <span aria-hidden>{DIFF_SYMBOLS[mark]}</span>
+      <span className="sr-only">{t(DIFF_LABEL_KEYS[mark])}</span>
+    </span>
+  );
+}
+
 /** One column of a table node, with its marks and connection handles. */
 export const ColumnRow = memo(function ColumnRow({
   columnId,
   tableId,
 }: ColumnRowProps): JSX.Element | null {
   const { t } = useTranslation("canvas");
-  const column = useEditorStore((state) => state.document.columns[columnId]);
+  const column = useEditorStore(
+    (state) => selectCanvasDocument(state).columns[columnId],
+  );
   const typeLabel = useEditorStore((state) => {
-    const type = state.document.columns[columnId]?.type;
-    return type === undefined
-      ? ""
-      : formatColumnType(type, state.document.enums);
+    const document = selectCanvasDocument(state);
+    const type = document.columns[columnId]?.type;
+    return type === undefined ? "" : formatColumnType(type, document.enums);
   });
+  const diffMark = useEditorStore((state) => selectDiffMark(state, columnId));
+  const isRemoved = diffMark === "removed";
+  // Issues stay those of the document the user has (plan issue 30).
   const issueCount = useEditorStore((state) =>
     getIssueIndex(state.document).countOfElement(columnId),
   );
@@ -162,23 +211,38 @@ export const ColumnRow = memo(function ColumnRow({
   }
 
   return (
-    <li className="relative grid h-7 grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-2 px-3 has-data-both-keys:grid-cols-[2.25rem_minmax(0,1fr)_auto]">
+    <li
+      className={cn(
+        "relative grid h-7 grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-2 px-3 has-data-both-keys:grid-cols-[2.25rem_minmax(0,1fr)_auto]",
+        diffMark === null ? null : DIFF_ROW_CLASS_NAMES[diffMark],
+      )}
+    >
       <Handle
         type="source"
         position={Position.Left}
         id={formatColumnHandleId(columnId, "left")}
       />
       <KeyMarks columnId={columnId} tableId={tableId} />
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="min-w-0 truncate peer-data-primary-key:font-semibold">
-            {column.name}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>{column.name}</TooltipContent>
-      </Tooltip>
+      <span className="flex min-w-0 items-center gap-1 peer-data-primary-key:font-semibold">
+        {diffMark === null ? null : <DiffSymbol mark={diffMark} />}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              className={cn("min-w-0 truncate", isRemoved && "line-through")}
+            >
+              {column.name}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{column.name}</TooltipContent>
+        </Tooltip>
+      </span>
       <span className="flex items-center gap-1">
-        <span className="font-mono text-muted-foreground">
+        <span
+          className={cn(
+            "font-mono text-muted-foreground",
+            isRemoved && "line-through",
+          )}
+        >
           {typeLabel}
           {column.isNullable ? (
             <NotationMark mark={NULLABLE_MARK} label={t("column.nullable")} />

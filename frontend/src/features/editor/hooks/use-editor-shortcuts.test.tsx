@@ -189,6 +189,54 @@ describe("useEditorShortcuts", () => {
     expect(latestOnDeleteSelection).toHaveBeenCalledOnce();
   });
 
+  it("ignores schema editing shortcuts during a preview", async () => {
+    const user = userEvent.setup();
+    const store = createTestStore();
+    renameSchema(store, "orders");
+    act(() => {
+      store.getState().startProposalPreview("msg_1", {
+        type: "renameSchema",
+        name: "store",
+      });
+    });
+    const canvas = createCanvas();
+    const onDeleteSelection = vi.fn<() => void>();
+    renderShortcuts(store, { canvasElement: canvas, onDeleteSelection });
+    canvas.focus();
+
+    await user.keyboard("{Control>}z{/Control}{Control>}y{/Control}{Delete}");
+
+    expect({
+      name: store.getState().document.name,
+      historyLength: store.getState().history.past.length,
+      deleteCalls: onDeleteSelection.mock.calls.length,
+    }).toStrictEqual({ name: "orders", historyLength: 1, deleteCalls: 0 });
+  });
+
+  it("keeps viewport shortcuts during a preview", () => {
+    const store = createTestStore();
+    act(() => {
+      store.getState().startProposalPreview("msg_1", {
+        type: "renameSchema",
+        name: "store",
+      });
+    });
+    renderShortcuts(store, {});
+    // React Flow reads zoom and pan keys from the same keydown events, so a
+    // shortcut the editor skips must reach it untouched.
+    const event = new KeyboardEvent("keydown", {
+      key: "z",
+      ctrlKey: true,
+      cancelable: true,
+    });
+
+    act(() => {
+      window.dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it("prevents the default browser action for a handled shortcut", () => {
     renderShortcuts(createTestStore(), {});
     const event = new KeyboardEvent("keydown", {

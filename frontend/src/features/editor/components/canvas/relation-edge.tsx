@@ -8,6 +8,8 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/class-names";
 
 import type { RelationEdge as RelationFlowEdge } from "../../lib/to-relation-edges";
+import { selectDiffMark } from "../../state/create-editor-store";
+import { useEditorStore } from "../../state/use-editor-store";
 import { getRelationMarkerUrl } from "./relation-markers";
 import type { RelationMarkerVariant } from "./relation-markers";
 
@@ -18,6 +20,8 @@ const EDGE_CORNER_RADIUS = 8;
 // Long enough for the crow's foot to sit on a straight segment.
 const EDGE_HANDLE_OFFSET = 16;
 const ISSUE_DASH_PATTERN = "6 4";
+// Shorter dashes than an issue edge, so the two differ by more than color.
+const REMOVED_DASH_PATTERN = "2 4";
 // A keyboard-focused edge gets a thicker stroke. `!` beats the inline stroke
 // width of a selected edge, and a width change stays visible on issue edges,
 // whose inline stroke color React Flow's focus color cannot override.
@@ -36,8 +40,17 @@ function getVariant(
 function getPathStyle(
   hasIssue: boolean,
   isSelected: boolean,
+  isRemoved: boolean,
 ): CSSProperties | undefined {
   const width = isSelected ? SELECTED_STROKE_WIDTH : undefined;
+  // A relation an AI proposal removes is still drawn, dashed (AI-R34).
+  if (isRemoved) {
+    return {
+      stroke: "var(--diff-removed)",
+      strokeDasharray: REMOVED_DASH_PATTERN,
+      strokeWidth: width,
+    };
+  }
   return hasIssue
     ? {
         stroke: "var(--destructive)",
@@ -64,6 +77,9 @@ export const RelationEdge = memo(function RelationEdge({
   data,
 }: EdgeProps<RelationFlowEdge>): JSX.Element {
   const { t } = useTranslation("canvas");
+  const isRemoved = useEditorStore(
+    (state) => selectDiffMark(state, id) === "removed",
+  );
   const [path, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -88,7 +104,7 @@ export const RelationEdge = memo(function RelationEdge({
         interactionWidth={EDGE_INTERACTION_WIDTH}
         markerStart={getRelationMarkerUrl(startShape, variant)}
         markerEnd={getRelationMarkerUrl("one", variant)}
-        style={getPathStyle(hasIssue, isSelected)}
+        style={getPathStyle(hasIssue, isSelected, isRemoved)}
         // The hover rules in globals.css select on these class names; only a
         // default edge reacts to hover.
         className={cn(

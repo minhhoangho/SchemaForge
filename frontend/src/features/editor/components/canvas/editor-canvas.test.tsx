@@ -105,6 +105,8 @@ const SCHEMA_ID = "0b7d4c1e-2f3a-4b5c-8d6e-7f8091a2b3c4";
 const MEASURED_SIZE = { inlineSize: 1000, blockSize: 800 };
 const USERS_POSITION = { x: 0, y: 0 };
 const POSTS_POSITION = { x: 400, y: 0 };
+const TAGS_POSITION = { x: 0, y: 400 };
+const REMOVE_POSTS = { type: "removeTable", tableId: "tbl_posts" } as const;
 // Screen pixels equal canvas units, so a drag distance reads directly.
 const IDENTITY_VIEWPORT = { x: 0, y: 0, zoom: 1 };
 
@@ -226,6 +228,21 @@ function getFlowProps(): FlowProps {
     throw new Error("React Flow has not rendered yet.");
   }
   return props;
+}
+
+type EditFlags = {
+  readonly isDraggable: boolean | undefined;
+  readonly isConnectable: boolean | undefined;
+  readonly isSelectable: boolean | undefined;
+};
+
+function getEditFlags(): EditFlags {
+  const props = getFlowProps();
+  return {
+    isDraggable: props.nodesDraggable,
+    isConnectable: props.nodesConnectable,
+    isSelectable: props.elementsSelectable,
+  };
 }
 
 function getControls(): ViewportControls {
@@ -537,6 +554,92 @@ describe("EditorCanvas", () => {
       isSameEdge: getFlowProps().edges?.[0] === edgeBefore,
       tagsLabel: getNodes().find((node) => node.id === "tbl_tags")?.ariaLabel,
     }).toEqual({ isSameEdge: true, tagsLabel: "Table labels, 0 columns" });
+  });
+
+  it("makes nodes not draggable, connectable or selectable during a preview", () => {
+    const store = createTestStore(createDocument());
+    store.getState().startProposalPreview("msg_1", REMOVE_POSTS);
+    renderCanvas(store);
+
+    expect(getEditFlags()).toEqual({
+      isDraggable: false,
+      isConnectable: false,
+      isSelectable: false,
+    });
+  });
+
+  it("lets nodes be dragged, connected and selected without a preview", () => {
+    renderCanvas(createTestStore(createDocument()));
+
+    expect(getEditFlags()).toEqual({
+      isDraggable: true,
+      isConnectable: true,
+      isSelectable: true,
+    });
+  });
+
+  it("draws a removed table from the base document during a preview", () => {
+    const store = createTestStore(createDocument());
+    // The preview drops posts and adds tags; the canvas draws all three.
+    store.getState().startProposalPreview("msg_1", {
+      type: "batch",
+      operations: [
+        REMOVE_POSTS,
+        {
+          type: "addTable",
+          table: {
+            id: "tbl_tags",
+            name: "tags",
+            comment: "",
+            position: TAGS_POSITION,
+            subjectAreaId: null,
+          },
+        },
+        {
+          type: "addColumn",
+          column: makeColumn({
+            id: "col_tag_id",
+            tableId: "tbl_tags",
+            name: "id",
+          }),
+          insertAt: 0,
+        },
+        {
+          type: "setPrimaryKey",
+          tableId: "tbl_tags",
+          columnIds: ["col_tag_id"],
+        },
+      ],
+    });
+    renderCanvas(store);
+
+    expect(
+      getNodes().map((node) => ({ id: node.id, position: node.position })),
+    ).toEqual([
+      { id: "tbl_posts", position: POSTS_POSITION },
+      { id: "tbl_tags", position: TAGS_POSITION },
+      { id: "tbl_users", position: USERS_POSITION },
+    ]);
+  });
+
+  it("keeps the zoom controls usable during a preview", () => {
+    const store = createTestStore(createDocument());
+    store.getState().startProposalPreview("msg_1", REMOVE_POSTS);
+    renderCanvas(store);
+    const props = getFlowProps();
+
+    act(() => {
+      getControls().zoomIn();
+    });
+
+    // Undefined keeps React Flow's defaults, which pan and zoom.
+    expect({
+      flags: [props.panOnDrag, props.zoomOnScroll, props.zoomOnPinch],
+      calls: recordFlowCall.mock.calls,
+    }).toEqual({
+      flags: [undefined, undefined, undefined],
+      calls: [["zoomIn", [{ duration: 200 }]]],
+    });
   });
 
   it("maps the viewport controls to react flow", () => {

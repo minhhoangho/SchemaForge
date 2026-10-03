@@ -14,6 +14,7 @@ export const enAiPanel = {
     title: "Before you start",
     body: "The assistant sends your messages and the current schema to Google Gemini. Do not include secrets or personal data in them.",
     termsLink: "Gemini API data terms",
+    opensInNewTab: "(opens in a new tab)",
     accept: "Agree and continue",
   },
 } as const;

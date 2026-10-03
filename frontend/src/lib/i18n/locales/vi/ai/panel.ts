@@ -17,6 +17,7 @@ export const viAiPanel = {
     title: "Trước khi bắt đầu",
     body: "Trợ lý gửi tin nhắn của bạn và schema hiện tại tới Google Gemini. Đừng đưa bí mật hoặc dữ liệu cá nhân vào đó.",
     termsLink: "Điều khoản dữ liệu của Gemini API",
+    opensInNewTab: "(mở trong tab mới)",
     accept: "Đồng ý và tiếp tục",
   },
 } as const satisfies LocaleNamespace<typeof enAiPanel>;

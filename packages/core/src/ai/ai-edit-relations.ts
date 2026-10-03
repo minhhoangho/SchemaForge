@@ -149,17 +149,19 @@ function translateBuiltRelation(
     : failBuild(built.error, ends, at);
 }
 
-// With fromColumns the relation joins existing columns, pair by pair, to
-// toColumns or else to the target's primary key.
-function translatePairedRelation(
+type PairedRelationInput = AddRelationInput & {
+  readonly kind: Relation["kind"];
+  readonly fromColumns: readonly string[];
+};
+
+// Each fromColumns name is paired with toColumns, or else with the target's
+// primary key, at the same position.
+function resolveColumnPairs(
   schema: SchemaDocument,
-  input: AddRelationInput & {
-    readonly kind: Relation["kind"];
-    readonly fromColumns: readonly string[];
-  },
+  input: PairedRelationInput,
   ends: RelationEnds,
-  context: AiEditContext,
-): Resolved<Translation> {
+  at: string,
+): Resolved<readonly ColumnPair[]> {
   const from = resolveColumns(schema, ends.from, input.fromColumns, [
     "fromColumns",
   ]);
@@ -178,18 +180,31 @@ function translatePairedRelation(
   if (toIds.length === 0) {
     return failWith("primary-key-missing", ["toTable"], tableAt(ends.to.name));
   }
-  const at = relationAt(ends, input.fromColumns);
   const fromIds = from.value.map((column) => column.id);
   const columnPairs = pairColumns(fromIds, toIds);
-  if (columnPairs === null) {
-    return failWith("relation-columns-mismatch", ["fromColumns"], at);
+  return columnPairs === null
+    ? failWith("relation-columns-mismatch", ["fromColumns"], at)
+    : ok(columnPairs);
+}
+
+// With fromColumns the relation joins existing columns instead of new ones.
+function translatePairedRelation(
+  schema: SchemaDocument,
+  input: PairedRelationInput,
+  ends: RelationEnds,
+  context: AiEditContext,
+): Resolved<Translation> {
+  const at = relationAt(ends, input.fromColumns);
+  const columnPairs = resolveColumnPairs(schema, input, ends, at);
+  if (!columnPairs.isOk) {
+    return columnPairs;
   }
   const relation = {
     id: createRelationId(context.generateId),
     kind: input.kind,
     fromTableId: ends.from.id,
     toTableId: ends.to.id,
-    columnPairs,
+    columnPairs: columnPairs.value,
     onDelete: input.onDelete ?? DEFAULT_REFERENTIAL_ACTION,
     onUpdate: input.onUpdate ?? DEFAULT_REFERENTIAL_ACTION,
   };

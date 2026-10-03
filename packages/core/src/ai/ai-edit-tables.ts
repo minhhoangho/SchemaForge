@@ -1,11 +1,13 @@
 import type { Column } from "../model/column.js";
-import type { GenerateId } from "../model/ids.js";
+import type { ColumnId, GenerateId } from "../model/ids.js";
 import { createTableId } from "../model/ids.js";
+import { toNameKey } from "../model/name-limits.js";
 import type { SchemaDocument } from "../model/schema-document.js";
 import type { Table } from "../model/table.js";
-import type { Operation } from "../operations/operation.js";
-import { ok } from "../result.js";
+import type { Operation, OperationOfType } from "../operations/operation.js";
+import { err, ok } from "../result.js";
 import { toColumn, toColumnDefault, toColumnType } from "./ai-column-spec.js";
+import type { AiEditError } from "./ai-edit-error-codes.js";
 import type {
   AiEditContext,
   Resolved,
@@ -22,29 +24,62 @@ import {
 import type { AiEdit, AiEditInput } from "./ai-edit-tools.js";
 import { aiTablePosition } from "./place-ai-table.js";
 
-export function translateCreateTable(
+type NewTableFields = OperationOfType<"addTable">["table"];
+
+type ColumnChanges = OperationOfType<"updateColumn">["changes"];
+
+function toNewColumns(
   schema: SchemaDocument,
   input: AiEditInput<"createTable">,
-  context: AiEditContext,
-): Resolved<Translation> {
-  const fields = {
-    id: createTableId(context.generateId),
-    name: input.name,
-    comment: input.comment ?? "",
-    position: aiTablePosition(context.placement),
-    subjectAreaId: null,
-  };
-  const table: Table = { ...fields, columnIds: [], primaryKeyColumnIds: [] };
+  table: Table,
+  generateId: GenerateId,
+): Resolved<readonly Column[]> {
   const columns: Column[] = [];
   for (const [position, spec] of input.columns.entries()) {
-    const column = toColumn(schema, spec, table, context.generateId);
+    const column = toColumn(schema, spec, table, generateId);
     if (!column.isOk) {
       return failInside(column.error, ["columns", position]);
     }
     columns.push(column.value);
   }
-  // The new columns are not in the schema yet, so the primary key names are
-  // matched (AI-R9) in a lookup document that holds only those columns.
+  return ok(columns);
+}
+
+// Two columns sharing a name leave the primary key lookup (AI-R9) without a
+// single match, which would read as column-name-not-found, so a repeated
+// name is reported first, compared the way core compares names.
+function findDuplicateColumns(
+  input: AiEditInput<"createTable">,
+): readonly AiEditError[] {
+  const seenKeys = new Set<string>();
+  return input.columns.flatMap((spec, position): AiEditError[] => {
+    const key = toNameKey(spec.name);
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      return [];
+    }
+    return [
+      {
+        code: "column-name-duplicate",
+        path: ["columns", position, "name"],
+        at: columnAt(input.name, spec.name),
+      },
+    ];
+  });
+}
+
+// The new columns are not in the schema yet, so the primary key names are
+// matched (AI-R9) in a lookup document that holds only those columns.
+function resolveNewPrimaryKey(
+  schema: SchemaDocument,
+  input: AiEditInput<"createTable">,
+  table: Table,
+  columns: readonly Column[],
+): Resolved<readonly ColumnId[]> {
+  const duplicates = findDuplicateColumns(input);
+  if (duplicates.length > 0) {
+    return err(duplicates);
+  }
   const lookup: SchemaDocument = {
     ...schema,
     columns: Object.fromEntries(columns.map((column) => [column.id, column])),
@@ -52,26 +87,65 @@ export function translateCreateTable(
   const primaryKey = resolveColumns(lookup, table, input.primaryKey, [
     "primaryKey",
   ]);
-  if (!primaryKey.isOk) {
-    return primaryKey;
-  }
-  const operations: Operation[] = [
+  return primaryKey.isOk
+    ? ok(primaryKey.value.map((column) => column.id))
+    : primaryKey;
+}
+
+function buildCreateTableOperations(
+  fields: NewTableFields,
+  columns: readonly Column[],
+  primaryKeyIds: readonly ColumnId[],
+): Operation[] {
+  return [
     { type: "addTable", table: fields },
     ...columns.map((column, insertAt): Operation => ({
       type: "addColumn",
       column,
       insertAt,
     })),
+    ...(primaryKeyIds.length === 0
+      ? []
+      : [
+          {
+            type: "setPrimaryKey",
+            tableId: fields.id,
+            columnIds: primaryKeyIds,
+          } satisfies Operation,
+        ]),
   ];
-  if (primaryKey.value.length > 0) {
-    operations.push({
-      type: "setPrimaryKey",
-      tableId: table.id,
-      columnIds: primaryKey.value.map((column) => column.id),
-    });
+}
+
+export function translateCreateTable(
+  schema: SchemaDocument,
+  input: AiEditInput<"createTable">,
+  context: AiEditContext,
+): Resolved<Translation> {
+  const fields: NewTableFields = {
+    id: createTableId(context.generateId),
+    name: input.name,
+    comment: input.comment ?? "",
+    position: aiTablePosition(context.placement),
+    subjectAreaId: null,
+  };
+  const table: Table = { ...fields, columnIds: [], primaryKeyColumnIds: [] };
+  const columns = toNewColumns(schema, input, table, context.generateId);
+  if (!columns.isOk) {
+    return columns;
+  }
+  const primaryKey = resolveNewPrimaryKey(schema, input, table, columns.value);
+  if (!primaryKey.isOk) {
+    return primaryKey;
   }
   return ok({
-    operation: { type: "batch", operations },
+    operation: {
+      type: "batch",
+      operations: buildCreateTableOperations(
+        fields,
+        columns.value,
+        primaryKey.value,
+      ),
+    },
     at: tableAt(table.name),
     placedTables: 1,
   });
@@ -108,6 +182,24 @@ export function translateAddColumn(
   });
 }
 
+// An absent field keeps the column's value, so only given fields are changes.
+function toColumnChanges(
+  input: AiEditInput<"updateColumn">,
+  type: ColumnChanges["type"],
+  defaultValue: ColumnChanges["defaultValue"],
+): ColumnChanges {
+  const { newName, isNullable, isUnique, isAutoIncrement, comment } = input;
+  return {
+    ...(newName === undefined ? {} : { name: newName }),
+    ...(type === undefined ? {} : { type }),
+    ...(isNullable === undefined ? {} : { isNullable }),
+    ...(isUnique === undefined ? {} : { isUnique }),
+    ...(isAutoIncrement === undefined ? {} : { isAutoIncrement }),
+    ...(defaultValue === undefined ? {} : { defaultValue }),
+    ...(comment === undefined ? {} : { comment }),
+  };
+}
+
 export function translateUpdateColumn(
   schema: SchemaDocument,
   input: AiEditInput<"updateColumn">,
@@ -136,20 +228,25 @@ export function translateUpdateColumn(
   if (!defaultValue.isOk) {
     return failInside(defaultValue.error, ["defaultValue"]);
   }
-  const { newName, isNullable, isUnique, isAutoIncrement, comment } = input;
-  const changes = {
-    ...(newName === undefined ? {} : { name: newName }),
-    ...(type.value === undefined ? {} : { type: type.value }),
-    ...(isNullable === undefined ? {} : { isNullable }),
-    ...(isUnique === undefined ? {} : { isUnique }),
-    ...(isAutoIncrement === undefined ? {} : { isAutoIncrement }),
-    ...(defaultValue.value === undefined
-      ? {}
-      : { defaultValue: defaultValue.value }),
-    ...(comment === undefined ? {} : { comment }),
-  };
+  const changes = toColumnChanges(input, type.value, defaultValue.value);
   const columnId = column.value.id;
   return ok({ operation: { type: "updateColumn", columnId, changes }, at });
+}
+
+function translateSetPrimaryKey(
+  schema: SchemaDocument,
+  table: Table,
+  names: readonly string[],
+): Resolved<Translation> {
+  const columns = resolveColumns(schema, table, names, ["columns"]);
+  if (!columns.isOk) {
+    return columns;
+  }
+  const columnIds = columns.value.map((column) => column.id);
+  return ok({
+    operation: { type: "setPrimaryKey", tableId: table.id, columnIds },
+    at: tableAt(table.name),
+  });
 }
 
 export function translateTableEdit(
@@ -176,18 +273,11 @@ export function translateTableEdit(
     }
     case "removeTable":
       return ok({ operation: { type: "removeTable", tableId }, at });
-    case "setPrimaryKey": {
-      const columns = resolveColumns(schema, table.value, edit.input.columns, [
-        "columns",
-      ]);
-      if (!columns.isOk) {
-        return columns;
-      }
-      const columnIds = columns.value.map((column) => column.id);
-      return ok({
-        operation: { type: "setPrimaryKey", tableId, columnIds },
-        at,
-      });
+    case "setPrimaryKey":
+      return translateSetPrimaryKey(schema, table.value, edit.input.columns);
+    default: {
+      const unhandled: never = edit;
+      throw new Error(`Unhandled AI table edit: ${JSON.stringify(unhandled)}`);
     }
   }
 }

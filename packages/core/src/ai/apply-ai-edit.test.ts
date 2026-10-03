@@ -337,6 +337,52 @@ describe("applyAiEdit table edits", () => {
     ]);
   });
 
+  it("returns column-name-duplicate for a primary key column listed twice", () => {
+    const errors = unwrapError(
+      apply({
+        tool: "createTable",
+        input: {
+          name: "products",
+          columns: [
+            columnSpec({ name: "id" }),
+            columnSpec({ name: "code" }),
+            columnSpec({ name: "id" }),
+          ],
+          primaryKey: ["id"],
+        },
+      }),
+    );
+
+    expect(errors).toStrictEqual([
+      {
+        code: "column-name-duplicate",
+        path: ["columns", 2, "name"],
+        at: "tables.products.columns.id",
+      },
+    ]);
+  });
+
+  it("returns column-name-duplicate for names that differ only in case", () => {
+    const errors = unwrapError(
+      apply({
+        tool: "createTable",
+        input: {
+          name: "products",
+          columns: [columnSpec({ name: "Code" }), columnSpec({ name: "code" })],
+          primaryKey: [],
+        },
+      }),
+    );
+
+    expect(errors).toStrictEqual([
+      {
+        code: "column-name-duplicate",
+        path: ["columns", 1, "name"],
+        at: "tables.products.columns.code",
+      },
+    ]);
+  });
+
   it("locates a column type error by the column's place in the input", () => {
     const errors = unwrapError(
       apply({

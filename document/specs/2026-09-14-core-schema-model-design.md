@@ -358,7 +358,7 @@ type Note = {
 type Position = { readonly x: number; readonly y: number };
 ```
 
-- **Index** (ED-04): cột thuộc đúng bảng của index, không lặp (bất biến cấu trúc). Tên bắt buộc: người dùng thấy và sửa tên trong bảng index, và SQL Server bắt buộc tên index. Editor, importer và AI dùng chung hàm `suggestIndexName` của core để đề xuất tên không trùng. Chiều sắp xếp (ASC/DESC) và loại index (btree, hash) chưa có vì không tính năng nào yêu cầu.
+- **Index** (ED-04): cột thuộc đúng bảng của index, không lặp (bất biến cấu trúc). Tên bắt buộc: người dùng thấy và sửa tên trong bảng index, và SQL Server bắt buộc tên index. Editor, importer và AI dùng chung hàm `suggestIndexName` của core để đề xuất tên không trùng tên index khác lẫn tên bảng (so bằng `toNameKey`), để không tự tạo issue `index-name-conflicts-table` (thêm ngày 2026-10-02). Chiều sắp xếp (ASC/DESC) và loại index (btree, hash) chưa có vì không tính năng nào yêu cầu.
 - **Enum** (ED-05): giá trị là chuỗi, thứ tự được giữ. Enum không có giá trị, hoặc có giá trị trùng (so không phân biệt hoa thường, vì MySQL và SQL Server so theo collation không phân biệt hoa thường), là issue. Cột dùng enum qua `{ kind: 'enum', enumId }`. Sửa danh sách giá trị là thay cả mảng (mục 9).
 - **Comment** (ED-06): `comment` trên bảng và cột, chuỗi rỗng là không có. Enum, index, quan hệ không có comment vì ED-06 chỉ yêu cầu bảng và cột.
 - **Subject area** (ED-07): chỉ có tên. Thành viên được lưu trên bảng bằng `table.subjectAreaId`, nên một bảng thuộc tối đa một nhóm theo cấu trúc dữ liệu (khớp `TableGroup` của DBML, và khung nhóm tính từ thành viên không chồng lên nhau). Thêm, bớt bảng khỏi nhóm là `updateTable`. Nhóm rỗng hợp lệ. Màu nhóm chưa có vì ED-07 không yêu cầu.
@@ -382,7 +382,7 @@ Ngoài các điều trên, tên là văn bản tự do: được có chữ có d
 |---|---|---|
 | Bảng và enum | Chung một không gian tên trong schema | PostgreSQL tạo type cho mỗi bảng nên enum không được trùng tên bảng; Prisma và TypeScript cũng dùng chung không gian tên cho model và enum |
 | Cột | Trong một bảng | — |
-| Index | Trong cả schema | PostgreSQL yêu cầu tên index không trùng trong schema, chặt nhất trong ba dialect |
+| Index | Trong cả schema, và không trùng tên bảng nào (`index-name-conflicts-table`, thêm ngày 2026-10-02) | PostgreSQL yêu cầu tên index không trùng trong schema, chặt nhất trong ba dialect, và dùng chung không gian tên cho bảng và index |
 | Subject area | Trong cả schema | DBML yêu cầu tên `TableGroup` không trùng |
 | Giá trị enum | Trong một enum | — |
 
@@ -477,7 +477,9 @@ Dùng chung cho `parseSchemaDocument` (đường dẫn trong tài liệu) và `a
 | `enum-name-duplicate` | `enums/<id>/name` | Trùng tên enum khác hoặc tên bảng | ED-05 |
 | `column-name-duplicate` | `columns/<id>/name` | Trùng tên cột khác trong cùng bảng | ED-02 |
 | `index-name-duplicate` | `indexes/<id>/name` | Trùng tên index khác trong schema | ED-04 |
+| `index-name-conflicts-table` | `indexes/<id>/name` | Trùng tên một bảng bất kỳ (so bằng `toNameKey`); PostgreSQL dùng chung không gian tên cho bảng và index. Thêm ngày 2026-10-02 theo [spec phần 6](2026-09-14-code-generators-design.md), mục "Vấn đề với các spec đã duyệt" | ED-04 |
 | `subject-area-name-duplicate` | `subjectAreas/<id>/name` | Trùng tên subject area khác | ED-07 |
+| `table-columns-empty` | `tables/<id>/columnIds` | Bảng không có cột (MySQL, SQL Server từ chối bảng không cột). Thêm ngày 2026-10-02 theo [spec phần 6](2026-09-14-code-generators-design.md), mục "Vấn đề với các spec đã duyệt" | ED-01 |
 | `enum-values-empty` | `enums/<id>/values` | Enum không có giá trị | ED-05 |
 | `enum-value-duplicate` | `enums/<id>/values/<i>` | Giá trị trùng giá trị khác trong enum | ED-05 |
 | `column-type-invalid-scale` | `columns/<id>/type/scale` | `scale > precision` | ED-02 |
@@ -662,7 +664,7 @@ Hộp thoại tạo quan hệ 1-1, 1-n của editor, ở chế độ "Tạo cộ
    - Nullable khi `onDelete` hoặc `onUpdate` là `setNull`, ngược lại không nullable. Đây là hành vi của core; hộp thoại của editor luôn dùng `noAction` nên cột nó tạo không nullable.
    - `isUnique` khi `kind` là `oneToOne` và chỉ có một cột được tham chiếu.
 2. `addRelation` với các cặp ghép cột mới với cột được tham chiếu theo cùng thứ tự.
-3. Khi `kind` là `oneToOne` và có từ hai cột được tham chiếu: `addIndex` unique trên bảng nguồn gồm các cột mới, tên lấy từ `suggestIndexName`.
+3. Khi `kind` là `oneToOne` và có từ hai cột được tham chiếu: `addIndex` unique trên bảng nguồn gồm các cột mới, tên lấy từ `suggestIndexName` (không trùng tên index khác lẫn tên bảng, mục 6).
 
 - Lỗi, theo thứ tự:
   1. `table-not-found` tại `['fromTableId']` rồi tại `['toTableId']`.

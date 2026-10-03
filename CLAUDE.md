@@ -16,6 +16,8 @@ Root scripts are in `package.json`; `pnpm dev` runs the frontend on port 3000 an
 
 Run a script in one package: `pnpm --filter @schemaforge/core test`. Start the built backend: `pnpm --filter @schemaforge/backend start`.
 
+`pnpm test:conformance` runs generator output through the real target tools (databases via Testcontainers, `prisma validate`, `tsc`, and others). It needs Docker and is the blocking gate for any task that changes a code generator.
+
 ## Repository layout
 
 Monorepo: pnpm workspaces + Turborepo (`frontend/`, `backend/`, `packages/`, `document/`); roles and library choices are in `document/architecture.md`.

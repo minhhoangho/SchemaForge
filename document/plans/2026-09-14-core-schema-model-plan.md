@@ -2,6 +2,8 @@
 
 Plan triển khai phần 2 trong [roadmap.md](../roadmap.md), dựa trên spec đã duyệt [2026-09-14-core-schema-model-design.md](../specs/2026-09-14-core-schema-model-design.md) (commit 2dadedf). Spec là nguồn gốc: plan chỉ chia việc, chốt các chi tiết mức cài đặt mà spec để lại, và không đổi quyết định nào của spec. Chỗ spec còn hở được nêu ở mục [Vấn đề phát hiện khi lập plan](#vấn-đề-phát-hiện-khi-lập-plan).
 
+Ghi chú: sau plan này, [Task 36 của plan phần 6](2026-09-15-code-generators-plan.md#task-36-hai-issue-mới-của-phần-2-và-bản-dịch) thêm hai issue `index-name-conflicts-table` và `table-columns-empty` (`ISSUE_CODES` từ 25 lên 27 mã) và cho `suggestIndexName` tránh cả tên bảng; spec phần 2 đã ghi các thay đổi này.
+
 ## Mục tiêu
 
 `packages/core` có đầy đủ schema model (type suy ra từ Zod), `parseSchemaDocument`, `parseOperation`, `validateSchema`, `findIntroducedIssues`, `applyOperation` cho cả 26 loại operation kèm nghịch đảo, `buildManyToMany`, `suggestIndexName`, hàm sắp xếp xác định, lịch sử undo/redo thuần, factory và fixture cho test, property test bằng fast-check. Đây là nền cho Visual Schema Editor (phần 3) và mọi phần sau, nên đúng đắn đặt lên trước tốc độ.

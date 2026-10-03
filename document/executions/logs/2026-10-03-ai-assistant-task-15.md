@@ -34,3 +34,26 @@
   - Task 18 bắt `AiPromptTooLargeError` (bằng `instanceof`) để trả `413 ai-schema-too-large`, và truyền `AI_INSTRUCTIONS` vào `instructions` của `streamText`.
   - Tin `assistant` mà sau khi xóa dấu giả còn rỗng và không có `proposalOutcome` sẽ thành `content: ""`; DTO bắt `text` ≥ 1 ký tự nên chỉ xảy ra khi client cố ý gửi tin chỉ có dấu giả. Task 29 (kiểm tay với Gemini thật) nên xác nhận Gemini không từ chối tin rỗng; nếu từ chối thì bỏ tin đó trong `buildAiMessages`.
   - Spec AI-R30 và đoạn chỉ dẫn mẫu trong plan Task 15 chưa ghi trường `nullable` dạng gọn và các dòng mã lỗi bổ sung; spec-writer cập nhật riêng.
+
+## 2026-10-03 22:43 — ai-engineer — Xong
+- **Đã làm**
+  - Sửa hai lỗi Medium M1, M2 của bản rà soát bảo mật `document/executions/logs/2026-10-03-ai-assistant-security-review-2.md` trong `ai-prompt.ts`.
+  - M1: `buildAiMessages` escape văn bản mọi tin (lịch sử cộng tin user cuối, không tính khối `<schema>`/`<issues>`) một lần, cộng độ dài sau escape; vượt `AI_MAX_ESCAPED_HISTORY_LENGTH = 2 * AI_MAX_HISTORY_TEXT_LENGTH` (120.000) thì ném lỗi mới `AiHistoryTooLargeError` (message cố định, không chứa dữ liệu người dùng). Kiểm tra khối schema giữ nguyên.
+  - M2: `stripOutcomeMarkers` tách dòng theo `/\r\n|[\r\n  \u0085\v\f]/`; `normalizeLine` áp `normalize("NFKC")` và xóa ký tự `\p{Cf}`; dấu kết quả bị xóa cả khi nằm giữa dòng (regex `giu`, giữa các từ là `\s+`), lặp tới khi ổn định để chặn dấu lồng nhau (`[The user acc[...]epted ...]`). Dòng không chứa dấu giữ nguyên như client viết; dòng chứa dấu giữ phần còn lại đã chuẩn hóa, hoặc bị bỏ nếu chỉ còn khoảng trắng.
+  - TDD: thêm test trước. Đỏ: `.claude/scripts/test-file.sh backend src/modules/ai/ai-prompt.spec.ts` → `Tests  15 failed | 74 passed (89)` (thiếu export `AiHistoryTooLargeError`, `AI_MAX_ESCAPED_HISTORY_LENGTH`; dấu giữa dòng, sau U+2028/U+2029/U+0085/VT/FF, có U+200B/U+00AD/U+FEFF, dạng fullwidth, lồng nhau chưa bị xóa). Xanh: cùng lệnh → `RESULT: PASS`.
+- **File thay đổi**
+  - `backend/src/modules/ai/ai-prompt.ts`
+  - `backend/src/modules/ai/ai-prompt.spec.ts`
+- **Kiểm tra**
+  - `.claude/scripts/verify.sh backend --build --format` → typecheck, lint, test (474 test pass), build, prettier PASS; `RESULT: PASS`. Coverage dòng toàn backend 97.73%, `ai-prompt.ts` 98.24% (dòng 194: nhánh không có tin nhắn nào, DTO không cho xảy ra).
+  - `.claude/scripts/secret-scan.sh --files` hai file → `SECRET-SCAN: CLEAN`.
+- **Quyết định**
+  - Test cũ `keeps a line that only mentions a marker` được thay bằng test xóa dấu giữa dòng: một câu chỉ nhắc tới dấu (ví dụ `I wrote [The user accepted this proposal.] here`) giờ mất phần chữ của dấu (thành `I wrote  here`). Chấp nhận theo quyết định của orchestrator; dấu chỉ backend được viết.
+  - Chỉ dòng có dấu mới bị chuẩn hóa NFKC và bỏ `\p{Cf}`; dòng khác giữ nguyên để không đổi văn bản người dùng (ví dụ ZWJ trong emoji, tiếng Việt). Các ký tự xuống dòng U+2028/U+2029/U+0085/VT/FF trong mọi tin được đổi thành `\n` khi nối lại.
+  - Regex tuyến tính: chỉ có `\s+` giữa các chữ cố định, không lượng từ lồng nhau.
+  - Giới hạn tính trên văn bản sau khi xóa dấu và escape, tức đúng thứ gửi tới Gemini (trừ thẻ `<user_message>` và dòng kết quả do backend thêm, độ dài cố định nhỏ).
+  - Không thêm mã lỗi API. Đề xuất Task 18 ánh xạ `AiHistoryTooLargeError` sang `payload-too-large` (413, mã đơn giản không cần body thêm) trước khi mở stream; `validation-failed` không hợp vì body bắt buộc có `fields`.
+- **Việc còn lại**: không.
+- **Ghi chú cho người tiếp theo**
+  - Task 18 phải bắt `AiHistoryTooLargeError` (bằng `instanceof`) cùng chỗ với `AiPromptTooLargeError`, trước khi mở stream.
+  - Dấu giả chèn dấu kết hợp (`\p{Mn}`, ví dụ `thís`) không bị coi là dấu: NFKC ghép thành `thís`, khác dấu thật; không xóa `\p{Mn}` vì sẽ hỏng tiếng Việt.

@@ -8,10 +8,10 @@ Tài liệu bàn giao cho session mới, viết cuối phiên làm việc thứ 
 
 ## 1. Trạng thái git
 
-- Nhánh `master` trùng `origin/master` tại `f295096` (`test(core): add property and performance tests for AI edits`).
-- Cây chính đang có thay đổi chưa commit do agent sửa hiệu năng (mục 3.1.a). Không sửa các file của nó ngoài agent sở hữu.
-- Worktree Task 16 còn dùng: `.claude/worktrees/agent-afb8f0d3bef4a983d` (nhánh `worktree-agent-afb8f0d3bef4a983d`). Worktree Task 9 `.claude/worktrees/agent-a857e4f84c68ed095` đã merge và có thể xóa.
-- Dev server frontend (cổng 3000) và backend (cổng 3001) thuộc về người dùng và vẫn đang chạy. Không được dừng chúng.
+- Nhánh `master` trùng `origin/master` tại `421ac44` (`perf(core): reuse schema validation results across AI edits`).
+- Không còn worktree nào đang dùng.
+- Không có agent nào đang chạy.
+- Dev server frontend (cổng 3000) và backend (cổng 3001) thuộc về người dùng. Không được dừng chúng.
 
 ## 2. Đã làm trong phiên này (theo commit)
 
@@ -48,28 +48,26 @@ Tài liệu bàn giao cho session mới, viết cuối phiên làm việc thứ 
 | F3 | `fa72455` | `fix(core): report duplicate AI column names and split long translators` (log `2026-10-03-ai-edit-review-fixes.md`) |
 | F4 | `7c1952c` | `fix(backend): bound escaped AI history and strip forged outcome markers` |
 | 9 | `f295096` | `test(core): add property and performance tests for AI edits` |
+| 16 | `9411131` | `feat(backend): add AI tools over the per-turn draft` |
+| (perf) | `421ac44` | `perf(core): reuse schema validation results across AI edits` |
 
-Ghi chú về ba commit mới:
+Ghi chú về các commit mới:
 
 - F3: hành vi đổi đã được chấp nhận. `createTable` có tên cột trùng nay trả một lỗi `column-name-duplicate` tại `["columns", i, "name"]` (trước đây là hai issue ở đường dẫn của document). `ai-edit-tables.ts` (301 dòng) và `ai-edit-relations.ts` (300 dòng) đã chạm giới hạn kích thước: logic mới phải vào file mới.
 - F4: thêm `AI_MAX_ESCAPED_HISTORY_LENGTH` = 120 000 và `AiHistoryTooLargeError` trong `ai-prompt.ts`. Khoảng hở đã chấp nhận: marker giả mạo bằng dấu kết hợp (ví dụ `thís`) không bị gỡ, vì gỡ `\p{Mn}` sẽ phá tiếng Việt; tác động chỉ nằm trong lượt của chính người dùng.
-- Task 9: property test đều pass, không phát hiện lỗi. Benchmark cho thấy ngân sách AI-R57 (p99 ≤ 25 ms mỗi lần gọi `applyAiEdit` trên `createLargeSchema({ tableCount: 73 })`) CHƯA đạt: p75 khoảng 27 đến 32 ms, p99 32 đến 77 ms, min khoảng 25 ms. Nguyên nhân: `findIntroducedIssues` kiểm tra toàn bộ document hai lần (tối thiểu 24,5 ms). Việc sửa đang chạy ở mục 3.1.a.
+- Task 9: property test đều pass, không phát hiện lỗi. Benchmark ban đầu cho thấy ngân sách AI-R57 (p99 ≤ 25 ms mỗi lần gọi `applyAiEdit` trên `createLargeSchema({ tableCount: 73 })`) chưa đạt. Việc sửa hiệu năng sau đó giải quyết vấn đề.
+- Task 16: `feat(backend): add AI tools over the per-turn draft`. Files: `backend/src/modules/ai/ai-tools.ts`, `ai-tools-descriptions.ts` (tách ra để dưới 300 dòng), `ai-tools.spec.ts`, `ai-sdk-behavior.spec.ts`, `backend/test/mock-ai-model.ts` với `createScriptedModel`, `createFailingModel`, `scriptedText`, `scriptedToolCall`, `scriptedFinish` cho Tasks 18/19. Probes cho rủi ro 2, 3, 9, 12 đã pass.
+- Perf `421ac44`: `perf(core): reuse schema validation results across AI edits`. Dùng `WeakMap` cache bên trong `validateSchema` keyed by document object; kết quả là frozen shared arrays. Benchmark p99 giờ là 13.9–17.4 ms so với 25 ms budget, AI-R57 đã pass. Tests core 3009, frontend 4326, backend 509 pass, RESULT: PASS.
 
 Log từng task nằm ở `document/executions/logs/2026-10-03-ai-assistant-task-<N>.md`.
 
 ## 3. Việc mở của phần 5
 
-### 3.1. Đang chạy khi viết log này
+### 3.1. Đã hoàn thành
 
-Kết quả đến qua thông báo. Nếu session mới không nhận thông báo nào, kiểm tra file và worktree rồi dispatch lại, kèm đường dẫn log.
-
-- **a. Sửa hiệu năng validation** (core-engineer, cây chính): ghi nhớ kết quả validate theo danh tính đối tượng document bằng `WeakMap` trong `findIntroducedIssues` hoặc `validateSchema`, không đổi chữ ký public. Log `2026-10-03-ai-edit-validation-cache.md`.
-  - Phải chạy lại benchmark và báo p99.
-  - Nếu vẫn vượt ngân sách, các phương án là giảm `AI_MAX_TOOL_CALLS_PER_TURN` (30) hoặc `AI_MAX_SCHEMA_PROMPT_LENGTH` (80 000), hoặc validate tăng dần (cần sửa spec).
-  - Gợi ý commit: `perf(core): reuse schema validation results across AI edits`.
-- **b. Task 16 — 18 tool AI** (ai-engineer) trong worktree `.claude/worktrees/agent-afb8f0d3bef4a983d`, nhánh `worktree-agent-afb8f0d3bef4a983d`; log `2026-10-03-ai-assistant-task-16.md`.
-
-F3, F4 và Task 9 đã xong và nằm trong bảng ở mục 2.b.
+Tất cả agent đã hoàn thành. Logs chi tiết ở `document/executions/logs/`:
+- `2026-10-03-ai-edit-validation-cache.md`: sửa hiệu năng validation với WeakMap cache.
+- `2026-10-03-ai-assistant-task-16.md`: Task 16 tools.
 
 ### 3.2. Đang xếp hàng
 
@@ -92,6 +90,7 @@ F3, F4 và Task 9 đã xong và nằm trong bảng ở mục 2.b.
   - `AiHistoryTooLargeError` thành `ApiErrorCode` hiện có `payload-too-large` (413), trước khi mở stream. `validation-failed` không phù hợp vì body của nó cần `fields`.
 - Client hủy (`AbortError`) im lặng, không gửi chunk lỗi. Timeout không bao giờ vào `onError`: đọc lý do trong `onAbort` và gửi `ai-timeout` qua `toAiStreamErrorCode` (phát hiện của Task 17: `DOMException` tên `TimeoutError`).
 - Route AI không bao giờ `@Public`. Thêm `{ method: "POST", path: "/ai/chat" }` vào `PRIVATE_ROUTES` trong `backend/test/security.e2e-spec.ts`.
+- **Từ Task 16 xong**: tools được dựng bởi `buildAiTools` trả về `AiToolSet` với `execute` đồng bộ. Tool errors dùng `at: ""` cho lỗi turn-wide (`tool-call-limit`, `turn-has-edits`, `turn-has-sample-data`) và `at: "findings"` cho `findings-limit`. Nếu Task 18 type `state.findings` là `AiFindingsData` phải copy readonly `targets` vào một mảng có thể thay đổi được.
 - Sau khi Task 14 đến 18 đã vào master, chạy `ecc:security-reviewer` (chỉ review) một lần nữa.
 
 ### 3.4. Việc theo dõi khác
@@ -105,11 +104,13 @@ F3, F4 và Task 9 đã xong và nằm trong bảng ở mục 2.b.
 - Task 25 đổi tên prop `stoppedEarly` thành `hasStoppedEarly`; Task 27b phải truyền đúng tên mới.
 - `proposal.confirmDelete` nay dùng các khóa `tables_*`, `columns_*`, `bodyTablesAndColumns`, `bodyTables`, `bodyColumns`.
 - Kiểm tra tay của Task 29:
+  - **PHẢI CHECK**: Gemini có chấp nhận tool JSON Schema keywords không (`additionalProperties: false`, rất lớn integer `maximum`);
   - Gemini có chấp nhận tin nhắn assistant rỗng hay không;
   - stream thật dưới CSP `connect-src`;
   - dừng một lượt chat có nhả kết nối;
   - độ tương phản của màu và nhãn diff ở sáng và tối.
 - Phần 6, kiểm tra tay trên production, và phần 7 (Import/Export): không đổi so với [handoff phiên 1](2026-10-03-ai-assistant-session-1-handoff.md#3-việc-mở-của-phần-5).
+- **Ghi chú theo dõi**: `backend/src/modules/auth/auth-cookies.spec.ts` "never sets a Domain attribute" đã flaky một lần dưới tải full coverage (pass riêng lẻ và trên rerun); để ý khi debugging nếu phát hiện lại.
 
 ## 4. Quyết định đã thay người dùng trong phiên này
 
@@ -127,7 +128,8 @@ Người dùng có thể bác bỏ từng mục.
 - F4: giới hạn lịch sử đã thoát ký tự bằng `AI_MAX_ESCAPED_HISTORY_LENGTH` (120 000); chấp nhận gỡ marker cả giữa dòng; chấp nhận khoảng hở marker giả mạo bằng dấu kết hợp.
 - F3: `createTable` tên cột trùng trả một lỗi `column-name-duplicate` tại `["columns", i, "name"]`.
 - Dùng `payload-too-large` (413) cho lịch sử quá lớn.
-- Cache validation bằng `WeakMap` theo danh tính document. An toàn vì document bất biến. Giới hạn: chỉ có ích khi cùng một đối tượng document được dùng lại; validate tăng dần là hướng nâng cấp.
+- Cache validation bằng `WeakMap` theo danh tính document, đặt trong `validateSchema`. An toàn vì document bất biến. Có lợi cho backend prompt validation và frontend proposal actions. Giới hạn: chỉ có ích khi cùng một đối tượng document được dùng lại; validate tăng dần là hướng nâng cấp.
+- `validateSchema` nay trả frozen array (không caller nào sort in place).
 
 ## 5. Bài học cho orchestrator
 
@@ -142,11 +144,10 @@ Giữ các bài học của [phiên 1](2026-10-03-ai-assistant-session-1-handoff
 
 ## 6. Khởi động nhanh cho session mới
 
-1. Đọc log này, rồi chạy `git status`.
-2. Chờ hoặc xử lý hai agent đang chạy (mục 3.1):
-   - sửa hiệu năng validation ở cây chính: kiểm tra p99 của benchmark, rồi commit riêng;
-   - merge worktree Task 16 theo quy trình tích hợp: `git -C <wt> add -A` và commit, `rebase master`, `git merge --ff-only`, `secret-scan.sh --range`, `verify.sh`, push, xóa worktree.
-   - Xóa luôn worktree Task 9 đã merge.
-3. Nhờ `spec-writer` viết hai log review còn thiếu (`2026-10-03-ai-assistant-review-2.md`, `2026-10-03-ai-assistant-security-review-2.md`).
-4. Dispatch `ui-a11y-reviewer`, Task 27a và Task 23.
-5. Sau đó làm Task 18 với các ghi chú ở mục 3.3.
+1. Không có agent nào đang chạy. Đọc log này và chạy `git status` để xác nhận.
+2. Nhờ `spec-writer` viết hai log review còn thiếu từ nội dung ở mục 3.2.a:
+   - `document/executions/logs/2026-10-03-ai-assistant-review-2.md`: project-reviewer lượt 2 trên `b9f695a..c0325ad`.
+   - `document/executions/logs/2026-10-03-ai-assistant-security-review-2.md`: ecc:security-reviewer lượt 2 cho Task 14, 15, 17, 21.
+3. Dispatch song song: `ui-a11y-reviewer`, Task 27a, Task 23.
+4. Sau khi ba task trên xong, làm Task 18 với các ghi chú ở mục 3.3.
+5. Tiếp theo: Task 27b, 19, 28, 29 (cần kiểm tra tay), 30.

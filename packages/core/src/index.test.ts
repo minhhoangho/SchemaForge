@@ -21,6 +21,7 @@ const DOCUMENTED_RUNTIME_VALUES = [
   "createRelationId",
   "createSubjectAreaId",
   "createTableId",
+  "diffSchemas",
   "findIntroducedIssues",
   "mergeLastEntry",
   "parseOperation",

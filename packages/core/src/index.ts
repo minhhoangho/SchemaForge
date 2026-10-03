@@ -1,3 +1,5 @@
+export type { ElementChanges, SchemaDiff } from "./diff/diff-schemas.js";
+export { diffSchemas } from "./diff/diff-schemas.js";
 export type { DocumentPath } from "./document-path.js";
 export type {
   ErrorCode,

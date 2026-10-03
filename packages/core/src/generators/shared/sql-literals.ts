@@ -9,6 +9,29 @@ const ESCAPED_SINGLE_QUOTE = "''";
 const BACKSLASH = "\\";
 const ESCAPED_BACKSLASH = "\\\\";
 const NULL_CHARACTER = "\u0000";
+// T-SQL removes a backslash followed by LF or CRLF from a string constant
+// (line continuation). Writing `\\` and the line break twice leaves `\`, the
+// continuation, then the line break: the value is unchanged.
+const SQLSERVER_LINE_CONTINUATION = /\\(\r?\n)/g;
+const SQLSERVER_KEPT_LINE_BREAK = "\\\\$1$1";
+
+function escapeBackslashes(dialect: SqlDialect, value: string): string {
+  switch (dialect) {
+    case "postgresql":
+      return value;
+    case "mysql":
+      return value.replaceAll(BACKSLASH, ESCAPED_BACKSLASH);
+    case "sqlserver":
+      return value.replace(
+        SQLSERVER_LINE_CONTINUATION,
+        SQLSERVER_KEPT_LINE_BREAK,
+      );
+    default: {
+      const unreachable: never = dialect;
+      return unreachable;
+    }
+  }
+}
 
 /**
  * Quotes a string as a SQL string literal (code generators spec, section 5).
@@ -16,10 +39,7 @@ const NULL_CHARACTER = "\u0000";
  * NO_BACKSLASH_ESCAPES; PostgreSQL has standard_conforming_strings on.
  */
 export function sqlStringLiteral(dialect: SqlDialect, value: string): string {
-  const escaped =
-    dialect === "mysql"
-      ? value.replaceAll(BACKSLASH, ESCAPED_BACKSLASH)
-      : value;
+  const escaped = escapeBackslashes(dialect, value);
   const quoted = escaped.replaceAll(SINGLE_QUOTE, ESCAPED_SINGLE_QUOTE);
   return dialect === "sqlserver" ? `N'${quoted}'` : `'${quoted}'`;
 }

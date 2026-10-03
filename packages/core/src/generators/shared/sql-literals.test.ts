@@ -66,6 +66,21 @@ describe("sqlStringLiteral", () => {
       expect(sqlStringLiteral(dialect, value)).toBe(sql);
     },
   );
+
+  // T-SQL drops a backslash followed by LF or CRLF inside a string constant
+  // (line continuation); the doubled backslash and line break survive it.
+  it.each<readonly [string, string]>([
+    ["a\\\nb", "N'a\\\\\n\nb'"],
+    ["a\\\r\nb", "N'a\\\\\r\n\r\nb'"],
+    ["a\\\\\nb", "N'a\\\\\\\n\nb'"],
+    ["a\\\nb\\\nc", "N'a\\\\\n\nb\\\\\n\nc'"],
+    ["a\\\rb", "N'a\\\rb'"],
+  ])(
+    "keeps a backslash before a line break in a SQL Server literal: %j",
+    (value, sql) => {
+      expect(sqlStringLiteral("sqlserver", value)).toBe(sql);
+    },
+  );
 });
 
 describe("removeNullCharacters", () => {

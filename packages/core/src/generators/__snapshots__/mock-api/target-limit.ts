@@ -254,11 +254,11 @@ const rowsNullableUniqueRefs: Row[] = [
 ];
 
 const rowsOversizedTypes: Row[] = [
-  { id: 1, pg_varchar: "pg_varchar_1", mysql_char: "mysql_char_1", mysql_varchar: "mysql_varchar_1", sqlserver_char: "sqlserver_char_1", sqlserver_varchar: "sqlserver_varchar_1", pg_decimal: "954638464.91", mysql_decimal: "983148276.6784687621492733882805745271054" },
-  { id: 2, pg_varchar: "pg_varchar_2", mysql_char: "mysql_char_2", mysql_varchar: "mysql_varchar_2", sqlserver_char: "sqlserver_char_2", sqlserver_varchar: "sqlserver_varchar_2", pg_decimal: "752496475.98", mysql_decimal: "624835936.8131158258809413735435127836087" },
-  { id: 3, pg_varchar: "pg_varchar_3", mysql_char: "mysql_char_3", mysql_varchar: "mysql_varchar_3", sqlserver_char: "sqlserver_char_3", sqlserver_varchar: "sqlserver_varchar_3", pg_decimal: "749689704.24", mysql_decimal: "913598098.1133903833505502475544049458440" },
-  { id: 4, pg_varchar: "pg_varchar_4", mysql_char: "mysql_char_4", mysql_varchar: "mysql_varchar_4", sqlserver_char: "sqlserver_char_4", sqlserver_varchar: "sqlserver_varchar_4", pg_decimal: "142319643.47", mysql_decimal: "612787009.5910618172516595201835727727538" },
-  { id: 5, pg_varchar: "pg_varchar_5", mysql_char: "mysql_char_5", mysql_varchar: "mysql_varchar_5", sqlserver_char: "sqlserver_char_5", sqlserver_varchar: "sqlserver_varchar_5", pg_decimal: "877282019.81", mysql_decimal: "146917195.9574928561400130032422537153494" },
+  { id: 1, pg_varchar: "pg_varchar_1", mysql_char: "mysql_char_1", mysql_varchar: "mysql_varchar_1", sqlserver_char: "sqlserver_char_1", sqlserver_varchar: "sqlserver_varchar_1", pg_decimal: "954638464.91", mysql_decimal: "3148276.6784687621492733882805745271054" },
+  { id: 2, pg_varchar: "pg_varchar_2", mysql_char: "mysql_char_2", mysql_varchar: "mysql_varchar_2", sqlserver_char: "sqlserver_char_2", sqlserver_varchar: "sqlserver_varchar_2", pg_decimal: "752496475.98", mysql_decimal: "4835936.8131158258809413735435127836087" },
+  { id: 3, pg_varchar: "pg_varchar_3", mysql_char: "mysql_char_3", mysql_varchar: "mysql_varchar_3", sqlserver_char: "sqlserver_char_3", sqlserver_varchar: "sqlserver_varchar_3", pg_decimal: "749689704.24", mysql_decimal: "3598098.1133903833505502475544049458440" },
+  { id: 4, pg_varchar: "pg_varchar_4", mysql_char: "mysql_char_4", mysql_varchar: "mysql_varchar_4", sqlserver_char: "sqlserver_char_4", sqlserver_varchar: "sqlserver_varchar_4", pg_decimal: "142319643.47", mysql_decimal: "2787009.5910618172516595201835727727538" },
+  { id: 5, pg_varchar: "pg_varchar_5", mysql_char: "mysql_char_5", mysql_varchar: "mysql_varchar_5", sqlserver_char: "sqlserver_char_5", sqlserver_varchar: "sqlserver_varchar_5", pg_decimal: "877282019.81", mysql_decimal: "6917195.9574928561400130032422537153494" },
 ];
 
 const rowsOversizedUnique: Row[] = [

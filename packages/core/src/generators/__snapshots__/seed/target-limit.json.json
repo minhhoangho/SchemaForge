@@ -595,7 +595,7 @@
         "sqlserver_char": "sqlserver_char_1",
         "sqlserver_varchar": "sqlserver_varchar_1",
         "pg_decimal": "954638464.91",
-        "mysql_decimal": "983148276.6784687621492733882805745271054"
+        "mysql_decimal": "3148276.6784687621492733882805745271054"
       },
       {
         "id": 2,
@@ -605,7 +605,7 @@
         "sqlserver_char": "sqlserver_char_2",
         "sqlserver_varchar": "sqlserver_varchar_2",
         "pg_decimal": "752496475.98",
-        "mysql_decimal": "624835936.8131158258809413735435127836087"
+        "mysql_decimal": "4835936.8131158258809413735435127836087"
       },
       {
         "id": 3,
@@ -615,7 +615,7 @@
         "sqlserver_char": "sqlserver_char_3",
         "sqlserver_varchar": "sqlserver_varchar_3",
         "pg_decimal": "749689704.24",
-        "mysql_decimal": "913598098.1133903833505502475544049458440"
+        "mysql_decimal": "3598098.1133903833505502475544049458440"
       }
     ]
   },

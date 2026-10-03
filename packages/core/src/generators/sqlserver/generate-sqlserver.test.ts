@@ -740,6 +740,26 @@ describe("generateSqlServer comments and fixtures", () => {
     );
   });
 
+  // T-SQL drops a backslash followed by a line break from a string constant.
+  it("keeps a backslash before a line break in defaults and comments", () => {
+    const value = "C:\\dir\\\nnext";
+    const content = generate(
+      tableSchema([
+        {
+          name: "path",
+          type: { kind: "text" },
+          defaultValue: literal(value),
+          comment: value,
+        },
+      ]),
+    );
+
+    expect([
+      content.includes("DEFAULT N'C:\\dir\\\\\n\nnext'"),
+      content.includes("@value = N'C:\\dir\\\\\n\nnext'"),
+    ]).toStrictEqual([true, true]);
+  });
+
   it("writes table comments before their column comments", () => {
     const schema = buildSchema({
       tables: [makeTable({ id: "tbl_t", name: "t", comment: "T" })],

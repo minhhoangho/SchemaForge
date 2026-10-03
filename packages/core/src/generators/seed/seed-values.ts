@@ -38,6 +38,9 @@ export type ColumnValueInput = {
 const SMALLINT_RANGE = 65_536;
 const SMALLINT_OFFSET = 32_768;
 const MAX_INTEGER_DIGITS = 9;
+// SQL Server's decimal holds at most 38 digits (PostgreSQL 1000, MySQL 65), so
+// a seed decimal keeps to 38 and fits decimal(min(p, 38), min(s, 38)) there.
+const MAX_SQL_DECIMAL_DIGITS = 38;
 const DECIMAL_BASE = 10;
 const FLOAT_CENTS = 1_000_000;
 const CENTS_PER_UNIT = 100;
@@ -90,12 +93,17 @@ function drawDecimal(
   precision: number,
   scale: number,
 ): string {
-  const integerDigits = Math.min(precision - scale, MAX_INTEGER_DIGITS);
+  const fractionalDigits = Math.min(scale, MAX_SQL_DECIMAL_DIGITS);
+  const integerDigits = Math.min(
+    precision - scale,
+    MAX_INTEGER_DIGITS,
+    MAX_SQL_DECIMAL_DIGITS - fractionalDigits,
+  );
   const integerPart =
     integerDigits <= 0
       ? "0"
       : String(random.nextInt(DECIMAL_BASE ** integerDigits));
-  const fractionalPart = Array.from({ length: scale }, () =>
+  const fractionalPart = Array.from({ length: fractionalDigits }, () =>
     String(random.nextInt(DECIMAL_BASE)),
   ).join("");
   return scale > 0 ? `${integerPart}.${fractionalPart}` : integerPart;

@@ -142,9 +142,9 @@ INSERT INTO "nullable_unique_refs" ("id", "code") VALUES
   (3, 'code_2');
 
 INSERT INTO "oversized_types" ("id", "pg_varchar", "mysql_char", "mysql_varchar", "sqlserver_char", "sqlserver_varchar", "pg_decimal", "mysql_decimal") VALUES
-  (1, 'pg_varchar_1', 'mysql_char_1', 'mysql_varchar_1', 'sqlserver_char_1', 'sqlserver_varchar_1', 954638464.91, 983148276.6784687621492733882805745271054),
-  (2, 'pg_varchar_2', 'mysql_char_2', 'mysql_varchar_2', 'sqlserver_char_2', 'sqlserver_varchar_2', 752496475.98, 624835936.8131158258809413735435127836087),
-  (3, 'pg_varchar_3', 'mysql_char_3', 'mysql_varchar_3', 'sqlserver_char_3', 'sqlserver_varchar_3', 749689704.24, 913598098.1133903833505502475544049458440);
+  (1, 'pg_varchar_1', 'mysql_char_1', 'mysql_varchar_1', 'sqlserver_char_1', 'sqlserver_varchar_1', 954638464.91, 3148276.6784687621492733882805745271054),
+  (2, 'pg_varchar_2', 'mysql_char_2', 'mysql_varchar_2', 'sqlserver_char_2', 'sqlserver_varchar_2', 752496475.98, 4835936.8131158258809413735435127836087),
+  (3, 'pg_varchar_3', 'mysql_char_3', 'mysql_varchar_3', 'sqlserver_char_3', 'sqlserver_varchar_3', 749689704.24, 3598098.1133903833505502475544049458440);
 
 INSERT INTO "oversized_unique" ("id", "code") VALUES
   (1, 'code_1'),

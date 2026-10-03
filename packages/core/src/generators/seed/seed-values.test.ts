@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import type { Column } from "../../model/column.js";
 import type { ColumnType } from "../../model/column-type.js";
 import { makeColumn, makeEnum } from "../../testing/factories.js";
-import { isValidJsonValue } from "../shared/json-representation.js";
+import {
+  decimalStringPattern,
+  isValidJsonValue,
+} from "../shared/json-representation.js";
 import { createSeedRandom } from "./seed-random.js";
 import { findFixedSeedValue, generateColumnValue } from "./seed-values.js";
 
@@ -86,6 +89,25 @@ describe("generateColumnValue", () => {
       result.kind === "value" && isValidJsonValue(type, result.value, ENUMS),
     ).toBe(true);
   });
+
+  // SQL Server clamps decimal(p, s) to decimal(min(p, 38), min(s, 38)).
+  it.each<[number, number, number]>([
+    [40, 31, 31],
+    [60, 50, 38],
+    [1001, 2, 2],
+  ])(
+    "draws a decimal(%i, %i) value that fits decimal(38, %i)",
+    (precision, scale, sqlServerScale) => {
+      const type: ColumnType = { kind: "decimal", precision, scale };
+      const result = generate(column({ type }));
+      expect([
+        result.kind === "value" && isValidJsonValue(type, result.value, ENUMS),
+        new RegExp(decimalStringPattern(38, sqlServerScale)).test(
+          String(valueOf(result)),
+        ),
+      ]).toStrictEqual([true, true]);
+    },
+  );
 
   it.each<[ColumnType, Partial<Column>, GenerateOverrides, unknown]>([
     [{ kind: "integer" }, {}, { isPrimaryKeyColumn: true, sequence: 1 }, 1],

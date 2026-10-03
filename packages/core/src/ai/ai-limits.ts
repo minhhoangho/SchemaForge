@@ -20,3 +20,5 @@ export const AI_MAX_SAMPLE_TABLES = 100;
 export const AI_MAX_SAMPLE_KEYS_PER_ROW = 100;
 export const AI_MAX_SAMPLE_STRING_LENGTH = 2000;
 export const AI_MAX_SAMPLE_INPUT_BYTES = 256 * 1024;
+// Nesting depth of a JSON column value, measured after parsing (primitive = depth 0).
+export const AI_MAX_SAMPLE_DEPTH = 4;

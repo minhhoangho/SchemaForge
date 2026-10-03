@@ -2,9 +2,11 @@ import type { LocaleNamespace } from "./locale-namespace";
 import { enApiErrors } from "./locales/en/api-errors";
 import { enAuth } from "./locales/en/auth";
 import { enCanvas } from "./locales/en/canvas";
+import { enCodeGenerator } from "./locales/en/code-generator";
 import { enCommon } from "./locales/en/common";
 import { enEditor } from "./locales/en/editor";
 import { enErrors } from "./locales/en/errors";
+import { enGeneratorDiagnostics } from "./locales/en/generator-diagnostics";
 import { enIssues } from "./locales/en/issues";
 import { enSchemaList } from "./locales/en/schema-list";
 import { enStorage } from "./locales/en/storage";
@@ -12,9 +14,11 @@ import { enSync } from "./locales/en/sync";
 import { viApiErrors } from "./locales/vi/api-errors";
 import { viAuth } from "./locales/vi/auth";
 import { viCanvas } from "./locales/vi/canvas";
+import { viCodeGenerator } from "./locales/vi/code-generator";
 import { viCommon } from "./locales/vi/common";
 import { viEditor } from "./locales/vi/editor";
 import { viErrors } from "./locales/vi/errors";
+import { viGeneratorDiagnostics } from "./locales/vi/generator-diagnostics";
 import { viIssues } from "./locales/vi/issues";
 import { viSchemaList } from "./locales/vi/schema-list";
 import { viStorage } from "./locales/vi/storage";
@@ -32,6 +36,8 @@ export const NAMESPACES = [
   "auth",
   "sync",
   "apiErrors",
+  "codeGenerator",
+  "generatorDiagnostics",
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -49,6 +55,8 @@ export const enResources = {
   auth: enAuth,
   sync: enSync,
   apiErrors: enApiErrors,
+  codeGenerator: enCodeGenerator,
+  generatorDiagnostics: enGeneratorDiagnostics,
 } as const;
 
 export const viResources = {
@@ -62,6 +70,8 @@ export const viResources = {
   auth: viAuth,
   sync: viSync,
   apiErrors: viApiErrors,
+  codeGenerator: viCodeGenerator,
+  generatorDiagnostics: viGeneratorDiagnostics,
 } as const satisfies LocaleNamespace<typeof enResources>;
 
 export const RESOURCES = {

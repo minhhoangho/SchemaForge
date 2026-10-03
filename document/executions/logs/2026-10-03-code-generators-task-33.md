@@ -34,3 +34,9 @@
 - **Việc còn lại**
   - [ ] Task 34: sau khi hook được import trong UI, chạy `.claude/scripts/verify.sh frontend --build`, xác nhận tên chunk worker và Turbopack resolve được `shiki/langs/*.mjs`.
 - **Ghi chú cho người tiếp theo**: khi tắt rồi bật lại, một render đầu có thể còn state cũ trước khi effect đặt `loading`.
+
+## 2026-10-03 11:30 — frontend-engineer — Xong (đóng checkbox Task 34)
+- **Đã làm**: sau khi Task 34 nối `useGeneratedCode` vào `CodePanel`, chạy `verify.sh frontend --build`: build Turbopack PASS.
+- **Kiểm tra**: worker entry `/_next/static/media/code-generator.worker.3oxpfjap98pir.ts` (bootstrap `turbopack-worker-*.js`); chunk worker `.next/static/chunks/1spgym405ib2k.js` (166 KB) chứa 12 loader generator dạng `e.A(id)` (mỗi đích một chunk async) và loader ngôn ngữ Shiki (`sql:()=>e.A(...)`, `prisma:()=>e.A(...)`): Turbopack resolve được `shiki/langs/*.mjs`.
+- **Việc còn lại**
+  - [x] Task 34: tên chunk worker và đường shiki đã xác nhận (xem trên).

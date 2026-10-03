@@ -2,6 +2,7 @@
 
 import type { SchemaDocument, TableId } from "@schemaforge/core";
 import type { Connection, Viewport } from "@xyflow/react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { JSX, RefObject } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -36,7 +37,7 @@ import type { RelationDraft } from "../lib/to-relation-draft";
 import type { CloudStatusView } from "../lib/to-cloud-status-view";
 import { createEditorStore } from "../state/create-editor-store";
 import { EditorStoreProvider } from "../state/editor-store-provider";
-import { useEditorStoreApi } from "../state/use-editor-store";
+import { useEditorStore, useEditorStoreApi } from "../state/use-editor-store";
 import { EditorCanvas } from "./canvas/editor-canvas";
 import { EditorFlowProvider } from "./canvas/editor-flow-provider";
 import { ConflictDialog } from "./dialogs/conflict-dialog";
@@ -50,6 +51,24 @@ import type {
   CloudStatusBadgeProps,
 } from "./toolbar/cloud-status-badge";
 import { EditorToolbar } from "./toolbar/editor-toolbar";
+
+// The code panel pulls in the worker, Shiki and the generators, so it loads
+// when the code mode first opens. The placeholder keeps the column's width.
+const CodePanel = dynamic(
+  async () => {
+    const { CodePanel: loaded } = await import("../code-generator/code-panel");
+    return loaded;
+  },
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        aria-hidden
+        className="h-full w-[32rem] shrink-0 border-l border-border"
+      />
+    ),
+  },
+);
 
 export type EditorWorkspaceProps = {
   readonly schemaId: string;
@@ -318,6 +337,7 @@ function WorkspaceLayout({
     },
     [canvasRegionRef, setCanvasRegion],
   );
+  const rightPanelMode = useEditorStore((state) => state.rightPanelMode);
   const leftPanelId = useId();
   const propertiesPanelId = useId();
   const defaultViewport =
@@ -357,11 +377,15 @@ function WorkspaceLayout({
             onConnect={dialog.openFromConnection}
           />
         </main>
-        <PropertiesPanel
-          id={propertiesPanelId}
-          onCreateRelation={dialog.openFromTable}
-          onDelete={keyboard.deleteSelection}
-        />
+        {rightPanelMode === "code" ? (
+          <CodePanel id={propertiesPanelId} />
+        ) : (
+          <PropertiesPanel
+            id={propertiesPanelId}
+            onCreateRelation={dialog.openFromTable}
+            onDelete={keyboard.deleteSelection}
+          />
+        )}
       </div>
       <CreateRelationDialog draft={dialog.draft} onClose={dialog.closeDialog} />
     </div>

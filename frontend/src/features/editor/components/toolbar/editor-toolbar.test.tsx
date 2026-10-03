@@ -195,6 +195,22 @@ describe("EditorToolbar", () => {
     },
   );
 
+  it("toggles the code panel with an aria-pressed button", async () => {
+    const { user, store } = renderToolbar();
+    const button = screen.getByRole("button", { name: "Code" });
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+
+    await user.click(button);
+
+    expect(store.getState().rightPanelMode).toBe("code");
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+
+    await user.click(button);
+
+    expect(store.getState().rightPanelMode).toBe("properties");
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+  });
+
   it("disables undo when there is nothing to undo", () => {
     renderToolbar();
 

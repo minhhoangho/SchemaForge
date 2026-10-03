@@ -365,6 +365,65 @@ describe("createEditorStore", () => {
   });
 });
 
+describe("code panel state", () => {
+  it("starts in properties mode with sql and default options", () => {
+    const { store } = createHarness();
+
+    expect(store.getState()).toMatchObject({
+      rightPanelMode: "properties",
+      codeTarget: "sql",
+      codeOptions: {
+        sqlDialect: "postgresql",
+        prismaProvider: "postgresql",
+        drizzleDialect: "postgresql",
+        seedFormat: "postgresql",
+        seedRowsPerTable: 10,
+        seedSeed: 1,
+      },
+    });
+  });
+
+  it("toggles the right panel mode", () => {
+    const { store } = createHarness();
+
+    store.getState().setRightPanelMode("code");
+    expect(store.getState().rightPanelMode).toBe("code");
+
+    store.getState().setRightPanelMode("properties");
+    expect(store.getState().rightPanelMode).toBe("properties");
+  });
+
+  it("keeps the code mode when the selection changes", () => {
+    const { store } = createHarness();
+    store.getState().setRightPanelMode("code");
+
+    store.getState().setSelection({ tableIds: ["tbl_users"], relationIds: [] });
+
+    expect(store.getState().rightPanelMode).toBe("code");
+  });
+
+  it("sets the code target", () => {
+    const { store } = createHarness();
+
+    store.getState().setCodeTarget("prisma");
+
+    expect(store.getState().codeTarget).toBe("prisma");
+  });
+
+  it("updates code options partially", () => {
+    const { store } = createHarness();
+
+    store.getState().updateCodeOptions({ sqlDialect: "mysql" });
+    store.getState().updateCodeOptions({ seedRowsPerTable: 50 });
+
+    expect(store.getState().codeOptions).toMatchObject({
+      sqlDialect: "mysql",
+      seedRowsPerTable: 50,
+      prismaProvider: "postgresql",
+    });
+  });
+});
+
 describe("getMoveCoalesceKey", () => {
   it("returns null for an operation that is not a move", () => {
     expect(getMoveCoalesceKey(rename("store"))).toBeNull();

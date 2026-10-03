@@ -283,6 +283,24 @@ function queryOutlineRow(tableName: string): HTMLElement | null {
   });
 }
 
+// The worker is the boundary: jsdom has none, so a stub stands in.
+function stubWorker(): void {
+  vi.stubGlobal(
+    "Worker",
+    class StubWorker {
+      onmessage: unknown = null;
+      onerror: unknown = null;
+      onmessageerror: unknown = null;
+      postMessage(): void {
+        // No reply is needed to see the panel.
+      }
+      terminate(): void {
+        // Nothing runs.
+      }
+    },
+  );
+}
+
 function getCanvasRegion(): HTMLElement {
   return screen.getByRole("main", { name: "Schema canvas", hidden: true });
 }
@@ -467,6 +485,24 @@ describe("EditorWorkspace", () => {
     });
   });
 
+  it("shows the properties panel by default and the code panel in code mode", async () => {
+    stubWorker();
+    const { user } = renderShop();
+    await user.click(getOutlineRow("users"));
+    expect(
+      screen.getByRole("complementary", { name: "Properties" }),
+    ).toBeDefined();
+
+    await user.click(screen.getByRole("button", { name: "Code" }));
+
+    expect(
+      await screen.findByRole("complementary", { name: "Code generator" }),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole("complementary", { name: "Properties" }),
+    ).toBeNull();
+  });
+
   it("renders the canvas region as a focusable main around react flow", () => {
     const { container } = renderShop();
 
@@ -511,6 +547,22 @@ describe("EditorWorkspace", () => {
       isBody: activeElement === document.body,
       holdsOutline: activeElement?.contains(getOutline()),
     }).toEqual({ isBody: false, holdsOutline: true });
+  });
+
+  it("moves focus to the code panel through the skip link in code mode without a selection", async () => {
+    stubWorker();
+    const { user } = renderShop();
+    await user.click(screen.getByRole("button", { name: "Code" }));
+    await screen.findByRole("complementary", { name: "Code generator" });
+
+    act(() => {
+      screen.getByRole("link", { name: "Skip the canvas" }).focus();
+    });
+    await user.keyboard("{Enter}");
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("complementary", { name: "Code generator" }),
+    );
   });
 
   it("does not undo while focus is on a button of the rename dialog", async () => {

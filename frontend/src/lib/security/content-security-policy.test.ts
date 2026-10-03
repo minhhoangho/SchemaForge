@@ -60,6 +60,7 @@ describe("buildContentSecurityPolicy", () => {
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' blob: data:",
         "font-src 'self'",
+        "worker-src 'self'",
         `connect-src 'self' ${API_ORIGIN}`,
         "object-src 'none'",
         "base-uri 'self'",
@@ -67,6 +68,16 @@ describe("buildContentSecurityPolicy", () => {
         "frame-ancestors 'none'",
         "upgrade-insecure-requests",
       ].join("; "),
+    );
+  });
+
+  it("allows workers from self only", () => {
+    const policy = buildDirectives(false);
+
+    expect(policy.get("worker-src")).toBe("'self'");
+    expect(policy.get("script-src")).not.toContain("wasm-unsafe-eval");
+    expect(buildDirectives(false).get("script-src")).not.toContain(
+      "unsafe-eval",
     );
   });
 

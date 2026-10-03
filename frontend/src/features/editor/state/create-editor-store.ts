@@ -25,6 +25,11 @@ import type { Logger } from "@/lib/logger";
 import type { Notify } from "@/lib/notify";
 import type { StorageErrorCode } from "@/lib/storage/storage-error";
 
+import { DEFAULT_CODE_OPTIONS } from "../code-generator/generator-request";
+import type {
+  CodeOptions,
+  CodeTarget,
+} from "../code-generator/generator-request";
 import { EMPTY_SELECTION, filterSelection } from "../lib/selection";
 import type { Selection } from "../lib/selection";
 
@@ -38,6 +43,8 @@ export type SaveStatus =
   | { readonly kind: "failed"; readonly errorCode: StorageErrorCode };
 
 export type LeftPanelTab = "tables" | "enums" | "issues";
+
+export type RightPanelMode = "properties" | "code";
 
 export type DispatchOptions = { readonly coalesce?: "keyboardMove" };
 
@@ -53,6 +60,11 @@ export type EditorState = {
   readonly focusRequest: DocumentPath | null;
   readonly saveStatus: SaveStatus;
   readonly coalesceKey: string | null;
+  // Not persisted: a reloaded page opens on the properties panel (code
+  // generators spec, section 8).
+  readonly rightPanelMode: RightPanelMode;
+  readonly codeTarget: CodeTarget;
+  readonly codeOptions: CodeOptions;
 };
 
 export type EditorActions = {
@@ -68,6 +80,9 @@ export type EditorActions = {
   readonly requestFocus: (path: DocumentPath | null) => void;
   readonly setSaveStatus: (status: SaveStatus) => void;
   readonly replaceDocument: (document: SchemaDocument) => void;
+  readonly setRightPanelMode: (mode: RightPanelMode) => void;
+  readonly setCodeTarget: (target: CodeTarget) => void;
+  readonly updateCodeOptions: (patch: Partial<CodeOptions>) => void;
 };
 
 export type EditorStore = StoreApi<EditorState & EditorActions>;
@@ -182,6 +197,9 @@ export function createEditorStore(input: CreateEditorStoreInput): EditorStore {
     focusRequest: null,
     saveStatus: { kind: "saved" },
     coalesceKey: null,
+    rightPanelMode: "properties",
+    codeTarget: "sql",
+    codeOptions: DEFAULT_CODE_OPTIONS,
     dispatch: createDispatch(set, get, input),
     undo: createHistoryStep(set, get, undo),
     redo: createHistoryStep(set, get, redo),
@@ -199,6 +217,15 @@ export function createEditorStore(input: CreateEditorStoreInput): EditorStore {
     },
     setSaveStatus: (saveStatus) => {
       set({ saveStatus });
+    },
+    setRightPanelMode: (rightPanelMode) => {
+      set({ rightPanelMode });
+    },
+    setCodeTarget: (codeTarget) => {
+      set({ codeTarget });
+    },
+    updateCodeOptions: (patch) => {
+      set({ codeOptions: { ...get().codeOptions, ...patch } });
     },
     replaceDocument: (document) => {
       set({

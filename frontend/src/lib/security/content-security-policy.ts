@@ -32,6 +32,8 @@ export function buildContentSecurityPolicy(
     `style-src ${SELF} ${UNSAFE_INLINE}`,
     `img-src ${SELF} blob: data:`,
     `font-src ${SELF}`,
+    // Code generation runs in a module worker served from this origin.
+    `worker-src ${SELF}`,
     `connect-src ${SELF} ${input.apiOrigin}`,
     `object-src ${NONE}`,
     `base-uri ${SELF}`,

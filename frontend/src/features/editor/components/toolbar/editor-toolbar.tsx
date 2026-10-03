@@ -2,6 +2,7 @@
 
 import {
   ArrowLeftIcon,
+  CodeIcon,
   MaximizeIcon,
   PlusIcon,
   Redo2Icon,
@@ -147,6 +148,25 @@ function AddButtons(): JSX.Element {
   );
 }
 
+function CodeToggleButton(): JSX.Element {
+  const { t } = useTranslation("codeGenerator");
+  const isCodeMode = useEditorStore((state) => state.rightPanelMode === "code");
+  const setRightPanelMode = useEditorStore((state) => state.setRightPanelMode);
+
+  return (
+    <Button
+      variant={isCodeMode ? "secondary" : "ghost"}
+      aria-pressed={isCodeMode}
+      onClick={() => {
+        setRightPanelMode(isCodeMode ? "properties" : "code");
+      }}
+    >
+      <CodeIcon aria-hidden />
+      {t("toggle")}
+    </Button>
+  );
+}
+
 function BackToListLink(): JSX.Element {
   const { t } = useTranslation("editor");
   const label = t("toolbar.backToList");
@@ -213,6 +233,7 @@ export function EditorToolbar({
       <ViewportButtons />
       <ToolbarSeparator />
       <IssueCountButton />
+      <CodeToggleButton />
       <SyncStatusSlot onRetrySave={onRetrySave} cloud={cloud} />
       <div className="ml-auto flex items-center gap-1">
         <AccountMenu />

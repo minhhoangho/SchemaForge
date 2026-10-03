@@ -25,7 +25,9 @@ export function SkipToPanelLink({
   const hasSelection = useEditorStore(
     (state) => !isSelectionEmpty(state.selection),
   );
-  const targetId = hasSelection ? propertiesPanelId : leftPanelId;
+  const isCodeMode = useEditorStore((state) => state.rightPanelMode === "code");
+  // The code panel is always shown in code mode, selection or not.
+  const targetId = hasSelection || isCodeMode ? propertiesPanelId : leftPanelId;
 
   return (
     <a

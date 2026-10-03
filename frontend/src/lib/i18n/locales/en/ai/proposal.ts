@@ -32,7 +32,16 @@ export const enAiProposal = {
   },
   confirmDelete: {
     title: "Delete data with this proposal?",
-    body: "Accepting this proposal deletes {{tables}} and {{columns}}. You can undo it afterwards.",
+    tables_one: "{{count}} table",
+    tables_other: "{{count}} tables",
+    columns_one: "{{count}} column",
+    columns_other: "{{count}} columns",
+    bodyTablesAndColumns:
+      "Accepting this proposal deletes {{tables}} and {{columns}}. You can undo it afterwards.",
+    bodyTables:
+      "Accepting this proposal deletes {{tables}}. You can undo it afterwards.",
+    bodyColumns:
+      "Accepting this proposal deletes {{columns}}. You can undo it afterwards.",
     confirm: "Accept and delete",
     cancel: "Cancel",
   },

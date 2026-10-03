@@ -37,7 +37,16 @@ export const viAiProposal = {
   },
   confirmDelete: {
     title: "Xóa dữ liệu theo đề xuất này?",
-    body: "Chấp nhận đề xuất này sẽ xóa {{tables}} và {{columns}}. Bạn có thể hoàn tác sau đó.",
+    tables_one: "{{count}} bảng",
+    tables_other: "{{count}} bảng",
+    columns_one: "{{count}} cột",
+    columns_other: "{{count}} cột",
+    bodyTablesAndColumns:
+      "Chấp nhận đề xuất này sẽ xóa {{tables}} và {{columns}}. Bạn có thể hoàn tác sau đó.",
+    bodyTables:
+      "Chấp nhận đề xuất này sẽ xóa {{tables}}. Bạn có thể hoàn tác sau đó.",
+    bodyColumns:
+      "Chấp nhận đề xuất này sẽ xóa {{columns}}. Bạn có thể hoàn tác sau đó.",
     confirm: "Chấp nhận và xóa",
     cancel: "Hủy",
   },

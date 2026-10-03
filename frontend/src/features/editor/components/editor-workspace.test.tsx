@@ -503,6 +503,19 @@ describe("EditorWorkspace", () => {
     ).toBeNull();
   });
 
+  it("hides the canvas below lg only while the code panel is open", async () => {
+    stubWorker();
+    const { user } = renderShop();
+    expect(getCanvasRegion().className).not.toContain("max-lg:hidden");
+
+    await user.click(screen.getByRole("button", { name: "Code" }));
+    await screen.findByRole("complementary", { name: "Code generator" });
+    expect(getCanvasRegion().className).toContain("max-lg:hidden");
+
+    await user.click(screen.getByRole("button", { name: "Code" }));
+    expect(getCanvasRegion().className).not.toContain("max-lg:hidden");
+  });
+
   it("renders the canvas region as a focusable main around react flow", () => {
     const { container } = renderShop();
 

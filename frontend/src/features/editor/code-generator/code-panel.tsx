@@ -100,7 +100,7 @@ export function CodePanel({ id, createWorker }: CodePanelProps): JSX.Element {
       tabIndex={-1}
       aria-label={t("panelLabel")}
       aria-busy={isBusy}
-      className="flex h-full min-h-0 w-[32rem] shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-background p-3 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      className="flex h-full min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto border-l border-border bg-background p-3 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset lg:w-[32rem] lg:flex-none"
     >
       <GeneratorTargetSelect value={target} onChange={setCodeTarget} />
       <GeneratorOptions

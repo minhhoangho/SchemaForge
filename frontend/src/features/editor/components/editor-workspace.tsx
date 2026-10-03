@@ -53,7 +53,8 @@ import type {
 import { EditorToolbar } from "./toolbar/editor-toolbar";
 
 // The code panel pulls in the worker, Shiki and the generators, so it loads
-// when the code mode first opens. The placeholder keeps the column's width.
+// when the code mode first opens. The placeholder keeps the column's width
+// (same classes as the panel).
 const CodePanel = dynamic(
   async () => {
     const { CodePanel: loaded } = await import("../code-generator/code-panel");
@@ -64,7 +65,7 @@ const CodePanel = dynamic(
     loading: () => (
       <div
         aria-hidden
-        className="h-full w-[32rem] shrink-0 border-l border-border"
+        className="h-full min-w-0 flex-1 border-l border-border lg:w-[32rem] lg:flex-none"
       />
     ),
   },
@@ -364,7 +365,14 @@ function WorkspaceLayout({
           ref={setCanvasRegionRef}
           tabIndex={-1}
           aria-label={t("layout.canvasLabel")}
-          className={cn("min-w-0 flex-1", FOCUS_TARGET_CLASS_NAME)}
+          className={cn(
+            "min-w-0 flex-1",
+            // Below lg the code panel takes the canvas's place; the toolbar
+            // toggle brings the canvas back. display:none keeps it out of the
+            // tab order.
+            rightPanelMode === "code" && "max-lg:hidden",
+            FOCUS_TARGET_CLASS_NAME,
+          )}
         >
           <SkipToPanelLink
             propertiesPanelId={propertiesPanelId}

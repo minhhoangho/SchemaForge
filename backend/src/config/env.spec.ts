@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import { JWT_ACCESS_SECRET_EXAMPLE, validate } from "./env.js";
 
 const VALID_SECRET = "a".repeat(32);
+const SHORT_JWT_VALUE = "leak-probe-31";
+const DATABASE_URL = "postgresql://localhost:5432/schemaforge";
+const FAKE_GEMINI_CREDENTIAL = "test-gemini-key-not-real";
+const GEMINI_MODEL_ID = "gemini-3.5-flash";
 
 function validConfig(
   overrides: Record<string, unknown> = {},
@@ -10,7 +14,7 @@ function validConfig(
   return {
     NODE_ENV: "development",
     PORT: "3001",
-    DATABASE_URL: "postgresql://user:password@localhost:5432/schemaforge",
+    DATABASE_URL,
     JWT_ACCESS_SECRET: VALID_SECRET,
     CORS_ORIGINS: "http://localhost:3000",
     AUTH_COOKIE_SECURE: "true",
@@ -24,11 +28,12 @@ describe("validate", () => {
     expect(validate(validConfig())).toEqual({
       NODE_ENV: "development",
       PORT: 3001,
-      DATABASE_URL: "postgresql://user:password@localhost:5432/schemaforge",
+      DATABASE_URL,
       JWT_ACCESS_SECRET: VALID_SECRET,
       CORS_ORIGINS: ["http://localhost:3000"],
       AUTH_COOKIE_SECURE: true,
       TRUST_PROXY_HOPS: 0,
+      AI_GLOBAL_REQUESTS_PER_HOUR: 1000,
     });
   });
 
@@ -65,7 +70,7 @@ describe("validate", () => {
 
   it("rejects a JWT_ACCESS_SECRET shorter than 32 characters", () => {
     expect(() =>
-      validate(validConfig({ JWT_ACCESS_SECRET: "short-secret" })),
+      validate(validConfig({ JWT_ACCESS_SECRET: "a".repeat(31) })),
     ).toThrow(/JWT_ACCESS_SECRET/);
   });
 
@@ -145,9 +150,80 @@ describe("validate", () => {
   });
 
   it("never includes the secret value in the error message", () => {
-    const config = validConfig({ JWT_ACCESS_SECRET: "too-short-secret" });
+    const config = validConfig({ JWT_ACCESS_SECRET: SHORT_JWT_VALUE });
 
     expect(() => validate(config)).toThrow(/JWT_ACCESS_SECRET/);
-    expect(() => validate(config)).not.toThrow(/too-short-secret/);
+    expect(() => validate(config)).not.toThrow(SHORT_JWT_VALUE);
+  });
+
+  it("accepts a config without GEMINI_API_KEY", () => {
+    const result = validate(validConfig());
+
+    expect(result.GEMINI_API_KEY).toBeUndefined();
+    expect(result.GEMINI_MODEL).toBeUndefined();
+  });
+
+  it("treats an empty GEMINI_API_KEY as absent", () => {
+    const result = validate(
+      validConfig({ GEMINI_API_KEY: "  ", GEMINI_MODEL: "" }),
+    );
+
+    expect(result.GEMINI_API_KEY).toBeUndefined();
+    expect(result.GEMINI_MODEL).toBeUndefined();
+  });
+
+  it.each([
+    ["development", "http://localhost:3000"],
+    ["production", "https://schemaforge.app"],
+  ])(
+    "rejects GEMINI_API_KEY without GEMINI_MODEL in %s",
+    (nodeEnv, corsOrigins) => {
+      const config = validConfig({
+        NODE_ENV: nodeEnv,
+        CORS_ORIGINS: corsOrigins,
+        GEMINI_API_KEY: FAKE_GEMINI_CREDENTIAL,
+        GEMINI_MODEL: " ",
+      });
+
+      expect(() => validate(config)).toThrow(
+        /GEMINI_MODEL is required when GEMINI_API_KEY is set/,
+      );
+    },
+  );
+
+  it("accepts GEMINI_API_KEY with GEMINI_MODEL", () => {
+    const result = validate(
+      validConfig({
+        GEMINI_API_KEY: FAKE_GEMINI_CREDENTIAL,
+        GEMINI_MODEL: GEMINI_MODEL_ID,
+      }),
+    );
+
+    expect(result.GEMINI_API_KEY).toBe(FAKE_GEMINI_CREDENTIAL);
+    expect(result.GEMINI_MODEL).toBe(GEMINI_MODEL_ID);
+  });
+
+  it("defaults AI_GLOBAL_REQUESTS_PER_HOUR to 1000", () => {
+    const result = validate(
+      validConfig({ AI_GLOBAL_REQUESTS_PER_HOUR: undefined }),
+    );
+
+    expect(result.AI_GLOBAL_REQUESTS_PER_HOUR).toBe(1000);
+  });
+
+  it.each([["0"], ["-5"], ["1.5"]])(
+    "rejects a non-positive AI_GLOBAL_REQUESTS_PER_HOUR (%s)",
+    (value) => {
+      expect(() =>
+        validate(validConfig({ AI_GLOBAL_REQUESTS_PER_HOUR: value })),
+      ).toThrow(/AI_GLOBAL_REQUESTS_PER_HOUR/);
+    },
+  );
+
+  it("never puts the key value in the error message", () => {
+    const config = validConfig({ GEMINI_API_KEY: FAKE_GEMINI_CREDENTIAL });
+
+    expect(() => validate(config)).toThrow(/GEMINI_MODEL/);
+    expect(() => validate(config)).not.toThrow(FAKE_GEMINI_CREDENTIAL);
   });
 });

@@ -3,6 +3,7 @@ import { z } from "zod";
 const NODE_ENVIRONMENTS = ["development", "test", "production"] as const;
 const DEFAULT_PORT = 3001;
 const DEFAULT_TRUST_PROXY_HOPS = 0;
+const DEFAULT_AI_GLOBAL_REQUESTS_PER_HOUR = 1000;
 const JWT_ACCESS_SECRET_MIN_LENGTH = 32;
 const AUTH_COOKIE_SECURE_VALUES = ["true", "false"] as const;
 const DATABASE_URL_PROTOCOLS = new Set(["postgres:", "postgresql:"]);
@@ -55,6 +56,15 @@ const corsOriginsSchema = z
     return origins;
   });
 
+/** Optional string where a blank value counts as absent. */
+const optionalNonBlankString = z
+  .string()
+  .optional()
+  .transform((value) => {
+    const trimmed = value?.trim();
+    return trimmed === undefined || trimmed === "" ? undefined : trimmed;
+  });
+
 const envSchema = z
   .object({
     NODE_ENV: z.enum(NODE_ENVIRONMENTS).default("development"),
@@ -79,8 +89,23 @@ const envSchema = z
       .int()
       .min(0)
       .default(DEFAULT_TRUST_PROXY_HOPS),
+    GEMINI_API_KEY: optionalNonBlankString,
+    GEMINI_MODEL: optionalNonBlankString,
+    AI_GLOBAL_REQUESTS_PER_HOUR: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(DEFAULT_AI_GLOBAL_REQUESTS_PER_HOUR),
   })
   .superRefine((env, ctx) => {
+    // Runs in every environment; the message never echoes the key value.
+    if (env.GEMINI_API_KEY !== undefined && env.GEMINI_MODEL === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["GEMINI_MODEL"],
+        message: "GEMINI_MODEL is required when GEMINI_API_KEY is set",
+      });
+    }
     if (env.NODE_ENV !== "production") {
       return;
     }

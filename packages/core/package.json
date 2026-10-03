@@ -15,6 +15,10 @@
     "./generators/*": {
       "types": "./dist/generators/*/index.d.ts",
       "default": "./dist/generators/*/index.js"
+    },
+    "./ai": {
+      "types": "./dist/ai/index.d.ts",
+      "default": "./dist/ai/index.js"
     }
   },
   "scripts": {

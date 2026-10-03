@@ -6,6 +6,7 @@ import { sortIndexes, sortRelations } from "../../model/ordering.js";
 import type { Relation } from "../../model/relation.js";
 import type { SchemaDocument } from "../../model/schema-document.js";
 import type { Table } from "../../model/table.js";
+import type { Index } from "../../model/table-index.js";
 import { isValidJsonValue } from "../shared/json-representation.js";
 import type { JsonValue } from "../shared/json-representation.js";
 import type {
@@ -26,11 +27,13 @@ type ValidationContext = {
 export function listSeedUniqueKeys(
   schema: SchemaDocument,
   table: Table,
+  // A caller that lists many tables sorts once and passes the result.
+  sortedIndexes: readonly Index[] = sortIndexes(schema),
 ): readonly (readonly ColumnId[])[] {
   const uniqueColumns = table.columnIds
     .filter((columnId) => schema.columns[columnId]?.isUnique === true)
     .map((columnId) => [columnId]);
-  const uniqueIndexes = sortIndexes(schema)
+  const uniqueIndexes = sortedIndexes
     .filter((index) => index.tableId === table.id && index.isUnique)
     .map((index) => index.columnIds);
   return [table.primaryKeyColumnIds, ...uniqueColumns, ...uniqueIndexes].filter(
@@ -38,16 +41,22 @@ export function listSeedUniqueKeys(
   );
 }
 
+/** `values` as one comparable string, or null when one is null or missing. */
+export function toSeedValuesKey(
+  values: readonly (JsonValue | undefined)[],
+): string | null {
+  const isComplete = values.every(
+    (value) => value !== undefined && value !== null,
+  );
+  return isComplete ? JSON.stringify(values) : null;
+}
+
 /** The row's values for `columnIds` as one comparable string, or null when one is null or missing. */
 export function toSeedKey(
   row: SeedRow,
   columnIds: readonly ColumnId[],
 ): string | null {
-  const values = columnIds.map((columnId) => row[columnId]);
-  const isComplete = values.every(
-    (value) => value !== undefined && value !== null,
-  );
-  return isComplete ? JSON.stringify(values) : null;
+  return toSeedValuesKey(columnIds.map((columnId) => row[columnId]));
 }
 
 function findFirstPositions(

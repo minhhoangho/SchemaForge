@@ -6,7 +6,7 @@ import type { Table } from "../../model/table.js";
 import type { JsonValue } from "../shared/json-representation.js";
 import type { SeedRow } from "./seed-dataset.js";
 import type { SeedRandom } from "./seed-random.js";
-import { listSeedUniqueKeys, toSeedKey } from "./validate-seed-dataset.js";
+import { toSeedValuesKey } from "./validate-seed-dataset.js";
 
 // Internal to buildSeedDataset (plan Task 21, steps 4 and 6); tested through it.
 
@@ -33,6 +33,8 @@ export type RelationState = {
 export type RelationSource = {
   readonly table: Table;
   readonly random: SeedRandom;
+  // listSeedUniqueKeys of `table`.
+  readonly uniqueKeys: readonly (readonly ColumnId[])[];
 };
 
 type TargetFilter = (row: BuiltRow, target: BuiltRow) => boolean;
@@ -102,21 +104,53 @@ function listTargetRows(
     : (state.rowsByTable.get(relation.toTableId) ?? []);
 }
 
+/**
+ * Indexes of the target rows that hold every value `relation` references.
+ * Only valid while those rows stay unchanged: they belong to another table,
+ * so compute it after that table is built (or, for a deferred relation,
+ * right before filling it).
+ */
+export function listCompleteTargets(
+  state: RelationState,
+  relation: Relation,
+): readonly number[] {
+  const targetRows = state.rowsByTable.get(relation.toTableId) ?? [];
+  return targetRows.flatMap((target, index) =>
+    relation.columnPairs.every((pair) => {
+      const targetValue = target.values.get(pair.toColumnId);
+      return targetValue !== undefined && targetValue !== null;
+    })
+      ? [index]
+      : [],
+  );
+}
+
+// Scanning every target row for every generated row made seeding quadratic
+// in rows, so a row that nothing restricts takes `completeTargets` as is.
 function listCandidates(
   state: RelationState,
   relation: Relation,
   row: BuiltRow,
   previousRows: readonly BuiltRow[],
+  completeTargets: readonly number[],
   isAllowed: TargetFilter,
 ): readonly number[] {
-  const targetRows = listTargetRows(state, relation, previousRows);
-  // A self-reference may only point to the row just before this one.
-  const indexes =
-    relation.fromTableId === relation.toTableId
-      ? [previousRows.length - 1].filter((index) => index >= 0)
-      : targetRows.map((_target, index) => index);
+  const isSelfReference = relation.fromTableId === relation.toTableId;
   const taken =
     relation.kind === "oneToOne" ? state.chosen.get(relation.id) : undefined;
+  const isUnrestricted =
+    !isSelfReference &&
+    taken === undefined &&
+    isAllowed === ACCEPT_ANY_TARGET &&
+    relation.columnPairs.every((pair) => !row.assigned.has(pair.fromColumnId));
+  if (isUnrestricted) {
+    return completeTargets;
+  }
+  const targetRows = listTargetRows(state, relation, previousRows);
+  // A self-reference may only point to the row just before this one.
+  const indexes = isSelfReference
+    ? [previousRows.length - 1].filter((index) => index >= 0)
+    : completeTargets;
   return indexes.filter((index) => {
     const target = targetRows[index];
     return (
@@ -136,6 +170,8 @@ export function assignRelation(
   row: BuiltRow,
   previousRows: readonly BuiltRow[],
   choices: Choice[],
+  // From listCompleteTargets; ignored for a self-reference.
+  completeTargets: readonly number[],
   isAllowed: TargetFilter = ACCEPT_ANY_TARGET,
 ): boolean {
   const isSelfReference = relation.fromTableId === relation.toTableId;
@@ -144,6 +180,7 @@ export function assignRelation(
     relation,
     row,
     previousRows,
+    completeTargets,
     isAllowed,
   );
   const pick =
@@ -189,43 +226,70 @@ type UniqueGuard = {
   readonly record: (row: BuiltRow) => void;
 };
 
+function rowKeyOf(
+  row: BuiltRow,
+  columnIds: readonly ColumnId[],
+): string | null {
+  return toSeedValuesKey(columnIds.map((columnId) => row.values.get(columnId)));
+}
+
+// Allows a target when each key `row` would have after copyFrom(relation,
+// row, target) is incomplete, unchanged or unused. The keys are read in
+// place: copying the row for every candidate made seeding quadratic in rows.
+function createTrialKeyFilter(
+  relation: Relation,
+  keys: readonly (readonly ColumnId[])[],
+  used: readonly ReadonlySet<string>[],
+): TargetFilter {
+  const targetColumnIds = new Map(
+    relation.columnPairs.map((pair) => [pair.fromColumnId, pair.toColumnId]),
+  );
+  // Runs only on candidates, whose referenced values are all set.
+  return (row, target) => {
+    const readTrial = (columnId: ColumnId): JsonValue | undefined => {
+      const toColumnId = targetColumnIds.get(columnId);
+      return toColumnId === undefined || row.assigned.has(columnId)
+        ? row.values.get(columnId)
+        : target.values.get(toColumnId);
+    };
+    return keys.every((columnIds, index) => {
+      const key = toSeedValuesKey(columnIds.map(readTrial));
+      return (
+        key === null ||
+        key === rowKeyOf(row, columnIds) ||
+        used[index]?.has(key) !== true
+      );
+    });
+  };
+}
+
 // Step 6 sets values after the unique check of step 5, so it keeps every
 // unique key that holds one of the relation's source columns distinct itself.
 function createUniqueGuard(
-  schema: SchemaDocument,
-  table: Table,
+  source: RelationSource,
   relation: Relation,
   rows: readonly BuiltRow[],
 ): UniqueGuard {
   const sourceIds = new Set(
     relation.columnPairs.map((pair) => pair.fromColumnId),
   );
-  const keys = listSeedUniqueKeys(schema, table).filter((columnIds) =>
+  const keys = source.uniqueKeys.filter((columnIds) =>
     columnIds.some((columnId) => sourceIds.has(columnId)),
   );
-  const keysOf = (row: BuiltRow): readonly (string | null)[] =>
-    keys.map((columnIds) => toSeedKey(toSeedRow(row), columnIds));
   const used = keys.map(() => new Set<string>());
   const record = (row: BuiltRow): void => {
-    keysOf(row).forEach((key, index) => {
+    keys.forEach((columnIds, index) => {
+      const key = rowKeyOf(row, columnIds);
       if (key !== null) {
         used[index]?.add(key);
       }
     });
   };
   rows.forEach(record);
-  const isAllowed: TargetFilter = (row, target) => {
-    const before = keysOf(row);
-    const trial: BuiltRow = {
-      values: new Map(row.values),
-      assigned: new Set(row.assigned),
-    };
-    copyFrom(relation, trial, target);
-    return keysOf(trial).every(
-      (key, index) =>
-        key === null || key === before[index] || used[index]?.has(key) !== true,
-    );
-  };
+  const isAllowed =
+    keys.length === 0
+      ? ACCEPT_ANY_TARGET
+      : createTrialKeyFilter(relation, keys, used);
   return { isAllowed, record };
 }
 
@@ -248,7 +312,8 @@ export function fillDeferredRelations(
       continue;
     }
     const rows = state.rowsByTable.get(source.table.id) ?? [];
-    const guard = createUniqueGuard(state.schema, source.table, relation, rows);
+    const guard = createUniqueGuard(source, relation, rows);
+    const completeTargets = listCompleteTargets(state, relation);
     rows.forEach((row) => {
       const choices: Choice[] = [];
       assignRelation(
@@ -258,6 +323,7 @@ export function fillDeferredRelations(
         row,
         [],
         choices,
+        completeTargets,
         guard.isAllowed,
       );
       commitChoices(state, choices);

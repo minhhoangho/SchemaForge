@@ -9,8 +9,9 @@ import { buildSeedDataset, generateSeed } from "./seed/index.js";
 const LARGE_SCHEMA_TABLE_COUNT = 200;
 const SEED_ROWS_PER_TABLE = 100;
 const SEED_VALUE = 1;
-// 19 benchmarks of at least 64 samples each; the seed one alone takes minutes.
-const BENCH_TIMEOUT_MS = 900_000;
+// 19 benchmarks of at least 64 samples each take about a minute; the margin
+// covers a busy machine.
+const BENCH_TIMEOUT_MS = 300_000;
 
 const schema = createLargeSchema({ tableCount: LARGE_SCHEMA_TABLE_COUNT });
 

@@ -323,6 +323,74 @@ describe("buildSeedDataset", () => {
     expect(validateSeedDataset(schema, dataset)).toStrictEqual([]);
   });
 
+  it("keeps a composite unique key that mixes a deferred source column with another column unique", () => {
+    // Like above, with a unique index on (b_id, flag): a boolean flag forces
+    // collisions, and the guard reads flag from the row, b_id from the target.
+    const schema = buildSchema({
+      tables: [keyedTable("a"), keyedTable("b")],
+      columns: [
+        idColumn("a"),
+        foreignKeyColumn("a", "b", true),
+        makeColumn({
+          id: "col_a_flag",
+          tableId: "tbl_a",
+          name: "flag",
+          type: { kind: "boolean" },
+        }),
+        idColumn("b"),
+        foreignKeyColumn("b", "a"),
+      ],
+      relations: [foreignKey("a", "b"), foreignKey("b", "a")],
+      indexes: [
+        makeIndex({
+          id: "idx_a_b_flag",
+          tableId: "tbl_a",
+          columnIds: ["col_a_b", "col_a_flag"],
+          isUnique: true,
+        }),
+      ],
+    });
+    const { dataset } = buildSeedDataset(schema, { rowsPerTable: 8, seed: 1 });
+    expect({
+      issues: validateSeedDataset(schema, dataset),
+      hasParent: columnValues(dataset, "tbl_a", "col_a_b").some(
+        (value) => value !== null,
+      ),
+    }).toStrictEqual({ issues: [], hasParent: true });
+  });
+
+  it("keeps a unique deferred column that another relation already set unique", () => {
+    // a.b_id (nullable, unique) also references c.id, which is loaded first,
+    // so the deferred a → b only takes a b row that agrees with it.
+    const schema = buildSchema({
+      tables: [keyedTable("a"), keyedTable("b"), keyedTable("c")],
+      columns: [
+        idColumn("a"),
+        { ...foreignKeyColumn("a", "b", true), isUnique: true },
+        idColumn("b"),
+        foreignKeyColumn("b", "a"),
+        idColumn("c"),
+      ],
+      relations: [
+        foreignKey("a", "b"),
+        foreignKey("b", "a"),
+        makeRelation({
+          id: "rel_a_c",
+          fromTableId: "tbl_a",
+          toTableId: "tbl_c",
+          columnPairs: [{ fromColumnId: "col_a_b", toColumnId: "col_c_id" }],
+        }),
+      ],
+    });
+    const { dataset } = buildSeedDataset(schema, { rowsPerTable: 8, seed: 1 });
+    expect({
+      issues: validateSeedDataset(schema, dataset),
+      hasParent: columnValues(dataset, "tbl_a", "col_a_b").some(
+        (value) => value !== null,
+      ),
+    }).toStrictEqual({ issues: [], hasParent: true });
+  });
+
   it("skips the tables of a required cycle and their dependants and reports seed-table-skipped", () => {
     const schema = buildSchema({
       tables: [

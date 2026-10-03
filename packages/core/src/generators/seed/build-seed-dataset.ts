@@ -1,8 +1,13 @@
-import type { ColumnId, TableId } from "../../model/ids.js";
-import { sortRelations, sortTables } from "../../model/ordering.js";
+import type { ColumnId, RelationId, TableId } from "../../model/ids.js";
+import {
+  sortIndexes,
+  sortRelations,
+  sortTables,
+} from "../../model/ordering.js";
 import type { Relation } from "../../model/relation.js";
 import type { SchemaDocument } from "../../model/schema-document.js";
 import type { Table } from "../../model/table.js";
+import type { Index } from "../../model/table-index.js";
 import {
   createDiagnostic,
   finalizeDiagnostics,
@@ -19,6 +24,7 @@ import {
   assignRelation,
   commitChoices,
   fillDeferredRelations,
+  listCompleteTargets,
   toSeedRow,
 } from "./seed-relations.js";
 import type {
@@ -28,7 +34,10 @@ import type {
   RelationState,
 } from "./seed-relations.js";
 import { findFixedSeedValue, generateColumnValue } from "./seed-values.js";
-import { listSeedUniqueKeys, toSeedKey } from "./validate-seed-dataset.js";
+import {
+  listSeedUniqueKeys,
+  toSeedValuesKey,
+} from "./validate-seed-dataset.js";
 
 // Attempts per row, the first one included; then the table stops (Vấn đề 20).
 export const SEED_MAX_ROW_ATTEMPTS = 20;
@@ -40,8 +49,10 @@ type TablePlan = RelationSource & {
   readonly deferredColumnIds: readonly ColumnId[];
   readonly keyColumnIds: ReadonlySet<ColumnId>;
   readonly primaryKeyColumnIds: ReadonlySet<ColumnId>;
-  readonly uniqueKeys: readonly (readonly ColumnId[])[];
   readonly counters: Map<ColumnId, number>;
+  // listCompleteTargets of each relation in `relations`; their target tables
+  // are already built and do not change while this table is.
+  readonly completeTargets: ReadonlyMap<RelationId, readonly number[]>;
 };
 
 function findUnseedableTableIds(schema: SchemaDocument): readonly TableId[] {
@@ -66,8 +77,10 @@ function planTable(
   state: RelationState,
   table: Table,
   seed: number,
+  // Sorted once per dataset, not once per table.
+  relations: readonly Relation[],
+  indexes: readonly Index[],
 ): TablePlan {
-  const relations = sortRelations(state.schema);
   const outgoing = relations.filter(
     (relation) => relation.fromTableId === table.id,
   );
@@ -82,13 +95,14 @@ function planTable(
         pair.toColumnId,
       ]),
     );
-  const uniqueKeys = listSeedUniqueKeys(state.schema, table);
+  const uniqueKeys = listSeedUniqueKeys(state.schema, table, indexes);
+  const builtRelations = outgoing.filter(
+    (relation) => !state.deferredIds.has(relation.id),
+  );
   return {
     table,
     random: createTableSeedRandom(seed, table.name),
-    relations: outgoing.filter(
-      (relation) => !state.deferredIds.has(relation.id),
-    ),
+    relations: builtRelations,
     sourceColumnIds: new Set(outgoing.flatMap(sourceColumnsOf)),
     deferredColumnIds: outgoing
       .filter((relation) => state.deferredIds.has(relation.id))
@@ -97,6 +111,12 @@ function planTable(
     primaryKeyColumnIds: new Set(table.primaryKeyColumnIds),
     uniqueKeys,
     counters: new Map(),
+    completeTargets: new Map(
+      builtRelations.map((relation) => [
+        relation.id,
+        listCompleteTargets(state, relation),
+      ]),
+    ),
   };
 }
 
@@ -132,7 +152,15 @@ function generateRow(
     }
   }
   const isAssigned = plan.relations.every((relation) =>
-    assignRelation(state, plan, relation, row, previousRows, choices),
+    assignRelation(
+      state,
+      plan,
+      relation,
+      row,
+      previousRows,
+      choices,
+      plan.completeTargets.get(relation.id) ?? [],
+    ),
   );
   plan.deferredColumnIds
     .filter((columnId) => !row.assigned.has(columnId))
@@ -150,9 +178,12 @@ function generateAcceptedRow(
   for (let attempt = 0; attempt < SEED_MAX_ROW_ATTEMPTS; attempt += 1) {
     const choices: Choice[] = [];
     const row = generateRow(state, plan, rows, choices);
-    const seedRow = row === null ? null : toSeedRow(row);
     const keys = plan.uniqueKeys.map((columnIds) =>
-      seedRow === null ? null : toSeedKey(seedRow, columnIds),
+      row === null
+        ? null
+        : toSeedValuesKey(
+            columnIds.map((columnId) => row.values.get(columnId)),
+          ),
     );
     const isUnique = keys.every(
       (key, index) => key === null || usedKeys[index]?.has(key) !== true,
@@ -217,11 +248,13 @@ export function buildSeedDataset(
     createDiagnostic("seed-table-skipped", ["tables", tableId]),
   );
   const plans = new Map<TableId, TablePlan>();
+  const relations = sortRelations(schema);
+  const indexes = sortIndexes(schema);
   const tables = loadOrder.tableIds
     .filter((tableId) => !skipped.has(tableId))
     .flatMap((tableId) => schema.tables[tableId] ?? []);
   for (const table of tables) {
-    const plan = planTable(state, table, options.seed);
+    const plan = planTable(state, table, options.seed, relations, indexes);
     plans.set(table.id, plan);
     if (buildTableRows(state, plan, options.rowsPerTable)) {
       diagnostics.push(

@@ -76,8 +76,13 @@ export function findFixedSeedValue(
   return column.defaultValue === null ? { kind: "none" } : { kind: "omit" };
 }
 
+// A loop, not Array.from({ length }): this runs for every uuid and binary value.
 function drawBytes(random: SeedRandom, count: number): readonly number[] {
-  return Array.from({ length: count }, () => random.nextInt(BYTE_RANGE));
+  const bytes: number[] = [];
+  for (let index = 0; index < count; index += 1) {
+    bytes.push(random.nextInt(BYTE_RANGE));
+  }
+  return bytes;
 }
 
 function drawDecimal(

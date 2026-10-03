@@ -12,6 +12,7 @@ import { createEditorStore } from "@/features/editor/state/create-editor-store";
 import { EditorStoreProvider } from "@/features/editor/state/editor-store-provider";
 import type { Logger } from "@/lib/logger";
 import type { Notify } from "@/lib/notify";
+import type { ThemePreference } from "@/lib/preferences/preference-cookies";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
@@ -54,6 +55,7 @@ function createStore(): ReturnType<typeof createEditorStore> {
 function renderCard(
   findings: Findings,
   isDisabled = false,
+  themePreference: ThemePreference = "light",
 ): Pick<AiFindingsCardProps, "onApply" | "onRevealTarget"> &
   ReturnType<typeof renderWithProviders> {
   const handlers = {
@@ -68,7 +70,7 @@ function renderCard(
         {...handlers}
       />
     </EditorStoreProvider>,
-    { locale: "en" },
+    { locale: "en", themePreference },
   );
   return { ...handlers, ...rendered };
 }
@@ -153,9 +155,12 @@ describe("AiFindingsCard", () => {
     expect(container.querySelector("b, img")).toBeNull();
   });
 
-  it("has no axe violations", async () => {
-    const { container } = renderCard([SUGGESTION, ISSUE]);
+  it.each(["light", "dark"] as const)(
+    "has no axe violations in the %s theme",
+    async (theme) => {
+      const { container } = renderCard([SUGGESTION, ISSUE], false, theme);
 
-    await expectNoAxeViolations(container);
-  });
+      await expectNoAxeViolations(container);
+    },
+  );
 });

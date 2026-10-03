@@ -425,15 +425,16 @@ describe("TableNode", () => {
     },
   );
 
-  it("dims a removed table", () => {
+  it("marks a removed table with a dashed border and keeps its text opaque", () => {
     renderCanvas(createShopDocument(), { proposal: DIFF_PROPOSAL });
 
     expect(
       within(getTableNode(/^Table orders/))
         .getByText("orders")
         .closest(".table-node-card")
-        ?.classList.contains("opacity-60"),
+        ?.classList.contains("border-dashed"),
     ).toBe(true);
+    expect(document.querySelector(".opacity-60")).toBeNull();
   });
 
   it("prefixes a changed column with a symbol and hidden text", () => {

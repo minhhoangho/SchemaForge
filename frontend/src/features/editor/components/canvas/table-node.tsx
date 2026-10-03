@@ -63,11 +63,13 @@ function TableComment({ comment }: TableCommentProps): JSX.Element {
 }
 
 // Diff tokens reach 3:1 only as borders and tints, never as text (plan
-// issue 31); the label text keeps the card colors.
+// issue 31); the label text keeps the card colors. A removed table is dashed
+// with a tinted background instead of faded (AI-R34 "node mờ"): opacity on the
+// card would drop its text below 4.5:1.
 const DIFF_CARD_CLASS_NAMES = {
   added: "border-2 border-diff-added",
   changed: "border-2 border-diff-changed",
-  removed: "border-2 border-diff-removed opacity-60",
+  removed: "border-2 border-dashed border-diff-removed bg-diff-removed/10",
 } as const satisfies Record<DiffMark, string>;
 
 const DIFF_LABEL_CLASS_NAMES = {
@@ -87,7 +89,7 @@ function DiffLabel({ mark }: DiffLabelProps): JSX.Element {
   return (
     <span
       className={cn(
-        "shrink-0 rounded-sm border bg-card px-1 text-[0.625rem] font-medium text-foreground",
+        "shrink-0 rounded-sm border bg-card px-1 text-xs font-medium text-foreground",
         DIFF_LABEL_CLASS_NAMES[mark],
       )}
     >

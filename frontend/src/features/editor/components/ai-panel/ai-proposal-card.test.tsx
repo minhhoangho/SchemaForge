@@ -2,14 +2,12 @@ import { screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ProposalChangeCounts } from "@/features/editor/lib/proposal-display";
+import type { ThemePreference } from "@/lib/preferences/preference-cookies";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
 import { AiProposalCard, aiProposalCardId } from "./ai-proposal-card";
-import type {
-  AiProposalCardProps,
-  ProposalCardStatus,
-} from "./ai-proposal-card";
+import type { AiProposalCardProps } from "./ai-proposal-card";
 
 const COUNTS: ProposalChangeCounts = {
   addedTables: 2,
@@ -26,6 +24,7 @@ type Handlers = Pick<AiProposalCardProps, "onAccept" | "onDiscard" | "onRetry">;
 
 function renderCard(
   props: Partial<AiProposalCardProps> = {},
+  themePreference: ThemePreference = "light",
 ): Handlers & ReturnType<typeof renderWithProviders> {
   const handlers: Handlers = {
     onAccept: vi.fn<() => void>(),
@@ -41,7 +40,7 @@ function renderCard(
       {...handlers}
       {...props}
     />,
-    { locale: "en" },
+    { locale: "en", themePreference },
   );
   return { ...handlers, ...rendered };
 }
@@ -122,23 +121,31 @@ describe("AiProposalCard", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
-  it.each([
-    "preview",
-    "accepted",
-    "discarded",
-    "stale",
-    "invalid",
-  ] satisfies readonly ProposalCardStatus[])(
-    "has no axe violations (%s)",
-    async (status) => {
-      const { container } = renderCard({
-        status,
-        counts: status === "preview" ? COUNTS : null,
-      });
+  it.each(["accepted", "discarded", "stale", "invalid"] as const)(
+    "describes the card with its state (%s)",
+    (status) => {
+      renderCard({ status, counts: null });
 
-      await expectNoAxeViolations(container);
+      const card = screen.getByRole("group", { name: "Proposed changes" });
+      const stateId = card.getAttribute("aria-describedby") ?? "";
+      expect(document.getElementById(stateId)?.textContent).toBeTruthy();
     },
   );
+
+  it.each(
+    ["light", "dark"].flatMap((theme) =>
+      (["preview", "accepted", "discarded", "stale", "invalid"] as const).map(
+        (status) => [theme, status] as const,
+      ),
+    ),
+  )("has no axe violations in the %s theme (%s)", async (theme, status) => {
+    const { container } = renderCard(
+      { status, counts: status === "preview" ? COUNTS : null },
+      theme === "dark" ? "dark" : "light",
+    );
+
+    await expectNoAxeViolations(container);
+  });
 
   it("can be used with the keyboard only", async () => {
     const { user, onAccept } = renderCard();

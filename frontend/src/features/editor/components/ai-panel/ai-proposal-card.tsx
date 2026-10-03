@@ -126,9 +126,10 @@ function CountList({
 type StatusBodyProps = Omit<
   AiProposalCardProps,
   "messageId" | "hasStoppedEarly"
->;
+> & { readonly stateId: string };
 
 function StatusBody({
+  stateId,
   status,
   counts,
   onAccept,
@@ -156,7 +157,9 @@ function StatusBody({
     case "invalid":
       return (
         <>
-          <p className="text-sm">{t(`proposal.${status}`)}</p>
+          <p id={stateId} role="status" className="text-sm">
+            {t(`proposal.${status}`)}
+          </p>
           <div>
             <Button variant="outline" onClick={onRetry}>
               {t("proposal.retry")}
@@ -166,7 +169,11 @@ function StatusBody({
       );
     case "accepted":
     case "discarded":
-      return <p className="text-sm font-medium">{t(`proposal.${status}`)}</p>;
+      return (
+        <p id={stateId} className="text-sm font-medium">
+          {t(`proposal.${status}`)}
+        </p>
+      );
   }
 }
 
@@ -177,6 +184,7 @@ export function AiProposalCard({
 }: AiProposalCardProps): JSX.Element {
   const { t } = useTranslation("ai");
   const titleId = useId();
+  const stateId = useId();
 
   return (
     <div
@@ -184,12 +192,13 @@ export function AiProposalCard({
       tabIndex={-1}
       role="group"
       aria-labelledby={titleId}
+      aria-describedby={body.status === "preview" ? undefined : stateId}
       className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 text-card-foreground"
     >
       <p id={titleId} className="text-sm font-semibold">
         {t("proposal.title")}
       </p>
-      <StatusBody {...body} />
+      <StatusBody stateId={stateId} {...body} />
       {hasStoppedEarly ? (
         <p className="text-sm text-muted-foreground">
           {t("proposal.stoppedEarly")}

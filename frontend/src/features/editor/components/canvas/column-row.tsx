@@ -44,6 +44,9 @@ const DIFF_ROW_CLASS_NAMES = {
   removed: "border-l-2 border-diff-removed bg-diff-removed/10",
 } as const satisfies Record<DiffMark, string>;
 
+// On a tinted row the muted text falls under 4.5:1 in dark theme.
+const DIFF_TEXT_CLASS_NAME = "text-foreground";
+
 // Diff notation, the same in every language; the translated meaning sits
 // next to it in screen reader text.
 const DIFF_SYMBOLS = {
@@ -128,18 +131,25 @@ type NotationMarkProps = {
   readonly mark: string;
   readonly label: string;
   readonly className?: string;
+  readonly isDiff?: boolean;
 };
 
 // `U` and `AI` sit in small chips; `?` stays inline right after the type.
-const CHIP_CLASS_NAME = "rounded-sm bg-muted px-1 text-[0.625rem] font-medium";
+const CHIP_CLASS_NAME = "rounded-sm bg-muted px-1 text-xs font-medium";
 
 function NotationMark({
   mark,
   label,
   className,
+  isDiff = false,
 }: NotationMarkProps): JSX.Element {
   return (
-    <span className={cn("text-muted-foreground", className)}>
+    <span
+      className={cn(
+        isDiff ? DIFF_TEXT_CLASS_NAME : "text-muted-foreground",
+        className,
+      )}
+    >
       <span aria-hidden>{mark}</span>
       {/* The space keeps the mark a separate word after the type name, so a
           screen reader does not read "varchar(255)Nullable". */}
@@ -239,13 +249,18 @@ export const ColumnRow = memo(function ColumnRow({
       <span className="flex items-center gap-1">
         <span
           className={cn(
-            "font-mono text-muted-foreground",
+            "font-mono",
+            diffMark === null ? "text-muted-foreground" : DIFF_TEXT_CLASS_NAME,
             isRemoved && "line-through",
           )}
         >
           {typeLabel}
           {column.isNullable ? (
-            <NotationMark mark={NULLABLE_MARK} label={t("column.nullable")} />
+            <NotationMark
+              mark={NULLABLE_MARK}
+              label={t("column.nullable")}
+              isDiff={diffMark !== null}
+            />
           ) : null}
         </span>
         {column.isUnique ? (
@@ -253,6 +268,7 @@ export const ColumnRow = memo(function ColumnRow({
             mark={UNIQUE_MARK}
             label={t("column.unique")}
             className={CHIP_CLASS_NAME}
+            isDiff={diffMark !== null}
           />
         ) : null}
         {column.isAutoIncrement ? (
@@ -260,6 +276,7 @@ export const ColumnRow = memo(function ColumnRow({
             mark={AUTO_INCREMENT_MARK}
             label={t("column.autoIncrement")}
             className={CHIP_CLASS_NAME}
+            isDiff={diffMark !== null}
           />
         ) : null}
         {column.comment === "" ? null : (

@@ -358,6 +358,8 @@ describe("AiSampleDataCard", () => {
     });
 
     expect(region.tabIndex).toBe(0);
+    expect(region.getAttribute("aria-label")).toBeNull();
+    expect(screen.getByRole("group", { name: "Sample data" })).toBeDefined();
     expect(within(region).getByRole("table")).toBeDefined();
   });
 

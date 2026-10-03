@@ -64,6 +64,7 @@ function SampleTable({
   readonly entry: SeedDataset["tables"][number];
 }): JSX.Element {
   const { t } = useTranslation("ai");
+  const captionId = useId();
   const table = document.tables[entry.tableId];
   const caption = t("sampleData.caption", { table: table?.name ?? "" });
   const columns = (table?.columnIds ?? []).filter((columnId) =>
@@ -75,11 +76,13 @@ function SampleTable({
       // eslint-disable-next-line jsx-a11y-x/no-noninteractive-tabindex -- a horizontally scrollable region must be keyboard focusable (WCAG 2.1.1)
       tabIndex={0}
       role="region"
-      aria-label={caption}
+      aria-labelledby={captionId}
       className="overflow-x-auto rounded-md border border-border outline-none focus-visible:ring-3 focus-visible:ring-ring"
     >
       <table className="w-full border-collapse text-left text-xs">
-        <caption className="sr-only">{caption}</caption>
+        <caption id={captionId} className="sr-only">
+          {caption}
+        </caption>
         <thead>
           <tr>
             {columns.map((columnId) => (
@@ -134,6 +137,7 @@ function ValidCard({
   const { t } = useTranslation("ai");
   const notify = useNotify();
   const formatId = useId();
+  const titleId = useId();
   const [format, setFormat] = useState<Format>("postgresql");
 
   function file(): ReturnType<SeedModule["serializeSeedDataset"]> {
@@ -159,7 +163,10 @@ function ValidCard({
   const firstTableId = dataset.tables[0]?.tableId;
 
   return (
-    <div className="grid gap-3">
+    <div role="group" aria-labelledby={titleId} className="grid gap-3">
+      <p id={titleId} className="text-sm font-semibold">
+        {t("sampleData.title")}
+      </p>
       {firstTableId === undefined ? null : (
         <Tabs defaultValue={firstTableId}>
           <TabsList>

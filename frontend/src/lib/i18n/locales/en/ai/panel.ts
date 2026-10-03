@@ -1,0 +1,19 @@
+export const enAiPanel = {
+  title: "AI assistant",
+  toggle: "AI assistant",
+  close: "Close AI assistant",
+  newConversation: "New conversation",
+  dataNotice:
+    "Your messages and this schema are sent to Google Gemini to generate answers. SchemaForge does not store the conversation.",
+  guestTitle: "Sign in to use the AI assistant",
+  guestBody:
+    "The AI assistant is available to signed-in users. Your schemas keep working without an account.",
+  signInLink: "Sign in",
+  unavailable: "The AI assistant is not available right now.",
+  consent: {
+    title: "Before you start",
+    body: "The assistant sends your messages and the current schema to Google Gemini. Do not include secrets or personal data in them.",
+    termsLink: "Gemini API data terms",
+    accept: "Agree and continue",
+  },
+} as const;

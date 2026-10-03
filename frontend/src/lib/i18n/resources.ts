@@ -1,4 +1,5 @@
 import type { LocaleNamespace } from "./locale-namespace";
+import { enAi } from "./locales/en/ai";
 import { enApiErrors } from "./locales/en/api-errors";
 import { enAuth } from "./locales/en/auth";
 import { enCanvas } from "./locales/en/canvas";
@@ -11,6 +12,7 @@ import { enIssues } from "./locales/en/issues";
 import { enSchemaList } from "./locales/en/schema-list";
 import { enStorage } from "./locales/en/storage";
 import { enSync } from "./locales/en/sync";
+import { viAi } from "./locales/vi/ai";
 import { viApiErrors } from "./locales/vi/api-errors";
 import { viAuth } from "./locales/vi/auth";
 import { viCanvas } from "./locales/vi/canvas";
@@ -38,6 +40,7 @@ export const NAMESPACES = [
   "apiErrors",
   "codeGenerator",
   "generatorDiagnostics",
+  "ai",
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -57,6 +60,7 @@ export const enResources = {
   apiErrors: enApiErrors,
   codeGenerator: enCodeGenerator,
   generatorDiagnostics: enGeneratorDiagnostics,
+  ai: enAi,
 } as const;
 
 export const viResources = {
@@ -72,6 +76,7 @@ export const viResources = {
   apiErrors: viApiErrors,
   codeGenerator: viCodeGenerator,
   generatorDiagnostics: viGeneratorDiagnostics,
+  ai: viAi,
 } as const satisfies LocaleNamespace<typeof enResources>;
 
 export const RESOURCES = {

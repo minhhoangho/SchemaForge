@@ -1,0 +1,22 @@
+import type { LocaleNamespace } from "@/lib/i18n/locale-namespace";
+import type { enAiPanel } from "@/lib/i18n/locales/en/ai/panel";
+
+export const viAiPanel = {
+  title: "Trợ lý AI",
+  toggle: "Trợ lý AI",
+  close: "Đóng trợ lý AI",
+  newConversation: "Cuộc trò chuyện mới",
+  dataNotice:
+    "Tin nhắn và schema này được gửi tới Google Gemini để tạo câu trả lời. SchemaForge không lưu cuộc trò chuyện.",
+  guestTitle: "Đăng nhập để dùng trợ lý AI",
+  guestBody:
+    "Trợ lý AI chỉ dành cho người dùng đã đăng nhập. Các schema của bạn vẫn dùng được khi không có tài khoản.",
+  signInLink: "Đăng nhập",
+  unavailable: "Trợ lý AI hiện không khả dụng.",
+  consent: {
+    title: "Trước khi bắt đầu",
+    body: "Trợ lý gửi tin nhắn của bạn và schema hiện tại tới Google Gemini. Đừng đưa bí mật hoặc dữ liệu cá nhân vào đó.",
+    termsLink: "Điều khoản dữ liệu của Gemini API",
+    accept: "Đồng ý và tiếp tục",
+  },
+} as const satisfies LocaleNamespace<typeof enAiPanel>;

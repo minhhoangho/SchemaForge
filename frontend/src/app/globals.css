@@ -698,6 +698,9 @@
   --color-canvas-relation: var(--canvas-relation);
   --color-canvas-relation-selected: var(--canvas-relation-selected);
   --color-canvas-key: var(--canvas-key);
+  --color-diff-added: var(--diff-added);
+  --color-diff-changed: var(--diff-changed);
+  --color-diff-removed: var(--diff-removed);
   --color-canvas-foreign-key: var(--canvas-foreign-key);
   --color-canvas-node-border: var(--canvas-node-border);
   --radius-sm: calc(var(--radius) * 0.6);
@@ -760,6 +763,10 @@
   --canvas-relation-hover: oklch(0.42 0.04 262);
   --canvas-relation-selected: var(--primary);
   --canvas-key: oklch(0.62 0.15 65);
+  /* Diff markers: borders, strokes and tints only, never text color. */
+  --diff-added: oklch(0.58 0.15 150);
+  --diff-changed: oklch(0.6 0.14 75);
+  --diff-removed: oklch(0.58 0.2 25);
   --canvas-foreign-key: oklch(0.55 0.11 190);
   --table-accent-1: oklch(0.52 0.16 259);
   --table-accent-2: oklch(0.5 0.1 200);
@@ -833,6 +840,9 @@
   --canvas-relation-hover: oklch(0.82 0.02 258);
   --canvas-relation-selected: var(--primary);
   --canvas-key: oklch(0.83 0.15 85);
+  --diff-added: oklch(0.72 0.17 150);
+  --diff-changed: oklch(0.78 0.15 75);
+  --diff-removed: oklch(0.7 0.19 25);
   --canvas-foreign-key: oklch(0.78 0.12 185);
   --table-accent-1: oklch(0.48 0.14 259);
   --table-accent-2: oklch(0.46 0.09 200);

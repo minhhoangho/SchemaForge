@@ -1,4 +1,7 @@
-import { API_ERROR_CODES } from "@schemaforge/api-contract";
+import {
+  AI_STREAM_ERROR_CODES,
+  API_ERROR_CODES,
+} from "@schemaforge/api-contract";
 import { describe, expect, it } from "vitest";
 
 import { STORAGE_ERROR_CODES } from "@/lib/storage/storage-error";
@@ -89,4 +92,16 @@ describe("RESOURCES", () => {
     expect(NAMESPACES).toContain("sync");
     expect(NAMESPACES).toContain("apiErrors");
   });
+
+  it("registers the ai namespace", () => {
+    expect(NAMESPACES).toContain("ai");
+  });
+
+  it.each(AI_STREAM_ERROR_CODES)(
+    "has one ai error message per stream error code: %s",
+    (code) => {
+      expect(RESOURCES.en.ai.errors[code]).toMatch(/\S/);
+      expect(RESOURCES.vi.ai.errors[code]).toMatch(/\S/);
+    },
+  );
 });

@@ -263,6 +263,17 @@ const BOUNDARY_CASES = [
   },
 ] as const satisfies readonly BoundaryCase[];
 
+const DIFF_TOKENS = ["diff-added", "diff-changed", "diff-removed"] as const;
+const DIFF_SURFACES = ["canvas", "card"] as const;
+
+// Diff markers (AI proposal preview) are borders, strokes and tints only,
+// never text, so the 3:1 non-text minimum is the bar.
+const DIFF_CASES = (["light", "dark"] as const).flatMap((theme) =>
+  DIFF_TOKENS.flatMap((boundary) =>
+    DIFF_SURFACES.map((surface) => ({ theme, boundary, surface })),
+  ),
+);
+
 const TEXT_CONTRAST_MINIMUM = 4.5;
 const THEMES = ["light", "dark"] as const;
 const PERCENT = 100;
@@ -330,6 +341,15 @@ const TINT_CASES: readonly TextCase[] = THEMES.flatMap((theme) =>
 describe("theme tokens", () => {
   it.each(BOUNDARY_CASES)(
     "paints --$boundary on the $theme $where with at least 3:1 against --$surface",
+    ({ theme, boundary, surface }) => {
+      expect(paintedContrast(theme, boundary, surface)).toBeGreaterThanOrEqual(
+        NON_TEXT_CONTRAST_MINIMUM,
+      );
+    },
+  );
+
+  it.each(DIFF_CASES)(
+    "paints --$boundary on the $theme theme with at least 3:1 against --$surface",
     ({ theme, boundary, surface }) => {
       expect(paintedContrast(theme, boundary, surface)).toBeGreaterThanOrEqual(
         NON_TEXT_CONTRAST_MINIMUM,

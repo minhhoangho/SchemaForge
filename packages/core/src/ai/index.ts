@@ -36,6 +36,11 @@ export {
   AI_MAX_SAMPLE_STRING_LENGTH,
   AI_MAX_SAMPLE_TABLES,
 } from "./ai-limits.js";
+export type { AiEditContext, AiEditSuccess } from "./apply-ai-edit.js";
+export { applyAiEdit } from "./apply-ai-edit.js";
+export type { AiFinding, AiFindingTarget } from "./build-ai-findings.js";
+export { buildAiFindings } from "./build-ai-findings.js";
+export { buildAiSampleDataset } from "./build-ai-sample-dataset.js";
 export { describeAiChanges } from "./describe-ai-changes.js";
 export { describePathForAi } from "./describe-path-for-ai.js";
 export type { AiSchemaView } from "./describe-schema-for-ai.js";

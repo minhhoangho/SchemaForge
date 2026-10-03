@@ -16,7 +16,6 @@ import {
   aiSampleDataSchema,
   isAiStreamErrorCode,
 } from "@schemaforge/api-contract";
-import type { Result } from "@schemaforge/core";
 import {
   parseJsonEventStream,
   readUIMessageStream,
@@ -28,18 +27,14 @@ import { logger } from "@/lib/logger";
 
 import { withAutoRefresh } from "./api-client";
 import type { ApiFailure } from "./api-failure";
-import { parseErrorBody, readJsonBody } from "./api-transport";
-import type { SessionRefresher } from "./session-refresher";
+import { AI_CHAT_ROUTE, openStream, startRun } from "./ai-chat-request";
+import type { AiChatTransport, TurnRun } from "./ai-chat-request";
 
-export const AI_FIRST_BYTE_TIMEOUT_MS = 30_000;
-export const AI_CLIENT_TIMEOUT_MS = 120_000;
-
-export type AiChatTransport = {
-  readonly baseUrl: string;
-  readonly fetchImpl: typeof fetch;
-  readonly sessionRefresher: SessionRefresher;
-  readonly onSessionExpired: () => void;
-};
+export type { AiChatTransport } from "./ai-chat-request";
+export {
+  AI_CLIENT_TIMEOUT_MS,
+  AI_FIRST_BYTE_TIMEOUT_MS,
+} from "./ai-chat-request";
 
 export type AiChatErrorCode =
   AiStreamErrorCode | "network" | "timeout" | "invalid-response";
@@ -68,119 +63,8 @@ type ChunkParseResult =
   > extends ReadableStream<infer Parsed>
     ? Parsed
     : never;
-
-type TurnRun = {
-  readonly callerSignal: AbortSignal;
-  readonly signal: AbortSignal;
-  readonly hasTimedOut: () => boolean;
-  // Starts a timer that aborts the turn as a timeout; returns its canceller.
-  readonly startTimer: (ms: number) => () => void;
-  readonly dispose: () => void;
-};
-
-const ROUTE = "/ai/chat";
 const OUTPUT_INVALID: AiStreamErrorCode = "ai-output-invalid";
 const UNKNOWN_STREAM_ERROR: AiStreamErrorCode = "internal-error";
-
-// setTimeout instead of AbortSignal.timeout so fake timers drive both limits
-// (AI plan, Vấn đề 25).
-function startRun(callerSignal: AbortSignal): TurnRun {
-  const internal = new AbortController();
-  let hasTimedOut = false;
-  const startTimer = (ms: number): (() => void) => {
-    const timer = setTimeout(() => {
-      hasTimedOut = true;
-      internal.abort();
-    }, ms);
-    return () => {
-      clearTimeout(timer);
-    };
-  };
-  const clearTotalTimer = startTimer(AI_CLIENT_TIMEOUT_MS);
-  return {
-    callerSignal,
-    signal: AbortSignal.any([callerSignal, internal.signal]),
-    hasTimedOut: () => hasTimedOut,
-    startTimer,
-    dispose: () => {
-      clearTotalTimer();
-      // Releases the connection when the reader stopped early.
-      internal.abort();
-    },
-  };
-}
-
-function buildRequestInit(
-  request: AiChatRequest,
-  signal: AbortSignal,
-): RequestInit {
-  return {
-    method: "POST",
-    credentials: "include",
-    cache: "no-store",
-    signal,
-    headers: {
-      Accept: "text/event-stream",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(request),
-  };
-}
-
-async function readFailure(
-  response: Response,
-  run: TurnRun,
-): Promise<Result<never, ApiFailure>> {
-  const body = await readJsonBody(response, {
-    caller: run.callerSignal,
-    combined: run.signal,
-  });
-  if (body.kind === "network" || body.kind === "timeout") {
-    return { isOk: false, error: body };
-  }
-  return parseErrorBody(
-    response,
-    ROUTE,
-    body.kind === "parsed" ? body.value : undefined,
-  );
-}
-
-/** Throws only when the caller's own signal aborted the request. */
-async function openStream(
-  transport: AiChatTransport,
-  request: AiChatRequest,
-  run: TurnRun,
-): Promise<Result<ReadableStream<Uint8Array>, ApiFailure>> {
-  const clearFirstByteTimer = run.startTimer(AI_FIRST_BYTE_TIMEOUT_MS);
-  let response: Response;
-  try {
-    response = await transport.fetchImpl(
-      new URL(ROUTE, transport.baseUrl),
-      buildRequestInit(request, run.signal),
-    );
-  } catch (cause) {
-    if (run.callerSignal.aborted) {
-      throw cause;
-    }
-    return {
-      isOk: false,
-      error: { kind: run.hasTimedOut() ? "timeout" : "network" },
-    };
-  } finally {
-    clearFirstByteTimer();
-  }
-  if (!response.ok) {
-    return readFailure(response, run);
-  }
-  if (response.body === null) {
-    logger.warn("api.invalid-response", {
-      route: ROUTE,
-      status: response.status,
-    });
-    return { isOk: false, error: { kind: "invalid-response" } };
-  }
-  return { isOk: true, value: response.body };
-}
 
 // An `error` chunk is the last chunk of a turn (AI plan, Vấn đề 7), so the
 // guard ends the stream with its code. Handing it to readUIMessageStream
@@ -332,7 +216,7 @@ async function* streamTurn(
   const run = startRun(callerSignal);
   try {
     const opened = await withAutoRefresh(
-      ROUTE,
+      AI_CHAT_ROUTE,
       transport.sessionRefresher,
       transport.onSessionExpired,
       () => openStream(transport, request, run),

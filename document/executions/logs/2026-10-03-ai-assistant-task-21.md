@@ -30,3 +30,9 @@ Plan: [Task 21](../../plans/2026-10-03-ai-assistant-plan.md#task-21-client-strea
   - File test frontend (`FRONTEND_TEST_FILES` trong `eslint.config.mjs`: `*.test.{ts,tsx}` và `src/testing/**`) không chịu `no-restricted-imports`, nên import `ai` trong test hay `src/testing/` **không** bị lint chặn, khác với giả định của Vấn đề 34 (vẫn nên giữ quy ước không import `ai` ở đó).
   - Task 23 nạp module bằng `import()` động; `AiChatTransport` lấy từ `useAiChatTransport()`.
   - Kiểm tra tay (Task 29): stream thật qua CSP `connect-src`, hủy giữa chừng trên trình duyệt thật nhả kết nối.
+
+## 2026-10-03 21:30 — frontend-engineer — Xong (sửa theo review: tách file quá 300 dòng)
+- **Đã làm**: `ai-chat-client.ts` (360 dòng) vượt giới hạn ~300 dòng. Chuyển phần không chạm AI SDK sang `frontend/src/lib/api/ai-chat-request.ts`: `startRun`, `TurnRun`, `buildRequestInit`, `readFailure`, `openStream`, hằng `AI_CHAT_ROUTE`, hai hằng timeout và type `AiChatTransport`. `ai-chat-client.ts` giữ `parseJsonEventStream`, `readUIMessageStream`, `uiMessageChunkSchema`, chặn chunk `error`, ánh xạ sự kiện. Hành vi không đổi.
+- **File thay đổi**: `frontend/src/lib/api/ai-chat-client.ts` (360 → 244 dòng), `frontend/src/lib/api/ai-chat-request.ts` (mới, 130 dòng). `ai-chat-client.test.ts` và `auth-provider.tsx` không đổi.
+- **Kiểm tra**: `.claude/scripts/verify.sh frontend --build --format` → `RESULT: PASS` (4326 test, coverage dòng 96.03%); `eslint src/lib/api/ai-chat-request.ts src/lib/api/ai-chat-client.ts` sạch; `ai-chat-request.ts` không import `ai` (kể cả `import type`).
+- **Quyết định**: `AiChatTransport` và hai hằng timeout định nghĩa trong `ai-chat-request.ts` rồi re-export từ `ai-chat-client.ts` (tránh import vòng giữa hai file); `AiChatErrorCode`, `AiChatEvent`, `AiChatClient`, `createAiChatClient` vẫn ở `ai-chat-client.ts`. Không thêm test riêng: các hàm đã chuyển được test qua `ai-chat-client.test.ts`.

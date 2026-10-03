@@ -294,7 +294,7 @@ if [ "${DO_FORMAT}" -eq 1 ]; then
     for f in "${MATCHED[@]}"; do
       PRETTIER_PATHS+=("./${f}")
     done
-    step "format (prettier --check)" pnpm exec prettier --check -- "${PRETTIER_PATHS[@]}"
+    step "format (prettier --check)" pnpm exec prettier --check --ignore-unknown -- "${PRETTIER_PATHS[@]}"
   fi
 fi
 

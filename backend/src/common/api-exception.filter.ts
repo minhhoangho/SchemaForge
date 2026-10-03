@@ -119,7 +119,14 @@ export class ApiExceptionFilter implements ExceptionFilter {
     if (isUnexpected) {
       this.logUnexpected(exception, http.getRequest<Request>());
     }
-    http.getResponse<Response>().status(body.statusCode).json(body);
+    const response = http.getResponse<Response>();
+    if (
+      exception instanceof ApiException &&
+      exception.retryAfterSeconds !== null
+    ) {
+      response.setHeader("Retry-After", String(exception.retryAfterSeconds));
+    }
+    response.status(body.statusCode).json(body);
   }
 
   private logUnexpected(exception: unknown, request: Request): void {

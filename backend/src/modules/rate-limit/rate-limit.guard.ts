@@ -8,6 +8,7 @@ import { API_ERROR_STATUS } from "@schemaforge/api-contract";
 import type { Request, Response } from "express";
 
 import { ApiException } from "../../common/api.exception.js";
+import { readRequestUser } from "../../common/current-user.decorator.js";
 import { RATE_LIMIT_POLICY_KEY } from "./rate-limit.decorator.js";
 import {
   buildRateLimitKey,
@@ -39,7 +40,11 @@ export class RateLimitGuard implements CanActivate {
     const request = http.getRequest<Request>();
     // Express types the parsed body as `any`; it is untrusted until narrowed.
     const body: unknown = request.body;
-    const input = { ip: request.ip ?? "", body };
+    const input = {
+      ip: request.ip ?? "",
+      body,
+      userId: readRequestUser(request)?.userId ?? null,
+    };
     const decisions = await Promise.all(
       RATE_LIMIT_POLICIES[policy].map((rule) =>
         this.store.consume(rule, buildRateLimitKey(rule, input)),

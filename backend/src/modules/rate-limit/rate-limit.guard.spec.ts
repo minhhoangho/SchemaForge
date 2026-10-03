@@ -11,13 +11,18 @@ import {
   type RateLimitRule,
 } from "./rate-limit.policy.js";
 import {
+  MemoryRateLimiterStore,
   type RateLimitDecision,
   RateLimiterStore,
 } from "./rate-limit.store.js";
 
 const IP = "198.51.100.23";
 const EMAIL = "ada@example.com";
+const USER_ID = "0190a1b2-0000-7000-8000-000000000001";
+const OTHER_USER_ID = "0190a1b2-0000-7000-8000-000000000002";
+const AI_USER_MINUTE_LIMIT = 10;
 const [LOGIN_IP_EMAIL_RULE, LOGIN_IP_RULE] = RATE_LIMIT_POLICIES.login;
+const [AI_USER_MINUTE_RULE] = RATE_LIMIT_POLICIES.ai;
 
 type ConsumeCall = { readonly ruleName: string; readonly key: string };
 
@@ -58,16 +63,47 @@ class ProbeController {
   login(): void {
     // Handler body is irrelevant; only its metadata matters.
   }
+
+  @RateLimit("ai")
+  ai(): void {
+    // Handler body is irrelevant; only its metadata matters.
+  }
 }
 
 function contextFor(
   handler: () => void,
   response: FakeResponse,
+  userId?: string,
 ): ExecutionContextHost {
+  const request = {
+    ip: IP,
+    body: { email: ` ${EMAIL.toUpperCase()} ` },
+    ...(userId === undefined ? {} : { user: { userId } }),
+  };
   return new ExecutionContextHost(
-    [{ ip: IP, body: { email: ` ${EMAIL.toUpperCase()} ` } }, response],
+    [request, response],
     ProbeController,
     handler,
+  );
+}
+
+async function createGuard(store: RateLimiterStore): Promise<RateLimitGuard> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [RateLimitGuard, { provide: RateLimiterStore, useValue: store }],
+  }).compile();
+  return moduleRef.get(RateLimitGuard);
+}
+
+/** Sends `count` allowed ai requests for one user. */
+async function sendAiRequests(
+  guard: RateLimitGuard,
+  userId: string,
+  count: number,
+): Promise<void> {
+  await Promise.all(
+    Array.from({ length: count }, () =>
+      guard.canActivate(contextFor(AI_HANDLER, new FakeResponse(), userId)),
+    ),
   );
 }
 
@@ -86,7 +122,8 @@ async function rejectionOf(
 /* eslint-disable @typescript-eslint/unbound-method -- only decorator metadata is read, handlers are never called */
 const UNLIMITED_HANDLER = ProbeController.prototype.unlimited;
 const LOGIN_HANDLER = ProbeController.prototype.login;
-/* eslint-enable @typescript-eslint/unbound-method -- only the two handler references above need it */
+const AI_HANDLER = ProbeController.prototype.ai;
+/* eslint-enable @typescript-eslint/unbound-method -- only the handler references above need it */
 
 describe("RateLimitGuard", () => {
   let guard: RateLimitGuard;
@@ -96,13 +133,7 @@ describe("RateLimitGuard", () => {
   beforeEach(async () => {
     store = new FakeRateLimiterStore();
     response = new FakeResponse();
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        RateLimitGuard,
-        { provide: RateLimiterStore, useValue: store },
-      ],
-    }).compile();
-    guard = moduleRef.get(RateLimitGuard);
+    guard = await createGuard(store);
   });
 
   it("allows a handler without a rate limit policy", async () => {
@@ -160,12 +191,65 @@ describe("RateLimitGuard", () => {
         key: buildRateLimitKey(LOGIN_IP_EMAIL_RULE, {
           ip: IP,
           body: { email: EMAIL },
+          userId: null,
         }),
       },
       {
         ruleName: LOGIN_IP_RULE.name,
-        key: buildRateLimitKey(LOGIN_IP_RULE, { ip: IP, body: {} }),
+        key: buildRateLimitKey(LOGIN_IP_RULE, {
+          ip: IP,
+          body: {},
+          userId: null,
+        }),
       },
     ]);
+  });
+
+  it("passes the authenticated user id to user rules", async () => {
+    await guard.canActivate(contextFor(AI_HANDLER, response, USER_ID));
+
+    expect(store.calls).toContainEqual({
+      ruleName: AI_USER_MINUTE_RULE.name,
+      key: buildRateLimitKey(AI_USER_MINUTE_RULE, {
+        ip: IP,
+        body: {},
+        userId: USER_ID,
+      }),
+    });
+  });
+});
+
+describe("RateLimitGuard with the in-memory store", () => {
+  let guard: RateLimitGuard;
+
+  beforeEach(async () => {
+    guard = await createGuard(new MemoryRateLimiterStore());
+  });
+
+  it("rejects the eleventh ai request in a minute for one user", async () => {
+    await sendAiRequests(guard, USER_ID, AI_USER_MINUTE_LIMIT);
+    const response = new FakeResponse();
+
+    const rejection = await rejectionOf(
+      guard,
+      contextFor(AI_HANDLER, response, USER_ID),
+    );
+
+    expect(rejection).toEqual({ statusCode: 429, code: "too-many-requests" });
+    expect(response.headers.has("Retry-After")).toBe(true);
+  });
+
+  it("does not limit another user after one user is limited", async () => {
+    await sendAiRequests(guard, USER_ID, AI_USER_MINUTE_LIMIT);
+    await rejectionOf(
+      guard,
+      contextFor(AI_HANDLER, new FakeResponse(), USER_ID),
+    );
+
+    await expect(
+      guard.canActivate(
+        contextFor(AI_HANDLER, new FakeResponse(), OTHER_USER_ID),
+      ),
+    ).resolves.toBe(true);
   });
 });

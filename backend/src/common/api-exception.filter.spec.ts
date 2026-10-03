@@ -21,12 +21,14 @@ const COOKIE_MARKER = "refresh-cookie-marker";
 type FakeResponse = {
   readonly status: Mock<(statusCode: number) => FakeResponse>;
   readonly json: Mock<(body: unknown) => void>;
+  readonly setHeader: Mock<(name: string, value: string) => void>;
 };
 
 function createResponse(): FakeResponse {
   const response: FakeResponse = {
     status: vi.fn<(statusCode: number) => FakeResponse>(),
     json: vi.fn<(body: unknown) => void>(),
+    setHeader: vi.fn<(name: string, value: string) => void>(),
   };
   response.status.mockReturnValue(response);
   return response;
@@ -234,5 +236,27 @@ describe("ApiExceptionFilter", () => {
 
     const calls: readonly unknown[] = logError.mock.calls;
     expect(JSON.stringify(calls)).not.toContain("someone@example.com");
+  });
+
+  it("sets Retry-After when the exception carries retryAfterSeconds", () => {
+    const { response } = catchWithFilter(
+      new ApiException(
+        { statusCode: 429, code: "too-many-requests" },
+        { retryAfterSeconds: 7 },
+      ),
+    );
+
+    expect(response.setHeader).toHaveBeenCalledWith("Retry-After", "7");
+    expect(response.setHeader.mock.invocationCallOrder[0]).toBeLessThan(
+      response.json.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it("sends no Retry-After otherwise", () => {
+    const { response } = catchWithFilter(
+      new ApiException({ statusCode: 429, code: "too-many-requests" }),
+    );
+
+    expect(response.setHeader).not.toHaveBeenCalled();
   });
 });

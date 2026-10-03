@@ -26,6 +26,7 @@ export default defineConfig({
         "src/modules/auth/auth-cookies.ts",
         "src/modules/auth/token-generator.ts",
         "src/modules/schemas/schema-list-cursor.ts",
+        "src/modules/ai/ai-*.ts",
       ],
       exclude: ["src/generated/**"],
       thresholds: { lines: 80 },

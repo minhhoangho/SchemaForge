@@ -98,7 +98,7 @@ type BodyOutcome =
   | { readonly kind: "unparsable" }
   | TransportFailure;
 
-async function readJsonBody(
+export async function readJsonBody(
   response: Response,
   signals: RequestSignals,
 ): Promise<BodyOutcome> {
@@ -122,7 +122,7 @@ function invalidResponse(
   return { isOk: false, error: { kind: "invalid-response" } };
 }
 
-function parseErrorBody(
+export function parseErrorBody(
   response: Response,
   routeTemplate: string,
   value: unknown,

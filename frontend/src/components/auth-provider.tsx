@@ -14,6 +14,8 @@ import { useStore } from "zustand";
 import { createStore } from "zustand/vanilla";
 import type { StoreApi } from "zustand/vanilla";
 
+// Type-only: a value import would pull the AI SDK into the initial bundle.
+import type { AiChatTransport } from "@/lib/api/ai-chat-client";
 import {
   browserFetch,
   createApiClient,
@@ -118,6 +120,7 @@ type AuthRuntime = {
   readonly api: ApiClient;
   readonly sessionRefresher: SessionRefresher;
   readonly expiry: ExpiryTarget;
+  readonly aiChatTransport: AiChatTransport;
 };
 
 type AuthBundle = {
@@ -129,6 +132,7 @@ type AuthBundle = {
 
 type AuthContextValue = {
   readonly api: ApiClient;
+  readonly aiChatTransport: AiChatTransport | null;
   readonly bundle: AuthBundle | null;
   readonly hasAuthHint: boolean;
 };
@@ -171,7 +175,15 @@ function createRuntime(dependencies: AuthProviderDependencies): AuthRuntime {
       expiry.notify();
     },
   });
-  return { dependencies, api, sessionRefresher, expiry };
+  const aiChatTransport: AiChatTransport = {
+    baseUrl: env.apiOrigin,
+    fetchImpl: dependencies.fetchImpl,
+    sessionRefresher,
+    onSessionExpired: () => {
+      expiry.notify();
+    },
+  };
+  return { dependencies, api, sessionRefresher, expiry, aiChatTransport };
 }
 
 function createSessionStore(storage: StorageBundle): SessionStore {
@@ -258,6 +270,7 @@ export function AuthProvider({
   const value = useMemo<AuthContextValue>(
     () => ({
       api: runtime?.api ?? UNAVAILABLE_API_CLIENT,
+      aiChatTransport: runtime?.aiChatTransport ?? null,
       bundle,
       hasAuthHint,
     }),
@@ -279,6 +292,11 @@ function useAuthContext(): AuthContextValue {
 
 export function useApiClient(): ApiClient {
   return useAuthContext().api;
+}
+
+// Null where no browser runtime exists (server render, no Web Locks).
+export function useAiChatTransport(): AiChatTransport | null {
+  return useAuthContext().aiChatTransport;
 }
 
 export function useAuth<T>(selector: (state: AuthStoreState) => T): T {

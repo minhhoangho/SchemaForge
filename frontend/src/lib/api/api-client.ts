@@ -95,7 +95,7 @@ function unwrapUser(
   return result.isOk ? { isOk: true, value: result.value.user } : result;
 }
 
-async function withAutoRefresh<T>(
+export async function withAutoRefresh<T>(
   routeTemplate: string,
   sessionRefresher: SessionRefresher,
   onSessionExpired: () => void,

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { AuthChannelMessage } from "@/lib/auth/auth-channel";
 import type { BroadcastChannelLike } from "@/lib/auth/auth-channel";
+import { env } from "@/lib/env";
 import type { StorageBundle } from "@/lib/storage/create-browser-storage";
 import { SchemaforgeDatabase } from "@/lib/storage/database";
 import { createSchemaLockManager } from "@/lib/storage/schema-lock-manager";
@@ -18,6 +19,7 @@ import { renderWithProviders } from "@/testing/render-with-providers";
 import {
   AuthProvider,
   useApiClient,
+  useAiChatTransport,
   useAuth,
   useSignOut,
 } from "./auth-provider";
@@ -185,6 +187,49 @@ function AuthProbe(): JSX.Element {
         sign out
       </button>
     </div>
+  );
+}
+
+function AiTransportProbe({
+  fetchImpl,
+}: {
+  readonly fetchImpl: typeof fetch;
+}): JSX.Element {
+  const auth = useAuth((state) => state.auth);
+  const transport = useAiChatTransport();
+
+  if (transport === null) {
+    return <p>transport:none</p>;
+  }
+  return (
+    <div>
+      <p>{`status:${auth.status}`}</p>
+      <p>{`base:${transport.baseUrl}`}</p>
+      <p>
+        {transport.fetchImpl === fetchImpl ? "fetch:injected" : "fetch:other"}
+      </p>
+      <button
+        type="button"
+        onClick={() => {
+          transport.onSessionExpired();
+        }}
+      >
+        expire
+      </button>
+    </div>
+  );
+}
+
+function renderAiTransportProbe(
+  fixture: Fixture,
+): ReturnType<typeof renderWithProviders> {
+  return renderWithProviders(
+    <StorageProvider storage={fixture.storage}>
+      <AuthProvider hasAuthHint dependencies={fixture.dependencies}>
+        <AiTransportProbe fetchImpl={fixture.fetchImpl} />
+      </AuthProvider>
+    </StorageProvider>,
+    { locale: "en" },
   );
 }
 
@@ -358,6 +403,35 @@ describe("AuthProvider", () => {
     expect(screen.getByText("status:signed-out")).toBeDefined();
     expect(fixture.cookieJar.cookie).toContain("Max-Age=0");
     expect(fixture.posted).toEqual([{ type: "signed-out" }]);
+  });
+
+  it("provides an AI chat transport with the API origin", async () => {
+    const fixture = track(
+      setUp({
+        cookie: HINT_COOKIE,
+        handlers: { "GET /auth/me": userResponse },
+      }),
+    );
+
+    renderAiTransportProbe(fixture);
+
+    expect(await screen.findByText(`base:${env.apiOrigin}`)).toBeDefined();
+    expect(screen.getByText("fetch:injected")).toBeDefined();
+  });
+
+  it("notifies session expiry through the AI chat transport", async () => {
+    const fixture = track(
+      setUp({
+        cookie: HINT_COOKIE,
+        handlers: { "GET /auth/me": userResponse },
+      }),
+    );
+    const { user } = renderAiTransportProbe(fixture);
+    await screen.findByText("status:signed-in");
+
+    await user.click(screen.getByRole("button", { name: "expire" }));
+
+    expect(await screen.findByText("status:expired")).toBeDefined();
   });
 
   it("throws when useAuth is used outside the provider", () => {

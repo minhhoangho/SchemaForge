@@ -319,4 +319,34 @@ describe("validateSchema", () => {
       },
     ]);
   });
+
+  describe("memoization by document reference", () => {
+    const issueSchema = () =>
+      buildSchema({ enums: [makeEnum({ id: "enum_status", values: [] })] });
+
+    it("returns the same issue list when the same document is validated again", () => {
+      const schema = issueSchema();
+
+      expect(validateSchema(schema)).toBe(validateSchema(schema));
+    });
+
+    it("validates an equal but distinct document afresh", () => {
+      const first = validateSchema(issueSchema());
+      const second = validateSchema(issueSchema());
+
+      expect([second === first, second]).toStrictEqual([
+        false,
+        [
+          {
+            code: "enum-values-empty",
+            path: ["enums", "enum_status", "values"],
+          },
+        ],
+      ]);
+    });
+
+    it("returns a frozen issue list so a shared result cannot be altered", () => {
+      expect(Object.isFrozen(validateSchema(issueSchema()))).toBe(true);
+    });
+  });
 });

@@ -7,6 +7,7 @@ import type {
   OperationError,
   Position,
   Result,
+  SchemaDiff,
   SchemaDocument,
   TableId,
 } from "@schemaforge/core";
@@ -32,6 +33,7 @@ import type {
 } from "../code-generator/generator-request";
 import { EMPTY_SELECTION, filterSelection } from "../lib/selection";
 import type { Selection } from "../lib/selection";
+import { createProposalActions, isProposalLocked } from "./proposal-actions";
 
 export const HISTORY_LIMIT = 200;
 
@@ -44,7 +46,24 @@ export type SaveStatus =
 
 export type LeftPanelTab = "tables" | "enums" | "issues";
 
-export type RightPanelMode = "properties" | "code";
+export type RightPanelMode = "properties" | "code" | "ai";
+
+export type DiffMark = "added" | "changed" | "removed";
+
+export type ProposalPreview = {
+  readonly messageId: string;
+  readonly operation: Operation;
+  // The document when the preview started; `dispatch` is locked until the
+  // preview ends, so it is still `document` when the proposal is accepted.
+  readonly base: SchemaDocument;
+  readonly preview: SchemaDocument;
+  readonly diff: SchemaDiff;
+  // For drawing only: never passed to `dispatch`.
+  readonly display: SchemaDocument;
+  readonly marks: ReadonlyMap<string, DiffMark>;
+};
+
+export type ProposalPreviewError = "invalid" | "stale";
 
 export type DispatchOptions = { readonly coalesce?: "keyboardMove" };
 
@@ -65,6 +84,7 @@ export type EditorState = {
   readonly rightPanelMode: RightPanelMode;
   readonly codeTarget: CodeTarget;
   readonly codeOptions: CodeOptions;
+  readonly proposal: ProposalPreview | null;
 };
 
 export type EditorActions = {
@@ -83,6 +103,12 @@ export type EditorActions = {
   readonly setRightPanelMode: (mode: RightPanelMode) => void;
   readonly setCodeTarget: (target: CodeTarget) => void;
   readonly updateCodeOptions: (patch: Partial<CodeOptions>) => void;
+  readonly startProposalPreview: (
+    messageId: string,
+    operation: unknown,
+  ) => Result<void, ProposalPreviewError>;
+  readonly acceptProposal: () => Result<void, OperationError>;
+  readonly discardProposal: () => void;
 };
 
 export type EditorStore = StoreApi<EditorState & EditorActions>;
@@ -119,6 +145,9 @@ function createDispatch(
 ): EditorActions["dispatch"] {
   return (operation, options) => {
     const state = get();
+    if (isProposalLocked(state, input.logger, "dispatch")) {
+      return { isOk: true, value: undefined };
+    }
     const applied = applyOperation(state.document, operation);
     if (!applied.isOk) {
       const { code, path } = applied.error;
@@ -164,10 +193,16 @@ function createDispatch(
 function createHistoryStep(
   set: SetState,
   get: GetState,
+  input: CreateEditorStoreInput,
   step: typeof undo,
 ): () => void {
   return () => {
     const state = get();
+    if (
+      isProposalLocked(state, input.logger, step === undo ? "undo" : "redo")
+    ) {
+      return;
+    }
     const result = step(state.history, state.document);
     if (result === null) {
       return;
@@ -200,9 +235,10 @@ export function createEditorStore(input: CreateEditorStoreInput): EditorStore {
     rightPanelMode: "properties",
     codeTarget: "sql",
     codeOptions: DEFAULT_CODE_OPTIONS,
+    proposal: null,
     dispatch: createDispatch(set, get, input),
-    undo: createHistoryStep(set, get, undo),
-    redo: createHistoryStep(set, get, redo),
+    undo: createHistoryStep(set, get, input, undo),
+    redo: createHistoryStep(set, get, input, redo),
     setSelection: (selection) => {
       set({ selection });
     },
@@ -234,7 +270,26 @@ export function createEditorStore(input: CreateEditorStoreInput): EditorStore {
         selection: EMPTY_SELECTION,
         dragPositions: {},
         coalesceKey: null,
+        proposal: null,
       });
     },
+    ...createProposalActions(set, get),
   }));
+}
+
+/** The document the canvas draws: the display document during a preview. */
+export function selectCanvasDocument(state: EditorState): SchemaDocument {
+  return state.proposal?.display ?? state.document;
+}
+
+export function selectDiffMark(
+  state: EditorState,
+  elementId: string,
+): DiffMark | null {
+  return state.proposal?.marks.get(elementId) ?? null;
+}
+
+/** Whether an AI proposal preview locks every edit path of the editor. */
+export function selectIsPreviewing(state: EditorState): boolean {
+  return state.proposal !== null;
 }

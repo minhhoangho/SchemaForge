@@ -20,6 +20,9 @@ import {
   HISTORY_LIMIT,
   createEditorStore,
   getMoveCoalesceKey,
+  selectCanvasDocument,
+  selectDiffMark,
+  selectIsPreviewing,
 } from "./create-editor-store";
 import type { EditorStore } from "./create-editor-store";
 
@@ -438,5 +441,199 @@ describe("getMoveCoalesceKey", () => {
     );
 
     expect(key).toBe("keyboardMove:tbl_orders,tbl_users");
+  });
+});
+
+const MESSAGE_ID = "msg_1";
+
+const ADD_EMAIL: Operation = {
+  type: "addColumn",
+  column: makeColumn({ id: "col_email", tableId: "tbl_users", name: "email" }),
+  insertAt: 1,
+};
+
+const RENAME_ORDERS_TO_USERS: Operation = {
+  type: "updateTable",
+  tableId: "tbl_orders",
+  changes: { name: "users" },
+};
+
+describe("proposal preview", () => {
+  it("starts a preview without changing the document or the history", () => {
+    const { store } = createHarness();
+    store.getState().dispatch(rename("store"));
+    store.getState().setSelection({ tableIds: ["tbl_users"], relationIds: [] });
+    const before = store.getState();
+
+    const result = store.getState().startProposalPreview(MESSAGE_ID, ADD_EMAIL);
+
+    expect(result).toStrictEqual({ isOk: true, value: undefined });
+    expect(store.getState()).toMatchObject({
+      document: before.document,
+      history: before.history,
+      selection: before.selection,
+      proposal: {
+        messageId: MESSAGE_ID,
+        operation: ADD_EMAIL,
+        base: before.document,
+      },
+    });
+    expect(store.getState().proposal?.preview.columns.col_email?.name).toBe(
+      "email",
+    );
+  });
+
+  it("returns invalid for a value that is not an operation", () => {
+    const { store } = createHarness();
+
+    const result = store
+      .getState()
+      .startProposalPreview(MESSAGE_ID, { type: "dropEverything" });
+
+    expect(result).toStrictEqual({ isOk: false, error: "invalid" });
+    expect(store.getState().proposal).toBeNull();
+  });
+
+  it("returns stale when the operation no longer applies to the current document", () => {
+    const { store } = createHarness();
+
+    const result = store
+      .getState()
+      .startProposalPreview(MESSAGE_ID, MISSING_TABLE_REMOVAL);
+
+    expect(result).toStrictEqual({ isOk: false, error: "stale" });
+    expect(store.getState().proposal).toBeNull();
+  });
+
+  it("returns stale when the operation introduces a new issue", () => {
+    const { store } = createHarness();
+
+    const result = store
+      .getState()
+      .startProposalPreview(MESSAGE_ID, RENAME_ORDERS_TO_USERS);
+
+    expect(result).toStrictEqual({ isOk: false, error: "stale" });
+    expect(store.getState().proposal).toBeNull();
+  });
+
+  it("replaces an earlier preview with a new one", () => {
+    const { store } = createHarness();
+    store.getState().startProposalPreview(MESSAGE_ID, ADD_EMAIL);
+
+    store.getState().startProposalPreview("msg_2", rename("store"));
+
+    expect(store.getState().proposal).toMatchObject({
+      messageId: "msg_2",
+      operation: rename("store"),
+    });
+  });
+
+  it("accepting a proposal records one history entry that one undo reverts and redo reapplies", () => {
+    const { store } = createHarness();
+    const original = store.getState().document;
+    store.getState().startProposalPreview(MESSAGE_ID, ADD_EMAIL);
+
+    store.getState().acceptProposal();
+    const accepted = store.getState().document;
+
+    expect(store.getState().proposal).toBeNull();
+    expect(store.getState().history.past).toHaveLength(1);
+    expect(accepted.columns.col_email?.name).toBe("email");
+    store.getState().undo();
+    expect(store.getState().document).toStrictEqual(original);
+    store.getState().redo();
+    expect(store.getState().document).toStrictEqual(accepted);
+  });
+
+  it("acceptProposal returns the result of dispatch", () => {
+    const { store } = createHarness();
+    store.getState().startProposalPreview(MESSAGE_ID, ADD_EMAIL);
+
+    const result = store.getState().acceptProposal();
+
+    expect(result).toStrictEqual({ isOk: true, value: undefined });
+  });
+
+  it("throws when acceptProposal is called without a preview", () => {
+    const { store } = createHarness();
+
+    expect(() => store.getState().acceptProposal()).toThrow(Error);
+  });
+
+  it("discardProposal leaves the document unchanged", () => {
+    const { store } = createHarness();
+    const before = store.getState();
+    store.getState().startProposalPreview(MESSAGE_ID, ADD_EMAIL);
+
+    store.getState().discardProposal();
+
+    expect(store.getState()).toMatchObject({
+      proposal: null,
+      document: before.document,
+      history: before.history,
+    });
+  });
+
+  it("ignores dispatch, undo and redo during a preview and logs an error", () => {
+    const { store, logger } = createHarness();
+    store.getState().dispatch(rename("store"));
+    store.getState().dispatch(rename("shop_2"));
+    store.getState().undo();
+    const before = store.getState();
+    store.getState().startProposalPreview(MESSAGE_ID, ADD_EMAIL);
+
+    const result = store.getState().dispatch(rename("other"));
+    store.getState().undo();
+    store.getState().redo();
+
+    expect(result).toStrictEqual({ isOk: true, value: undefined });
+    expect(store.getState().document).toBe(before.document);
+    expect(store.getState().history).toBe(before.history);
+    expect(logger.error.mock.calls).toStrictEqual([
+      ["editor.proposal-locked", { action: "dispatch" }],
+      ["editor.proposal-locked", { action: "undo" }],
+      ["editor.proposal-locked", { action: "redo" }],
+    ]);
+  });
+
+  it("replaceDocument clears the preview", () => {
+    const { store } = createHarness();
+    store.getState().startProposalPreview(MESSAGE_ID, ADD_EMAIL);
+
+    store.getState().replaceDocument(buildSchema({ name: "other" }));
+
+    expect(store.getState().proposal).toBeNull();
+  });
+
+  it("selectCanvasDocument returns the display document only during a preview", () => {
+    const { store } = createHarness();
+    const { document } = store.getState();
+    expect(selectCanvasDocument(store.getState())).toBe(document);
+    expect(selectIsPreviewing(store.getState())).toBe(false);
+
+    store.getState().startProposalPreview(MESSAGE_ID, ADD_EMAIL);
+
+    expect(selectCanvasDocument(store.getState())).toBe(
+      store.getState().proposal?.display,
+    );
+    expect(selectIsPreviewing(store.getState())).toBe(true);
+  });
+
+  it("selectDiffMark returns the mark of an element only during a preview", () => {
+    const { store } = createHarness();
+    expect(selectDiffMark(store.getState(), "col_email")).toBeNull();
+
+    store.getState().startProposalPreview(MESSAGE_ID, ADD_EMAIL);
+
+    expect(selectDiffMark(store.getState(), "col_email")).toBe("added");
+    expect(selectDiffMark(store.getState(), "tbl_users")).toBeNull();
+  });
+
+  it("switches the right panel to ai mode", () => {
+    const { store } = createHarness();
+
+    store.getState().setRightPanelMode("ai");
+
+    expect(store.getState().rightPanelMode).toBe("ai");
   });
 });

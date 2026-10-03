@@ -6,5 +6,5 @@ export const viAiComposer = {
   placeholder: "Mô tả một schema hoặc yêu cầu thay đổi",
   send: "Gửi",
   stop: "Dừng",
-  counter: "{{count}}/{{max}}",
+  counter: "{{count}}/{{max}} ký tự",
 } as const satisfies LocaleNamespace<typeof enAiComposer>;

@@ -141,10 +141,22 @@ const TEST_ONLY_IMPORT =
 const FEATURE_BOUNDARY =
   "features/schema-list and features/editor must not import each other; move shared code to src/lib/.";
 
-function frontendImportRestrictions({ canImportToast, forbiddenFeature }) {
+const AI_SDK_BOUNDARY =
+  "Import the AI SDK only in src/lib/api/ai-chat-client.ts (AI spec section 5).";
+
+function frontendImportRestrictions({
+  canImportToast,
+  canImportAiSdk = false,
+  forbiddenFeature,
+}) {
   return {
     paths: [
       { name: "@schemaforge/core/testing", message: TEST_ONLY_IMPORT },
+      {
+        name: "@schemaforge/core/ai",
+        message: "The AI subpath is backend-only (AI spec section 2).",
+      },
+      ...(canImportAiSdk ? [] : [{ name: "ai", message: AI_SDK_BOUNDARY }]),
       ...(canImportToast
         ? []
         : [
@@ -157,6 +169,9 @@ function frontendImportRestrictions({ canImportToast, forbiddenFeature }) {
     ],
     patterns: [
       { group: ["@/testing/*", "**/testing/*"], message: TEST_ONLY_IMPORT },
+      ...(canImportAiSdk
+        ? []
+        : [{ group: ["ai/*"], message: AI_SDK_BOUNDARY }]),
       ...(forbiddenFeature === undefined
         ? []
         : [
@@ -439,6 +454,18 @@ export default defineConfig([
         frontendImportRestrictions({
           canImportToast: false,
           forbiddenFeature: "schema-list",
+        }),
+      ],
+    },
+  },
+  {
+    files: ["frontend/src/lib/api/ai-chat-client.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        frontendImportRestrictions({
+          canImportToast: false,
+          canImportAiSdk: true,
         }),
       ],
     },

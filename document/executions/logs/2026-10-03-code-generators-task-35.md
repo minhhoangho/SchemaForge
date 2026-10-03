@@ -74,3 +74,14 @@ Phần tài liệu đã xong; trạng thái "Dừng giữa chừng" chỉ vì c�
   - [ ] Kiểm tra tay trên bản production (`pnpm --filter @schemaforge/frontend build` rồi `start`), không đăng nhập: sinh đủ 10 đích; rà toàn bộ tab Network, không có request ngoài file tĩnh của ứng dụng; nạp `createLargeSchema({ tableCount: 200 })` vào editor, đổi đích tới khi code hiện ≤ 1 giây, và kéo bảng trong lúc sinh code không giật.
   - [ ] Khi hai mục trên qua: giao `spec-writer` đổi phần 6 trong `document/roadmap.md` sang "Xong", bỏ đoạn giải thích dưới bảng, và đóng mục SQL Server trong "Việc còn mở" ở mục "Rủi ro cần kiểm tra khi triển khai" của spec phần 6.
 - **Ghi chú cho người tiếp theo**: lỗi `Recovery is complete` của container SQL Server là do VM Docker 2 GB, không phải lỗi code; đừng dừng các container `local_*` của người dùng để lấy bộ nhớ.
+
+## 2026-10-03 — spec-writer — Xong (đóng mục SQL Server)
+
+- **Đã làm**: ghi quyết định của người dùng ngày 2026-10-03: không chạy conformance SQL Server trên database thật (VM Docker quá nhỏ), kiểm tra bằng review code cùng unit, snapshot test, kết quả ở [log kiểm tra SQL Server](2026-10-03-sqlserver-code-check.md) (commit `aa09e2d`). Mục "Việc còn lại" về conformance SQL Server và về đổi `roadmap.md` ở các entry trên được coi là đã đóng theo quyết định này (entry cũ giữ nguyên). Đổi phần 6 trong `document/roadmap.md` sang "Xong" và bỏ đoạn giải thích; trong spec phần 6: đóng mục SQL Server ở "Rủi ro cần kiểm tra khi triển khai" (kèm rủi ro còn lại và các giới hạn đã biết), thêm hai quy tắc vào mục 5 (`\` + xuống dòng trong literal SQL Server, seed `decimal` tối đa 38 chữ số), thêm R34 thay R3 cho SQL Server. Chi tiết ở [log đóng phần 6](2026-10-03-codegen-close.md).
+- **File thay đổi**: `document/roadmap.md`, `document/specs/2026-09-14-code-generators-design.md`, log này.
+- **Kiểm tra**: conformance PostgreSQL, MySQL và còn lại sau bản sửa `aa09e2d`: 15/15 file, 142 test qua, 8 test SQL Server bị bỏ qua (số liệu do orchestrator cung cấp, không chạy lại ở lượt này).
+- **Quyết định**: xem log đóng phần 6.
+- **Việc còn lại**
+  - [ ] Kiểm tra tay trên bản production còn dang dở từ entry orchestrator ở trên (sinh đủ 10 đích; rà tab Network; nạp `createLargeSchema({ tableCount: 200 })` đo ≤ 1 giây) cùng kiểm tra bố cục ở 500, 768, 1024, 1440 px. Không chặn trạng thái "Xong" của phần 6.
+  - [ ] Khi có database SQL Server: chạy 22 test conformance và thêm case `\` cuối dòng (spec, mục Rủi ro).
+- **Ghi chú cho người tiếp theo**: không còn việc nào của phần 6 chặn roadmap.

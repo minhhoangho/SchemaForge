@@ -14,7 +14,7 @@ Trạng thái bám theo ba bước đó: `Chưa bắt đầu` (chưa có spec) �
 | 3 | Editor MVP | Canvas bảng, cột, quan hệ, index, enum, comment; zoom, pan, minimap; undo/redo; lưu local; dark mode; i18n vi/en | 2 | Xong |
 | 4 | Auth + lưu cloud | Đăng ký, đăng nhập, lưu schema lên server, danh sách schema | 1, 2 | Xong |
 | 5 | AI Assistant | Tích hợp Gemini ở backend; sinh schema từ mô tả; chat nhiều lượt; gợi ý cải thiện; giải thích; phát hiện lỗi thiết kế; sinh dữ liệu mẫu | 2, 3, 4, 6 (chỉ AI-06) | Xong spec |
-| 6 | Code generators | SQL DDL (PostgreSQL, MySQL, SQL Server), Prisma, Drizzle, TypeScript, Zod, Mock API, OpenAPI, seed data, DBML, Markdown | 2 | Đang làm |
+| 6 | Code generators | SQL DDL (PostgreSQL, MySQL, SQL Server), Prisma, Drizzle, TypeScript, Zod, Mock API, OpenAPI, seed data, DBML, Markdown | 2 | Xong |
 | 7 | Import / Export | Import SQL, Prisma, DBML, JSON; export file, JSON, PNG/SVG, ZIP | 3, 6 | Xong spec |
 | 8 | Chia sẻ + lịch sử phiên bản | Link public/private; lịch sử phiên bản cơ bản | 4 | Chưa bắt đầu |
 | 9 | Hoàn thiện | Subject area, ghi chú trên canvas, auto-layout, templates, presentation mode, phím tắt | 3 | Chưa bắt đầu |
@@ -22,7 +22,7 @@ Trạng thái bám theo ba bước đó: `Chưa bắt đầu` (chưa có spec) �
 
 Phần 4 đã xong phần code theo [spec phần 4](specs/2026-09-15-auth-cloud-design.md) và [plan phần 4](plans/2026-09-17-auth-cloud-plan.md). Checklist kiểm tra tay chưa chạy vì người dùng bỏ qua ngày 2026-10-02 (xem [log Task 38](executions/logs/2026-10-02-auth-cloud-task-38.md#kết-quả-kiểm-tra-tay)); nơi deploy chưa chọn vì người dùng chạy local trước (xem mục "Chưa chốt" của [architecture.md](architecture.md#chưa-chốt)).
 
-Phần 6 đã xong phần code theo [spec phần 6](specs/2026-09-14-code-generators-design.md) và [plan phần 6](plans/2026-09-15-code-generators-plan.md), nhưng còn "Đang làm" vì 22 test conformance SQL Server chưa từng chạy (VM Docker 2 GB đang được các container `local_*` của người dùng dùng); phần 6 chuyển sang "Xong" khi các test này và `pnpm test:conformance` ở root qua. Việc còn mở khác (màn hình hẹp, tối ưu thêm tùy chọn) ở mục "Rủi ro cần kiểm tra khi triển khai" của spec phần 6.
+Phần 6 xong theo [spec phần 6](specs/2026-09-14-code-generators-design.md) và [plan phần 6](plans/2026-09-15-code-generators-plan.md). Conformance SQL Server không chạy trên database thật (VM Docker quá nhỏ): người dùng quyết định ngày 2026-10-03 kiểm tra bằng review code, xem [log kiểm tra](executions/logs/2026-10-03-sqlserver-code-check.md) và R34 của spec. Việc còn mở khác (tối ưu thêm tùy chọn) ở mục "Rủi ro cần kiểm tra khi triển khai" của spec phần 6.
 
 ## Ghi chú về thứ tự
 

@@ -19,6 +19,8 @@ export const API_ERROR_CODES = [
   "document-invalid",
   "too-many-requests",
   "internal-error",
+  "ai-unavailable",
+  "ai-schema-too-large",
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];
@@ -39,6 +41,8 @@ export const API_ERROR_STATUS = {
   "document-invalid": 422,
   "too-many-requests": 429,
   "internal-error": 500,
+  "ai-unavailable": 503,
+  "ai-schema-too-large": 413,
 } as const satisfies Record<ApiErrorCode, number>;
 
 // Every code except the three whose body carries extra data.
@@ -55,6 +59,8 @@ export const SIMPLE_API_ERROR_CODES = [
   "payload-too-large",
   "too-many-requests",
   "internal-error",
+  "ai-unavailable",
+  "ai-schema-too-large",
 ] as const satisfies readonly ApiErrorCode[];
 
 export type SimpleApiErrorCode = (typeof SIMPLE_API_ERROR_CODES)[number];

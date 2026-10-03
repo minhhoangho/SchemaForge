@@ -21,6 +21,9 @@ export const viApiErrors = {
   "document-invalid": "Dữ liệu schema không hợp lệ.",
   "too-many-requests": "Bạn thử quá nhiều lần. Hãy đợi một lúc rồi thử lại.",
   "internal-error": "Có lỗi xảy ra ở máy chủ. Hãy thử lại sau.",
+  "ai-unavailable": "Trợ lý AI hiện không khả dụng trên máy chủ này.",
+  "ai-schema-too-large":
+    "Schema quá lớn để gửi cho trợ lý AI. Hãy hỏi về một phần của schema.",
   network: "Mất kết nối mạng.",
   timeout: "Yêu cầu đã hết thời gian chờ.",
   "invalid-response": "Máy chủ trả về dữ liệu không đọc được.",

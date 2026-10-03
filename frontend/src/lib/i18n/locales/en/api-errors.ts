@@ -20,6 +20,10 @@ export const enApiErrors = {
   "document-invalid": "The schema data is not valid.",
   "too-many-requests": "You tried too many times. Wait a moment and try again.",
   "internal-error": "Something went wrong on the server. Try again later.",
+  "ai-unavailable":
+    "The AI assistant is not available on this server right now.",
+  "ai-schema-too-large":
+    "This schema is too large for the AI assistant. Ask about one part of it instead.",
   network: "You lost your network connection.",
   timeout: "The request took too long.",
   "invalid-response": "The server returned data that could not be read.",

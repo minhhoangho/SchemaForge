@@ -18,7 +18,7 @@ const BACKEND_BODY: ApiErrorBody = {
 const PARSED_BODY: ParsedApiErrorBody = BACKEND_BODY;
 
 describe("API_ERROR_CODES", () => {
-  it("lists the fifteen api error codes in spec order without duplicates", () => {
+  it("lists the seventeen api error codes in spec order without duplicates", () => {
     expect(API_ERROR_CODES).toStrictEqual([
       "validation-failed",
       "password-too-common",
@@ -35,6 +35,8 @@ describe("API_ERROR_CODES", () => {
       "document-invalid",
       "too-many-requests",
       "internal-error",
+      "ai-unavailable",
+      "ai-schema-too-large",
     ]);
     expect(new Set(API_ERROR_CODES).size).toBe(API_ERROR_CODES.length);
   });
@@ -48,6 +50,23 @@ describe("API_ERROR_CODES", () => {
           code !== "document-invalid",
       ),
     );
+  });
+});
+
+describe("SIMPLE_API_ERROR_CODES", () => {
+  it("treats both AI codes as simple codes", () => {
+    expect(SIMPLE_API_ERROR_CODES).toStrictEqual(
+      expect.arrayContaining(["ai-unavailable", "ai-schema-too-large"]),
+    );
+  });
+
+  it.each([
+    ["ai-unavailable", 503],
+    ["ai-schema-too-large", 413],
+  ])("parses a simple %s error body", (code, statusCode) => {
+    const body = { statusCode, code };
+
+    expect(parseApiErrorBody(body)).toStrictEqual(body);
   });
 });
 
@@ -74,6 +93,13 @@ describe("API_ERROR_STATUS", () => {
       expect(API_ERROR_STATUS[code]).toBe(status);
     },
   );
+
+  it("maps ai-unavailable to 503 and ai-schema-too-large to 413", () => {
+    expect({
+      "ai-unavailable": API_ERROR_STATUS["ai-unavailable"],
+      "ai-schema-too-large": API_ERROR_STATUS["ai-schema-too-large"],
+    }).toStrictEqual({ "ai-unavailable": 503, "ai-schema-too-large": 413 });
+  });
 
   it("has a status for exactly the api error codes", () => {
     expect(Object.keys(API_ERROR_STATUS)).toStrictEqual([...API_ERROR_CODES]);

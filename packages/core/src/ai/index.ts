@@ -36,3 +36,14 @@ export {
   AI_MAX_SAMPLE_STRING_LENGTH,
   AI_MAX_SAMPLE_TABLES,
 } from "./ai-limits.js";
+export { describeAiChanges } from "./describe-ai-changes.js";
+export { describePathForAi } from "./describe-path-for-ai.js";
+export type { AiSchemaView } from "./describe-schema-for-ai.js";
+export { describeSchemaForAi } from "./describe-schema-for-ai.js";
+export type { AiTablePlacement } from "./place-ai-table.js";
+export {
+  AI_TABLE_GRID_STEP_X,
+  AI_TABLE_GRID_STEP_Y,
+  AI_TABLES_PER_ROW,
+  createAiTablePlacement,
+} from "./place-ai-table.js";

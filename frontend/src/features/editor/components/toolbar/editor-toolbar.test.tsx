@@ -195,6 +195,16 @@ describe("EditorToolbar", () => {
     },
   );
 
+  it("scrolls inside its own container so sr-only text cannot widen the page", () => {
+    renderToolbar();
+    const bar = screen.getByRole("button", { name: "Undo" }).closest("div");
+
+    expect(bar?.classList.contains("overflow-x-auto")).toBe(true);
+    // An absolutely positioned sr-only node escapes overflow clipping unless
+    // the scroller is its containing block.
+    expect(bar?.classList.contains("relative")).toBe(true);
+  });
+
   it("toggles the code panel with an aria-pressed button", async () => {
     const { user, store } = renderToolbar();
     const button = screen.getByRole("button", { name: "Code" });

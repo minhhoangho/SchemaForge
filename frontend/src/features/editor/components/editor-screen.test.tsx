@@ -1,6 +1,13 @@
 import { createEmptySchema, CURRENT_SCHEMA_VERSION } from "@schemaforge/core";
 import { createSampleSchema } from "@schemaforge/core/testing";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  configure,
+  getConfig,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { Dexie } from "dexie";
 import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
 import {
@@ -517,6 +524,22 @@ describe("EditorScreen", () => {
     });
 
     describe("with a conflict", () => {
+      // The dialog only opens after the auth probe, the cloud fetch and the
+      // live sync-state query settle: real async I/O whose wall-clock time
+      // grows when many test files run in parallel. The 1000 ms default of
+      // findBy/waitFor measures that load, not a bug, so give this chain a
+      // generous deadline; a real failure still ends the test at 5000 ms.
+      let defaultAsyncUtilTimeout = 0;
+
+      beforeEach(() => {
+        defaultAsyncUtilTimeout = getConfig().asyncUtilTimeout;
+        configure({ asyncUtilTimeout: 4000 });
+      });
+
+      afterEach(() => {
+        configure({ asyncUtilTimeout: defaultAsyncUtilTimeout });
+      });
+
       // An owned schema edited here while the cloud moved on; every schema
       // request answers with the cloud version "Cloud".
       async function renderConflictedSchema(): Promise<

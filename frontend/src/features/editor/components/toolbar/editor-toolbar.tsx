@@ -222,7 +222,7 @@ export function EditorToolbar({
   cloud,
 }: EditorToolbarProps): JSX.Element {
   return (
-    <div className="flex h-12 items-center gap-1 overflow-x-auto border-b border-border bg-background px-2">
+    <div className="relative flex h-12 items-center gap-1 overflow-x-auto border-b border-border bg-background px-2">
       <BackToListLink />
       <SchemaNameButton />
       <ToolbarSeparator />
@@ -235,7 +235,7 @@ export function EditorToolbar({
       <IssueCountButton />
       <CodeToggleButton />
       <SyncStatusSlot onRetrySave={onRetrySave} cloud={cloud} />
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex shrink-0 items-center gap-1">
         <AccountMenu />
         <ThemeSwitch />
         <LanguageSwitch />

@@ -527,6 +527,8 @@ Không có id, vị trí, subject area, ghi chú. Trường mang giá trị mặ
 
 **AI-R31.** Mỗi request ghi một dòng log qua `Logger` của Nest khi kết thúc: `ai.chat.completed` hoặc `ai.chat.failed`, kèm `userId`, `durationMs`, số bước, số tool call, số lần gọi thành công, `finishReason`, `inputTokens`, `outputTokens` (từ `totalUsage`), loại kết quả (`proposal`, `sampleData`, `findings`, `text`), mã lỗi nếu có. Không log tin nhắn, schema, input hay output của tool, chỉ dẫn hệ thống, tên lớp lỗi của provider kèm message, hay key. Không lưu số liệu này vào database (không có quota). Số token theo `userId` trong log là nguồn để người vận hành phát hiện một tài khoản tiêu chi phí bất thường và chỉnh giới hạn ở mục 12.
 
+**Đổi trong lúc cài đặt (2026-10-04; [plan](../plans/2026-10-03-ai-assistant-plan.md), Task 18):** lượt bị hủy (AI-R50) cũng ghi `ai.chat.completed`, với `outcome: "aborted"`, không ghi `ai.chat.failed`, vì hủy do người dùng không phải lỗi.
+
 ## 7. Xem trước, chấp nhận và undo trên editor
 
 ### Diff trong core
@@ -698,6 +700,12 @@ readonly discardProposal: () => void;
 Thứ tự kiểm tra của một request: `OriginGuard`, `JwtAuthGuard`, `RateLimitGuard` (rule `ai-user-*`, `ai-ip-*`), `ValidationPipe`; rồi trong service: không có model → `503`; lấy khóa đồng thời (AI-R56) → `429`; rồi trong `try/finally` trả khóa: `parseSchemaDocument` → `422`; dựng prompt và đo `AI_MAX_SCHEMA_PROMPT_LENGTH` sau escape → `413`; ngân sách toàn cục (AI-R55) → `503`; sau đó mới gọi `streamText`. Request bị `422`, `413` hay `503` ngân sách đều trả khóa đồng thời; `422` và `413` không tiêu ngân sách toàn cục (ngân sách chỉ tiêu ngay trước khi gọi model).
 
 **Đổi trong lúc lập plan (2026-10-03; lý do: review bảo mật H1, H2, M4; [plan](2026-10-03-ai-assistant-plan.md), Vấn đề 43 và 44).** Bản duyệt đặt `422` và `413` trước khóa đồng thời. Parse và escape tài liệu tới 1 MB là việc CPU đáng kể; đặt chúng sau khóa thì mỗi người dùng chỉ chiếm một lượt CPU tại một thời điểm. Khác biệt quan sát được: request đồng thời thứ hai mang tài liệu sai nhận `429` thay vì `422`. Giới hạn prompt đo sau escape trên `<schema>` và `<issues>` (xem bảng giới hạn mục 5).
+
+**Đổi trong lúc cài đặt (2026-10-04; [plan](../plans/2026-10-03-ai-assistant-plan.md), Task 18; lý do: review Task 18 và security review lượt 3):**
+- Khóa đồng thời (AI-R56) cũng được trả khi client ngắt kết nối (`abortSignal` của request), không đợi lời gọi Gemini xong; lời gọi Gemini bị hủy cùng lúc (AI-R50) nên không có đường vòng qua AI-R56. Hàm trả khóa chỉ chạy một lần, để `finally` chạy muộn không giải phóng nhầm khóa của lượt mới cùng người dùng. Mỗi lần kết nối lại vẫn tốn rate limit và một điểm ngân sách.
+- `AiHistoryTooLargeError` (lịch sử sau escape vượt `AI_MAX_ESCAPED_HISTORY_LENGTH`) ánh xạ `413 payload-too-large` trước khi stream mở, cạnh `AiPromptTooLargeError` ánh xạ `413 ai-schema-too-large`.
+- Khi hết ngân sách toàn cục (AI-R55), `503 ai-unavailable` kèm header `Retry-After` (giây, từ `msBeforeNext` của bộ đếm).
+- Request mà client đã ngắt kết nối trước khi handler chạy không lấy khóa đồng thời và không tiêu ngân sách toàn cục.
 
 ## 13. Xử lý lỗi
 

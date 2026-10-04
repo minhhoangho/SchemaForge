@@ -17,20 +17,29 @@ export type TestApp = {
 
 export type CreateTestAppOptions = {
   readonly imports?: NonNullable<ModuleMetadata["imports"]>;
+  /** Each entry replaces one provider before the module compiles. */
+  readonly overrideProviders?: readonly {
+    readonly token: unknown;
+    readonly value: unknown;
+  }[];
 };
 
 /**
  * Builds the real application: the same modules, guards, pipes and filter as
  * production, plus `configureApp`, and the real `PasswordHasher`. Nothing is
- * replaced by a double. Each test builds its own app, so the in-memory rate
+ * replaced by a double unless a test passes `overrideProviders`. Each test builds its own app, so the in-memory rate
  * limit counters never leak between tests.
  */
 export async function createTestApp(
   options?: CreateTestAppOptions,
 ): Promise<TestApp> {
-  const moduleRef = await Test.createTestingModule({
+  const builder = Test.createTestingModule({
     imports: [AppModule, ...(options?.imports ?? [])],
-  }).compile();
+  });
+  for (const { token, value } of options?.overrideProviders ?? []) {
+    builder.overrideProvider(token).useValue(value);
+  }
+  const moduleRef = await builder.compile();
   // configureApp registers the JSON parser as the only body parser, like main.ts.
   const app = moduleRef.createNestApplication<NestExpressApplication>({
     bodyParser: false,

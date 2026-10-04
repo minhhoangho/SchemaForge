@@ -2,6 +2,7 @@ import { Logger } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { AI_GLOBAL_BUDGET_WINDOW_SECONDS } from "./ai.constants.js";
 import { AiCapacity } from "./ai-capacity.js";
 import { AI_GLOBAL_REQUESTS_PER_HOUR } from "./ai-model.provider.js";
 
@@ -75,21 +76,55 @@ describe("AiCapacity.tryConsumeGlobalBudget", () => {
     const capacity = await createCapacity();
     await capacity.tryConsumeGlobalBudget();
 
-    await expect(capacity.tryConsumeGlobalBudget()).resolves.toBe(true);
+    await expect(capacity.tryConsumeGlobalBudget()).resolves.toStrictEqual({
+      isAllowed: true,
+    });
   });
 
   it("stops the global budget after the configured number of requests", async () => {
     const capacity = await createCapacity();
     await exhaustBudget(capacity);
 
-    await expect(capacity.tryConsumeGlobalBudget()).resolves.toBe(false);
+    await expect(capacity.tryConsumeGlobalBudget()).resolves.toMatchObject({
+      isAllowed: false,
+    });
   });
 
   it("keeps a separate budget per instance", async () => {
     await exhaustBudget(await createCapacity());
     const fresh = await createCapacity();
 
-    await expect(fresh.tryConsumeGlobalBudget()).resolves.toBe(true);
+    await expect(fresh.tryConsumeGlobalBudget()).resolves.toStrictEqual({
+      isAllowed: true,
+    });
+  });
+
+  it("returns the seconds until the budget window resets, rounded up", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date(0) });
+    const capacity = await createCapacity();
+    await exhaustBudget(capacity);
+    vi.setSystemTime(new Date(1_500));
+
+    const result = await capacity.tryConsumeGlobalBudget();
+    vi.useRealTimers();
+
+    expect(result).toStrictEqual({
+      isAllowed: false,
+      retryAfterSeconds: AI_GLOBAL_BUDGET_WINDOW_SECONDS - 1,
+    });
+  });
+
+  it("logs ai.budget.exhausted once per budget window", async () => {
+    const warn = vi
+      .spyOn(Logger.prototype, "warn")
+      .mockImplementation(() => undefined);
+    const capacity = await createCapacity();
+    await exhaustBudget(capacity);
+    await capacity.tryConsumeGlobalBudget();
+    await capacity.tryConsumeGlobalBudget();
+    await capacity.tryConsumeGlobalBudget();
+
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("logs ai.budget.exhausted without user data", async () => {

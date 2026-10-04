@@ -35,7 +35,7 @@ type CountLine = {
   readonly isDestructive: boolean;
 };
 
-function buildCountLines(
+export function buildCountLines(
   counts: ProposalChangeCounts,
   t: TFunction<"ai">,
 ): readonly CountLine[] {

@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import { getIssueIndex } from "../../lib/issue-index";
+import { selectIsPreviewing } from "../../state/create-editor-store";
 import { useEditorStore } from "../../state/use-editor-store";
 import { CommittedTextField } from "../committed-text-field";
 
@@ -114,6 +115,13 @@ export function SchemaNameButton(): JSX.Element {
   const { t } = useTranslation(["editor", "common"]);
   const schema = useEditorStore((state) => state.document);
   const [isOpen, setIsOpen] = useState(false);
+  // Renaming dispatches, which a preview turns into a no-op: the button is
+  // disabled and an open dialog closes when a preview starts (AI plan,
+  // issue 46). Adjusted during render, as React advises over an effect.
+  const isPreviewing = useEditorStore(selectIsPreviewing);
+  if (isPreviewing && isOpen) {
+    setIsOpen(false);
+  }
   const issuesId = useId();
   const nameIssues =
     getIssueIndex(schema).schemaIssues.filter(isSchemaNameIssue);
@@ -127,6 +135,7 @@ export function SchemaNameButton(): JSX.Element {
             <Button
               variant="ghost"
               className="font-semibold"
+              disabled={isPreviewing}
               aria-describedby={hasIssues ? issuesId : undefined}
             >
               {hasIssues && (

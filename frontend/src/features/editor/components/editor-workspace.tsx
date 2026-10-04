@@ -35,9 +35,20 @@ import {
 } from "../lib/to-relation-draft";
 import type { RelationDraft } from "../lib/to-relation-draft";
 import type { CloudStatusView } from "../lib/to-cloud-status-view";
-import { createEditorStore } from "../state/create-editor-store";
+import {
+  AI_COMMIT_ON_PREVIEW_ATTRIBUTE,
+  AiChatStoreProvider,
+} from "../state/ai-chat-store-provider";
+import {
+  createEditorStore,
+  selectIsPreviewing,
+} from "../state/create-editor-store";
 import { EditorStoreProvider } from "../state/editor-store-provider";
 import { useEditorStore, useEditorStoreApi } from "../state/use-editor-store";
+import {
+  AiPanelLoader,
+  ProposalPreviewBarLoader,
+} from "./ai-panel/ai-panel-loader";
 import { EditorCanvas } from "./canvas/editor-canvas";
 import { EditorFlowProvider } from "./canvas/editor-flow-provider";
 import { ConflictDialog } from "./dialogs/conflict-dialog";
@@ -339,6 +350,13 @@ function WorkspaceLayout({
     [canvasRegionRef, setCanvasRegion],
   );
   const rightPanelMode = useEditorStore((state) => state.rightPanelMode);
+  // A preview locks the panels; an open relation dialog would dispatch into
+  // the lock, so it closes (AI plan, issues 32 and 46).
+  const isPreviewing = useEditorStore(selectIsPreviewing);
+  if (isPreviewing && dialog.draft !== null) {
+    dialog.closeDialog();
+  }
+  const commitOnPreview = { [AI_COMMIT_ON_PREVIEW_ATTRIBUTE]: "" };
   const leftPanelId = useId();
   const propertiesPanelId = useId();
   const defaultViewport =
@@ -356,6 +374,8 @@ function WorkspaceLayout({
         <div
           id={leftPanelId}
           tabIndex={-1}
+          inert={isPreviewing}
+          {...commitOnPreview}
           className={cn("flex min-h-0", FOCUS_TARGET_CLASS_NAME)}
         >
           <LeftPanel />
@@ -366,7 +386,7 @@ function WorkspaceLayout({
           tabIndex={-1}
           aria-label={t("layout.canvasLabel")}
           className={cn(
-            "min-w-0 flex-1",
+            "flex min-w-0 flex-1 flex-col",
             // Below lg the code panel takes the canvas's place; the toolbar
             // toggle brings the canvas back. display:none keeps it out of the
             // tab order.
@@ -378,21 +398,26 @@ function WorkspaceLayout({
             propertiesPanelId={propertiesPanelId}
             leftPanelId={leftPanelId}
           />
-          <EditorCanvas
-            defaultViewport={defaultViewport}
-            onMoveEnd={onMoveEnd}
-            onAddTable={addTable}
-            onConnect={dialog.openFromConnection}
-          />
+          {isPreviewing && <ProposalPreviewBarLoader />}
+          <div className="min-h-0 flex-1">
+            <EditorCanvas
+              defaultViewport={defaultViewport}
+              onMoveEnd={onMoveEnd}
+              onAddTable={addTable}
+              onConnect={dialog.openFromConnection}
+            />
+          </div>
         </main>
-        {rightPanelMode === "code" ? (
-          <CodePanel id={propertiesPanelId} />
-        ) : (
-          <PropertiesPanel
-            id={propertiesPanelId}
-            onCreateRelation={dialog.openFromTable}
-            onDelete={keyboard.deleteSelection}
-          />
+        {rightPanelMode === "code" && <CodePanel id={propertiesPanelId} />}
+        {rightPanelMode === "ai" && <AiPanelLoader id={propertiesPanelId} />}
+        {rightPanelMode === "properties" && (
+          <div className="contents" inert={isPreviewing} {...commitOnPreview}>
+            <PropertiesPanel
+              id={propertiesPanelId}
+              onCreateRelation={dialog.openFromTable}
+              onDelete={keyboard.deleteSelection}
+            />
+          </div>
         )}
       </div>
       <CreateRelationDialog draft={dialog.draft} onClose={dialog.closeDialog} />
@@ -469,34 +494,36 @@ export function EditorWorkspace({
 
   return (
     <EditorStoreProvider store={store}>
-      <EditorFlowProvider>
-        <WorkspaceLayout
-          viewport={viewport}
-          onMoveEnd={saveViewport}
-          onRetrySave={autosave.retry}
-          cloud={{
-            status: cloudPusher.status,
-            onRetry: cloudPusher.retry,
-            onSaveToCloud: saveToCloud,
-            onOpenCloudDialog: cloudDialog.open,
-          }}
-          canvasRegionRef={canvasRegionRef}
-          isCloudDialogOpen={cloudDialog.openKind !== null}
-        />
-        <ConflictDialog
-          open={isConflictOpen}
-          localVersion={localVersion}
-          resolution={resolution}
-          onClose={cloudDialog.close}
-          onReturnFocus={returnFocus}
-        />
-        <DeletedInCloudDialog
-          open={cloudDialog.openKind === "deleted-in-cloud"}
-          resolution={resolution}
-          onClose={cloudDialog.close}
-          onReturnFocus={returnFocus}
-        />
-      </EditorFlowProvider>
+      <AiChatStoreProvider>
+        <EditorFlowProvider>
+          <WorkspaceLayout
+            viewport={viewport}
+            onMoveEnd={saveViewport}
+            onRetrySave={autosave.retry}
+            cloud={{
+              status: cloudPusher.status,
+              onRetry: cloudPusher.retry,
+              onSaveToCloud: saveToCloud,
+              onOpenCloudDialog: cloudDialog.open,
+            }}
+            canvasRegionRef={canvasRegionRef}
+            isCloudDialogOpen={cloudDialog.openKind !== null}
+          />
+          <ConflictDialog
+            open={isConflictOpen}
+            localVersion={localVersion}
+            resolution={resolution}
+            onClose={cloudDialog.close}
+            onReturnFocus={returnFocus}
+          />
+          <DeletedInCloudDialog
+            open={cloudDialog.openKind === "deleted-in-cloud"}
+            resolution={resolution}
+            onClose={cloudDialog.close}
+            onReturnFocus={returnFocus}
+          />
+        </EditorFlowProvider>
+      </AiChatStoreProvider>
     </EditorStoreProvider>
   );
 }

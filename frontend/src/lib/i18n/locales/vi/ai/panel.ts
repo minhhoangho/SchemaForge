@@ -13,6 +13,11 @@ export const viAiPanel = {
     "Trợ lý AI chỉ dành cho người dùng đã đăng nhập. Các schema của bạn vẫn dùng được khi không có tài khoản.",
   signInLink: "Đăng nhập",
   unavailable: "Trợ lý AI hiện không khả dụng.",
+  messagesLabel: "Cuộc trò chuyện",
+  userMessage: "Bạn",
+  assistantMessage: "Trợ lý",
+  loading: "Đang tải trợ lý AI",
+  loadFailed: "Không tải được trợ lý AI. Hãy tải lại trang để thử lại.",
   consent: {
     title: "Trước khi bắt đầu",
     body: "Trợ lý gửi tin nhắn của bạn và schema hiện tại tới Google Gemini. Đừng đưa bí mật hoặc dữ liệu cá nhân vào đó.",

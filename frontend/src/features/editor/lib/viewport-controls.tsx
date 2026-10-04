@@ -25,6 +25,15 @@ export const MAX_ZOOM = 2;
 export const FIT_VIEW_PADDING = 0.2;
 export const VIEWPORT_TRANSITION_MS = 200;
 
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+// Spec section 10: viewport transitions take no time under reduced motion.
+export function getViewportTransitionDuration(): number {
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches
+    ? 0
+    : VIEWPORT_TRANSITION_MS;
+}
+
 export type ViewportControlsProviderProps = {
   readonly controls: ViewportControls;
   readonly children: ReactNode;

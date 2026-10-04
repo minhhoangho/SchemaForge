@@ -7,9 +7,10 @@ import {
   findFreeTablePosition,
 } from "../lib/build-add-table-operation";
 import {
+  getViewportTransitionDuration,
   useViewportControls,
-  VIEWPORT_TRANSITION_MS,
 } from "../lib/viewport-controls";
+import { selectIsPreviewing } from "../state/create-editor-store";
 import { useEditorStoreApi } from "../state/use-editor-store";
 
 export type SchemaCommands = {
@@ -26,15 +27,6 @@ function generateId(): string {
   return crypto.randomUUID();
 }
 
-const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
-
-// Spec section 10: viewport transitions take no time under reduced motion.
-function getTransitionDuration(): number {
-  return window.matchMedia(REDUCED_MOTION_QUERY).matches
-    ? 0
-    : VIEWPORT_TRANSITION_MS;
-}
-
 /**
  * The "add table" and "add enum" commands shared by the toolbar, the left
  * panel and the canvas. Each reads the document when it runs, so the hook
@@ -47,6 +39,10 @@ export function useSchemaCommands(): SchemaCommands {
 
   const addTable = useCallback((): void => {
     const state = store.getState();
+    // A preview locks every edit path, whichever button calls this (AI-R34).
+    if (selectIsPreviewing(state)) {
+      return;
+    }
     // The same position the builder gives the new table.
     const position = findFreeTablePosition(state.document, NEW_TABLE_ORIGIN);
     const { operation, tableId } = buildAddTableOperation(state.document, {
@@ -60,12 +56,15 @@ export function useSchemaCommands(): SchemaCommands {
     state.requestFocus(["tables", tableId, "name"]);
     viewport.setCenter(position.x, position.y, {
       zoom: viewport.getZoom(),
-      duration: getTransitionDuration(),
+      duration: getViewportTransitionDuration(),
     });
   }, [store, viewport]);
 
   const addEnum = useCallback((): void => {
     const state = store.getState();
+    if (selectIsPreviewing(state)) {
+      return;
+    }
     const { operation, enumId } = buildAddEnumOperation(
       state.document,
       generateId,

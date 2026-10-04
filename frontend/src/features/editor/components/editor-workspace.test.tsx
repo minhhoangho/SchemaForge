@@ -1,5 +1,5 @@
 import { createEmptySchema } from "@schemaforge/core";
-import type { SchemaDocument } from "@schemaforge/core";
+import type { Operation, SchemaDocument } from "@schemaforge/core";
 import { buildSchema, makeColumn, makeTable } from "@schemaforge/core/testing";
 import {
   act,
@@ -33,12 +33,23 @@ import type { ViewportRecord } from "@/lib/storage/records";
 import { createSchemaLockManager } from "@/lib/storage/schema-lock-manager";
 import { createSchemaRepository } from "@/lib/storage/schema-repository";
 import type { SchemaRepository } from "@/lib/storage/schema-repository";
+import {
+  AUTH_HINT_COOKIE,
+  TEST_AI_USER_ID,
+  createAiFetch,
+  createControlledAiChatStream,
+  proposalChunk,
+} from "@/testing/ai-chat-stream";
+import type { ControlledAiChatStream } from "@/testing/ai-chat-stream";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { createFakeLockRegistry } from "@/testing/fake-lock-registry";
 import { renderWithProviders } from "@/testing/render-with-providers";
 import type { TestAuthOptions } from "@/testing/render-with-providers";
 
+import { buildAddEnumOperation } from "../lib/build-add-enum-operation";
 import { formatColumnHandleId, formatTableHandleId } from "../lib/handle-ids";
+import { AI_COMMIT_ON_PREVIEW_ATTRIBUTE } from "../state/ai-chat-store-provider";
+import { aiConsentKey } from "./ai-panel/ai-consent";
 import { EditorWorkspace } from "./editor-workspace";
 
 type FlowProps = ReactFlowProps;
@@ -1143,5 +1154,210 @@ describe("EditorWorkspace", () => {
         });
       });
     });
+  });
+});
+
+describe("EditorWorkspace with the AI assistant", () => {
+  const ADD_EMAIL: Operation = {
+    type: "addColumn",
+    column: makeColumn({
+      id: "col_users_email",
+      tableId: "tbl_users",
+      name: "email",
+    }),
+    insertAt: 1,
+  };
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  type AiWorkspace = ReturnType<typeof renderWorkspace> & {
+    readonly stream: ControlledAiChatStream;
+  };
+
+  // Signed in, consent given, and one turn whose end the test controls.
+  function renderAiWorkspace(
+    document: SchemaDocument = createShopDocument(),
+  ): AiWorkspace {
+    localStorage.setItem(aiConsentKey(TEST_AI_USER_ID), "1");
+    const stream = createControlledAiChatStream();
+    const rendered = renderWorkspace({
+      repository: createRepository(),
+      document,
+      auth: {
+        storage: createStorage(),
+        hasAuthHint: true,
+        dependencies: {
+          fetchImpl: createAiFetch(() => stream.response),
+          cookieJar: { cookie: AUTH_HINT_COOKIE },
+        },
+      },
+    });
+    return { ...rendered, stream };
+  }
+
+  function getAiToggle(): HTMLElement {
+    return screen.getByRole("button", { name: "AI assistant" });
+  }
+
+  // Sends a message; the turn stays open until `endTurnWithProposal`.
+  async function askAi({ user }: AiWorkspace): Promise<void> {
+    await user.click(getAiToggle());
+    const composer = await screen.findByRole("textbox", {
+      name: "Message to the AI assistant",
+    });
+    await user.type(composer, "Add an email column{Enter}");
+  }
+
+  async function endTurnWithProposal(
+    { stream }: AiWorkspace,
+    operation: Operation = ADD_EMAIL,
+  ): Promise<void> {
+    await act(async () => {
+      stream.finish([proposalChunk(operation)]);
+      await Promise.resolve();
+    });
+    await screen.findByRole("region", { name: "Proposal preview" });
+  }
+
+  function isInert(element: HTMLElement): boolean {
+    return element.closest("[inert]") !== null;
+  }
+
+  it("shows the AI panel in the right column in ai mode", async () => {
+    const { user } = renderShop();
+    await user.click(getOutlineRow("users"));
+
+    await user.click(getAiToggle());
+
+    expect(
+      await screen.findByRole("region", { name: "AI assistant" }),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole("complementary", { name: "Properties" }),
+    ).toBeNull();
+  });
+
+  it("keeps the canvas visible below lg in ai mode", async () => {
+    const { user } = renderShop();
+
+    await user.click(getAiToggle());
+    await screen.findByRole("region", { name: "AI assistant" });
+
+    expect(getCanvasRegion().className).not.toContain("max-lg:hidden");
+  });
+
+  it("marks the left and properties panels to commit on preview", async () => {
+    const { user } = renderShop();
+    await user.click(getOutlineRow("users"));
+
+    const panels = [
+      getOutline(),
+      screen.getByRole("complementary", { name: "Properties" }),
+    ];
+
+    expect(
+      panels.map(
+        (panel) =>
+          panel.closest(`[${AI_COMMIT_ON_PREVIEW_ATTRIBUTE}]`) !== null,
+      ),
+    ).toEqual([true, true]);
+  });
+
+  it("shows the preview bar during a preview", async () => {
+    const rendered = renderAiWorkspace();
+    await askAi(rendered);
+
+    await endTurnWithProposal(rendered);
+
+    expect(
+      screen.getByRole("region", { name: "Proposal preview" }),
+    ).toBeDefined();
+  });
+
+  it("makes the left and properties panels inert during a preview", async () => {
+    const rendered = renderAiWorkspace();
+    await rendered.user.click(getOutlineRow("users"));
+    await askAi(rendered);
+    await endTurnWithProposal(rendered);
+
+    await rendered.user.click(getAiToggle());
+
+    expect([
+      isInert(getOutline()),
+      isInert(
+        screen.getByRole("complementary", { name: "Properties", hidden: true }),
+      ),
+    ]).toEqual([true, true]);
+  });
+
+  it("closes the create relation dialog when a preview starts", async () => {
+    const rendered = renderAiWorkspace();
+    await askAi(rendered);
+    act(() => {
+      getFlowProps().onConnect?.({
+        source: "tbl_orders",
+        target: "tbl_users",
+        sourceHandle: formatColumnHandleId("col_orders_user_id", "right"),
+        targetHandle: formatTableHandleId("tbl_users", "left"),
+      });
+    });
+    expect(
+      screen.getByRole("dialog", { name: "Create relation" }),
+    ).toBeDefined();
+
+    await endTurnWithProposal(rendered);
+
+    expect(
+      screen.queryByRole("dialog", { name: "Create relation" }),
+    ).toBeNull();
+  });
+
+  it("keeps an uncommitted field edit when a preview starts", async () => {
+    const rendered = renderAiWorkspace();
+    await askAi(rendered);
+    // Back to the properties panel while the answer is still coming.
+    await rendered.user.click(getAiToggle());
+    await rendered.user.click(getOutlineRow("users"));
+    const field = screen.getByRole("textbox", { name: "Table name" });
+    await rendered.user.click(field);
+    await rendered.user.type(field, "_v2");
+
+    await endTurnWithProposal(rendered);
+
+    // The edit reached the document before the preview locked the field,
+    // and the preview builds on it.
+    expect(queryOutlineRow("users_v2")).not.toBeNull();
+  });
+
+  it("adds no table from the canvas empty state during a preview", async () => {
+    const rendered = renderAiWorkspace(createEmptySchema("Billing"));
+    await askAi(rendered);
+    const { operation } = buildAddEnumOperation(
+      createEmptySchema("Billing"),
+      () => "5f0c1f4e-8a2b-4c3d-9e4f-0a1b2c3d4e5f",
+    );
+    await endTurnWithProposal(rendered, operation);
+
+    const logError = vi.spyOn(logger, "error");
+
+    await rendered.user.click(getEmptyStateAddButton());
+
+    // The lock stops the command itself, so dispatch never logs a missed path.
+    expect(logError).not.toHaveBeenCalledWith(
+      "editor.proposal-locked",
+      expect.anything(),
+    );
+    await rendered.user.click(
+      within(
+        screen.getByRole("region", { name: "Proposal preview" }),
+      ).getByRole("button", { name: "Discard" }),
+    );
+
+    expect(
+      within(getOutline()).queryAllByRole("button", { name: /^table/ }),
+    ).toEqual([]);
+    expect(getEmptyStateAddButton()).toBeDefined();
   });
 });

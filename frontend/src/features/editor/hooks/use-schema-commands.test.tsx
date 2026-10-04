@@ -116,6 +116,25 @@ function findNewTableId(store: EditorStore): string {
 }
 
 describe("useSchemaCommands", () => {
+  it("adds neither a table nor an enum during a preview", () => {
+    const { store, controls, hook } = renderCommands();
+    act(() => {
+      store
+        .getState()
+        .startProposalPreview("message-1", { type: "renameSchema", name: "x" });
+    });
+
+    act(() => {
+      hook.result.current.addTable();
+      hook.result.current.addEnum();
+    });
+
+    const { history, document } = store.getState();
+    expect(history.past).toHaveLength(0);
+    expect(Object.keys(document.tables)).toHaveLength(1);
+    expect(controls.setCenter).not.toHaveBeenCalled();
+  });
+
   it("dispatches one batch when adding a table", () => {
     const { store, hook } = renderCommands();
 

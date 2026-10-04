@@ -10,6 +10,11 @@ export const enAiPanel = {
     "The AI assistant is available to signed-in users. Your schemas keep working without an account.",
   signInLink: "Sign in",
   unavailable: "The AI assistant is not available right now.",
+  messagesLabel: "Conversation",
+  userMessage: "You",
+  assistantMessage: "Assistant",
+  loading: "Loading the AI assistant",
+  loadFailed: "The AI assistant could not load. Reload the page to try again.",
   consent: {
     title: "Before you start",
     body: "The assistant sends your messages and the current schema to Google Gemini. Do not include secrets or personal data in them.",

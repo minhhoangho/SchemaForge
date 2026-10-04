@@ -1,4 +1,4 @@
-import type { SchemaDocument } from "@schemaforge/core";
+import type { Operation, SchemaDocument } from "@schemaforge/core";
 import {
   buildSchema,
   createCounterIdGenerator,
@@ -29,6 +29,7 @@ import { ViewportControlsProvider } from "../../lib/viewport-controls";
 import { createEditorStore } from "../../state/create-editor-store";
 import type { EditorStore } from "../../state/create-editor-store";
 import { EditorStoreProvider } from "../../state/editor-store-provider";
+import { AI_PANEL_TOGGLE_ID } from "../ai-panel/ai-panel-ids";
 import type { CloudStatusBadgeProps } from "./cloud-status-badge";
 import { EditorToolbar } from "./editor-toolbar";
 
@@ -36,6 +37,12 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn<() => void>() }),
   usePathname: () => "/schemas/0b7d4c1e-2f3a-4b5c-8d6e-7f8091a2b3c4",
 }));
+
+const ADD_EMAIL: Operation = {
+  type: "addColumn",
+  column: makeColumn({ id: "col_email", tableId: "tbl_users", name: "email" }),
+  insertAt: 1,
+};
 
 const databases = new Set<SchemaforgeDatabase>();
 
@@ -219,6 +226,40 @@ describe("EditorToolbar", () => {
 
     expect(store.getState().rightPanelMode).toBe("properties");
     expect(button.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("toggles the AI panel and reports aria-pressed", async () => {
+    const { user, store } = renderToolbar();
+    const button = screen.getByRole("button", { name: "AI assistant" });
+    expect(button.id).toBe(AI_PANEL_TOGGLE_ID);
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+
+    await user.click(button);
+
+    expect(store.getState().rightPanelMode).toBe("ai");
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+
+    await user.click(button);
+
+    expect(store.getState().rightPanelMode).toBe("properties");
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("disables add table, add enum, undo and redo during a preview", async () => {
+    const { user, store } = renderToolbar();
+    await user.click(screen.getByRole("button", { name: "Add table" }));
+    await user.click(screen.getByRole("button", { name: "Undo" }));
+    await user.click(screen.getByRole("button", { name: "Redo" }));
+
+    act(() => {
+      store.getState().startProposalPreview("message-1", ADD_EMAIL);
+    });
+
+    expect(
+      ["Add table", "Add enum", "Undo", "Redo"].map((name) =>
+        screen.getByRole("button", { name }).hasAttribute("disabled"),
+      ),
+    ).toEqual([true, true, true, true]);
   });
 
   it("disables undo when there is nothing to undo", () => {

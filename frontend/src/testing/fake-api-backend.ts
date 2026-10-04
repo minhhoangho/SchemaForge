@@ -13,6 +13,9 @@ import type { SchemaDocument } from "@schemaforge/core";
 
 import { isSchemaId } from "@/lib/storage/schema-id";
 
+import { buildAiChatSseResponse } from "./fake-ai-chat";
+import type { FakeAiTurn } from "./fake-ai-chat";
+
 export type RecordedRequest = {
   readonly method: string;
   /** Pathname with its query string, without the origin. */
@@ -48,6 +51,8 @@ export type FakeApiBackend = {
   readonly writeFromOtherDevice: (id: string, document: SchemaDocument) => void;
   readonly deleteFromOtherDevice: (id: string) => void;
   readonly getStoredSchema: (id: string) => StoredCloudSchema | null;
+  /** The next POST /ai/chat answers with this turn; an empty queue fails. */
+  readonly queueAiTurn: (turn: FakeAiTurn) => void;
 };
 
 type StoredUser = {
@@ -72,6 +77,7 @@ type BackendState = {
   isAccessTokenExpired: boolean;
   isOffline: boolean;
   userCount: number;
+  readonly aiTurns: FakeAiTurn[];
 };
 
 type Cursor = { readonly updatedAt: number; readonly id: string };
@@ -372,6 +378,11 @@ function handlePrivate(
   if (method === "GET" && url.pathname === "/auth/me") {
     return userResponse(state.users.get(userId));
   }
+  if (method === "POST" && url.pathname === "/ai/chat") {
+    return buildAiChatSseResponse(
+      state.aiTurns.shift() ?? { text: "", errorCode: "internal-error" },
+    );
+  }
   if (url.pathname === "/schemas") {
     if (method === "GET") {
       return listSchemas(state, url, userId);
@@ -529,6 +540,7 @@ export function createFakeApiBackend(input: {
     isAccessTokenExpired: false,
     isOffline: false,
     userCount: 0,
+    aiTurns: [],
   };
   const requests: RecordedRequest[] = [];
 
@@ -589,6 +601,9 @@ export function createFakeApiBackend(input: {
     },
     deleteFromOtherDevice: (id) => {
       state.schemas.delete(id);
+    },
+    queueAiTurn: (turn) => {
+      state.aiTurns.push(turn);
     },
     getStoredSchema: (id) => {
       const entry = state.schemas.get(id);

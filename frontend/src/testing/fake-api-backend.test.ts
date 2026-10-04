@@ -330,4 +330,45 @@ describe("createFakeApiBackend", () => {
       name: backend.getStoredSchema(SCHEMA_ID)?.document.name,
     }).toEqual({ revision: 2, name: "renamed" });
   });
+
+  it("answers POST /ai/chat with the queued turn", async () => {
+    const backend = createBackend();
+    await signIn(backend);
+    backend.queueAiTurn({ text: "Hello" });
+
+    const response = await send(backend, "POST", "/ai/chat", { messages: [] });
+    const body = await response.text();
+
+    expect({
+      status: response.status,
+      type: response.headers.get("content-type"),
+      hasText: body.includes('"delta":"'),
+      hasFinish: body.includes('"type":"finish"'),
+    }).toEqual({
+      status: 200,
+      type: "text/event-stream",
+      hasText: true,
+      hasFinish: true,
+    });
+  });
+
+  it("answers POST /ai/chat with an error chunk when no turn is queued", async () => {
+    const backend = createBackend();
+    await signIn(backend);
+
+    const response = await send(backend, "POST", "/ai/chat", { messages: [] });
+
+    expect(await response.text()).toContain('"errorText":"internal-error"');
+  });
+
+  it("answers POST /ai/chat with 401 without a session", async () => {
+    const backend = createBackend();
+    backend.queueAiTurn({ text: "Hello" });
+
+    const response = await send(backend, "POST", "/ai/chat", { messages: [] });
+
+    expect({ status: response.status, body: await readJson(response) }).toEqual(
+      { status: 401, body: { statusCode: 401, code: "unauthenticated" } },
+    );
+  });
 });

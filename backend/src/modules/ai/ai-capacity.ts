@@ -5,6 +5,11 @@ import { AI_GLOBAL_BUDGET_WINDOW_SECONDS } from "./ai.constants.js";
 import { AI_GLOBAL_REQUESTS_PER_HOUR } from "./ai-model.provider.js";
 
 const GLOBAL_BUDGET_KEY = "all-users";
+const MS_PER_SECOND = 1000;
+
+export type AiBudgetResult =
+  | { readonly isAllowed: true }
+  | { readonly isAllowed: false; readonly retryAfterSeconds: number };
 
 /**
  * One running AI turn per user (AI-R56) and the global hourly budget that
@@ -17,7 +22,9 @@ export class AiCapacity {
   private readonly streams = new Map<string, symbol>();
   private readonly globalBudget: RateLimiterMemory;
 
-  constructor(@Inject(AI_GLOBAL_REQUESTS_PER_HOUR) budgetPerHour: number) {
+  constructor(
+    @Inject(AI_GLOBAL_REQUESTS_PER_HOUR) private readonly budgetPerHour: number,
+  ) {
     this.globalBudget = new RateLimiterMemory({
       keyPrefix: "ai-global",
       points: budgetPerHour,
@@ -43,17 +50,27 @@ export class AiCapacity {
     };
   }
 
-  /** Spends one point; false once the hourly budget is used up. */
-  async tryConsumeGlobalBudget(): Promise<boolean> {
+  /**
+   * Spends one point. Once the hourly budget is used up, returns the seconds
+   * until the window resets, for `Retry-After` (AI-R55).
+   */
+  async tryConsumeGlobalBudget(): Promise<AiBudgetResult> {
     try {
       await this.globalBudget.consume(GLOBAL_BUDGET_KEY);
-      return true;
+      return { isAllowed: true };
     } catch (error: unknown) {
       if (!(error instanceof RateLimiterRes)) {
         throw error;
       }
-      this.logger.warn("ai.budget.exhausted");
-      return false;
+      // Rejected calls still count, so only the first rejection of a window
+      // has one point over the budget: one log line per window.
+      if (error.consumedPoints === this.budgetPerHour + 1) {
+        this.logger.warn("ai.budget.exhausted");
+      }
+      return {
+        isAllowed: false,
+        retryAfterSeconds: Math.ceil(error.msBeforeNext / MS_PER_SECOND),
+      };
     }
   }
 }

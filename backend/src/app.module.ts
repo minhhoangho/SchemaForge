@@ -8,6 +8,7 @@ import { JwtAuthGuard } from "./common/jwt-auth.guard.js";
 import { OriginGuard } from "./common/origin.guard.js";
 import { createValidationPipe } from "./common/validation.pipe.js";
 import { validate } from "./config/env.js";
+import { AiModule } from "./modules/ai/ai.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { RateLimitGuard } from "./modules/rate-limit/rate-limit.guard.js";
@@ -24,6 +25,7 @@ import { PrismaModule } from "./prisma/prisma.module.js";
     RateLimitModule,
     AuthModule,
     SchemasModule,
+    AiModule,
   ],
   providers: [
     // Guards run in registration order (spec section 8): OriginGuard, then

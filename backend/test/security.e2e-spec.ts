@@ -30,6 +30,7 @@ const PRIVATE_ROUTES: readonly RouteEntry[] = [
   { method: "POST", path: "/schemas" },
   { method: "PUT", path: "/schemas/:id" },
   { method: "DELETE", path: "/schemas/:id" },
+  { method: "POST", path: "/ai/chat" },
 ];
 
 const SCHEMA_ID = "00000000-0000-4000-8000-000000000001";

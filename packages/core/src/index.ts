@@ -33,6 +33,25 @@ export {
   undo,
 } from "./history/history.js";
 export { mergeLastEntry } from "./history/merge-last-entry.js";
+export { IMPORT_DIAGNOSTIC_CODES } from "./importers/shared/import-diagnostic-codes.js";
+export type { ImportDiagnosticCode } from "./importers/shared/import-diagnostic-codes.js";
+export { finalizeImportDiagnostics } from "./importers/shared/import-diagnostics.js";
+export {
+  MAX_IMPORT_SOURCE_LENGTH,
+  MAX_IMPORTED_ELEMENTS,
+} from "./importers/shared/import-limits.js";
+export type {
+  ImportDiagnostic,
+  ImportFailure,
+  ImportFormat,
+  Importer,
+  ImportOptions,
+  ImportResult,
+  ImportSuccess,
+  LayoutMetrics,
+  SourceLocation,
+} from "./importers/shared/import-types.js";
+export { IMPORT_FORMATS } from "./importers/shared/import-types.js";
 export type { Column } from "./model/column.js";
 export type { ColumnDefault } from "./model/column-default.js";
 export type { ColumnType } from "./model/column-type.js";
@@ -75,11 +94,17 @@ export type {
 } from "./model/relation.js";
 export type { IdMap, SchemaDocument } from "./model/schema-document.js";
 export { CURRENT_SCHEMA_VERSION } from "./model/schema-document.js";
+export { serializeSchemaDocument } from "./model/serialize-schema-document.js";
 export type { SubjectArea } from "./model/subject-area.js";
 export type { Index } from "./model/table-index.js";
 export type { Table } from "./model/table.js";
 export { applyOperation } from "./operations/apply-operation.js";
 export type { AppliedOperation } from "./operations/apply-result.js";
+export type {
+  ImportMode,
+  ImportOperationBuild,
+} from "./operations/build-import-operation.js";
+export { buildImportOperation } from "./operations/build-import-operation.js";
 export type { ManyToManyInput } from "./operations/build-many-to-many.js";
 export { buildManyToMany } from "./operations/build-many-to-many.js";
 export type { RelationInput } from "./operations/build-relation.js";

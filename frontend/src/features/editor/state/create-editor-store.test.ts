@@ -15,6 +15,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Logger } from "@/lib/logger";
 import type { Notify } from "@/lib/notify";
 
+import { DEFAULT_ZIP_SELECTION } from "../import-export/zip-selection";
 import { EMPTY_SELECTION } from "../lib/selection";
 import {
   HISTORY_LIMIT,
@@ -424,6 +425,21 @@ describe("code panel state", () => {
       seedRowsPerTable: 50,
       prismaProvider: "postgresql",
     });
+  });
+});
+
+describe("zip selection state", () => {
+  it("keeps the zip selection until the store is dropped", () => {
+    const { store } = createHarness();
+    expect(store.getState().zipSelection).toStrictEqual(DEFAULT_ZIP_SELECTION);
+
+    store.getState().setZipSelection({ ...DEFAULT_ZIP_SELECTION, png: true });
+    store.getState().setSelection({ tableIds: ["tbl_users"], relationIds: [] });
+
+    expect(store.getState().zipSelection.png).toBe(true);
+    expect(createHarness().store.getState().zipSelection).toStrictEqual(
+      DEFAULT_ZIP_SELECTION,
+    );
   });
 });
 

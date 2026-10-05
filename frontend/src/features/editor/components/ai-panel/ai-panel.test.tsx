@@ -1,3 +1,4 @@
+import type { Operation } from "@schemaforge/core";
 import {
   buildSchema,
   createCounterIdGenerator,
@@ -24,23 +25,28 @@ import {
   createControlledAiChatStream,
   jsonResponse,
   openAiChatStreamResponse,
+  proposalChunk,
   textChunks,
 } from "@/testing/ai-chat-stream";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { createFakeLockRegistry } from "@/testing/fake-lock-registry";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
+import { NARROW_VIEWPORT_QUERY } from "../../hooks/use-is-narrow-viewport";
 import type { ViewportControls } from "../../lib/viewport-controls";
 import { ViewportControlsProvider } from "../../lib/viewport-controls";
 import { AiChatStoreProvider } from "../../state/ai-chat-store-provider";
 import { createEditorStore } from "../../state/create-editor-store";
 import { EditorStoreProvider } from "../../state/editor-store-provider";
-import { useEditorStore } from "../../state/use-editor-store";
 import { aiConsentKey } from "./ai-consent";
-import { AiPanel } from "./ai-panel";
-import { AI_PANEL_TOGGLE_ID } from "./ai-panel-ids";
+import { AiLauncher } from "./ai-launcher";
+import { AiWindow } from "./ai-panel-loader";
 
 const EDITOR_PATH = "/schemas/0b7d4c1e-2f3a-4b5c-8d6e-7f8091a2b3c4";
+const WINDOW_ID = "ai-window";
+// The panel is a lazy chunk, so its first render can take a while.
+const LAZY_PANEL_TIMEOUT_MS = 10_000;
+const REMOVE_EMAIL: Operation = { type: "removeColumn", columnId: "col_email" };
 
 vi.mock("next/navigation", () => ({
   usePathname: () => EDITOR_PATH,
@@ -66,6 +72,7 @@ afterEach(() => {
   localStorage.clear();
   // Back to the real hook after the one test that replaces it.
   vi.mocked(authProvider.useAiChatTransport).mockReset();
+  vi.unstubAllGlobals();
 });
 
 function createStorage(): StorageBundle {
@@ -95,22 +102,14 @@ function createControls(): ViewportControls {
   };
 }
 
-// The toolbar toggle and the right column, as the workspace renders them.
+// The launcher and the floating window as the workspace renders them, next
+// to something else on the page (the canvas in the editor).
 function PanelHarness(): JSX.Element {
-  const isOpen = useEditorStore((state) => state.rightPanelMode === "ai");
-  const setRightPanelMode = useEditorStore((state) => state.setRightPanelMode);
   return (
     <>
-      <button
-        id={AI_PANEL_TOGGLE_ID}
-        type="button"
-        onClick={() => {
-          setRightPanelMode(isOpen ? "properties" : "ai");
-        }}
-      >
-        toggle
-      </button>
-      {isOpen && <AiPanel id="ai-panel" />}
+      <button type="button">outside</button>
+      <AiLauncher windowId={WINDOW_ID} />
+      <AiWindow id={WINDOW_ID} />
     </>
   );
 }
@@ -136,7 +135,10 @@ function renderPanel({
     document: buildSchema({
       name: "shop",
       tables: [makeTable({ id: "tbl_users", name: "users" })],
-      columns: [makeColumn({ id: "col_id", tableId: "tbl_users", name: "id" })],
+      columns: [
+        makeColumn({ id: "col_id", tableId: "tbl_users", name: "id" }),
+        makeColumn({ id: "col_email", tableId: "tbl_users", name: "email" }),
+      ],
     }),
     generateId: createCounterIdGenerator(),
     notify: vi.fn<Notify>(),
@@ -168,8 +170,23 @@ function renderPanel({
 type Rendered = ReturnType<typeof renderPanel>;
 
 async function openPanel(rendered: Rendered): Promise<HTMLElement> {
-  await rendered.user.click(screen.getByRole("button", { name: "toggle" }));
-  return screen.getByRole("region", { name: "AI assistant" });
+  await rendered.user.click(
+    screen.getByRole("button", { name: "AI assistant" }),
+  );
+  return screen.findByRole(
+    "dialog",
+    { name: "AI assistant" },
+    { timeout: LAZY_PANEL_TIMEOUT_MS },
+  );
+}
+
+// While the window is open, the launcher and the header's close button share
+// a name; only the launcher reports aria-expanded.
+function getOpenLauncher(): HTMLElement {
+  return screen.getByRole("button", {
+    name: "Close AI assistant",
+    expanded: true,
+  });
 }
 
 async function openChat(rendered: Rendered): Promise<HTMLElement> {
@@ -338,9 +355,9 @@ describe("AiPanel", () => {
       fetchImpl: createAiFetch(() => stream.response),
     });
     const panel = await sendWithButton(rendered);
-    const toggle = screen.getByRole("button", { name: "toggle" });
+    const outside = screen.getByRole("button", { name: "outside" });
     act(() => {
-      toggle.focus();
+      outside.focus();
     });
 
     await act(async () => {
@@ -349,7 +366,7 @@ describe("AiPanel", () => {
     });
     await within(panel).findByText("Done");
 
-    expect(document.activeElement).toBe(toggle);
+    expect(document.activeElement).toBe(outside);
   });
 
   it("keeps focus on the send button as it becomes the stop button", async () => {
@@ -373,7 +390,7 @@ describe("AiPanel", () => {
     );
   });
 
-  it("returns focus to the toolbar button when the panel closes", async () => {
+  it("returns focus to the launcher when the window closes", async () => {
     const rendered = renderPanel();
     const panel = await openChat(rendered);
 
@@ -381,10 +398,210 @@ describe("AiPanel", () => {
       within(panel).getByRole("button", { name: "Close AI assistant" }),
     );
 
-    expect(screen.queryByRole("region", { name: "AI assistant" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "AI assistant" })).toBeNull();
     expect(document.activeElement).toBe(
-      screen.getByRole("button", { name: "toggle" }),
+      screen.getByRole("button", { name: "AI assistant", expanded: false }),
     );
+  });
+
+  it("is a non-modal dialog that the launcher opens, controls and closes", async () => {
+    const rendered = renderPanel();
+    const launcher = screen.getByRole("button", {
+      name: "AI assistant",
+      expanded: false,
+    });
+
+    const panel = await openChat(rendered);
+
+    expect(panel.getAttribute("aria-modal")).toBe("false");
+    expect(getOpenLauncher()).toBe(launcher);
+    expect(launcher.getAttribute("aria-controls")).toBe(panel.id);
+    await rendered.user.click(launcher);
+    expect(screen.queryByRole("dialog", { name: "AI assistant" })).toBeNull();
+    expect(launcher.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("closes on Escape and returns focus to the launcher", async () => {
+    const rendered = renderPanel();
+    await openChat(rendered);
+
+    await rendered.user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog", { name: "AI assistant" })).toBeNull();
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "AI assistant", expanded: false }),
+    );
+  });
+
+  it("keeps the rest of the page usable while it is open", async () => {
+    const rendered = renderPanel();
+    await openChat(rendered);
+
+    await rendered.user.click(screen.getByRole("button", { name: "outside" }));
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "outside" }),
+    );
+    expect(screen.getByRole("dialog", { name: "AI assistant" })).toBeDefined();
+  });
+
+  it("marks the launcher when a reply ends while the window is closed, until it opens", async () => {
+    const stream = createControlledAiChatStream();
+    const rendered = renderPanel({
+      fetchImpl: createAiFetch(() => stream.response),
+    });
+    const panel = await sendWithButton(rendered);
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Close AI assistant" }),
+    );
+
+    await act(async () => {
+      stream.finish(textChunks("Done"));
+      await Promise.resolve();
+    });
+    const launcher = await screen.findByRole("button", {
+      name: "AI assistant, new reply",
+      expanded: false,
+    });
+    await rendered.user.click(launcher);
+
+    const reopened = await screen.findByRole("dialog", {
+      name: "AI assistant",
+    });
+    expect(within(reopened).getByText("Done")).toBeDefined();
+    await rendered.user.click(getOpenLauncher());
+    expect(
+      screen.getByRole("button", { name: "AI assistant", expanded: false }),
+    ).toBe(launcher);
+  });
+
+  it("keeps the draft while minimized and shows only the header", async () => {
+    const rendered = renderPanel();
+    const panel = await openChat(rendered);
+    await rendered.user.type(
+      within(panel).getByRole("textbox", {
+        name: "Message to the AI assistant",
+      }),
+      "A draft",
+    );
+
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Minimize" }),
+    );
+    expect(within(panel).queryByRole("textbox")).toBeNull();
+    expect(
+      within(panel).getByRole("heading", { name: "AI assistant" }),
+    ).toBeDefined();
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Restore" }),
+    );
+
+    expect(
+      within(panel).getByRole("textbox", {
+        name: "Message to the AI assistant",
+      }),
+    ).toHaveProperty("value", "A draft");
+  });
+
+  it("expands and shrinks the window", async () => {
+    const rendered = renderPanel();
+    const panel = await openChat(rendered);
+
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Expand window" }),
+    );
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Shrink window" }),
+    );
+
+    expect(
+      within(panel).getByRole("button", { name: "Expand window" }),
+    ).toBeDefined();
+  });
+
+  it("offers no expand on a narrow screen, where it is a full-screen sheet", async () => {
+    vi.stubGlobal("matchMedia", (media: string) => ({
+      matches: media === NARROW_VIEWPORT_QUERY,
+      media,
+      addEventListener: (): void => undefined,
+      removeEventListener: (): void => undefined,
+    }));
+    const rendered = renderPanel();
+
+    const panel = await openChat(rendered);
+
+    expect(
+      within(panel).queryByRole("button", { name: "Expand window" }),
+    ).toBeNull();
+    expect(
+      within(panel).getByRole("button", { name: "Minimize" }),
+    ).toBeDefined();
+  });
+
+  async function minimizeWithPreview(rendered: Rendered): Promise<HTMLElement> {
+    const panel = await openChat(rendered);
+    await sendMessage(rendered, "Drop the email");
+    await within(panel).findByRole("button", { name: "Accept" });
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Minimize" }),
+    );
+    return panel;
+  }
+
+  it("keeps Accept and Discard of a live preview while minimized", async () => {
+    const rendered = renderPanel({
+      fetchImpl: createAiFetch(() =>
+        aiChatStreamResponse([proposalChunk(REMOVE_EMAIL)]),
+      ),
+    });
+    const panel = await minimizeWithPreview(rendered);
+
+    const actions = within(panel).getByRole("group", {
+      name: "Proposed changes",
+    });
+    await rendered.user.click(
+      within(actions).getByRole("button", { name: "Discard" }),
+    );
+
+    expect(
+      within(panel).queryByRole("group", { name: "Proposed changes" }),
+    ).toBeNull();
+    await waitFor(() => {
+      expect(document.activeElement).toBe(
+        within(panel).getByRole("button", { name: "Restore" }),
+      );
+    });
+  });
+
+  it("confirms a destructive accept while minimized, and Escape there leaves the window open", async () => {
+    const rendered = renderPanel({
+      fetchImpl: createAiFetch(() =>
+        aiChatStreamResponse([proposalChunk(REMOVE_EMAIL)]),
+      ),
+    });
+    const panel = await minimizeWithPreview(rendered);
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Accept" }),
+    );
+    await rendered.user.keyboard("{Escape}");
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(screen.getByRole("dialog", { name: "AI assistant" })).toBe(panel);
+
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Accept" }),
+    );
+    await rendered.user.click(
+      screen.getByRole("button", { name: "Accept and delete" }),
+    );
+
+    expect(
+      within(panel).queryByRole("group", { name: "Proposed changes" }),
+    ).toBeNull();
+    await waitFor(() => {
+      expect(document.activeElement).toBe(
+        within(panel).getByRole("button", { name: "Restore" }),
+      );
+    });
   });
 
   it("starts a new conversation", async () => {
@@ -423,6 +640,10 @@ describe("AiPanel", () => {
     readonly arrange: (rendered: Rendered) => Promise<HTMLElement>;
   };
   const AXE_CASES: Readonly<Record<string, AxeCase>> = {
+    "the closed launcher": {
+      options: {},
+      arrange: () => Promise.resolve(document.body),
+    },
     guest: {
       options: { isSignedIn: false },
       arrange: async (rendered) => {
@@ -481,9 +702,10 @@ describe("AiPanel", () => {
         ...axeCase.options,
         themePreference: theme,
       });
-      const panel = await axeCase.arrange(rendered);
+      await axeCase.arrange(rendered);
 
-      await expectNoAxeViolations(panel);
+      // The whole page: the launcher and the window together.
+      await expectNoAxeViolations(rendered.container);
     },
   );
 });

@@ -1,10 +1,18 @@
 "use client";
 
-import { XIcon } from "lucide-react";
+import {
+  ChevronUpIcon,
+  Maximize2Icon,
+  Minimize2Icon,
+  MinusIcon,
+  SquarePenIcon,
+  XIcon,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { JSX, RefObject } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { JSX, Ref, RefObject } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useAiChatTransport, useAuth } from "@/components/auth-provider";
@@ -16,8 +24,9 @@ import { useEditorStore } from "../../state/use-editor-store";
 import { AiComposer } from "./ai-composer";
 import { AiConsent, readAiConsent } from "./ai-consent";
 import { AiMessageList } from "./ai-message-list";
-import { AI_PANEL_TOGGLE_ID } from "./ai-panel-ids";
+import { AI_LAUNCHER_ID } from "./ai-panel-ids";
 import { AiQuickActions } from "./ai-quick-actions";
+import { MinimizedProposalActions } from "./minimized-proposal-actions";
 import { acceptSafely } from "./proposal-decision";
 
 function GuestInvitation(): JSX.Element {
@@ -178,47 +187,141 @@ function AiPanelBody(): JSX.Element | null {
   }
 }
 
-/**
- * The AI assistant in the right column (AI-R1, AI-R51). The conversation
- * lives in the store above the panel, so closing the panel keeps it.
- */
-export function AiPanel({ id }: { readonly id: string }): JSX.Element {
-  const { t } = useTranslation("ai");
-  const reset = useAiChatStore((state) => state.reset);
-  const setRightPanelMode = useEditorStore((state) => state.setRightPanelMode);
+// Focus goes back to the launcher, which stays while the window leaves.
+function closeWindow(closeAiWindow: () => void): void {
+  closeAiWindow();
+  document.getElementById(AI_LAUNCHER_ID)?.focus();
+}
 
-  function close(): void {
-    setRightPanelMode("properties");
-    // The toggle stays mounted in the toolbar while the panel goes away.
-    document.getElementById(AI_PANEL_TOGGLE_ID)?.focus();
-  }
+type HeaderButtonProps = {
+  readonly label: string;
+  readonly icon: LucideIcon;
+  readonly onClick: () => void;
+  readonly buttonRef?: Ref<HTMLButtonElement>;
+};
+
+// Icon-only, named by aria-label. No tooltip: Escape on it would also close
+// the window.
+function HeaderButton({
+  label,
+  icon: Icon,
+  onClick,
+  buttonRef,
+}: HeaderButtonProps): JSX.Element {
+  return (
+    <Button
+      ref={buttonRef}
+      variant="ghost"
+      size="icon"
+      aria-label={label}
+      onClick={onClick}
+    >
+      <Icon aria-hidden />
+    </Button>
+  );
+}
+
+export type AiPanelProps = {
+  readonly id: string;
+  // Below 640px the window is a full-screen sheet and cannot expand.
+  readonly isNarrow: boolean;
+};
+
+/**
+ * The AI assistant's floating, non-modal window (AI-R1, AI-R51): the canvas
+ * stays usable behind it. Escape closes it and focus returns to the
+ * launcher; the conversation lives in the store above, so closing keeps it.
+ */
+export function AiPanel({ id, isNarrow }: AiPanelProps): JSX.Element {
+  const { t } = useTranslation("ai");
+  const titleId = useId();
+  const minimizeRef = useRef<HTMLButtonElement>(null);
+  const reset = useAiChatStore((state) => state.reset);
+  const isMinimized = useEditorStore((state) => state.aiWindow.isMinimized);
+  const isExpanded = useEditorStore((state) => state.aiWindow.isExpanded);
+  const closeAiWindow = useEditorStore((state) => state.closeAiWindow);
+  const toggleMinimized = useEditorStore(
+    (state) => state.toggleAiWindowMinimized,
+  );
+  const toggleExpanded = useEditorStore(
+    (state) => state.toggleAiWindowExpanded,
+  );
+
+  const sectionRef = useRef<HTMLElement>(null);
+  const close = (): void => {
+    closeWindow(closeAiWindow);
+  };
+
+  // A native listener: keys from a portal opened inside (the confirm dialog,
+  // which handles its own Escape) do not reach it, unlike React's bubbling.
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (section === null) {
+      return;
+    }
+    function handleKeyDown(event: globalThis.KeyboardEvent): void {
+      if (event.key === "Escape" && !event.defaultPrevented) {
+        closeWindow(closeAiWindow);
+      }
+    }
+    section.addEventListener("keydown", handleKeyDown);
+    return () => {
+      section.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closeAiWindow]);
 
   return (
     <section
+      ref={sectionRef}
       id={id}
-      tabIndex={-1}
-      aria-label={t("panel.title")}
-      className="flex h-full min-h-0 w-80 shrink-0 flex-col border-l border-border bg-background outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby={titleId}
+      className="flex size-full min-h-0 flex-col"
     >
       <div className="flex items-center gap-1 border-b border-border py-1 pr-1 pl-3">
-        <h2 className="mr-auto text-sm font-semibold">{t("panel.title")}</h2>
-        <Button variant="ghost" size="sm" onClick={reset}>
-          {t("panel.newConversation")}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={t("panel.close")}
-          onClick={close}
-        >
-          <XIcon aria-hidden />
-        </Button>
+        <h2 id={titleId} className="mr-auto text-sm font-semibold">
+          {t("panel.title")}
+        </h2>
+        <HeaderButton
+          label={t("panel.newConversation")}
+          icon={SquarePenIcon}
+          onClick={reset}
+        />
+        <HeaderButton
+          label={isMinimized ? t("panel.restore") : t("panel.minimize")}
+          icon={isMinimized ? ChevronUpIcon : MinusIcon}
+          onClick={toggleMinimized}
+          buttonRef={minimizeRef}
+        />
+        {!isNarrow && (
+          <HeaderButton
+            label={isExpanded ? t("panel.shrink") : t("panel.expand")}
+            icon={isExpanded ? Minimize2Icon : Maximize2Icon}
+            onClick={toggleExpanded}
+          />
+        )}
+        <HeaderButton label={t("panel.close")} icon={XIcon} onClick={close} />
       </div>
-      <p className="border-b border-border px-3 py-2 text-xs text-muted-foreground">
-        {t("panel.dataNotice")}
-      </p>
-      <div className="flex min-h-0 flex-1 flex-col">
-        <AiPanelBody />
+      {isMinimized && (
+        <MinimizedProposalActions
+          onDecided={() => {
+            // A task later, as in focusProposalCard: the confirm dialog's
+            // focus trap would pull focus back while it is still mounted.
+            window.setTimeout(() => {
+              minimizeRef.current?.focus();
+            }, 0);
+          }}
+        />
+      )}
+      {/* Hidden, not unmounted, while minimized, so the draft stays. */}
+      <div hidden={isMinimized} className="flex min-h-0 flex-1 flex-col">
+        <p className="border-b border-border px-3 py-2 text-xs text-muted-foreground">
+          {t("panel.dataNotice")}
+        </p>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <AiPanelBody />
+        </div>
       </div>
     </section>
   );

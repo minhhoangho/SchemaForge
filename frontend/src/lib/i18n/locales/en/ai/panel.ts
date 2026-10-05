@@ -2,6 +2,11 @@ export const enAiPanel = {
   title: "AI assistant",
   toggle: "AI assistant",
   close: "Close AI assistant",
+  unreadReply: "AI assistant, new reply",
+  minimize: "Minimize",
+  restore: "Restore",
+  expand: "Expand window",
+  shrink: "Shrink window",
   newConversation: "New conversation",
   dataNotice:
     "Your messages and this schema are sent to Google Gemini to generate answers. SchemaForge does not store the conversation.",

@@ -130,7 +130,13 @@ async function openAssistant(): Promise<{
   );
   environment.setAuthHint(true);
   const { user } = environment.mountEditor(schemaId);
-  await user.click(await screen.findByRole("button", { name: "AI assistant" }));
+  // The launcher over the canvas.
+  await user.click(
+    await screen.findByRole("button", {
+      name: "AI assistant",
+      expanded: false,
+    }),
+  );
   await user.click(
     // The panel is a lazy chunk, so its first render can take a while.
     await screen.findByRole(

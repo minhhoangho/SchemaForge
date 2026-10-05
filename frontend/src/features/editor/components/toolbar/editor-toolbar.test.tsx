@@ -29,7 +29,6 @@ import { ViewportControlsProvider } from "../../lib/viewport-controls";
 import { createEditorStore } from "../../state/create-editor-store";
 import type { EditorStore } from "../../state/create-editor-store";
 import { EditorStoreProvider } from "../../state/editor-store-provider";
-import { AI_PANEL_TOGGLE_ID } from "../ai-panel/ai-panel-ids";
 import type { CloudStatusBadgeProps } from "./cloud-status-badge";
 import { EditorToolbar } from "./editor-toolbar";
 
@@ -228,21 +227,10 @@ describe("EditorToolbar", () => {
     expect(button.getAttribute("aria-pressed")).toBe("false");
   });
 
-  it("toggles the AI panel and reports aria-pressed", async () => {
-    const { user, store } = renderToolbar();
-    const button = screen.getByRole("button", { name: "AI assistant" });
-    expect(button.id).toBe(AI_PANEL_TOGGLE_ID);
-    expect(button.getAttribute("aria-pressed")).toBe("false");
+  it("has no AI assistant button, the canvas launcher opens it", () => {
+    renderToolbar();
 
-    await user.click(button);
-
-    expect(store.getState().rightPanelMode).toBe("ai");
-    expect(button.getAttribute("aria-pressed")).toBe("true");
-
-    await user.click(button);
-
-    expect(store.getState().rightPanelMode).toBe("properties");
-    expect(button.getAttribute("aria-pressed")).toBe("false");
+    expect(screen.queryByRole("button", { name: "AI assistant" })).toBeNull();
   });
 
   it("disables add table, add enum, undo and redo during a preview", async () => {

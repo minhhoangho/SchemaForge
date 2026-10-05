@@ -628,12 +628,68 @@ describe("proposal preview", () => {
     expect(selectDiffMark(store.getState(), "col_email")).toBe("added");
     expect(selectDiffMark(store.getState(), "tbl_users")).toBeNull();
   });
+});
 
-  it("switches the right panel to ai mode", () => {
+describe("AI window state", () => {
+  it("starts closed, not minimized, not expanded and without an unread reply", () => {
     const { store } = createHarness();
 
-    store.getState().setRightPanelMode("ai");
+    expect(store.getState().aiWindow).toEqual({
+      isOpen: false,
+      isMinimized: false,
+      isExpanded: false,
+      hasUnreadReply: false,
+    });
+  });
 
-    expect(store.getState().rightPanelMode).toBe("ai");
+  it("marks a reply unread only while the window is closed", () => {
+    const { store } = createHarness();
+
+    store.getState().markAiReplyUnread();
+    expect(store.getState().aiWindow.hasUnreadReply).toBe(true);
+
+    store.getState().openAiWindow();
+    expect(store.getState().aiWindow).toMatchObject({
+      isOpen: true,
+      hasUnreadReply: false,
+    });
+
+    store.getState().markAiReplyUnread();
+    expect(store.getState().aiWindow.hasUnreadReply).toBe(false);
+  });
+
+  it("toggles minimized and expanded", () => {
+    const { store } = createHarness();
+    store.getState().openAiWindow();
+
+    store.getState().toggleAiWindowMinimized();
+    store.getState().toggleAiWindowExpanded();
+    expect(store.getState().aiWindow).toMatchObject({
+      isMinimized: true,
+      isExpanded: true,
+    });
+
+    store.getState().toggleAiWindowMinimized();
+    store.getState().toggleAiWindowExpanded();
+    expect(store.getState().aiWindow).toMatchObject({
+      isMinimized: false,
+      isExpanded: false,
+    });
+  });
+
+  it("opens the whole window again after closing it minimized, keeping its size", () => {
+    const { store } = createHarness();
+    store.getState().openAiWindow();
+    store.getState().toggleAiWindowExpanded();
+    store.getState().toggleAiWindowMinimized();
+
+    store.getState().closeAiWindow();
+    store.getState().openAiWindow();
+
+    expect(store.getState().aiWindow).toMatchObject({
+      isOpen: true,
+      isMinimized: false,
+      isExpanded: true,
+    });
   });
 });

@@ -45,10 +45,8 @@ import {
 } from "../state/create-editor-store";
 import { EditorStoreProvider } from "../state/editor-store-provider";
 import { useEditorStore, useEditorStoreApi } from "../state/use-editor-store";
-import {
-  AiPanelLoader,
-  ProposalPreviewBarLoader,
-} from "./ai-panel/ai-panel-loader";
+import { AiLauncher } from "./ai-panel/ai-launcher";
+import { AiWindow, ProposalPreviewBarLoader } from "./ai-panel/ai-panel-loader";
 import { EditorCanvas } from "./canvas/editor-canvas";
 import { EditorFlowProvider } from "./canvas/editor-flow-provider";
 import { ConflictDialog } from "./dialogs/conflict-dialog";
@@ -359,6 +357,7 @@ function WorkspaceLayout({
   const commitOnPreview = { [AI_COMMIT_ON_PREVIEW_ATTRIBUTE]: "" };
   const leftPanelId = useId();
   const propertiesPanelId = useId();
+  const aiWindowId = useId();
   const defaultViewport =
     viewport === null
       ? null
@@ -399,17 +398,20 @@ function WorkspaceLayout({
             leftPanelId={leftPanelId}
           />
           {isPreviewing && <ProposalPreviewBarLoader />}
-          <div className="min-h-0 flex-1">
+          {/* The AI launcher and window float over the canvas, which stays
+              usable around them (AI chat floating mockup). */}
+          <div className="relative min-h-0 flex-1">
             <EditorCanvas
               defaultViewport={defaultViewport}
               onMoveEnd={onMoveEnd}
               onAddTable={addTable}
               onConnect={dialog.openFromConnection}
             />
+            <AiLauncher windowId={aiWindowId} />
+            <AiWindow id={aiWindowId} />
           </div>
         </main>
         {rightPanelMode === "code" && <CodePanel id={propertiesPanelId} />}
-        {rightPanelMode === "ai" && <AiPanelLoader id={propertiesPanelId} />}
         {rightPanelMode === "properties" && (
           <div className="contents" inert={isPreviewing} {...commitOnPreview}>
             <PropertiesPanel

@@ -46,7 +46,23 @@ export type SaveStatus =
 
 export type LeftPanelTab = "tables" | "enums" | "issues";
 
-export type RightPanelMode = "properties" | "code" | "ai";
+export type RightPanelMode = "properties" | "code";
+
+// The floating AI window over the canvas. Not persisted, like the right panel.
+export type AiWindowState = {
+  readonly isOpen: boolean;
+  readonly isMinimized: boolean;
+  readonly isExpanded: boolean;
+  // A turn ended while the window was closed; cleared when it opens.
+  readonly hasUnreadReply: boolean;
+};
+
+const CLOSED_AI_WINDOW: AiWindowState = {
+  isOpen: false,
+  isMinimized: false,
+  isExpanded: false,
+  hasUnreadReply: false,
+};
 
 export type DiffMark = "added" | "changed" | "removed";
 
@@ -82,6 +98,7 @@ export type EditorState = {
   // Not persisted: a reloaded page opens on the properties panel (code
   // generators spec, section 8).
   readonly rightPanelMode: RightPanelMode;
+  readonly aiWindow: AiWindowState;
   readonly codeTarget: CodeTarget;
   readonly codeOptions: CodeOptions;
   readonly proposal: ProposalPreview | null;
@@ -101,6 +118,11 @@ export type EditorActions = {
   readonly setSaveStatus: (status: SaveStatus) => void;
   readonly replaceDocument: (document: SchemaDocument) => void;
   readonly setRightPanelMode: (mode: RightPanelMode) => void;
+  readonly openAiWindow: () => void;
+  readonly closeAiWindow: () => void;
+  readonly toggleAiWindowMinimized: () => void;
+  readonly toggleAiWindowExpanded: () => void;
+  readonly markAiReplyUnread: () => void;
   readonly setCodeTarget: (target: CodeTarget) => void;
   readonly updateCodeOptions: (patch: Partial<CodeOptions>) => void;
   readonly startProposalPreview: (
@@ -216,6 +238,41 @@ function createHistoryStep(
   };
 }
 
+type AiWindowActions = Pick<
+  EditorActions,
+  | "openAiWindow"
+  | "closeAiWindow"
+  | "toggleAiWindowMinimized"
+  | "toggleAiWindowExpanded"
+  | "markAiReplyUnread"
+>;
+
+function createAiWindowActions(set: SetState, get: GetState): AiWindowActions {
+  const update = (patch: Partial<AiWindowState>): void => {
+    set({ aiWindow: { ...get().aiWindow, ...patch } });
+  };
+  return {
+    openAiWindow: () => {
+      update({ isOpen: true, hasUnreadReply: false });
+    },
+    // Opening again shows the whole window, not a leftover minimized bar.
+    closeAiWindow: () => {
+      update({ isOpen: false, isMinimized: false });
+    },
+    toggleAiWindowMinimized: () => {
+      update({ isMinimized: !get().aiWindow.isMinimized });
+    },
+    toggleAiWindowExpanded: () => {
+      update({ isExpanded: !get().aiWindow.isExpanded });
+    },
+    markAiReplyUnread: () => {
+      if (!get().aiWindow.isOpen) {
+        update({ hasUnreadReply: true });
+      }
+    },
+  };
+}
+
 /**
  * Creates the store of one open schema. `dispatch` is the only way to change
  * the document. `input.generateId` stays out of the state: new ids come from
@@ -233,6 +290,7 @@ export function createEditorStore(input: CreateEditorStoreInput): EditorStore {
     saveStatus: { kind: "saved" },
     coalesceKey: null,
     rightPanelMode: "properties",
+    aiWindow: CLOSED_AI_WINDOW,
     codeTarget: "sql",
     codeOptions: DEFAULT_CODE_OPTIONS,
     proposal: null,
@@ -257,6 +315,7 @@ export function createEditorStore(input: CreateEditorStoreInput): EditorStore {
     setRightPanelMode: (rightPanelMode) => {
       set({ rightPanelMode });
     },
+    ...createAiWindowActions(set, get),
     setCodeTarget: (codeTarget) => {
       set({ codeTarget });
     },

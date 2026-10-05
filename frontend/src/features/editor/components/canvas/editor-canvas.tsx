@@ -181,7 +181,9 @@ export function EditorCanvas({
         fitView={defaultViewport === null}
         fitViewOptions={FIT_VIEW_OPTIONS}
       >
+        {/* Bottom left: the AI launcher and window take the bottom right. */}
         <MiniMap<TableFlowNode>
+          position="bottom-left"
           pannable
           zoomable
           nodeColor={(node) => getTableAccentColor(node.data.tableId)}

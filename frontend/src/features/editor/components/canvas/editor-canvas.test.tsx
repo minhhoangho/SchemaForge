@@ -327,6 +327,19 @@ afterEach(() => {
 });
 
 describe("EditorCanvas", () => {
+  it("puts the minimap bottom left, clear of the AI launcher", () => {
+    renderCanvas(createTestStore(createDocument()));
+
+    // React Flow exposes the corner only as panel position classes.
+    const panel = screen
+      .getByRole("img", { name: "Mini map" })
+      .closest(".react-flow__panel");
+    expect([
+      panel?.classList.contains("bottom"),
+      panel?.classList.contains("left"),
+    ]).toEqual([true, true]);
+  });
+
   it("renders one node per table", () => {
     renderCanvas(createTestStore(createDocument()));
 

@@ -1197,13 +1197,13 @@ describe("EditorWorkspace with the AI assistant", () => {
     return { ...rendered, stream };
   }
 
-  function getAiToggle(): HTMLElement {
+  function getAiLauncher(): HTMLElement {
     return screen.getByRole("button", { name: "AI assistant" });
   }
 
   // Sends a message; the turn stays open until `endTurnWithProposal`.
   async function askAi({ user }: AiWorkspace): Promise<void> {
-    await user.click(getAiToggle());
+    await user.click(getAiLauncher());
     const composer = await screen.findByRole("textbox", {
       name: "Message to the AI assistant",
     });
@@ -1225,27 +1225,23 @@ describe("EditorWorkspace with the AI assistant", () => {
     return element.closest("[inert]") !== null;
   }
 
-  it("shows the AI panel in the right column in ai mode", async () => {
+  it("opens the AI window over the canvas and keeps the properties panel", async () => {
     const { user } = renderShop();
     await user.click(getOutlineRow("users"));
+    const launcher = getAiLauncher();
 
-    await user.click(getAiToggle());
+    await user.click(launcher);
 
+    const aiWindow = await screen.findByRole("dialog", {
+      name: "AI assistant",
+    });
+    expect([
+      getCanvasRegion().contains(launcher),
+      getCanvasRegion().contains(aiWindow),
+    ]).toEqual([true, true]);
     expect(
-      await screen.findByRole("region", { name: "AI assistant" }),
+      screen.getByRole("complementary", { name: "Properties" }),
     ).toBeDefined();
-    expect(
-      screen.queryByRole("complementary", { name: "Properties" }),
-    ).toBeNull();
-  });
-
-  it("keeps the canvas visible below lg in ai mode", async () => {
-    const { user } = renderShop();
-
-    await user.click(getAiToggle());
-    await screen.findByRole("region", { name: "AI assistant" });
-
-    expect(getCanvasRegion().className).not.toContain("max-lg:hidden");
   });
 
   it("marks the left and properties panels to commit on preview", async () => {
@@ -1282,8 +1278,6 @@ describe("EditorWorkspace with the AI assistant", () => {
     await askAi(rendered);
     await endTurnWithProposal(rendered);
 
-    await rendered.user.click(getAiToggle());
-
     expect([
       isInert(getOutline()),
       isInert(
@@ -1317,8 +1311,8 @@ describe("EditorWorkspace with the AI assistant", () => {
   it("keeps an uncommitted field edit when a preview starts", async () => {
     const rendered = renderAiWorkspace();
     await askAi(rendered);
-    // Back to the properties panel while the answer is still coming.
-    await rendered.user.click(getAiToggle());
+    // To the properties panel, beside the open window, while the answer is
+    // still coming.
     await rendered.user.click(getOutlineRow("users"));
     const field = screen.getByRole("textbox", { name: "Table name" });
     await rendered.user.click(field);

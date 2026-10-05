@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { logger } from "@/lib/logger";
 
-import { AI_PANEL_TOGGLE_ID } from "./ai-panel-ids";
+import { AI_LAUNCHER_ID } from "./ai-panel-ids";
 import { aiProposalCardId } from "./ai-proposal-card";
 import { acceptSafely, focusProposalCard } from "./proposal-decision";
 
@@ -38,7 +38,7 @@ describe("focusProposalCard", () => {
   it("focuses the card a task later", () => {
     vi.useFakeTimers();
     const card = addFocusable(aiProposalCardId("message-1"));
-    addFocusable(AI_PANEL_TOGGLE_ID);
+    addFocusable(AI_LAUNCHER_ID);
 
     focusProposalCard("message-1");
     vi.runAllTimers();
@@ -46,13 +46,28 @@ describe("focusProposalCard", () => {
     expect(document.activeElement).toBe(card);
   });
 
-  it("falls back to the AI toggle when the card is not on screen", () => {
+  it("falls back to the AI launcher when the card is not on screen", () => {
     vi.useFakeTimers();
-    const toggle = addFocusable(AI_PANEL_TOGGLE_ID);
+    const launcher = addFocusable(AI_LAUNCHER_ID);
 
     focusProposalCard("message-1");
     vi.runAllTimers();
 
-    expect(document.activeElement).toBe(toggle);
+    expect(document.activeElement).toBe(launcher);
+  });
+
+  it("falls back to the AI launcher when the card is in a hidden part of a minimized window", () => {
+    vi.useFakeTimers();
+    const hiddenPart = document.createElement("div");
+    hiddenPart.hidden = true;
+    document.body.append(hiddenPart);
+    const card = addFocusable(aiProposalCardId("message-1"));
+    hiddenPart.append(card);
+    const launcher = addFocusable(AI_LAUNCHER_ID);
+
+    focusProposalCard("message-1");
+    vi.runAllTimers();
+
+    expect(document.activeElement).toBe(launcher);
   });
 });

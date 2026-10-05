@@ -42,7 +42,7 @@ import { EditorStoreProvider } from "../../state/editor-store-provider";
 import { useEditorStore } from "../../state/use-editor-store";
 import { buildAddTableOperation } from "../../lib/build-add-table-operation";
 import { AiMessageList } from "./ai-message-list";
-import { AI_PANEL_TOGGLE_ID } from "./ai-panel-ids";
+import { AI_LAUNCHER_ID } from "./ai-panel-ids";
 import { ProposalPreviewBar } from "./proposal-preview-bar";
 
 const USERS_POSITION = { x: 120, y: 80 };
@@ -111,7 +111,7 @@ function Harness({ captured, isPanelOpen }: HarnessProps): JSX.Element {
   const isPreviewing = useEditorStore(selectIsPreviewing);
   return (
     <>
-      <button id={AI_PANEL_TOGGLE_ID} type="button">
+      <button id={AI_LAUNCHER_ID} type="button">
         toggle
       </button>
       {isPreviewing && <ProposalPreviewBar />}
@@ -300,7 +300,7 @@ describe("ProposalPreviewBar", () => {
     );
   });
 
-  it("focuses the AI toggle after a decision while the panel is closed", async () => {
+  it("focuses the AI launcher after a decision while the panel is closed", async () => {
     const { user } = await renderPreview(ADD_PHONE, { isPanelOpen: false });
 
     await user.click(within(getBar()).getByRole("button", { name: "Discard" }));

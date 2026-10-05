@@ -5,6 +5,11 @@ export const viAiPanel = {
   title: "Trợ lý AI",
   toggle: "Trợ lý AI",
   close: "Đóng trợ lý AI",
+  unreadReply: "Trợ lý AI, có phản hồi mới",
+  minimize: "Thu nhỏ",
+  restore: "Khôi phục",
+  expand: "Mở rộng cửa sổ",
+  shrink: "Thu gọn cửa sổ",
   newConversation: "Cuộc trò chuyện mới",
   dataNotice:
     "Tin nhắn và schema này được gửi tới Google Gemini để tạo câu trả lời. SchemaForge không lưu cuộc trò chuyện.",

@@ -6,7 +6,6 @@ import {
   MaximizeIcon,
   PlusIcon,
   Redo2Icon,
-  SparklesIcon,
   Undo2Icon,
   ZoomInIcon,
   ZoomOutIcon,
@@ -31,7 +30,6 @@ import { useSchemaCommands } from "../../hooks/use-schema-commands";
 import { useViewportControls } from "../../lib/viewport-controls";
 import { selectIsPreviewing } from "../../state/create-editor-store";
 import { useEditorStore } from "../../state/use-editor-store";
-import { AI_PANEL_TOGGLE_ID } from "../ai-panel/ai-panel-ids";
 import { CloudStatusBadge } from "./cloud-status-badge";
 import type { CloudStatusBadgeProps } from "./cloud-status-badge";
 import { IssueCountButton } from "./issue-count-button";
@@ -173,29 +171,6 @@ function CodeToggleButton(): JSX.Element {
   );
 }
 
-// Same shape as the code toggle; the id lets the AI panel return focus here
-// when it closes without importing the toolbar (AI plan, issue 33).
-function AiToggleButton(): JSX.Element {
-  const { t } = useTranslation("ai");
-  const isAiMode = useEditorStore((state) => state.rightPanelMode === "ai");
-  const setRightPanelMode = useEditorStore((state) => state.setRightPanelMode);
-
-  return (
-    <Button
-      id={AI_PANEL_TOGGLE_ID}
-      variant={isAiMode ? "secondary" : "ghost"}
-      aria-pressed={isAiMode}
-      className="shrink-0"
-      onClick={() => {
-        setRightPanelMode(isAiMode ? "properties" : "ai");
-      }}
-    >
-      <SparklesIcon aria-hidden />
-      {t("panel.toggle")}
-    </Button>
-  );
-}
-
 function BackToListLink(): JSX.Element {
   const { t } = useTranslation("editor");
   const label = t("toolbar.backToList");
@@ -263,7 +238,6 @@ export function EditorToolbar({
       <ToolbarSeparator />
       <IssueCountButton />
       <CodeToggleButton />
-      <AiToggleButton />
       <SyncStatusSlot onRetrySave={onRetrySave} cloud={cloud} />
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <AccountMenu />

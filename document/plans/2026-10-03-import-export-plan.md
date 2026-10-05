@@ -517,7 +517,7 @@ export function parseDbmlWithDbmlCore(source: string): CoreParseResult<CoreDatab
 
 **Test viết trước** (`dbml-core-adapter.test.ts`): `maps a sql syntax error at the start of a line to column 1` (`it.each` ba dialect); `maps a dbml syntax error at the start of a line to column 1`; `returns parse-failed when the parser throws something without diagnostics` (gọi với input gây ném lỗi không có `diags` theo probe; nếu không tìm được input như vậy thì test hàm chuyển lỗi nội bộ qua đầu vào là object lỗi, và ghi lý do vào log); `narrows a parsed table with fields, indexes and tokens`; `narrows a dbml project, table group and note`.
 
-**Kiểm tra:** như "Quy ước chung" (core). `pnpm --filter @schemaforge/core lint` không có lỗi ranh giới; `pnpm --filter @schemaforge/core build` rồi `grep -rl "@dbml/core" packages/core/dist --include=*.js` chỉ in `packages/core/dist/importers/shared/dbml-core-adapter.js`.
+**Kiểm tra:** như "Quy ước chung" (core). `pnpm --filter @schemaforge/core lint` không có lỗi ranh giới; `pnpm --filter @schemaforge/core build` rồi `grep -rlE "from ['\"]@dbml/core|import\(['\"]@dbml/core" packages/core/dist --include='*.js'` (chỉ tìm câu import, vì `tsc` giữ comment nhắc tới thư viện) chỉ in `packages/core/dist/importers/shared/dbml-core-adapter.js`.
 
 **Review:** sau khi orchestrator kiểm tra, `ecc:security-reviewer` review riêng task này (chỉ review, không sửa file): adapter bắt mọi ngoại lệ của parser với input bất kỳ, không lộ type `any` ra ngoài.
 
@@ -735,7 +735,7 @@ export function readSqlIndexDefinition(statement: SqlStatement): SqlIndexDefinit
 - `import-sql.test.ts`: `reports each unsupported statement kind at its position` (`it.each`); `reports add column on postgresql and mysql and add unique on mysql as statement-not-supported`; `reports data statements once at the first one`; `skips drop and session statements silently`; `keeps parser positions after masking statements`; `reads an identity added through alter table in a pg_dump fixture`; `splits sql server identity from the type and reports identity-options-dropped for other seeds`; `reads sql server descriptions as comments`; `imports the pg_dump fixture`, `imports the mysqldump fixture`, `imports the ssms fixture` (so với `…_EXPECTED`, diagnostic `toStrictEqual` với `createImportTestOptions()`); `reports a syntax error with line and column`; `reports source-too-large`; `reports too-many-elements`; mỗi mã SQL của bảng Task 2 có ít nhất một test kiểm tra `code`, `location`, `path`.
 - `import-sql.roundtrip.test.ts`: với `d` trong ba dialect và `S` trong `createSampleSchema()`, `createNamingEdgeSchema()`, `createTargetLimitSchema()`: `generate_d(import_d(generate_d(S)).document)` bằng đúng `generate_d(S)`; danh sách mã diagnostic khớp danh sách kỳ vọng ghi trong test (ví dụ `check-converted-to-enum` với SQL Server) (spec mục 15 "Round-trip").
 
-**Kiểm tra:** như "Quy ước chung" (core). Sau `pnpm --filter @schemaforge/core build`: `grep -rl "@dbml/core" packages/core/dist --include=*.js` chỉ in `packages/core/dist/importers/shared/dbml-core-adapter.js`; `grep -l "dbml-core-adapter" packages/core/dist/index.js packages/core/dist/importers/json/*.js` không in gì.
+**Kiểm tra:** như "Quy ước chung" (core). Sau `pnpm --filter @schemaforge/core build`: `grep -rlE "from ['\"]@dbml/core|import\(['\"]@dbml/core" packages/core/dist --include='*.js'` (chỉ tìm câu import, vì `tsc` giữ comment nhắc tới thư viện) chỉ in `packages/core/dist/importers/shared/dbml-core-adapter.js`; `grep -l "dbml-core-adapter" packages/core/dist/index.js packages/core/dist/importers/json/*.js` không in gì.
 
 **Commit:** `feat(core): add sql importer for postgresql, mysql and sql server`
 
@@ -1299,7 +1299,7 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm build
 pnpm format:check
 pnpm --filter @schemaforge/core bench
 docker info >/dev/null && pnpm --filter @schemaforge/codegen-conformance exec vitest run --exclude src/sqlserver.test.ts --exclude src/probes/sqlserver.probe.test.ts -t '^(?!.*sql server).*$'
-grep -rl "@dbml/core" packages/core/dist --include=*.js
+grep -rlE "from ['\"]@dbml/core|import\(['\"]@dbml/core" packages/core/dist --include='*.js'
 git status --porcelain
 ```
 

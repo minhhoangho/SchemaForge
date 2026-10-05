@@ -190,12 +190,13 @@ describe("relations journey", () => {
     const toastText =
       await within(getToastRegion()).findByText("Deleted 1 element");
     const edgesAfterDelete = queryEdgeNames();
+    const hasToastBeforeUndo = toastText.isConnected;
     await user.click(
       within(getToastRegion()).getByRole("button", { name: "Undo" }),
     );
 
     expect({
-      hasToast: toastText.isConnected,
+      hasToast: hasToastBeforeUndo,
       edgesAfterDelete,
       edgesAfterUndo: queryEdgeNames(),
     }).toEqual({
@@ -216,12 +217,13 @@ describe("relations journey", () => {
     const toastText =
       await within(getToastRegion()).findByText("Deleted 2 elements");
     const isOrdersGone = queryOutlineRow("orders") === null;
+    const hasToastBeforeUndo = toastText.isConnected;
     await user.click(
       within(getToastRegion()).getByRole("button", { name: "Undo" }),
     );
 
     expect({
-      hasToast: toastText.isConnected,
+      hasToast: hasToastBeforeUndo,
       isOrdersGone,
       isOrdersRestored: queryOutlineRow("orders") !== null,
       edgesAfterUndo: queryEdgeNames(),

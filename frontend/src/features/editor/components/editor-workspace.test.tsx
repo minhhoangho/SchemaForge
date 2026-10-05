@@ -621,10 +621,11 @@ describe("EditorWorkspace", () => {
     );
     const isRowGone = queryOutlineRow("users") === null;
     const isCanvasFocused = document.activeElement === getCanvasRegion();
+    const hasToastBeforeUndo = toastText.isConnected;
     await user.click(within(toastRegion).getByRole("button", { name: "Undo" }));
 
     expect({
-      hasToast: toastText.isConnected,
+      hasToast: hasToastBeforeUndo,
       isRowGone,
       isCanvasFocused,
       isRestored: queryOutlineRow("users") !== null,

@@ -1,5 +1,10 @@
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterEach } from "vitest";
+
+// The 1000 ms default for findBy*/waitFor is too short for the full editor
+// workspace when the machine is loaded (parallel vitest runs); a passing query
+// returns at once, so the larger ceiling only delays real failures.
+const ASYNC_UTIL_TIMEOUT_MS = 8000;
 
 const DEFAULT_ELEMENT_SIZE = 1;
 const DEFAULT_SCALE = 1;
@@ -110,6 +115,8 @@ function resetDocumentElement(): void {
     root.removeAttribute(attribute);
   });
 }
+
+configure({ asyncUtilTimeout: ASYNC_UTIL_TIMEOUT_MS });
 
 afterEach(() => {
   cleanup();

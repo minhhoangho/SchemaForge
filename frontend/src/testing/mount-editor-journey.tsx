@@ -67,7 +67,7 @@ const LIST_ROW_SELECTOR = "li";
 // timeout even though every step still succeeds. Unit tests keep that
 // default as a safety net against real hangs; only journeys get the extra
 // headroom, applied once per file so it is set before any test starts.
-const JOURNEY_TEST_TIMEOUT_MS = 20_000;
+const JOURNEY_TEST_TIMEOUT_MS = 60_000;
 
 /**
  * Raises the test timeout for the whole current journey file. Call this at

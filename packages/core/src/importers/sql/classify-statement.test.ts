@@ -28,8 +28,8 @@ describe("classifyStatement", () => {
       "postgresql",
       "ALTER TABLE ONLY public.t ADD CONSTRAINT t_pkey PRIMARY KEY (id)",
     ],
-    ["postgresql", "ALTER TABLE IF EXISTS t ADD COLUMN a int"],
-    ["mysql", "ALTER TABLE `t` ADD UNIQUE KEY `u` (`a`)"],
+    ["postgresql", "ALTER TABLE IF EXISTS t ADD CONSTRAINT u UNIQUE (a, b)"],
+    ["mysql", "ALTER TABLE `t` ADD KEY `k` (`a`)"],
     [
       "sqlserver",
       "ALTER TABLE [dbo].[t] WITH CHECK ADD CONSTRAINT [fk] FOREIGN KEY([a]) REFERENCES [dbo].[u] ([id])",
@@ -39,6 +39,73 @@ describe("classifyStatement", () => {
     ["postgresql", "COMMENT ON COLUMN public.t.a IS 'x'"],
   ])(
     "classifies a structure statement the parser reads in %s: %s",
+    (dialect, source) => {
+      expect(classify(source, dialect)).toStrictEqual(["parser"]);
+    },
+  );
+
+  it.each<Case>([
+    ["postgresql", "ALTER TABLE t ADD COLUMN c int"],
+    ["postgresql", "ALTER TABLE t ADD c int"],
+    ["postgresql", "ALTER TABLE t ADD COLUMN IF NOT EXISTS c int"],
+    ["postgresql", 'ALTER TABLE IF EXISTS ONLY public.t ADD "c" int'],
+    ["mysql", "ALTER TABLE `t` ADD COLUMN c int"],
+    ["mysql", "ALTER TABLE `t` ADD c int"],
+    ["mysql", "ALTER TABLE `t` ADD COLUMN IF NOT EXISTS c int"],
+    ["mysql", "ALTER TABLE `t` ADD (`c` int, `d` int)"],
+  ])(
+    "classifies add column on postgresql and mysql as unsupported in %s: %s",
+    (dialect, source) => {
+      expect(classify(source, dialect)).toStrictEqual(["unsupported"]);
+    },
+  );
+
+  it.each<Case>([
+    ["sqlserver", "ALTER TABLE [dbo].[t] ADD [c] int NULL"],
+    ["sqlserver", "ALTER TABLE [dbo].[t] ADD c int"],
+  ])("keeps add column on sql server for the parser: %s", (dialect, source) => {
+    expect(classify(source, dialect)).toStrictEqual(["parser"]);
+  });
+
+  it.each<Case>([
+    ["mysql", "ALTER TABLE `t` ADD UNIQUE (c)"],
+    ["mysql", "ALTER TABLE `t` ADD UNIQUE KEY k (c)"],
+    ["mysql", "ALTER TABLE `t` ADD CONSTRAINT u UNIQUE (c)"],
+    ["mysql", "ALTER TABLE `t` ADD CONSTRAINT UNIQUE (c)"],
+  ])("classifies a mysql add unique as unsupported: %s", (dialect, source) => {
+    expect(classify(source, dialect)).toStrictEqual(["unsupported"]);
+  });
+
+  it.each<Case>([
+    ["postgresql", "ALTER TABLE ONLY public.t ADD CONSTRAINT u UNIQUE (c)"],
+    ["postgresql", "ALTER TABLE t ADD UNIQUE (c)"],
+  ])(
+    "keeps add constraint unique on postgresql for the parser: %s",
+    (dialect, source) => {
+      expect(classify(source, dialect)).toStrictEqual(["parser"]);
+    },
+  );
+
+  it.each<Case>([
+    ["postgresql", "ALTER TABLE t ADD PRIMARY KEY (id)"],
+    ["postgresql", "ALTER TABLE t ADD FOREIGN KEY (a) REFERENCES u (id)"],
+    ["postgresql", "ALTER TABLE t ADD CHECK (a > 0)"],
+    [
+      "postgresql",
+      "ALTER TABLE t ADD CONSTRAINT fk FOREIGN KEY (a) REFERENCES u (id)",
+    ],
+    ["mysql", "ALTER TABLE `t` ADD PRIMARY KEY (`id`)"],
+    ["mysql", "ALTER TABLE `t` ADD FOREIGN KEY (a) REFERENCES u (id)"],
+    ["mysql", "ALTER TABLE `t` ADD CHECK (a > 0)"],
+    [
+      "mysql",
+      "ALTER TABLE `t` ADD CONSTRAINT `fk` FOREIGN KEY (a) REFERENCES u (id)",
+    ],
+    ["sqlserver", "ALTER TABLE [t] ADD PRIMARY KEY ([id])"],
+    ["sqlserver", "ALTER TABLE [t] ADD CONSTRAINT [ck] CHECK ([a] > 0)"],
+    ["sqlserver", "ALTER TABLE [t] ADD CONSTRAINT [pk] PRIMARY KEY ([id])"],
+  ])(
+    "keeps add primary key, foreign key and check for the parser in %s: %s",
     (dialect, source) => {
       expect(classify(source, dialect)).toStrictEqual(["parser"]);
     },

@@ -1,5 +1,13 @@
 import type { SqlDialect } from "../../generators/shared/generator-types.js";
-import type { SqlStatement, SqlToken } from "./statement-scanner.js";
+import type { SqlStatement } from "./statement-scanner.js";
+import {
+  findAlterTableAction,
+  isNameAt,
+  isSymbolAt,
+  readQualifiedName,
+  wordAt,
+  type Tokens,
+} from "./sql-token-reading.js";
 
 export type StatementKind =
   | "parser"
@@ -12,8 +20,6 @@ export type StatementKind =
   | "trigger"
   | "sequence"
   | "unsupported";
-
-type Tokens = readonly SqlToken[];
 
 type FirstWordRule =
   StatementKind | ((tokens: Tokens, dialect: SqlDialect) => StatementKind);
@@ -63,27 +69,6 @@ const CREATE_MODIFIERS: ReadonlySet<string> = new Set([
   "INVOKER",
 ]);
 
-const ALTER_TABLE_TARGET_PREFIXES: ReadonlySet<string> = new Set([
-  "ONLY",
-  "IF",
-  "EXISTS",
-]);
-
-function wordAt(tokens: Tokens, index: number): string | null {
-  const token = tokens[index];
-  return token?.kind === "word" ? token.value.toUpperCase() : null;
-}
-
-function isSymbolAt(tokens: Tokens, index: number, symbol: string): boolean {
-  const token = tokens[index];
-  return token?.kind === "symbol" && token.text === symbol;
-}
-
-function isNameAt(tokens: Tokens, index: number): boolean {
-  const kind = tokens[index]?.kind;
-  return kind === "word" || kind === "quotedIdentifier";
-}
-
 function hasWordPair(tokens: Tokens, first: string, second: string): boolean {
   return tokens.some(
     (token, index) =>
@@ -91,21 +76,6 @@ function hasWordPair(tokens: Tokens, first: string, second: string): boolean {
       wordAt(tokens, index) === first &&
       wordAt(tokens, index + 1) === second,
   );
-}
-
-// Reads `name` or `schema.name` (quoted or not) starting at `index`.
-function readQualifiedName(
-  tokens: Tokens,
-  index: number,
-): { readonly lastName: string; readonly next: number } | null {
-  if (!isNameAt(tokens, index)) {
-    return null;
-  }
-  let last = index;
-  while (isSymbolAt(tokens, last + 1, ".") && isNameAt(tokens, last + 2)) {
-    last += 2;
-  }
-  return { lastName: tokens[last]?.value ?? "", next: last + 1 };
 }
 
 function classifyCreate(tokens: Tokens): StatementKind {
@@ -125,21 +95,6 @@ function classifyCreate(tokens: Tokens): StatementKind {
   return "unsupported";
 }
 
-// Returns the index of the first action token of `ALTER TABLE [IF EXISTS]
-// [ONLY] name [*] [WITH {CHECK | NOCHECK}] …`.
-function findAlterTableAction(tokens: Tokens): number {
-  let index = 2;
-  while (ALTER_TABLE_TARGET_PREFIXES.has(wordAt(tokens, index) ?? "")) {
-    index += 1;
-  }
-  index = readQualifiedName(tokens, index)?.next ?? index;
-  index += isSymbolAt(tokens, index, "*") ? 1 : 0;
-  const isWithCheck =
-    wordAt(tokens, index) === "WITH" &&
-    ["CHECK", "NOCHECK"].includes(wordAt(tokens, index + 1) ?? "");
-  return isWithCheck ? index + 2 : index;
-}
-
 // `ALTER [COLUMN] c ADD GENERATED …` or `ALTER [COLUMN] c SET DEFAULT …`,
 // starting after the ALTER action keyword.
 function isPostgresqlAlterColumn(tokens: Tokens, index: number): boolean {
@@ -151,15 +106,61 @@ function isPostgresqlAlterColumn(tokens: Tokens, index: number): boolean {
   return change === "ADD GENERATED" || change === "SET DEFAULT";
 }
 
+// Words after `ALTER TABLE … ADD` that start a constraint or an index rather
+// than a column definition.
+const ADDED_CONSTRAINT_WORDS: ReadonlySet<string> = new Set([
+  "CONSTRAINT",
+  "PRIMARY",
+  "UNIQUE",
+  "FOREIGN",
+  "CHECK",
+  "INDEX",
+  "KEY",
+  "FULLTEXT",
+  "SPATIAL",
+  "EXCLUDE",
+]);
+
+// `UNIQUE …` or `CONSTRAINT [n] UNIQUE …` from `index` on.
+function isAddedUnique(tokens: Tokens, index: number): boolean {
+  if (wordAt(tokens, index) !== "CONSTRAINT") {
+    return wordAt(tokens, index) === "UNIQUE";
+  }
+  return (
+    wordAt(tokens, index + 1) === "UNIQUE" ||
+    (isNameAt(tokens, index + 1) && wordAt(tokens, index + 2) === "UNIQUE")
+  );
+}
+
+// @dbml/core 10.2.0 drops PostgreSQL and MySQL `ADD [COLUMN] <column>` and
+// MySQL `ADD … UNIQUE` without an error (import / export spec, section 5), so
+// they are reported instead of given to the parser. `index` follows ADD.
+function classifyAlterTableAdd(
+  tokens: Tokens,
+  index: number,
+  dialect: SqlDialect,
+): StatementKind {
+  if (dialect === "sqlserver") {
+    return "parser";
+  }
+  const word = wordAt(tokens, index);
+  const isColumn =
+    word === "COLUMN" ||
+    isSymbolAt(tokens, index, "(") ||
+    (isNameAt(tokens, index) && !ADDED_CONSTRAINT_WORDS.has(word ?? ""));
+  const isMysqlUnique = dialect === "mysql" && isAddedUnique(tokens, index);
+  return isColumn || isMysqlUnique ? "unsupported" : "parser";
+}
+
 function classifyAlterTable(
   tokens: Tokens,
   dialect: SqlDialect,
 ): StatementKind {
-  const actionIndex = findAlterTableAction(tokens);
+  const actionIndex = findAlterTableAction(tokens).index;
   const action = wordAt(tokens, actionIndex) ?? "";
   const nextWord = wordAt(tokens, actionIndex + 1);
   if (action === "ADD") {
-    return "parser";
+    return classifyAlterTableAdd(tokens, actionIndex + 1, dialect);
   }
   if (["DISABLE", "ENABLE"].includes(action) && nextWord === "KEYS") {
     return "data";

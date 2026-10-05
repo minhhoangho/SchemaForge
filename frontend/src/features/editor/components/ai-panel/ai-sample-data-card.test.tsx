@@ -27,6 +27,13 @@ import type { EditorStore } from "../../state/create-editor-store";
 import { EditorStoreProvider } from "../../state/editor-store-provider";
 import { AiSampleDataCard } from "./ai-sample-data-card";
 
+const downloadBlob = vi.fn<(blob: Blob, fileName: string) => void>();
+vi.mock("@/lib/download/download-blob", () => ({
+  downloadBlob: (blob: Blob, fileName: string): void => {
+    downloadBlob(blob, fileName);
+  },
+}));
+
 type Format = "postgresql" | "mysql" | "sqlserver" | "json";
 const FORMATS: readonly Format[] = ["postgresql", "mysql", "sqlserver", "json"];
 const FORMAT_LABELS: Record<Format, string> = {
@@ -306,35 +313,23 @@ describe("AiSampleDataCard", () => {
     ).toBeDefined();
   });
 
-  it("downloads a file named after the generated file", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+  it("downloads the sample data through downloadBlob with the same file name", async () => {
     const { user } = renderCard(DATASET);
     await screen.findByRole("tab", { name: /users/ });
-    const createObjectURL = vi.fn(() => "blob:sample");
-    const revokeObjectURL = vi.fn();
-    vi.stubGlobal(
-      "URL",
-      Object.assign(URL, { createObjectURL, revokeObjectURL }),
-    );
-    const downloads: string[] = [];
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
-      this: HTMLAnchorElement,
-    ) {
-      downloads.push(this.download);
-    });
 
     await user.click(screen.getByRole("button", { name: "Download" }));
 
-    expect(downloads).toEqual(["seed.sql"]);
-    expect(createObjectURL).toHaveBeenCalledTimes(1);
-    expect(revokeObjectURL).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(10_000);
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:sample");
+    expect(downloadBlob).toHaveBeenCalledTimes(1);
+    const [sqlBlob, sqlName] = downloadBlob.mock.calls[0] ?? [];
+    expect(sqlName).toBe("seed.sql");
+    expect(await sqlBlob?.text()).toContain("INSERT INTO");
 
     await selectFormat(user, "json");
     await user.click(screen.getByRole("button", { name: "Download" }));
 
-    expect(downloads).toEqual(["seed.sql", "seed.json"]);
+    const [jsonBlob, jsonName] = downloadBlob.mock.calls[1] ?? [];
+    expect(jsonName).toBe("seed.json");
+    expect(await jsonBlob?.text()).toContain("Ann");
   });
 
   it("shows the SQL review reminder above the copy and download buttons", async () => {

@@ -616,21 +616,18 @@ describe("EditorWorkspace", () => {
 
     await user.click(screen.getByRole("button", { name: "Delete table" }));
     const toastRegion = screen.getByRole("region", { name: /Notifications/ });
-    const toastText = await within(toastRegion).findByText(
+    await within(toastRegion).findByText(
       "Deleted table users",
     );
     const isRowGone = queryOutlineRow("users") === null;
     const isCanvasFocused = document.activeElement === getCanvasRegion();
-    const hasToastBeforeUndo = toastText.isConnected;
     await user.click(within(toastRegion).getByRole("button", { name: "Undo" }));
 
     expect({
-      hasToast: hasToastBeforeUndo,
       isRowGone,
       isCanvasFocused,
       isRestored: queryOutlineRow("users") !== null,
     }).toEqual({
-      hasToast: true,
       isRowGone: true,
       isCanvasFocused: true,
       isRestored: true,

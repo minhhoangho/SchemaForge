@@ -4,7 +4,7 @@ const MAX_BASE_NAME_LENGTH = 60;
 export function toDownloadBaseName(schemaName: string): string {
   const base = schemaName
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d")
     .replace(/Đ/g, "D")
     .toLowerCase()

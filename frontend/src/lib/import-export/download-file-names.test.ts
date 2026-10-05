@@ -109,6 +109,21 @@ describe("download file names", () => {
     },
   );
 
+  it.each<{ target: "prisma" | "drizzle" }>([
+    { target: "prisma" },
+    { target: "drizzle" },
+  ])(
+    "throws instead of guessing a name when $target has no option",
+    ({ target }) => {
+      // Core always sets the option; this simulates a caller that broke it.
+      const request: DownloadGeneratorRequest = { target, options: {} };
+
+      expect(() =>
+        toGeneratedFileName("blog", request, file("schema.ts")),
+      ).toThrow(/is required for the file name/);
+    },
+  );
+
   it("names markdown output", () => {
     const request = {
       target: "markdown",

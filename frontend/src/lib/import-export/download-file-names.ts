@@ -37,6 +37,19 @@ function stringOption(
   return typeof value === "string" ? value : undefined;
 }
 
+// Core's option schemas always set these, so a missing one is a programming
+// error; a silent fallback would produce a name the spec does not define.
+function requiredOption(
+  options: Readonly<Record<string, unknown>>,
+  key: string,
+): string {
+  const value = stringOption(options, key);
+  if (value === undefined) {
+    throw new Error(`Generator option "${key}" is required for the file name`);
+  }
+  return value;
+}
+
 // The option, when it names the output, goes between the base name and the
 // extension so every combination in a ZIP has its own name (spec section 9).
 function nameParts(request: DownloadGeneratorRequest): readonly string[] {
@@ -49,9 +62,9 @@ function nameParts(request: DownloadGeneratorRequest): readonly string[] {
     case "openapi":
       return [target];
     case "prisma":
-      return [stringOption(options, "provider") ?? "prisma"];
+      return [requiredOption(options, "provider")];
     case "drizzle":
-      return ["drizzle", stringOption(options, "dialect") ?? "default"];
+      return ["drizzle", requiredOption(options, "dialect")];
     case "typescript":
       return ["types"];
     case "zod":

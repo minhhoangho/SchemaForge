@@ -7,7 +7,7 @@ import {
 } from "@schemaforge/core/testing";
 import { act, screen, within } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Logger } from "@/lib/logger";
 import type { Notify } from "@/lib/notify";
@@ -20,10 +20,22 @@ import { createEditorStore } from "../state/create-editor-store";
 import type { EditorStore } from "../state/create-editor-store";
 import { EditorStoreProvider } from "../state/editor-store-provider";
 import { CodePanel } from "./code-panel";
+
 import type {
   GenerateCodeRequest,
   GenerateCodeResponse,
 } from "./worker-protocol";
+
+const downloadBlob = vi.fn<(blob: Blob, fileName: string) => void>();
+vi.mock("@/lib/download/download-blob", () => ({
+  downloadBlob: (blob: Blob, fileName: string): void => {
+    downloadBlob(blob, fileName);
+  },
+}));
+
+afterEach(() => {
+  downloadBlob.mockClear();
+});
 
 class FakeWorker extends EventTarget implements Worker {
   onmessage: ((event: MessageEvent) => void) | null = null;
@@ -252,25 +264,11 @@ describe("CodePanel", () => {
   it("downloads the shown output with its file name", async () => {
     const { user, worker } = renderPanel();
     worker.reply(ok(worker.lastRequest.requestId));
-    const downloads: string[] = [];
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
-      this: HTMLAnchorElement,
-    ) {
-      downloads.push(this.download);
-    });
-    vi.stubGlobal(
-      "URL",
-      Object.assign(URL, {
-        createObjectURL: vi.fn(() => "blob:code"),
-        revokeObjectURL: vi.fn(),
-      }),
-    );
 
     await user.click(screen.getByRole("button", { name: "Download file" }));
 
-    expect(downloads).toEqual(["shop.postgresql.sql"]);
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
+    expect(downloadBlob).toHaveBeenCalledTimes(1);
+    expect(downloadBlob.mock.calls[0]?.[1]).toBe("shop.postgresql.sql");
   });
 
   it("disables the download button while a newer result is pending", async () => {

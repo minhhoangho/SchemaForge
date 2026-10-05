@@ -163,6 +163,7 @@ afterEach(() => {
   toast.dismiss();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe("AiSampleDataCard", () => {
@@ -306,6 +307,7 @@ describe("AiSampleDataCard", () => {
   });
 
   it("downloads a file named after the generated file", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const { user } = renderCard(DATASET);
     await screen.findByRole("tab", { name: /users/ });
     const createObjectURL = vi.fn(() => "blob:sample");
@@ -325,6 +327,8 @@ describe("AiSampleDataCard", () => {
 
     expect(downloads).toEqual(["seed.sql"]);
     expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(10_000);
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:sample");
 
     await selectFormat(user, "json");

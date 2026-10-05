@@ -249,6 +249,46 @@ describe("CodePanel", () => {
     ).toBe("true");
   });
 
+  it("downloads the shown output with its file name", async () => {
+    const { user, worker } = renderPanel();
+    worker.reply(ok(worker.lastRequest.requestId));
+    const downloads: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      downloads.push(this.download);
+    });
+    vi.stubGlobal(
+      "URL",
+      Object.assign(URL, {
+        createObjectURL: vi.fn(() => "blob:code"),
+        revokeObjectURL: vi.fn(),
+      }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Download file" }));
+
+    expect(downloads).toEqual(["shop.postgresql.sql"]);
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("disables the download button while a newer result is pending", async () => {
+    const { user, worker } = renderPanel();
+    worker.reply(ok(worker.lastRequest.requestId));
+    const button = screen.getByRole("button", { name: "Download file" });
+    expect(button.hasAttribute("disabled")).toBe(false);
+
+    await user.click(screen.getByRole("combobox", { name: "Output" }));
+    await user.click(await screen.findByRole("option", { name: "Zod" }));
+
+    expect(
+      screen
+        .getByRole("button", { name: "Download file" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
+  });
+
   it("shows a translated error when the worker fails", () => {
     const { worker } = renderPanel();
 

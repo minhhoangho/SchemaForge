@@ -1,12 +1,19 @@
 "use client";
 
-import { CopyIcon } from "lucide-react";
+import { CopyIcon, DownloadIcon } from "lucide-react";
 import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
+import { downloadBlob } from "@/lib/download/download-blob";
+import {
+  toGeneratedFileName,
+  toMimeType,
+} from "@/lib/import-export/download-file-names";
+import { toDownloadBaseName } from "@/lib/import-export/to-download-base-name";
 import { useNotify } from "@/lib/use-notify";
 
+import type { GeneratorRequest } from "./generator-request";
 import type { GenerateCodeResponse } from "./worker-protocol";
 
 type GeneratedOk = Extract<GenerateCodeResponse, { kind: "ok" }>;
@@ -16,6 +23,9 @@ export type CodeViewProps = {
   // The translated name of the chosen output, for the accessible name.
   readonly targetLabel: string;
   readonly isBusy: boolean;
+  // The schema name and the request that produced `response`, for the file name.
+  readonly schemaName: string;
+  readonly request: GeneratorRequest;
 };
 
 function Tokens({
@@ -52,8 +62,11 @@ export function CodeView({
   response,
   targetLabel,
   isBusy,
+  schemaName,
+  request,
 }: CodeViewProps): JSX.Element {
   const { t } = useTranslation("codeGenerator");
+  const { t: tDownload } = useTranslation("importExport");
   const notify = useNotify();
   const { file, tokens } = response;
 
@@ -68,16 +81,34 @@ export function CodeView({
     );
   }
 
+  function download(): void {
+    downloadBlob(
+      new Blob([file.content], { type: toMimeType(file.language) }),
+      toGeneratedFileName(toDownloadBaseName(schemaName), request, file),
+    );
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <span className="truncate font-mono text-xs text-muted-foreground">
           {file.fileName}
         </span>
-        <Button variant="secondary" size="sm" onClick={copy}>
-          <CopyIcon aria-hidden />
-          {t("copy")}
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <Button variant="secondary" size="sm" onClick={copy}>
+            <CopyIcon aria-hidden />
+            {t("copy")}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={isBusy}
+            onClick={download}
+          >
+            <DownloadIcon aria-hidden />
+            {tDownload("download.file")}
+          </Button>
+        </div>
       </div>
       <pre
         // eslint-disable-next-line jsx-a11y-x/no-noninteractive-tabindex -- a scrollable region must be keyboard focusable (WCAG 2.1.1)

@@ -21,7 +21,6 @@ import {
   createSubjectAreaId,
   createTableId,
 } from "../model/ids.js";
-import { toNameKey } from "../model/name-limits.js";
 import type { Note } from "../model/note.js";
 import {
   sortEnums,
@@ -37,7 +36,8 @@ import type { SchemaDocument } from "../model/schema-document.js";
 import type { SubjectArea } from "../model/subject-area.js";
 import type { Index } from "../model/table-index.js";
 import type { Table } from "../model/table.js";
-import { pickUnusedName } from "./pick-unused-name.js";
+import { createNameClaimer } from "./pick-unused-name.js";
+import type { NameClaimer } from "./pick-unused-name.js";
 
 export type MergedDocument = {
   readonly document: SchemaDocument;
@@ -46,14 +46,15 @@ export type MergedDocument = {
 };
 
 // Built fresh for every call; nothing here outlives remapMergedDocument.
-// The name sets hold the name keys taken per namespace: tables and enums share
-// one, and index names also avoid table names so a merge never adds
-// index-name-conflicts-table, like suggestIndexName.
+// One name claimer per namespace: tables and enums share one, and index names
+// also avoid table names. Tables, claimed after enums, avoid the target's
+// index names too, so a merge never adds index-name-conflicts-table, like
+// suggestIndexName.
 type MergeContext = {
   readonly generateId: GenerateId;
-  readonly tableAndEnumNames: Set<string>;
-  readonly indexNames: Set<string>;
-  readonly subjectAreaNames: Set<string>;
+  readonly tableAndEnumNames: NameClaimer;
+  readonly indexNames: NameClaimer;
+  readonly subjectAreaNames: NameClaimer;
   readonly diagnostics: ImportDiagnostic[];
   readonly enumIds: Map<EnumId, EnumId>;
   readonly subjectAreaIds: Map<SubjectAreaId, SubjectAreaId>;
@@ -71,8 +72,10 @@ function lookupNewId<Id extends string>(ids: ReadonlyMap<Id, Id>, id: Id): Id {
   return newId;
 }
 
-function nameKeys(elements: readonly { readonly name: string }[]): Set<string> {
-  return new Set(elements.map((element) => toNameKey(element.name)));
+function claimerOf(
+  elements: readonly { readonly name: string }[],
+): NameClaimer {
+  return createNameClaimer(elements.map((element) => element.name));
 }
 
 function createMergeContext(
@@ -83,9 +86,9 @@ function createMergeContext(
   const tables = Object.values(target.tables);
   return {
     generateId,
-    tableAndEnumNames: nameKeys([...tables, ...Object.values(target.enums)]),
-    indexNames: nameKeys([...Object.values(target.indexes), ...tables]),
-    subjectAreaNames: nameKeys(Object.values(target.subjectAreas)),
+    tableAndEnumNames: claimerOf([...tables, ...Object.values(target.enums)]),
+    indexNames: claimerOf([...Object.values(target.indexes), ...tables]),
+    subjectAreaNames: claimerOf(Object.values(target.subjectAreas)),
     diagnostics: [],
     enumIds: new Map(),
     subjectAreaIds: new Map(),
@@ -97,15 +100,14 @@ function createMergeContext(
 
 function claimName(
   context: MergeContext,
-  scope: Set<string>,
+  scope: NameClaimer,
   name: string,
   diagnostic: {
     readonly code: ImportDiagnosticCode;
     readonly path: DocumentPath;
   },
 ): string {
-  const claimed = pickUnusedName(name, scope);
-  scope.add(toNameKey(claimed));
+  const claimed = scope.claimName(name);
   if (claimed !== name) {
     context.diagnostics.push(
       createImportDiagnostic(diagnostic.code, null, diagnostic.path),
@@ -195,7 +197,7 @@ function remapTable(
     code: "table-renamed",
     path: ["tables", id, "name"],
   });
-  context.indexNames.add(toNameKey(name));
+  context.indexNames.reserve(name);
   const columns = table.columnIds.map((columnId) =>
     remapColumn(context, imported, id, columnId),
   );
@@ -260,7 +262,8 @@ function keyById<Element extends { readonly id: string }>(
 /**
  * Rewrites `imported` for a merge into `target`: every element gets a fresh id
  * from `generateId` and every reference follows it, names that clash with the
- * target or with a name given out earlier get a `_2`, `_3`… suffix, and tables
+ * target (for a table, also with a target index) or with a name given out
+ * earlier get a `_2`, `_3`… suffix, and tables
  * and notes move so their top left corner is at `origin`. Ids are drawn, and
  * names claimed, kind by kind in step order and within a kind in the sort*
  * order of `imported`, so the result depends only on the inputs.
@@ -276,6 +279,10 @@ export function remapMergedDocument(
   const enums = sortEnums(imported).map((element) =>
     remapEnum(context, element),
   );
+  // Only after the enums, which may share a name with an index.
+  Object.values(target.indexes).forEach((index) => {
+    context.tableAndEnumNames.reserve(index.name);
+  });
   const subjectAreas = sortSubjectAreas(imported).map((element) =>
     remapSubjectArea(context, element),
   );

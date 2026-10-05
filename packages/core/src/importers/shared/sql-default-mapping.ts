@@ -217,9 +217,11 @@ export function mapSqlDefault(input: {
   const value = classifyRaw(input.raw, input.dialect);
   switch (value.kind) {
     case "literal": {
-      // 1 and 0 are how SQL Server (and MySQL TINYINT(1)) write booleans.
+      // 1 and 0 are how SQL Server (and MySQL TINYINT(1)) write booleans;
+      // mysqldump quotes them ('1', '0').
       const booleanText =
-        value.isNumber && input.columnType.kind === "boolean"
+        (value.isNumber || input.dialect === "mysql") &&
+        input.columnType.kind === "boolean"
           ? BOOLEAN_NUMBERS.get(value.text)
           : undefined;
       return result({ kind: "literal", value: booleanText ?? value.text });

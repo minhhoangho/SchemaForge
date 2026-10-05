@@ -16,6 +16,7 @@ import {
 } from "../testing/factories.js";
 import { createSampleSchema } from "../testing/sample-schema.js";
 import { unwrapOk } from "../testing/unwrap-result.js";
+import { findIntroducedIssues } from "../validation/find-introduced-issues.js";
 import { applyOperation } from "./apply-operation.js";
 import { buildImportOperation } from "./build-import-operation.js";
 import type { ImportMode } from "./build-import-operation.js";
@@ -27,6 +28,7 @@ import type {
 
 const NEW_MODE: ImportMode = { mode: "new" };
 const MERGE_AT_ZERO: ImportMode = { mode: "merge", origin: { x: 0, y: 0 } };
+const SAME_NAME_TABLE_COUNT = 10_000;
 
 // One of each element: an enum column, a subject area member, a primary key,
 // an index and a self relation, so every kind of reference is exercised.
@@ -266,6 +268,21 @@ describe("buildImportOperation", () => {
   it.each<[string, SchemaParts]>([
     ["a table", { tables: [makeTable({ id: "tbl_users", name: "users" })] }],
     ["an enum", { enums: [makeEnum({ id: "enum_users", name: "USERS" })] }],
+    [
+      "an index",
+      {
+        tables: [makeTable({ id: "tbl_accounts", name: "accounts" })],
+        columns: [makeColumn({ id: "col_a", tableId: "tbl_accounts" })],
+        indexes: [
+          makeIndex({
+            id: "idx_users",
+            tableId: "tbl_accounts",
+            name: "users",
+            columnIds: ["col_a"],
+          }),
+        ],
+      },
+    ],
   ])(
     "renames a table that clashes with %s and reports table-renamed",
     (_, targetParts) => {
@@ -299,6 +316,61 @@ describe("buildImportOperation", () => {
     );
 
     expect(addedTableNames(result.operation)).toStrictEqual(["users_2"]);
+  });
+
+  it("adds no index-name-conflicts-table when an imported table is named like a target index", () => {
+    const target = buildSchema({
+      tables: [makeTable({ id: "tbl_users", name: "users" })],
+      columns: [makeColumn({ id: "col_email", tableId: "tbl_users" })],
+      indexes: [
+        makeIndex({
+          id: "idx_email",
+          tableId: "tbl_users",
+          name: "users_email_idx",
+          columnIds: ["col_email"],
+        }),
+      ],
+    });
+    const { operation } = buildImportOperation(
+      target,
+      buildSchema({
+        tables: [makeTable({ id: "tbl_a", name: "users_email_idx" })],
+        columns: [makeColumn({ id: "col_a", tableId: "tbl_a" })],
+      }),
+      MERGE_AT_ZERO,
+      createCounterIdGenerator(),
+    );
+
+    const merged = unwrapOk(applyOperation(target, operation)).schema;
+
+    expect({
+      names: addedTableNames(operation),
+      issues: findIntroducedIssues(target, merged),
+    }).toStrictEqual({ names: ["users_email_idx_2"], issues: [] });
+  });
+
+  // Each name resumes the number search of the one before it; restarting at 2
+  // every time took about 4.5 s for this merge.
+  it("renames 10000 imported tables with the same name distinctly", () => {
+    const result = buildMerge(
+      {},
+      {
+        tables: Array.from({ length: SAME_NAME_TABLE_COUNT }, (_, position) =>
+          makeTable({ id: `tbl_${String(position)}`, name: "t" }),
+        ),
+      },
+    );
+
+    // Steps follow sortTables of the result, so compare the names in one order.
+    expect(addedTableNames(result.operation).toSorted()).toStrictEqual(
+      [
+        "t",
+        ...Array.from(
+          { length: SAME_NAME_TABLE_COUNT - 1 },
+          (_, position) => `t_${String(position + 2)}`,
+        ),
+      ].toSorted(),
+    );
   });
 
   it("renames an enum that clashes with a table", () => {

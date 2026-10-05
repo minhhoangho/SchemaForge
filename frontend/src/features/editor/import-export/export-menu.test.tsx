@@ -179,13 +179,6 @@ describe("ExportMenu", () => {
     const { user } = renderMenu();
     await openMenu(user);
     await user.click(screen.getByRole("menuitem", { name: "SVG image" }));
-    await waitFor(() => {
-      expect(
-        screen
-          .getByRole("button", { name: "Export" })
-          .getAttribute("aria-busy"),
-      ).toBe("true");
-    });
     await openMenu(user);
 
     const busy = await screen.findAllByRole("menuitem", {

@@ -16,7 +16,7 @@ import { useNotify } from "@/lib/use-notify";
 import { useCanvasNodeControls } from "../lib/viewport-controls";
 import { useEditorStore } from "../state/use-editor-store";
 import { captureCanvasImage } from "./capture-canvas-image";
-import type { ImageFormat } from "./compute-image-frame";
+import { hasSelfRelation, type ImageFormat } from "./compute-image-frame";
 
 export type ExportActions = {
   readonly isGeneratingImage: boolean;
@@ -61,9 +61,7 @@ export function useExportActions(): ExportActions {
         const { blob, isScaledDown } = await captureCanvasImage({
           root,
           nodes: getMeasuredNodes(),
-          hasSelfRelation: Object.values(schema.relations).some(
-            (relation) => relation.fromTableId === relation.toTableId,
-          ),
+          hasSelfRelation: hasSelfRelation(schema),
           format,
         });
         downloadBlob(

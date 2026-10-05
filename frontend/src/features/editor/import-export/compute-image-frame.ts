@@ -1,3 +1,4 @@
+import type { SchemaDocument } from "@schemaforge/core";
 import type { Rect } from "@xyflow/react";
 
 export type ImageFormat = "png" | "svg";
@@ -53,4 +54,11 @@ export function computeImageFrame(input: {
     pixelRatio,
     isScaledDown: pixelRatio < 1,
   };
+}
+
+/** Whether any relation starts and ends on the same table. */
+export function hasSelfRelation(schema: SchemaDocument): boolean {
+  return Object.values(schema.relations).some(
+    (relation) => relation.fromTableId === relation.toTableId,
+  );
 }

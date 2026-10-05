@@ -136,7 +136,9 @@ export const enImportExport = {
     clearAll: "Clear all",
     filesOnly_one: "{{count}} file",
     filesOnly_other: "{{count}} files",
-    summary: "{{files}} files, {{diagnostics}} notes about the output",
+    notes_one: "{{count}} note about the output",
+    notes_other: "{{count}} notes about the output",
+    summary: "{{files}}, {{notes}}",
     issueWarning_one:
       "The schema has {{count}} issue, so the generated files may be incomplete or invalid.",
     issueWarning_other:

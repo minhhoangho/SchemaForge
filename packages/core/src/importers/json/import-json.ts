@@ -1,3 +1,4 @@
+import { isJsonObject } from "../../parse/json-object.js";
 import { parseSchemaDocument } from "../../parse/parse-schema-document.js";
 import { err, ok } from "../../result.js";
 import type { Result } from "../../result.js";
@@ -41,6 +42,14 @@ export const importJson: Importer = (source) => {
   const json = parseJson(source);
   if (!json.isOk) {
     return json;
+  }
+  // Counted before parseSchemaDocument too, whose checks cost the most, and
+  // again after it, in case a migration changes the maps.
+  if (
+    isJsonObject(json.value) &&
+    countDocumentElements(json.value) > MAX_IMPORTED_ELEMENTS
+  ) {
+    return err(tooManyElementsFailure());
   }
   const parsed = parseSchemaDocument(json.value);
   if (!parsed.isOk) {

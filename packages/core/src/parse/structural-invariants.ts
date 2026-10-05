@@ -54,9 +54,27 @@ function hasOwnershipMismatch(
   return [...existingIdSet].some((columnId) => !ownedIdSet.has(columnId));
 }
 
+// Built once per document: scanning every column for each table is
+// quadratic in the size of an imported document.
+function groupColumnIdsByTable(
+  columns: SchemaDocument["columns"],
+): ReadonlyMap<string, readonly string[]> {
+  const groups = new Map<string, string[]>();
+  for (const column of Object.values(columns)) {
+    const group = groups.get(column.tableId);
+    if (group === undefined) {
+      groups.set(column.tableId, [column.id]);
+    } else {
+      group.push(column.id);
+    }
+  }
+  return groups;
+}
+
 function checkTableColumnIds(
   schema: SchemaDocument,
   table: Table,
+  columnIdsByTable: ReadonlyMap<string, readonly string[]>,
 ): readonly StructuralError[] {
   const errors: StructuralError[] = [];
   const existingColumnIds: string[] = [];
@@ -70,9 +88,7 @@ function checkTableColumnIds(
     }
     existingColumnIds.push(columnId);
   });
-  const ownedColumnIds = Object.values(schema.columns)
-    .filter((column) => column.tableId === table.id)
-    .map((column) => column.id);
+  const ownedColumnIds = columnIdsByTable.get(table.id) ?? [];
   if (hasOwnershipMismatch(existingColumnIds, ownedColumnIds)) {
     errors.push({
       code: "column-ownership-mismatch",
@@ -117,8 +133,9 @@ function checkTableSubjectArea(
 function checkTableInvariants(
   schema: SchemaDocument,
 ): readonly StructuralError[] {
+  const columnIdsByTable = groupColumnIdsByTable(schema.columns);
   return Object.values(schema.tables).flatMap((table) => [
-    ...checkTableColumnIds(schema, table),
+    ...checkTableColumnIds(schema, table, columnIdsByTable),
     ...checkTablePrimaryKey(schema, table),
     ...checkTableSubjectArea(schema, table),
   ]);

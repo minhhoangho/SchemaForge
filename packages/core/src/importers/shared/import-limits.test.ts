@@ -33,6 +33,16 @@ describe("import limits", () => {
     expect(countDocumentElements(createSampleSchema())).toBe(40);
   });
 
+  it("counts nothing for a map of unchecked JSON that is not an object", () => {
+    expect(
+      countDocumentElements({
+        tables: ["a", "b"],
+        columns: null,
+        notes: { a: 0 },
+      }),
+    ).toBe(1);
+  });
+
   it("reports too-many-elements without a location or a path", () => {
     expect(tooManyElementsFailure()).toStrictEqual({
       diagnostics: [{ code: "too-many-elements", location: null, path: null }],

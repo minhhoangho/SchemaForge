@@ -142,6 +142,24 @@ describe("importJson", () => {
     });
   });
 
+  // Checking the shape and invariants of every element is the costly part, so
+  // the count comes first, on the parsed JSON.
+  it("reports too-many-elements before checking the shape of the elements", () => {
+    const notes = Object.fromEntries(
+      Array.from({ length: MAX_IMPORTED_ELEMENTS + 1 }, (_, index) => [
+        `note_${String(index)}`,
+        0,
+      ]),
+    );
+    const source = JSON.stringify({ ...buildSchema({}), notes });
+
+    expect(
+      unwrapError(importJson(source, createImportTestOptions())),
+    ).toStrictEqual({
+      diagnostics: [{ code: "too-many-elements", location: null, path: null }],
+    });
+  });
+
   it("accepts exactly the maximum number of elements", () => {
     const source = createNotesSource(MAX_IMPORTED_ELEMENTS);
 

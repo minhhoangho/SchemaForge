@@ -126,10 +126,10 @@ function parseSql(
 ): Result<ParsedSql, ImportFailure> {
   const scanned = scanSqlStatements(source, dialect);
   if (!scanned.isOk) {
+    const { error } = scanned;
+    const location = error.code === "syntax-error" ? at(error.offset) : null;
     return err({
-      diagnostics: [
-        createImportDiagnostic("syntax-error", at(scanned.error.offset), null),
-      ],
+      diagnostics: [createImportDiagnostic(error.code, location, null)],
     });
   }
   const classified = scanned.value.map((statement) => ({

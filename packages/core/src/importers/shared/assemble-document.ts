@@ -26,6 +26,7 @@ import {
 } from "./import-limits.js";
 import type {
   ImportDiagnostic,
+  ImportFailure,
   ImportOptions,
   ImportResult,
 } from "./import-types.js";
@@ -247,27 +248,21 @@ function toImportDiagnostics(
   );
 }
 
-/**
- * Turns a name-based draft into a valid document (spec section 1): checks the
- * element limit, resolves references, assigns ids in the documented order,
- * places tables and notes, and maps draft diagnostics to document paths.
- */
-export function assembleDocument(
+const PARSE_FAILED: ImportFailure = {
+  diagnostics: [createImportDiagnostic("parse-failed", null, null)],
+};
+
+function assembleCountedDraft(
   draft: ImportDraft,
   options: ImportOptions,
 ): ImportResult {
-  if (countDraftElements(draft) > MAX_IMPORTED_ELEMENTS) {
-    return err(tooManyElementsFailure());
-  }
   const resolved = resolveDraftReferences(draft);
   const ids = assignImportIds(draft, resolved, options.generateId);
   const parsed = parseSchemaDocument(
     buildDocument(draft, resolved, ids, options),
   );
   if (!parsed.isOk) {
-    throw new Error(
-      `Importer built an invalid document: ${JSON.stringify(parsed.error)}`,
-    );
+    return err(PARSE_FAILED);
   }
   return ok({
     document: parsed.value,
@@ -276,4 +271,29 @@ export function assembleDocument(
       ...toImportDiagnostics(draft, ids),
     ]),
   });
+}
+
+/**
+ * Turns a name-based draft into a valid document (spec section 1): checks the
+ * element limit, resolves references, assigns ids in the documented order,
+ * places tables and notes, and maps draft diagnostics to document paths.
+ * Importers never throw, so a draft the format importer got wrong (a value
+ * outside the model shape, or a position past the end of the draft, which
+ * elementAt reports with a RangeError) is parse-failed without a location.
+ */
+export function assembleDocument(
+  draft: ImportDraft,
+  options: ImportOptions,
+): ImportResult {
+  if (countDraftElements(draft) > MAX_IMPORTED_ELEMENTS) {
+    return err(tooManyElementsFailure());
+  }
+  try {
+    return assembleCountedDraft(draft, options);
+  } catch (error: unknown) {
+    if (error instanceof RangeError) {
+      return err(PARSE_FAILED);
+    }
+    throw error;
+  }
 }

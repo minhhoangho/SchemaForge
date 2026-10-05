@@ -350,6 +350,19 @@ describe("sql importers", PARSE_TIMEOUT, () => {
       });
     });
 
+    it("reports source-too-large for a source with more tokens than the scanner reads", () => {
+      expect(
+        unwrapError(
+          importMysql(
+            "(".repeat(MAX_IMPORT_SOURCE_LENGTH),
+            createImportTestOptions(),
+          ),
+        ),
+      ).toStrictEqual({
+        diagnostics: [{ code: "source-too-large", location: null, path: null }],
+      });
+    });
+
     it(
       "imports a source of exactly the length limit",
       LARGE_SOURCE_TIMEOUT,

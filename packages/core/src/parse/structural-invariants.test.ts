@@ -212,4 +212,39 @@ describe("checkStructuralInvariants", () => {
       { code: "id-mismatch", path: ["tables", "tbl_2", "id"] },
     ]);
   });
+
+  // A count of column reads instead of a timing: a scan of every column per
+  // table would read the columns tables x columns times.
+  it("reads the columns a number of times linear in their count however many tables there are", () => {
+    const tableCount = 2000;
+    const tableIds = Array.from(
+      { length: tableCount },
+      (_, position): TableId => `tbl_${String(position)}`,
+    );
+    const columns = Object.fromEntries(
+      tableIds.map((tableId) => {
+        const columnId: ColumnId = `col_${tableId}`;
+        return [columnId, makeColumn(columnId, tableId)];
+      }),
+    );
+    let columnReads = 0;
+    const countedColumns = new Proxy(columns, {
+      get: (target, key, receiver): unknown => {
+        columnReads += 1;
+        return Reflect.get(target, key, receiver);
+      },
+    });
+    const document = makeDocument(
+      Object.fromEntries(
+        tableIds.map((tableId) => [
+          tableId,
+          makeTable(tableId, [`col_${tableId}`]),
+        ]),
+      ),
+      countedColumns,
+    );
+
+    expect(checkStructuralInvariants(document)).toStrictEqual([]);
+    expect(columnReads).toBeLessThan(tableCount * 10);
+  });
 });

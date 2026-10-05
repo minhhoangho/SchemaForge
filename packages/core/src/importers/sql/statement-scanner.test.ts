@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { unwrapError, unwrapOk } from "../../testing/unwrap-result.js";
 import {
+  MAX_DELIMITER_LENGTH,
+  MAX_SCANNED_TOKENS,
   maskStatements,
   scanSqlStatements,
   tokenizeSql,
@@ -300,6 +302,7 @@ describe("scanSqlStatements", () => {
     ["postgresql", "DELIMITER //\nSELECT 1;"],
     ["mysql", "SELECT 1,\nDELIMITER //\n;"],
     ["mysql", "DELIMITER\nSELECT 1;"],
+    ["mysql", `DELIMITER ${"+".repeat(MAX_DELIMITER_LENGTH + 1)}\nSELECT 1;`],
   ] as const)(
     "reads a line that is not a DELIMITER command as statement text in %s: %j",
     (dialect, source) => {
@@ -308,6 +311,26 @@ describe("scanSqlStatements", () => {
       expect(tokenTexts(statements[0])).toContain("DELIMITER");
     },
   );
+
+  // Without the length cap, each "+" token compared the whole delimiter.
+  it("reads a DELIMITER line with a 40 000-character delimiter and the symbols after it as statement text", () => {
+    const source = `DELIMITER ${"+".repeat(39_999)}x\n${"+".repeat(100_000)}`;
+
+    const statements = unwrapOk(scanSqlStatements(source, "mysql"));
+
+    expect(statements[0]?.tokens).toHaveLength(140_001);
+  });
+
+  it("switches the terminator after a DELIMITER line with a delimiter of the maximum length", () => {
+    const delimiter = "+".repeat(MAX_DELIMITER_LENGTH);
+    const source = `DELIMITER ${delimiter}\nSELECT 1${delimiter}`;
+
+    const statements = unwrapOk(scanSqlStatements(source, "mysql"));
+
+    expect(statementTexts(source, statements)).toStrictEqual([
+      `SELECT 1${delimiter}`,
+    ]);
+  });
 
   it("reads a mysqldump trigger wrapped in executable comments", () => {
     const source = [
@@ -366,8 +389,25 @@ describe("scanSqlStatements", () => {
     const source = "SELECT 1;\nSELECT 'open;";
 
     expect(unwrapError(scanSqlStatements(source, "postgresql"))).toStrictEqual({
+      code: "syntax-error",
       offset: 17,
     });
+  });
+
+  it("returns source-too-large when the source has more tokens than the scanner reads", () => {
+    const source = "(".repeat(MAX_SCANNED_TOKENS + 1);
+
+    expect(unwrapError(scanSqlStatements(source, "mysql"))).toStrictEqual({
+      code: "source-too-large",
+    });
+  });
+
+  it("reads a source with exactly the maximum number of tokens", () => {
+    const source = "(".repeat(MAX_SCANNED_TOKENS);
+
+    const statements = unwrapOk(scanSqlStatements(source, "mysql"));
+
+    expect(statements[0]?.tokens).toHaveLength(MAX_SCANNED_TOKENS);
   });
 
   it("scans a 2 MiB source and returns every statement", () => {

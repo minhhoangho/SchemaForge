@@ -741,7 +741,9 @@ describe("assembleDocument", () => {
     ]);
   });
 
-  it("throws when the draft holds a value outside the model shape", () => {
+  // Importers never throw: a draft the importer got wrong still yields a
+  // Result, as an exception from a parser library does.
+  it("returns parse-failed when the draft holds a value outside the model shape", () => {
     const draft = makeEmptyDraft({
       tables: [
         makeDraftTable({
@@ -756,10 +758,12 @@ describe("assembleDocument", () => {
       ],
     });
 
-    expect(() => assemble(draft)).toThrow("Importer built an invalid document");
+    expect(unwrapError(assemble(draft))).toStrictEqual({
+      diagnostics: [{ code: "parse-failed", location: null, path: null }],
+    });
   });
 
-  it("throws when a diagnostic target points past the draft", () => {
+  it("returns parse-failed when a diagnostic target points past the draft", () => {
     const draft = makeShopDraft({
       diagnostics: [
         {
@@ -770,6 +774,8 @@ describe("assembleDocument", () => {
       ],
     });
 
-    expect(() => assemble(draft)).toThrow(Error);
+    expect(unwrapError(assemble(draft))).toStrictEqual({
+      diagnostics: [{ code: "parse-failed", location: null, path: null }],
+    });
   });
 });

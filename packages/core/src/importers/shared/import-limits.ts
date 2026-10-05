@@ -1,4 +1,4 @@
-import type { SchemaDocument } from "../../model/schema-document.js";
+import { isJsonObject } from "../../parse/json-object.js";
 import { createImportDiagnostic } from "./import-diagnostics.js";
 import type { ImportFailure } from "./import-types.js";
 
@@ -14,16 +14,27 @@ export function checkSourceLength(source: string): ImportFailure | null {
     : null;
 }
 
-export function countDocumentElements(document: SchemaDocument): number {
-  return [
-    document.tables,
-    document.columns,
-    document.relations,
-    document.indexes,
-    document.enums,
-    document.subjectAreas,
-    document.notes,
-  ].reduce((total, elements) => total + Object.keys(elements).length, 0);
+const ELEMENT_MAP_NAMES = [
+  "tables",
+  "columns",
+  "relations",
+  "indexes",
+  "enums",
+  "subjectAreas",
+  "notes",
+] as const;
+
+/**
+ * Also counts parsed JSON whose shape is not checked yet, so a crafted file is
+ * rejected before the costly checks; a map that is not an object counts 0.
+ */
+export function countDocumentElements(
+  document: Readonly<Record<string, unknown>>,
+): number {
+  return ELEMENT_MAP_NAMES.reduce((total, mapName) => {
+    const elements = document[mapName];
+    return total + (isJsonObject(elements) ? Object.keys(elements).length : 0);
+  }, 0);
 }
 
 export function tooManyElementsFailure(): ImportFailure {

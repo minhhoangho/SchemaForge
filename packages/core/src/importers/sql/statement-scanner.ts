@@ -1,6 +1,7 @@
 import type { SqlDialect } from "../../generators/shared/generator-types.js";
-import { ok, type Result } from "../../result.js";
-import { lexNext, type ScanFailure, type SqlToken } from "./sql-lexer.js";
+import { err, ok, type Result } from "../../result.js";
+import { MAX_IMPORT_SOURCE_LENGTH } from "../shared/import-limits.js";
+import { lexNext, type SqlToken } from "./sql-lexer.js";
 
 export {
   tokenizeSql,
@@ -20,8 +21,15 @@ export type SqlStatement = {
   readonly tokens: readonly SqlToken[];
 };
 
+// An unterminated string, comment, dollar quote or quoted identifier at
+// `offset`, or a source with more tokens than MAX_SCANNED_TOKENS.
+export type StatementScanFailure =
+  | { readonly code: "syntax-error"; readonly offset: number }
+  | { readonly code: "source-too-large" };
+
 type ScanState = {
   tokens: SqlToken[];
+  tokenCount: number;
   depth: number;
   delimiter: string;
   readonly statements: SqlStatement[];
@@ -29,6 +37,15 @@ type ScanState = {
 
 const DEFAULT_DELIMITER = ";";
 const COPY_DATA_END = "\\.";
+
+// The terminator is compared at every token, so its length multiplies the
+// scan cost. Real delimiters (`;;`, `//`, `$$`) are a few characters long.
+export const MAX_DELIMITER_LENGTH = 16;
+
+// Bounds the memory of a crafted source (2 MiB of `(` is 2 million token
+// objects). Generated DDL and seed data average more than 4.5 characters a
+// token, so a real source at the length limit stays under a quarter of it.
+export const MAX_SCANNED_TOKENS = MAX_IMPORT_SOURCE_LENGTH / 4;
 
 function finishStatement(state: ScanState, end: number): void {
   const first = state.tokens[0];
@@ -69,6 +86,7 @@ function readLineCommand(
     dialect === "mysql" &&
     command === "DELIMITER" &&
     delimiter !== undefined &&
+    delimiter.length <= MAX_DELIMITER_LENGTH &&
     state.tokens.length === 0
   ) {
     state.delimiter = delimiter;
@@ -108,7 +126,7 @@ function scanStep(
   offset: number,
   dialect: SqlDialect,
   state: ScanState,
-): Result<number, ScanFailure> {
+): Result<number, StatementScanFailure> {
   const commandEnd = readLineCommand(source, offset, dialect, state);
   if (commandEnd !== null) {
     return ok(commandEnd);
@@ -125,10 +143,14 @@ function scanStep(
   }
   const step = lexNext(source, offset, dialect, state.depth);
   if (!step.isOk) {
-    return step;
+    return err({ code: "syntax-error", offset: step.error.offset });
   }
   if (step.value.token !== null) {
+    if (state.tokenCount === MAX_SCANNED_TOKENS) {
+      return err({ code: "source-too-large" });
+    }
     state.tokens.push(step.value.token);
+    state.tokenCount += 1;
   }
   state.depth = step.value.depth;
   return ok(step.value.next);
@@ -137,9 +159,10 @@ function scanStep(
 export function scanSqlStatements(
   source: string,
   dialect: SqlDialect,
-): Result<readonly SqlStatement[], ScanFailure> {
+): Result<readonly SqlStatement[], StatementScanFailure> {
   const state: ScanState = {
     tokens: [],
+    tokenCount: 0,
     depth: 0,
     delimiter: DEFAULT_DELIMITER,
     statements: [],

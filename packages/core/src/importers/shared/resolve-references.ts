@@ -33,7 +33,10 @@ export function createNameResolver(names: readonly string[]): NameResolver {
     exactPositions.get(wanted) ?? keyPositions.get(toNameKey(wanted)) ?? null;
 }
 
-/** An out-of-range position is a bug in the importer, not in its input. */
+/**
+ * An out-of-range position is a bug in the importer, not in its input;
+ * assembleDocument turns the RangeError into parse-failed.
+ */
 export function elementAt<Element>(
   elements: readonly Element[],
   position: number,

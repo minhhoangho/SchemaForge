@@ -16,6 +16,10 @@
       "types": "./dist/generators/*/index.d.ts",
       "default": "./dist/generators/*/index.js"
     },
+    "./importers/*": {
+      "types": "./dist/importers/*/index.d.ts",
+      "default": "./dist/importers/*/index.js"
+    },
     "./ai": {
       "types": "./dist/ai/index.d.ts",
       "default": "./dist/ai/index.js"
@@ -30,6 +34,7 @@
     "bench": "vitest bench --run"
   },
   "dependencies": {
+    "@dbml/core": "^10.2.0",
     "zod": "catalog:"
   },
   "devDependencies": {

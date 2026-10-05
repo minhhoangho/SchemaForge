@@ -41,6 +41,15 @@ const UPPER_SNAKE_CASE_NAME = "^[A-Z0-9_]+$";
 const CORE_BOUNDARY =
   "packages/core must stay framework-free and isomorphic (see .claude/rules/core.md).";
 
+const DBML_CORE_BOUNDARY =
+  "Import @dbml/core only in packages/core/src/importers/shared/dbml-core-adapter.ts (see document/specs/2026-09-15-import-export-design.md, section 1).";
+
+const DBML_ADAPTER_BOUNDARY =
+  "Import dbml-core-adapter only from packages/core/src/importers/sql/ and src/importers/dbml/ (see document/specs/2026-09-15-import-export-design.md, section 1).";
+
+const DBML_CORE_DEEP_IMPORT =
+  "Import only the @dbml/core package root, never its lib/ or types/ internals (see document/specs/2026-09-15-import-export-design.md, section 1).";
+
 const CORE_FORBIDDEN_GLOBALS = [
   "window",
   "document",
@@ -129,6 +138,13 @@ const NO_NETWORK =
 
 const NETWORK_GLOBALS = ["fetch", "XMLHttpRequest", "WebSocket", "EventSource"];
 
+const NO_OBJECT_URL = {
+  object: "URL",
+  property: "createObjectURL",
+  message:
+    "Create object URLs only in frontend/src/lib/download/download-blob.ts (see document/specs/2026-09-15-import-export-design.md, section 9).",
+};
+
 const NETWORK_PROPERTIES = [
   ["navigator", "sendBeacon"],
   ["window", "fetch"],
@@ -143,6 +159,44 @@ const FEATURE_BOUNDARY =
 
 const AI_SDK_BOUNDARY =
   "Import the AI SDK only in src/lib/api/ai-chat-client.ts (AI spec section 5).";
+
+function coreImportRestrictions({
+  canImportDbmlCore = false,
+  canImportDbmlAdapter = false,
+}) {
+  return {
+    paths: [
+      ...["react", "react-dom", "next", "prisma", ...builtinModules].map(
+        (name) => ({ name, message: CORE_BOUNDARY }),
+      ),
+      ...(canImportDbmlCore
+        ? []
+        : [{ name: "@dbml/core", message: DBML_CORE_BOUNDARY }]),
+    ],
+    patterns: [
+      {
+        group: [
+          "react/*",
+          "react-dom/*",
+          "next/*",
+          "@nestjs/*",
+          "@prisma/*",
+          "node:*",
+        ],
+        message: CORE_BOUNDARY,
+      },
+      { group: ["@dbml/core/*"], message: DBML_CORE_DEEP_IMPORT },
+      ...(canImportDbmlAdapter
+        ? []
+        : [
+            {
+              group: ["**/dbml-core-adapter.js"],
+              message: DBML_ADAPTER_BOUNDARY,
+            },
+          ]),
+    ],
+  };
+}
 
 function frontendImportRestrictions({
   canImportToast,
@@ -291,40 +345,37 @@ export default defineConfig([
   {
     files: ["packages/core/**/*.ts", "packages/api-contract/**/*.ts"],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          paths: [
-            "react",
-            "react-dom",
-            "next",
-            "prisma",
-            ...builtinModules,
-          ].map((name) => ({
-            name,
-            message: CORE_BOUNDARY,
-          })),
-          patterns: [
-            {
-              group: [
-                "react/*",
-                "react-dom/*",
-                "next/*",
-                "@nestjs/*",
-                "@prisma/*",
-                "node:*",
-              ],
-              message: CORE_BOUNDARY,
-            },
-          ],
-        },
-      ],
+      "no-restricted-imports": ["error", coreImportRestrictions({})],
       "no-restricted-globals": [
         "error",
         ...CORE_FORBIDDEN_GLOBALS.map((name) => ({
           name,
           message: CORE_BOUNDARY,
         })),
+      ],
+    },
+  },
+  {
+    files: [
+      "packages/core/src/importers/sql/**/*.ts",
+      "packages/core/src/importers/dbml/**/*.ts",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        coreImportRestrictions({ canImportDbmlAdapter: true }),
+      ],
+    },
+  },
+  {
+    files: ["packages/core/src/importers/shared/dbml-core-adapter*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        coreImportRestrictions({
+          canImportDbmlCore: true,
+          canImportDbmlAdapter: true,
+        }),
       ],
     },
   },
@@ -380,6 +431,30 @@ export default defineConfig([
         "error",
         ...NETWORK_GLOBALS.map((name) => ({ name, message: NO_NETWORK })),
       ],
+      "no-restricted-properties": [
+        "error",
+        PROCESS_ENV_RESTRICTION,
+        // Not enforced in src/lib/api/: its block below resets this rule. That
+        // folder holds only network clients and creates no downloads.
+        NO_OBJECT_URL,
+        ...NETWORK_PROPERTIES.map(([object, property]) => ({
+          object,
+          property,
+          message: NO_NETWORK,
+        })),
+      ],
+    },
+  },
+  {
+    // Options of this block replace those of the previous block, so it repeats
+    // them minus the URL.createObjectURL entry.
+    files: [
+      "frontend/src/lib/download/download-blob.ts",
+      // Temporary: part 5 code that predates downloadBlob; migrate it to
+      // downloadBlob and remove this entry.
+      "frontend/src/features/editor/components/ai-panel/ai-sample-data-card.tsx",
+    ],
+    rules: {
       "no-restricted-properties": [
         "error",
         PROCESS_ENV_RESTRICTION,

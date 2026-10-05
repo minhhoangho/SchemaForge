@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 
+import { AI_SMALL_TEXT_CLASS_NAME } from "./ai-text-styles";
+
 export const GEMINI_API_TERMS_URL = "https://ai.google.dev/gemini-api/terms";
 
 export function aiConsentKey(userId: string): string {
@@ -48,14 +50,12 @@ export function AiConsent({ userId, onAccepted }: AiConsentProps): JSX.Element {
       <h3 id={titleId} className="text-sm font-semibold">
         {t("panel.consent.title")}
       </h3>
-      <p className="text-[0.8125rem] leading-[1.125rem]">
-        {t("panel.consent.body")}
-      </p>
+      <p className={AI_SMALL_TEXT_CLASS_NAME}>{t("panel.consent.body")}</p>
       <a
         href={GEMINI_API_TERMS_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex min-h-6 items-center text-sm text-primary underline underline-offset-2 outline-none focus-visible:ring-3 focus-visible:ring-ring"
+        className="inline-flex min-h-6 items-center text-sm text-primary underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {t("panel.consent.termsLink")}
         <span className="sr-only">{t("panel.consent.opensInNewTab")}</span>

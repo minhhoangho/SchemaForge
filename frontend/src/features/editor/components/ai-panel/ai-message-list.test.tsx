@@ -70,11 +70,20 @@ function createControls(): ViewportControls {
   };
 }
 
+// Local time, so the formatted time does not depend on the time zone.
+const SENT_AT = new Date(2026, 9, 5, 9, 30).getTime();
+const MINUTE_MS = 60_000;
+
+function user(id: string, text: string, createdAt = SENT_AT): AiChatEntry {
+  return { id, role: "user", text, createdAt };
+}
+
 function assistant(patch: Partial<AiAssistantMessage>): AiAssistantMessage {
   return {
     id: "a1",
     role: "assistant",
     text: "",
+    createdAt: SENT_AT,
     status: "done",
     failure: null,
     proposal: null,
@@ -84,7 +93,7 @@ function assistant(patch: Partial<AiAssistantMessage>): AiAssistantMessage {
   };
 }
 
-const USER_MESSAGE: AiChatEntry = { id: "u1", role: "user", text: "hello" };
+const USER_MESSAGE = user("u1", "hello");
 
 function httpFailure(
   status: number,
@@ -131,12 +140,8 @@ function renderList(options: ListOptions = {}) {
   };
 }
 
-function getStatusText(): string {
-  return screen.getByRole("status", { name: "" }).textContent;
-}
-
 describe("AiMessageList", () => {
-  it("marks the streaming answer busy and announces when it is done", () => {
+  it("marks the streaming answer busy until it is done, without its own status region", () => {
     const { rerenderWith } = renderList({
       messages: [
         USER_MESSAGE,
@@ -146,7 +151,7 @@ describe("AiMessageList", () => {
     });
     const log = screen.getByRole("log", { name: "Conversation" });
     expect(log.getAttribute("aria-busy")).toBe("true");
-    expect(getStatusText()).toBe("The assistant is responding");
+    expect(screen.queryByRole("status")).toBeNull();
 
     rerenderWith({
       messages: [USER_MESSAGE, assistant({ text: "Part done" })],
@@ -154,7 +159,7 @@ describe("AiMessageList", () => {
     });
 
     expect(log.getAttribute("aria-busy")).toBe("false");
-    expect(getStatusText()).toBe("The assistant finished responding");
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("renders AI text as plain text without HTML", () => {
@@ -190,7 +195,7 @@ describe("AiMessageList", () => {
     const { container } = renderList({
       messages: [
         USER_MESSAGE,
-        { id: "u2", role: "user", text: "more" },
+        user("u2", "more"),
         assistant({ id: "a1", text: "first" }),
         assistant({ id: "a2", text: "second" }),
       ],
@@ -203,15 +208,23 @@ describe("AiMessageList", () => {
     expect(container.querySelectorAll(".rounded-tl-sm")).toHaveLength(1);
   });
 
-  it("puts a machine-readable time beside every bubble", () => {
-    const { container } = renderList();
+  it("shows each group's time, from the message, under its last bubble", () => {
+    const { container } = renderList({
+      messages: [
+        USER_MESSAGE,
+        user("u2", "more", SENT_AT + MINUTE_MS),
+        assistant({ text: "reply", createdAt: SENT_AT + 2 * MINUTE_MS }),
+      ],
+    });
 
-    const times = container.querySelectorAll("time");
-    expect(times).toHaveLength(2);
-    for (const time of times) {
-      expect(time.textContent).toMatch(/^\d{2}:\d{2}$/);
-      expect(Number.isNaN(Date.parse(time.dateTime))).toBe(false);
-    }
+    expect(container.querySelectorAll("time")).toHaveLength(2);
+    expect(screen.queryByText("09:30")).toBeNull();
+    const userTime = screen.getByText("09:31");
+    expect(userTime.tagName).toBe("TIME");
+    expect(userTime.getAttribute("datetime")).toBe(
+      new Date(SENT_AT + MINUTE_MS).toISOString(),
+    );
+    expect(screen.getByText("09:32").tagName).toBe("TIME");
   });
 
   it("shows the empty state before the first message", () => {
@@ -569,7 +582,7 @@ describe("AiMessageList", () => {
                     state: "preview",
                   },
                 }),
-                { id: "u2", role: "user", text: "again" },
+                user("u2", "again"),
                 assistant({
                   id: "a2",
                   text: "Partial",
@@ -601,7 +614,7 @@ describe("AiMessageList", () => {
             <AiMessageList
               messages={[
                 USER_MESSAGE,
-                { id: "u2", role: "user", text: "and" },
+                user("u2", "and"),
                 assistant({
                   id: "a1",
                   text: "Two things:\n- one\n- two",
@@ -616,7 +629,7 @@ describe("AiMessageList", () => {
                   ],
                 }),
                 assistant({ id: "a2", text: "More", status: "stopped" }),
-                { id: "u3", role: "user", text: "go on" },
+                user("u3", "go on"),
                 assistant({ id: "a3", text: "", status: "streaming" }),
               ]}
               isSending

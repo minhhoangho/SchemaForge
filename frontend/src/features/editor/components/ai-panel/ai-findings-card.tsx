@@ -9,6 +9,9 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { useEditorStore } from "@/features/editor/state/use-editor-store";
+import { cn } from "@/lib/class-names";
+
+import { AI_SMALL_TEXT_CLASS_NAME } from "./ai-text-styles";
 
 type Finding = AiFindingsData["findings"][number];
 type Target = { readonly tableId: TableId; readonly columnId: ColumnId | null };
@@ -96,7 +99,12 @@ function FindingItem({
         </span>
       </p>
       <p className="text-sm font-semibold">{title}</p>
-      <p className="text-[0.8125rem] leading-[1.125rem] whitespace-pre-wrap text-muted-foreground">
+      <p
+        className={cn(
+          AI_SMALL_TEXT_CLASS_NAME,
+          "whitespace-pre-wrap text-muted-foreground",
+        )}
+      >
         {detail}
       </p>
       {finding.targets.length === 0 ? null : (

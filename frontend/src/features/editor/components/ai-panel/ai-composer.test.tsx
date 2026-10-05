@@ -1,11 +1,41 @@
 import { AI_MAX_USER_MESSAGE_LENGTH } from "@schemaforge/api-contract";
 import { fireEvent, screen } from "@testing-library/react";
+import type { JSX } from "react";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
 import { AiComposer } from "./ai-composer";
+
+type DraftComposerProps = {
+  readonly isSending: boolean;
+  readonly onSend: (text: string) => void;
+  readonly onStop: () => void;
+};
+
+// Holds the draft as the chat store does: sending clears it.
+function DraftComposer({
+  isSending,
+  onSend,
+  onStop,
+}: DraftComposerProps): JSX.Element {
+  const [draft, setDraft] = useState("");
+
+  return (
+    <AiComposer
+      draft={draft}
+      onDraftChange={setDraft}
+      isSending={isSending}
+      onSend={(text) => {
+        onSend(text);
+        setDraft("");
+      }}
+      onStop={onStop}
+    />
+  );
+}
 
 function renderComposer(
   isSending = false,
@@ -17,7 +47,7 @@ function renderComposer(
   const onSend = vi.fn<(text: string) => void>();
   const onStop = vi.fn<() => void>();
   const rendered = renderWithProviders(
-    <AiComposer isSending={isSending} onSend={onSend} onStop={onStop} />,
+    <DraftComposer isSending={isSending} onSend={onSend} onStop={onStop} />,
     { locale: "en", themePreference },
   );
   return { onSend, onStop, ...rendered };
@@ -104,7 +134,7 @@ describe("AiComposer", () => {
   it("describes the counter in Vietnamese", async () => {
     const onSend = vi.fn<(text: string) => void>();
     const { user } = renderWithProviders(
-      <AiComposer
+      <DraftComposer
         isSending={false}
         onSend={onSend}
         onStop={vi.fn<() => void>()}
@@ -159,7 +189,7 @@ describe("AiComposer", () => {
     await user.keyboard("{Enter}");
     expect(onSend).toHaveBeenCalledExactlyOnceWith("hello");
 
-    rerender(<AiComposer isSending onSend={onSend} onStop={onStop} />);
+    rerender(<DraftComposer isSending onSend={onSend} onStop={onStop} />);
     screen.getByRole("button", { name: "Stop" }).focus();
     await user.keyboard(" ");
 

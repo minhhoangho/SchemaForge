@@ -39,6 +39,7 @@ import {
   createAiFetch,
   createControlledAiChatStream,
   proposalChunk,
+  textChunks,
 } from "@/testing/ai-chat-stream";
 import type { ControlledAiChatStream } from "@/testing/ai-chat-stream";
 import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
@@ -46,6 +47,7 @@ import { createFakeLockRegistry } from "@/testing/fake-lock-registry";
 import { renderWithProviders } from "@/testing/render-with-providers";
 import type { TestAuthOptions } from "@/testing/render-with-providers";
 
+import { NARROW_VIEWPORT_QUERY } from "../hooks/use-is-narrow-viewport";
 import { buildAddEnumOperation } from "../lib/build-add-enum-operation";
 import { formatColumnHandleId, formatTableHandleId } from "../lib/handle-ids";
 import { AI_COMMIT_ON_PREVIEW_ATTRIBUTE } from "../state/ai-chat-store-provider";
@@ -1225,7 +1227,7 @@ describe("EditorWorkspace with the AI assistant", () => {
     return element.closest("[inert]") !== null;
   }
 
-  it("opens the AI window over the canvas and keeps the properties panel", async () => {
+  it("opens the AI window beside the canvas region and keeps the properties panel", async () => {
     const { user } = renderShop();
     await user.click(getOutlineRow("users"));
     const launcher = getAiLauncher();
@@ -1235,12 +1237,119 @@ describe("EditorWorkspace with the AI assistant", () => {
     const aiWindow = await screen.findByRole("dialog", {
       name: "AI assistant",
     });
+    // Outside the main region, which is hidden below lg in code mode.
     expect([
       getCanvasRegion().contains(launcher),
       getCanvasRegion().contains(aiWindow),
-    ]).toEqual([true, true]);
+    ]).toEqual([false, false]);
     expect(
       screen.getByRole("complementary", { name: "Properties" }),
+    ).toBeDefined();
+  });
+
+  it("keeps the launcher and the turn status out of the hidden canvas in code mode", async () => {
+    stubWorker();
+    const workspace = renderAiWorkspace();
+    await workspace.user.click(screen.getByRole("button", { name: "Code" }));
+    await screen.findByRole("complementary", { name: "Code generator" });
+
+    await askAi(workspace);
+    await act(async () => {
+      workspace.stream.finish(textChunks("Done"));
+      await Promise.resolve();
+    });
+
+    const status = await screen.findByText("The assistant finished responding");
+    expect([
+      getCanvasRegion().contains(status),
+      getCanvasRegion().contains(getAiLauncher()),
+    ]).toEqual([false, false]);
+  });
+
+  it("makes the rest of the workspace inert while the narrow sheet is open", async () => {
+    vi.stubGlobal("matchMedia", (media: string) => ({
+      matches: media === NARROW_VIEWPORT_QUERY,
+      media,
+      addEventListener: (): void => undefined,
+      removeEventListener: (): void => undefined,
+    }));
+    const { user } = renderShop();
+
+    await user.click(getAiLauncher());
+    const aiWindow = await screen.findByRole("dialog", {
+      name: "AI assistant",
+    });
+    expect(aiWindow.getAttribute("aria-modal")).toBe("true");
+    expect(
+      [
+        screen.getByRole("button", { name: "Code" }),
+        getOutline(),
+        getCanvasRegion(),
+      ].map(isInert),
+    ).toEqual([true, true, true]);
+    expect(isInert(aiWindow)).toBe(false);
+
+    await user.click(
+      within(aiWindow).getByRole("button", { name: "Minimize" }),
+    );
+    expect(isInert(getCanvasRegion())).toBe(false);
+  });
+
+  function stubNarrow(): void {
+    vi.stubGlobal("matchMedia", (media: string) => ({
+      matches: media === NARROW_VIEWPORT_QUERY,
+      media,
+      addEventListener: (): void => undefined,
+      removeEventListener: (): void => undefined,
+    }));
+  }
+
+  it.each(["Accept", "Discard"])(
+    "sends focus to Restore after %s on the preview bar with the window minimized on a narrow screen",
+    async (decision) => {
+      stubNarrow();
+      const workspace = renderAiWorkspace();
+      await askAi(workspace);
+      await endTurnWithProposal(workspace);
+      const aiWindow = screen.getByRole("dialog", { name: "AI assistant" });
+      await workspace.user.click(
+        within(aiWindow).getByRole("button", { name: "Minimize" }),
+      );
+
+      await workspace.user.click(
+        within(
+          screen.getByRole("region", { name: "Proposal preview" }),
+        ).getByRole("button", { name: decision }),
+      );
+
+      await waitFor(() => {
+        expect(document.activeElement).toBe(
+          within(aiWindow).getByRole("button", { name: "Restore" }),
+        );
+      });
+    },
+  );
+
+  it("shows the unread name on Restore when a reply ends while minimized on a narrow screen", async () => {
+    stubNarrow();
+    const workspace = renderAiWorkspace();
+    await askAi(workspace);
+    const aiWindow = screen.getByRole("dialog", { name: "AI assistant" });
+    await workspace.user.click(
+      within(aiWindow).getByRole("button", { name: "Minimize" }),
+    );
+
+    await act(async () => {
+      workspace.stream.finish(textChunks("Done"));
+      await Promise.resolve();
+    });
+
+    const restore = await within(aiWindow).findByRole("button", {
+      name: "Restore, new reply",
+    });
+    await workspace.user.click(restore);
+    expect(
+      within(aiWindow).getByRole("button", { name: "Minimize" }),
     ).toBeDefined();
   });
 

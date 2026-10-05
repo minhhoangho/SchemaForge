@@ -2,7 +2,7 @@
 
 import { XIcon } from "lucide-react";
 import dynamic from "next/dynamic";
-import type { JSX } from "react";
+import type { JSX, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -12,11 +12,13 @@ import { cn } from "@/lib/class-names";
 import { logger } from "@/lib/logger";
 
 import { useIsNarrowViewport } from "../../hooks/use-is-narrow-viewport";
-import type { AiWindowState } from "../../state/create-editor-store";
+import { selectIsPreviewing } from "../../state/create-editor-store";
+import type { AiWindowState } from "../../state/ai-window-actions";
 import { useEditorStore } from "../../state/use-editor-store";
 // Type only: the panel itself is the lazy chunk below.
 import type { AiPanelProps } from "./ai-panel";
-import { AI_LAUNCHER_ID } from "./ai-panel-ids";
+import { AI_WINDOW_OVERLAY_ATTRIBUTE } from "./ai-panel-ids";
+import { closeToLauncher } from "./close-to-launcher";
 
 function getErrorName(error: unknown): string {
   return error instanceof Error ? error.name : "unknown";
@@ -37,16 +39,15 @@ function PanelLoading(): JSX.Element {
 
 // A chunk that fails to load (offline, a new deploy) leaves the rest of the
 // editor working and says why the panel is missing. The close button matters
-// on a narrow screen, where the window covers the launcher.
-function PanelLoadFailed({ id }: AiPanelProps): JSX.Element {
+// on a narrow screen, where the window is a modal sheet over the launcher.
+function PanelLoadFailed({ isNarrow }: AiPanelProps): JSX.Element {
   const { t } = useTranslation("ai");
   const closeAiWindow = useEditorStore((state) => state.closeAiWindow);
 
   return (
     <section
-      id={id}
       role="dialog"
-      aria-modal="false"
+      aria-modal={isNarrow ? "true" : "false"}
       aria-label={t("panel.title")}
       className="flex items-start gap-2 p-3 text-sm"
     >
@@ -58,8 +59,7 @@ function PanelLoadFailed({ id }: AiPanelProps): JSX.Element {
         size="icon"
         aria-label={t("panel.close")}
         onClick={() => {
-          closeAiWindow();
-          document.getElementById(AI_LAUNCHER_ID)?.focus();
+          closeToLauncher(closeAiWindow);
         }}
       >
         <XIcon aria-hidden />
@@ -122,15 +122,18 @@ export const ProposalPreviewBarLoader = dynamic(loadPreviewBar, {
 
 type FrameLayout = Pick<AiWindowState, "isMinimized" | "isExpanded"> & {
   readonly isNarrow: boolean;
+  readonly hasPreviewBar: boolean;
 };
 
 // Above the launcher (bottom 1rem + 3.5rem + 1rem gap), at most the canvas
-// height minus that and a 1rem top gap. Below 640px: a full-screen sheet, or
+// height minus that and a 1rem top gap, plus the preview bar's 3rem while it
+// shows, so the window never covers it. Below 640px: a full-screen sheet, or
 // a bar at the bottom while minimized.
 function getFrameClassName({
   isMinimized,
   isExpanded,
   isNarrow,
+  hasPreviewBar,
 }: FrameLayout): string {
   return cn(
     "flex flex-col overflow-hidden bg-background text-foreground",
@@ -140,8 +143,16 @@ function getFrameClassName({
       : "absolute right-4 bottom-[5.5rem] z-20 rounded-2xl border border-border shadow-lg",
     !isNarrow &&
       (isExpanded
-        ? "h-[calc(100%-6.5rem)] w-[min(520px,calc(100%-2rem))]"
-        : "h-[min(640px,calc(100%-6.5rem))] w-[min(380px,calc(100%-2rem))]"),
+        ? "w-[min(520px,calc(100%-2rem))]"
+        : "w-[min(380px,calc(100%-2rem))]"),
+    !isNarrow &&
+      (isExpanded
+        ? hasPreviewBar
+          ? "h-[calc(100%-9.5rem)]"
+          : "h-[calc(100%-6.5rem)]"
+        : hasPreviewBar
+          ? "h-[min(640px,calc(100%-9.5rem))]"
+          : "h-[min(640px,calc(100%-6.5rem))]"),
     isMinimized && "h-auto",
     isMinimized && isNarrow && "top-auto border-t border-border",
   );
@@ -153,16 +164,19 @@ function hasRunningAnimation(element: HTMLElement): boolean {
   return animationName !== "" && animationName !== "none";
 }
 
+// A little over the 150ms exit animation: animationend can be skipped (a
+// hidden tab, a style change), and the window must never stay mounted inert.
+const EXIT_FALLBACK_MS = 250;
+
 /**
- * The floating AI window over the canvas (AI-R1, AI-R51). It stays mounted
- * through its closing animation, inert, and only then unmounts; the
- * conversation lives in the store above it, so closing keeps it.
+ * Keeps the window mounted while it animates out, then unmounts it. Opening
+ * again during the animation cancels the unmount.
  */
-export function AiWindow({ id }: { readonly id: string }): JSX.Element | null {
-  const isOpen = useEditorStore((state) => state.aiWindow.isOpen);
-  const isMinimized = useEditorStore((state) => state.aiWindow.isMinimized);
-  const isExpanded = useEditorStore((state) => state.aiWindow.isExpanded);
-  const isNarrow = useIsNarrowViewport();
+function useExitAnimation(isOpen: boolean): {
+  readonly isMounted: boolean;
+  readonly isClosing: boolean;
+  readonly frameRef: RefObject<HTMLDivElement | null>;
+} {
   const [isMounted, setIsMounted] = useState(isOpen);
   if (isOpen && !isMounted) {
     setIsMounted(true);
@@ -171,29 +185,70 @@ export function AiWindow({ id }: { readonly id: string }): JSX.Element | null {
   const isClosing = isMounted && !isOpen;
 
   useEffect(() => {
-    const frame = frameRef.current;
-    if (isClosing && (frame === null || !hasRunningAnimation(frame))) {
-      setIsMounted(false);
+    if (!isClosing) {
+      return undefined;
     }
+    const frame = frameRef.current;
+    if (frame === null || !hasRunningAnimation(frame)) {
+      setIsMounted(false);
+      return undefined;
+    }
+    // Native listeners: React has no onAnimationCancel. Animations inside the
+    // window (a skeleton, a caret) bubble here and are ignored.
+    function finish(event: AnimationEvent): void {
+      if (event.target === frame) {
+        setIsMounted(false);
+      }
+    }
+    frame.addEventListener("animationend", finish);
+    frame.addEventListener("animationcancel", finish);
+    const timeout = window.setTimeout(() => {
+      setIsMounted(false);
+    }, EXIT_FALLBACK_MS);
+    return () => {
+      frame.removeEventListener("animationend", finish);
+      frame.removeEventListener("animationcancel", finish);
+      window.clearTimeout(timeout);
+    };
   }, [isClosing]);
+
+  return { isMounted, isClosing, frameRef };
+}
+
+/**
+ * The floating AI window over the canvas (AI-R1, AI-R51). It stays mounted
+ * through its closing animation, inert, and only then unmounts; the
+ * conversation lives in the store above it, so closing keeps it. The frame
+ * carries the id the launcher's aria-controls points to.
+ */
+export function AiWindow({ id }: { readonly id: string }): JSX.Element | null {
+  const isOpen = useEditorStore((state) => state.aiWindow.isOpen);
+  const isMinimized = useEditorStore((state) => state.aiWindow.isMinimized);
+  const isExpanded = useEditorStore((state) => state.aiWindow.isExpanded);
+  const hasPreviewBar = useEditorStore(selectIsPreviewing);
+  const isNarrow = useIsNarrowViewport();
+  const { isMounted, isClosing, frameRef } = useExitAnimation(isOpen);
 
   if (!isMounted) {
     return null;
   }
+  const overlay =
+    isOpen && !isMinimized ? { [AI_WINDOW_OVERLAY_ATTRIBUTE]: "" } : {};
   return (
     <div
+      id={id}
       ref={frameRef}
       data-state={isOpen ? "open" : "closed"}
       inert={isClosing}
-      className={getFrameClassName({ isMinimized, isExpanded, isNarrow })}
-      onAnimationEnd={(event) => {
-        // Animations inside the window (a skeleton, a caret) bubble here.
-        if (isClosing && event.target === event.currentTarget) {
-          setIsMounted(false);
-        }
-      }}
+      {...overlay}
+      className={getFrameClassName({
+        isMinimized,
+        isExpanded,
+        isNarrow,
+        hasPreviewBar,
+      })}
     >
-      <AiPanelLoader id={id} isNarrow={isNarrow} />
+      <AiPanelLoader isNarrow={isNarrow} />
     </div>
   );
 }

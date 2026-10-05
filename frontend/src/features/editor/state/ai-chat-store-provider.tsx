@@ -77,6 +77,7 @@ export function AiChatStoreProvider({
       getLocale: (): AiLocale =>
         isLocale(languageRef.current) ? languageRef.current : DEFAULT_LOCALE,
       generateId: () => crypto.randomUUID(),
+      now: () => Date.now(),
       scheduleFrame: (callback) => requestAnimationFrame(callback),
       cancelFrame: (handle) => {
         cancelAnimationFrame(handle);

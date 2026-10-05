@@ -2,13 +2,17 @@
 
 import { AI_MAX_USER_MESSAGE_LENGTH } from "@schemaforge/api-contract";
 import type { JSX, KeyboardEvent, Ref } from "react";
-import { useId, useState } from "react";
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 export type AiComposerProps = {
+  // The unsent text lives in the chat store, so it outlives the window.
+  // Sending clears it there.
+  readonly draft: string;
+  readonly onDraftChange: (text: string) => void;
   readonly isSending: boolean;
   readonly onSend: (text: string) => void;
   readonly onStop: () => void;
@@ -19,23 +23,22 @@ export type AiComposerProps = {
 const IME_PROCESS_KEY_CODE = 229;
 
 export function AiComposer({
+  draft: text,
+  onDraftChange,
   isSending,
   onSend,
   onStop,
   inputRef,
 }: AiComposerProps): JSX.Element {
   const { t } = useTranslation("ai");
-  const [text, setText] = useState("");
   const inputId = useId();
   const counterId = useId();
   const canSend = text.trim() !== "";
 
   function send(): void {
-    if (!canSend) {
-      return;
+    if (canSend) {
+      onSend(text);
     }
-    onSend(text);
-    setText("");
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
@@ -59,7 +62,7 @@ export function AiComposer({
   }
 
   return (
-    <div className="flex flex-col gap-1 rounded-xl border border-input bg-card p-2 pl-3 shadow-sm focus-within:ring-3 focus-within:ring-ring dark:bg-input/30">
+    <div className="flex flex-col gap-1 rounded-xl border border-input bg-card p-2 pl-3 shadow-sm transition-[color,background-color,border-color,box-shadow] duration-150 has-[textarea:focus-visible]:border-ring has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-ring dark:bg-input/30">
       <label htmlFor={inputId} className="sr-only">
         {t("composer.label")}
       </label>
@@ -75,7 +78,7 @@ export function AiComposer({
         placeholder={t("composer.placeholder")}
         aria-describedby={counterId}
         onChange={(event) => {
-          setText(event.target.value);
+          onDraftChange(event.target.value);
         }}
         onKeyDown={handleKeyDown}
       />

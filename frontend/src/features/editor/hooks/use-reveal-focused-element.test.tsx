@@ -5,6 +5,7 @@ import type { JSX } from "react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { AI_WINDOW_OVERLAY_ATTRIBUTE } from "../components/ai-panel/ai-panel-ids";
 import type { ViewportControls } from "../lib/viewport-controls";
 import {
   VIEWPORT_TRANSITION_MS,
@@ -126,6 +127,52 @@ describe("useRevealFocusedElement", () => {
       zoom: ZOOM,
       duration: VIEWPORT_TRANSITION_MS,
     });
+  });
+
+  it("moves a focused node under the open AI window to the middle of the canvas part left of it", async () => {
+    const user = userEvent.setup();
+    const controls = createControls();
+    renderCanvas(controls, {
+      nodeRect: new DOMRect(650, 100, 200, 100),
+      isFocusVisible: true,
+    });
+    const aiWindow = document.createElement("div");
+    aiWindow.setAttribute(AI_WINDOW_OVERLAY_ATTRIBUTE, "");
+    document.body.append(aiWindow);
+    vi.spyOn(aiWindow, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(620, 0, 380, 800),
+    );
+
+    await user.tab();
+    await user.tab();
+    aiWindow.remove();
+
+    // Node center 750 plus half the covered width (190), at zoom 2.
+    expect(controls.setCenter).toHaveBeenCalledWith(470, 75, {
+      zoom: ZOOM,
+      duration: VIEWPORT_TRANSITION_MS,
+    });
+  });
+
+  it("leaves a focused node clear of the open AI window where it is", async () => {
+    const user = userEvent.setup();
+    const controls = createControls();
+    renderCanvas(controls, {
+      nodeRect: VISIBLE_NODE_RECT,
+      isFocusVisible: true,
+    });
+    const aiWindow = document.createElement("div");
+    aiWindow.setAttribute(AI_WINDOW_OVERLAY_ATTRIBUTE, "");
+    document.body.append(aiWindow);
+    vi.spyOn(aiWindow, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(620, 0, 380, 800),
+    );
+
+    await user.tab();
+    await user.tab();
+    aiWindow.remove();
+
+    expect(controls.setCenter).not.toHaveBeenCalled();
   });
 
   it("does nothing when the focused node is visible", async () => {

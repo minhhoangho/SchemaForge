@@ -2,7 +2,6 @@
 
 import { ChevronDownIcon, SparklesIcon } from "lucide-react";
 import type { JSX } from "react";
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -12,40 +11,21 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import { useAiChatStoreApi } from "../../state/ai-chat-store-provider";
+import { useIsNarrowViewport } from "../../hooks/use-is-narrow-viewport";
 import { useEditorStore } from "../../state/use-editor-store";
 import { AI_LAUNCHER_ID } from "./ai-panel-ids";
 
 /**
- * A turn keeps streaming after the window closes; its end marks the reply
- * unread so the launcher can say so (the editor store ignores it while the
- * window is open).
- */
-function useMarkUnreadReply(): void {
-  const chat = useAiChatStoreApi();
-  const markAiReplyUnread = useEditorStore((state) => state.markAiReplyUnread);
-
-  useEffect(
-    () =>
-      chat.subscribe((state, previous) => {
-        if (previous.isSending && !state.isSending) {
-          markAiReplyUnread();
-        }
-      }),
-    [chat, markAiReplyUnread],
-  );
-}
-
-/**
  * The round button that opens and closes the floating AI window, bottom
  * right of the canvas. It lives in the editor's own chunk, so it imports
- * nothing of the lazy panel (AI spec section 15).
+ * nothing of the lazy panel (AI spec section 15). Its name stays the same
+ * whether the window is open or closed; aria-expanded carries that.
  */
 export function AiLauncher({
   windowId,
 }: {
   readonly windowId: string;
-}): JSX.Element {
+}): JSX.Element | null {
   const { t } = useTranslation("ai");
   const isOpen = useEditorStore((state) => state.aiWindow.isOpen);
   const hasUnreadReply = useEditorStore(
@@ -53,12 +33,14 @@ export function AiLauncher({
   );
   const openAiWindow = useEditorStore((state) => state.openAiWindow);
   const closeAiWindow = useEditorStore((state) => state.closeAiWindow);
-  useMarkUnreadReply();
-  const label = isOpen
-    ? t("panel.close")
-    : hasUnreadReply
-      ? t("panel.unreadReply")
-      : t("panel.toggle");
+  const isNarrow = useIsNarrowViewport();
+  // On a narrow screen the open window is a sheet (or its minimized bar) over
+  // this corner, with its own Close and Restore: a launcher under it would be
+  // a focusable control hidden from view (WCAG 2.4.11).
+  if (isNarrow && isOpen) {
+    return null;
+  }
+  const label = hasUnreadReply ? t("panel.unreadReply") : t("panel.toggle");
   const Icon = isOpen ? ChevronDownIcon : SparklesIcon;
 
   return (
@@ -68,7 +50,8 @@ export function AiLauncher({
           id={AI_LAUNCHER_ID}
           aria-label={label}
           aria-expanded={isOpen}
-          aria-controls={windowId}
+          // The window's element exists only while it is open.
+          aria-controls={isOpen ? windowId : undefined}
           className="absolute right-4 bottom-4 z-20 size-14 rounded-full shadow-md [&_svg:not([class*='size-'])]:size-6"
           onClick={isOpen ? closeAiWindow : openAiWindow}
         >

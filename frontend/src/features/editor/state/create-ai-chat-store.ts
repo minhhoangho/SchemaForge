@@ -32,11 +32,14 @@ export type AiUserMessage = {
   readonly id: string;
   readonly role: "user";
   readonly text: string;
+  // Epoch milliseconds from the injected clock, shown under the bubble.
+  readonly createdAt: number;
 };
 export type AiAssistantMessage = {
   readonly id: string;
   readonly role: "assistant";
   readonly text: string;
+  readonly createdAt: number;
   readonly status: "streaming" | "done" | "stopped" | "failed";
   readonly failure: AiChatFailure | null;
   readonly proposal:
@@ -52,8 +55,11 @@ export type AiChatEntry = AiUserMessage | AiAssistantMessage;
 export type AiChatState = {
   readonly messages: readonly AiChatEntry[];
   readonly isSending: boolean;
+  // The composer's unsent text: it outlives the window, which unmounts.
+  readonly draft: string;
 };
 export type AiChatActions = {
+  readonly setDraft: (text: string) => void;
   readonly send: (text: string) => Promise<void>;
   readonly stop: () => void;
   readonly retry: () => Promise<void>;
@@ -67,6 +73,8 @@ export type CreateAiChatStoreInput = {
   readonly loadClient: () => Promise<AiChatClient | null>;
   readonly getLocale: () => AiLocale;
   readonly generateId: () => string;
+  // Epoch milliseconds; stamps each message.
+  readonly now: () => number;
   readonly scheduleFrame: (callback: () => void) => number;
   readonly cancelFrame: (handle: number) => void;
   // Called right before a preview starts (AI plan, issue 46).
@@ -141,6 +149,7 @@ export function createAiChatStore(input: CreateAiChatStoreInput): AiChatStore {
               id: assistantId,
               role: "assistant",
               text: "",
+              createdAt: input.now(),
               status: "streaming",
               failure: null,
               proposal: null,
@@ -262,6 +271,10 @@ export function createAiChatStore(input: CreateAiChatStoreInput): AiChatStore {
       return {
         messages: [],
         isSending: false,
+        draft: "",
+        setDraft: (text) => {
+          set({ draft: text });
+        },
         // Consent to send data is the interface's gate (AI plan, issue 57):
         // the panel offers sending only after the user agreed.
         send: async (text) => {
@@ -272,9 +285,15 @@ export function createAiChatStore(input: CreateAiChatStoreInput): AiChatStore {
           ) {
             return;
           }
+          set({ draft: "" });
           await runTurn([
             ...get().messages,
-            { id: input.generateId(), role: "user", text },
+            {
+              id: input.generateId(),
+              role: "user",
+              text,
+              createdAt: input.now(),
+            },
           ]);
         },
         stop: () => {
@@ -298,7 +317,7 @@ export function createAiChatStore(input: CreateAiChatStoreInput): AiChatStore {
           if (editor.getState().proposal !== null) {
             editor.getState().discardProposal();
           }
-          set({ messages: [], isSending: false });
+          set({ messages: [], isSending: false, draft: "" });
         },
         acceptProposal: (messageId) => {
           if (findPreview(messageId) === null) {

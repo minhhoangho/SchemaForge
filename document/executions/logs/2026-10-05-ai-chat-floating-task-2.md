@@ -15,3 +15,12 @@ Tham chiếu: `document/ui_reference/ai-chat-bubble-mockup.html`, `document/exec
   - Đếm thay đổi của thẻ đề xuất thành pill; dòng phá hủy vẫn đậm + viền `diff-removed`.
 - **Việc còn lại**: không có trong phạm vi task này. Cần ở `ai-panel.tsx` (task vỏ hoặc người merge): trong `Conversation`, thay `messages.length === 0 ? <AiQuickActions .../> : null` bằng `<AiQuickActions variant={messages.length === 0 ? "large" : "compact"} ... />` luôn hiển thị, để hàng chip nhỏ xuất hiện khi đã có hội thoại.
 - **Ghi chú cho người tiếp theo**: kiểm thủ công: đọc bằng trình đọc màn hình thật (nhãn người gửi + giờ trong `role="log"`), độ rộng 320px với bản dịch vi, tương phản viền bubble trợ lý (`--border` trên `--muted`, cần 3:1 chỉ khi viền là ranh giới điều khiển, ở đây chỉ trang trí), giờ ẩn (opacity 0) với người dùng bàn phím chỉ hiện khi focus nằm trong hàng tin (nút trong thẻ), không phải khi log được focus.
+
+## 2026-10-05 — frontend-engineer — Xong (bổ sung kết quả kiểm tra)
+- **Đã làm**: ghi lại kết quả kiểm tra của lần chạy trên (mục **Kiểm tra** trước đó chỉ trỏ tới báo cáo), theo yêu cầu review; lấy từ báo cáo cuối của task 2.
+- **File thay đổi**: chỉ file log này.
+- **Kiểm tra** (lần chạy task 2):
+  - `.claude/scripts/verify.sh frontend --format`: typecheck PASS, lint PASS, test PASS (4527 test), coverage 96.2% dòng, prettier PASS.
+  - `.claude/scripts/secret-scan.sh`: `SECRET-SCAN: CLEAN`.
+- **Quyết định**: không có.
+- **Ghi chú cho người tiếp theo**: các sửa theo review của task 1–3 nằm ở `2026-10-05-ai-chat-floating-task-4.md`.

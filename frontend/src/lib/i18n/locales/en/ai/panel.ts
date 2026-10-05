@@ -5,6 +5,7 @@ export const enAiPanel = {
   unreadReply: "AI assistant, new reply",
   minimize: "Minimize",
   restore: "Restore",
+  restoreUnread: "Restore, new reply",
   expand: "Expand window",
   shrink: "Shrink window",
   newConversation: "New conversation",

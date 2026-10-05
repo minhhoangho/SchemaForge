@@ -1,6 +1,7 @@
 import { useStoreApi } from "@xyflow/react";
 import { useEffect } from "react";
 
+import { AI_WINDOW_OVERLAY_ATTRIBUTE } from "../components/ai-panel/ai-panel-ids";
 import { isFocusTargetObscured } from "../lib/is-focus-target-obscured";
 import {
   useViewportControls,
@@ -23,6 +24,24 @@ function measureOverlays(canvasElement: HTMLElement): readonly DOMRect[] {
   return overlays.map((overlay) => overlay.getBoundingClientRect());
 }
 
+// The open, full-size AI window floats over the canvas beside it, so it is
+// looked up in the document.
+function measureAiWindow(canvasElement: HTMLElement): DOMRect | null {
+  const aiWindow = canvasElement.ownerDocument.querySelector(
+    `[${AI_WINDOW_OVERLAY_ATTRIBUTE}]`,
+  );
+  return aiWindow === null ? null : aiWindow.getBoundingClientRect();
+}
+
+function overlaps(first: DOMRect, second: DOMRect): boolean {
+  return (
+    first.left < second.right &&
+    second.left < first.right &&
+    first.top < second.bottom &&
+    second.top < first.bottom
+  );
+}
+
 function isKeyboardFocusTarget(target: EventTarget | null): target is Element {
   return (
     target instanceof Element &&
@@ -33,9 +52,9 @@ function isKeyboardFocusTarget(target: EventTarget | null): target is Element {
 
 /**
  * Pans the canvas to a node or edge that received keyboard focus while
- * entirely hidden by the minimap, the toast area or the canvas edge
- * (WCAG 2.4.11). React Flow's own `autoPanOnNodeFocus` is off because it
- * ignores overlays and edges.
+ * entirely hidden by the minimap, the toast area or the canvas edge, or
+ * partly under the open AI window (WCAG 2.4.11). React Flow's own
+ * `autoPanOnNodeFocus` is off because it ignores overlays and edges.
  */
 export function useRevealFocusedElement(
   canvasElement: HTMLElement | null,
@@ -55,12 +74,23 @@ export function useRevealFocusedElement(
       const target = event.target.getBoundingClientRect();
       const canvas = canvasElement.getBoundingClientRect();
       const overlays = measureOverlays(canvasElement);
-      if (!isFocusTargetObscured({ target, canvas, overlays })) {
+      const aiWindow = measureAiWindow(canvasElement);
+      const isUnderAiWindow = aiWindow !== null && overlaps(target, aiWindow);
+      if (
+        !isUnderAiWindow &&
+        !isFocusTargetObscured({ target, canvas, overlays })
+      ) {
         return;
       }
+      // Under the AI window, the node lands in the middle of the canvas part
+      // left of it, not in the middle of the canvas, which the window covers.
+      const visibleRight = isUnderAiWindow
+        ? Math.min(canvas.right, aiWindow.left)
+        : canvas.right;
+      const shiftX = (canvas.right - visibleRight) / HALF;
       const [translateX, translateY] = flowStore.getState().transform;
       const zoom = controls.getZoom();
-      const centerX = target.left + target.width / HALF - canvas.left;
+      const centerX = target.left + target.width / HALF - canvas.left + shiftX;
       const centerY = target.top + target.height / HALF - canvas.top;
       const isReducedMotion = window.matchMedia(REDUCED_MOTION_QUERY).matches;
       controls.setCenter(

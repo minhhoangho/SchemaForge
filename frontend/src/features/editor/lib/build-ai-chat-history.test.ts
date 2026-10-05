@@ -8,7 +8,7 @@ import type {
 import { buildAiChatHistory } from "./build-ai-chat-history";
 
 function user(text: string, id = "u"): AiUserMessage {
-  return { id, role: "user", text };
+  return { id, role: "user", text, createdAt: 0 };
 }
 
 function assistant(
@@ -18,6 +18,7 @@ function assistant(
     id: "a",
     role: "assistant",
     text: "reply",
+    createdAt: 0,
     status: "done",
     failure: null,
     proposal: null,

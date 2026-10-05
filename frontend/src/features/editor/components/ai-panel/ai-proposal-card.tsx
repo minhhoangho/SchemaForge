@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import type { ProposalChangeCounts } from "@/features/editor/lib/proposal-display";
 import { cn } from "@/lib/class-names";
 
+import { AI_SMALL_TEXT_CLASS_NAME } from "./ai-text-styles";
 import { AcceptProposalButton } from "./confirm-destructive-proposal-dialog";
 
 export type ProposalCardStatus =
@@ -164,11 +165,7 @@ function StatusBody({
               aria-hidden
               className="mt-0.5 size-4 text-warning"
             />
-            <p
-              id={stateId}
-              role="status"
-              className="text-[0.8125rem] leading-[1.125rem]"
-            >
+            <p id={stateId} role="status" className={AI_SMALL_TEXT_CLASS_NAME}>
               {t(`proposal.${status}`)}
             </p>
           </div>
@@ -227,7 +224,12 @@ export function AiProposalCard({
       </p>
       <StatusBody stateId={stateId} {...body} />
       {hasStoppedEarly ? (
-        <p className="flex items-start gap-2 rounded-lg border border-l-[3px] border-border border-l-warning bg-background p-2 text-[0.8125rem] leading-[1.125rem]">
+        <p
+          className={cn(
+            "flex items-start gap-2 rounded-lg border border-l-[3px] border-border border-l-warning bg-background p-2",
+            AI_SMALL_TEXT_CLASS_NAME,
+          )}
+        >
           <TriangleAlertIcon
             aria-hidden
             className="mt-0.5 size-4 shrink-0 text-warning"

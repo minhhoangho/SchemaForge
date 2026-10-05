@@ -5,7 +5,13 @@ import {
   makeColumn,
   makeTable,
 } from "@schemaforge/core/testing";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
 import type { JSX } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -41,6 +47,7 @@ import { EditorStoreProvider } from "../../state/editor-store-provider";
 import { aiConsentKey } from "./ai-consent";
 import { AiLauncher } from "./ai-launcher";
 import { AiWindow } from "./ai-panel-loader";
+import { AiTurnStatus } from "./ai-turn-status";
 
 const EDITOR_PATH = "/schemas/0b7d4c1e-2f3a-4b5c-8d6e-7f8091a2b3c4";
 const WINDOW_ID = "ai-window";
@@ -73,6 +80,7 @@ afterEach(() => {
   // Back to the real hook after the one test that replaces it.
   vi.mocked(authProvider.useAiChatTransport).mockReset();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 function createStorage(): StorageBundle {
@@ -108,6 +116,7 @@ function PanelHarness(): JSX.Element {
   return (
     <>
       <button type="button">outside</button>
+      <AiTurnStatus />
       <AiLauncher windowId={WINDOW_ID} />
       <AiWindow id={WINDOW_ID} />
     </>
@@ -180,12 +189,23 @@ async function openPanel(rendered: Rendered): Promise<HTMLElement> {
   );
 }
 
-// While the window is open, the launcher and the header's close button share
-// a name; only the launcher reports aria-expanded.
+// The launcher keeps its name while the window is open; aria-expanded says so.
 function getOpenLauncher(): HTMLElement {
-  return screen.getByRole("button", {
-    name: "Close AI assistant",
-    expanded: true,
+  return screen.getByRole("button", { name: "AI assistant", expanded: true });
+}
+
+function stubNarrowViewport(): void {
+  vi.stubGlobal("matchMedia", (media: string) => ({
+    matches: media === NARROW_VIEWPORT_QUERY,
+    media,
+    addEventListener: (): void => undefined,
+    removeEventListener: (): void => undefined,
+  }));
+}
+
+function getComposer(panel: HTMLElement): HTMLElement {
+  return within(panel).getByRole("textbox", {
+    name: "Message to the AI assistant",
   });
 }
 
@@ -203,6 +223,8 @@ async function sendMessage(rendered: Rendered, text: string): Promise<void> {
     `${text}{Enter}`,
   );
 }
+
+const FINISHED_STATUS = "The assistant finished responding";
 
 describe("AiPanel", () => {
   it("shows guests a sign-in invitation with a returnTo link and sends no request", async () => {
@@ -276,9 +298,10 @@ describe("AiPanel", () => {
     );
 
     expect(await within(panel).findByText("Hi there")).toBeDefined();
-    expect(
-      within(panel).queryByRole("group", { name: "Quick actions" }),
-    ).toBeNull();
+    // Still there as the compact row above the composer: one row, no wrapping.
+    const compact = within(panel).getByRole("group", { name: "Quick actions" });
+    expect(compact.className).toContain("overflow-x-auto");
+    expect(compact.className).not.toContain("flex-wrap");
   });
 
   it("focuses the composer when the panel opens", async () => {
@@ -415,10 +438,14 @@ describe("AiPanel", () => {
 
     expect(panel.getAttribute("aria-modal")).toBe("false");
     expect(getOpenLauncher()).toBe(launcher);
-    expect(launcher.getAttribute("aria-controls")).toBe(panel.id);
+    const controlled = document.getElementById(
+      launcher.getAttribute("aria-controls") ?? "",
+    );
+    expect(controlled?.contains(panel)).toBe(true);
     await rendered.user.click(launcher);
     expect(screen.queryByRole("dialog", { name: "AI assistant" })).toBeNull();
     expect(launcher.getAttribute("aria-expanded")).toBe("false");
+    expect(launcher.hasAttribute("aria-controls")).toBe(false);
   });
 
   it("closes on Escape and returns focus to the launcher", async () => {
@@ -445,6 +472,23 @@ describe("AiPanel", () => {
     expect(screen.getByRole("dialog", { name: "AI assistant" })).toBeDefined();
   });
 
+  it("announces the end of a turn once while the window is open, outside the log", async () => {
+    const rendered = renderPanel();
+    const panel = await openChat(rendered);
+    await sendMessage(rendered, "Hello");
+    await within(panel).findByText("Hi there");
+
+    const status = await screen.findByText(FINISHED_STATUS);
+    expect(screen.getAllByText(FINISHED_STATUS)).toHaveLength(1);
+    expect(status.getAttribute("role")).toBe("status");
+    expect(panel.contains(status)).toBe(false);
+    expect(
+      within(panel)
+        .getByRole("log", { name: "Conversation" })
+        .getAttribute("aria-busy"),
+    ).toBe("false");
+  });
+
   it("marks the launcher when a reply ends while the window is closed, until it opens", async () => {
     const stream = createControlledAiChatStream();
     const rendered = renderPanel({
@@ -463,12 +507,16 @@ describe("AiPanel", () => {
       name: "AI assistant, new reply",
       expanded: false,
     });
+    // The window is gone, yet the end of the turn is still announced, once.
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getAllByText(FINISHED_STATUS)).toHaveLength(1);
     await rendered.user.click(launcher);
 
     const reopened = await screen.findByRole("dialog", {
       name: "AI assistant",
     });
     expect(within(reopened).getByText("Done")).toBeDefined();
+    expect(screen.getAllByText(FINISHED_STATUS)).toHaveLength(1);
     await rendered.user.click(getOpenLauncher());
     expect(
       screen.getByRole("button", { name: "AI assistant", expanded: false }),
@@ -520,12 +568,7 @@ describe("AiPanel", () => {
   });
 
   it("offers no expand on a narrow screen, where it is a full-screen sheet", async () => {
-    vi.stubGlobal("matchMedia", (media: string) => ({
-      matches: media === NARROW_VIEWPORT_QUERY,
-      media,
-      addEventListener: (): void => undefined,
-      removeEventListener: (): void => undefined,
-    }));
+    stubNarrowViewport();
     const rendered = renderPanel();
 
     const panel = await openChat(rendered);
@@ -633,6 +676,206 @@ describe("AiPanel", () => {
 
     expect(within(reopened).getByText("Hello")).toBeDefined();
     expect(within(reopened).getByText("Hi there")).toBeDefined();
+  });
+
+  it("keeps each message's time when the window is closed and opened again", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 5, 9, 30));
+    const rendered = renderPanel();
+    const panel = await openChat(rendered);
+    await sendMessage(rendered, "Hello");
+    await within(panel).findByText("Hi there");
+
+    vi.setSystemTime(new Date(2026, 9, 5, 9, 45));
+    await rendered.user.click(getOpenLauncher());
+    const reopened = await openPanel(rendered);
+
+    expect(within(reopened).getAllByText("09:30")).toHaveLength(2);
+    expect(within(reopened).queryByText("09:45")).toBeNull();
+  });
+
+  it("keeps the draft when the window is closed with Escape and opened again", async () => {
+    const rendered = renderPanel();
+    const panel = await openChat(rendered);
+    await rendered.user.type(getComposer(panel), "Half a thought");
+
+    await rendered.user.keyboard("{Escape}");
+    const reopened = await openPanel(rendered);
+
+    expect(getComposer(reopened)).toHaveProperty("value", "Half a thought");
+  });
+
+  it("stays open on Escape while an IME is composing", async () => {
+    const rendered = renderPanel();
+    const panel = await openChat(rendered);
+
+    fireEvent.keyDown(getComposer(panel), { key: "Escape", isComposing: true });
+
+    expect(screen.getByRole("dialog", { name: "AI assistant" })).toBe(panel);
+  });
+
+  it("is a modal sheet without the launcher under it on a narrow screen", async () => {
+    stubNarrowViewport();
+    const rendered = renderPanel();
+
+    const panel = await openChat(rendered);
+    expect(panel.getAttribute("aria-modal")).toBe("true");
+    expect(screen.queryByRole("button", { name: "AI assistant" })).toBeNull();
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Minimize" }),
+    );
+    expect(panel.getAttribute("aria-modal")).toBe("false");
+    expect(screen.queryByRole("button", { name: "AI assistant" })).toBeNull();
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Close AI assistant" }),
+    );
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "AI assistant", expanded: false }),
+    );
+  });
+
+  it("marks a reply that ends while minimized as unread until the window is restored", async () => {
+    const stream = createControlledAiChatStream();
+    const rendered = renderPanel({
+      fetchImpl: createAiFetch(() => stream.response),
+    });
+    const panel = await sendWithButton(rendered);
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Minimize" }),
+    );
+
+    await act(async () => {
+      stream.finish(textChunks("Done"));
+      await Promise.resolve();
+    });
+    expect(
+      await screen.findByRole("button", {
+        name: "AI assistant, new reply",
+        expanded: true,
+      }),
+    ).toBeDefined();
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Restore, new reply" }),
+    );
+
+    expect(getOpenLauncher()).toBeDefined();
+  });
+
+  it("does not mark a failed reply as unread", async () => {
+    const stream = createControlledAiChatStream();
+    const rendered = renderPanel({
+      fetchImpl: createAiFetch(() => stream.response),
+    });
+    const panel = await sendWithButton(rendered);
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Close AI assistant" }),
+    );
+
+    await act(async () => {
+      stream.finish([{ type: "error", errorText: "ai-timeout" }]);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("status").textContent).not.toBe("");
+    });
+    expect(
+      screen.getByRole("button", { name: "AI assistant", expanded: false }),
+    ).toBeDefined();
+  });
+
+  it("announces a failure once while the window is open: in the log, not the status region", async () => {
+    const rendered = renderPanel({
+      fetchImpl: createAiFetch(() =>
+        jsonResponse(503, { statusCode: 503, code: "ai-unavailable" }),
+      ),
+    });
+    const panel = await openChat(rendered);
+
+    await sendMessage(rendered, "Hello");
+    await within(panel).findByRole("button", { name: "Try again" });
+
+    expect(screen.getByRole("status").textContent).toBe("");
+  });
+
+  it("announces a failure in the status region when the window is closed", async () => {
+    const stream = createControlledAiChatStream();
+    const rendered = renderPanel({
+      fetchImpl: createAiFetch(() => stream.response),
+    });
+    const panel = await sendWithButton(rendered);
+    await rendered.user.click(
+      within(panel).getByRole("button", { name: "Close AI assistant" }),
+    );
+
+    await act(async () => {
+      stream.finish([{ type: "error", errorText: "ai-timeout" }]);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("status").textContent).not.toBe("");
+    });
+    expect(screen.getByRole("status").textContent).not.toBe(
+      "The assistant is responding",
+    );
+  });
+
+  describe("with an exit animation", () => {
+    function stubExitAnimation(): void {
+      const realGetComputedStyle = window.getComputedStyle.bind(window);
+      vi.spyOn(window, "getComputedStyle").mockImplementation((element) => {
+        const style = realGetComputedStyle(element);
+        return element.getAttribute("data-state") === "closed"
+          ? Object.assign(style, { animationName: "exit" })
+          : style;
+      });
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("focuses the window when it opens again while still animating out", async () => {
+      stubExitAnimation();
+      const rendered = renderPanel();
+      const panel = await openChat(rendered);
+
+      await rendered.user.click(getOpenLauncher());
+      expect(panel.isConnected).toBe(true);
+      await rendered.user.click(
+        screen.getByRole("button", { name: "AI assistant", expanded: false }),
+      );
+
+      expect(document.activeElement).toBe(getComposer(panel));
+    });
+
+    it("unmounts when the exit animation is cancelled", async () => {
+      stubExitAnimation();
+      const rendered = renderPanel();
+      const panel = await openChat(rendered);
+      await rendered.user.click(getOpenLauncher());
+      const frame = document.getElementById(WINDOW_ID);
+
+      act(() => {
+        frame?.dispatchEvent(new Event("animationcancel"));
+      });
+
+      expect(panel.isConnected).toBe(false);
+    });
+
+    it("unmounts after a short fallback when the animation never ends", async () => {
+      stubExitAnimation();
+      const rendered = renderPanel();
+      const panel = await openChat(rendered);
+
+      await rendered.user.click(getOpenLauncher());
+
+      await waitFor(() => {
+        expect(panel.isConnected).toBe(false);
+      });
+    });
   });
 
   type AxeCase = {

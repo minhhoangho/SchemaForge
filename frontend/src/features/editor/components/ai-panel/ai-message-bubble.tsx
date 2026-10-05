@@ -2,7 +2,6 @@
 
 import { SparklesIcon } from "lucide-react";
 import type { JSX, ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/class-names";
 
@@ -129,7 +128,6 @@ export type MessageBubbleProps = {
   readonly hasTail: boolean;
   // Partial text of a failed turn: muted, dashed.
   readonly isMuted?: boolean;
-  readonly sentAt: Date;
   readonly children: ReactNode;
 };
 
@@ -137,44 +135,22 @@ export function MessageBubble({
   sender,
   hasTail,
   isMuted = false,
-  sentAt,
   children,
 }: MessageBubbleProps): JSX.Element {
-  const { i18n } = useTranslation();
   const isUser = sender === "user";
-  const time = new Intl.DateTimeFormat(i18n.language, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(sentAt);
 
   return (
     <div
       className={cn(
-        "flex max-w-full items-end gap-1.5",
-        isUser && "flex-row-reverse",
+        "max-w-full min-w-0 self-start rounded-2xl px-3 py-2 text-sm",
+        isUser
+          ? "self-end bg-bubble-user text-bubble-user-foreground"
+          : "border border-border bg-bubble-assistant text-bubble-assistant-foreground",
+        hasTail && (isUser ? "rounded-tr-sm" : "rounded-tl-sm"),
+        isMuted && "border-dashed text-muted-foreground",
       )}
     >
-      <div
-        className={cn(
-          "min-w-0 rounded-2xl px-3 py-2 text-sm",
-          isUser
-            ? "bg-bubble-user text-bubble-user-foreground"
-            : "max-w-[calc(100%-40px)] border border-border bg-bubble-assistant text-bubble-assistant-foreground",
-          hasTail && (isUser ? "rounded-tr-sm" : "rounded-tl-sm"),
-          isMuted && "border-dashed text-muted-foreground",
-        )}
-      >
-        {children}
-      </div>
-      {/* The space is reserved so the time appearing on hover or focus never
-          moves the layout. */}
-      <time
-        dateTime={sentAt.toISOString()}
-        className="w-9 shrink-0 text-xs whitespace-nowrap text-muted-foreground opacity-0 transition-opacity group-focus-within/msg:opacity-100 group-hover/msg:opacity-100 motion-reduce:transition-none"
-      >
-        {time}
-      </time>
+      {children}
     </div>
   );
 }

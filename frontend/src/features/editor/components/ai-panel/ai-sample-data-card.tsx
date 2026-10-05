@@ -19,9 +19,11 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/class-names";
 import { useNotify } from "@/lib/use-notify";
 
 import { useEditorStore } from "../../state/use-editor-store";
+import { AI_SMALL_TEXT_CLASS_NAME } from "./ai-text-styles";
 
 // Loaded on demand so the seed module stays out of the editor's first chunk.
 type SeedModule = typeof SeedNamespace;
@@ -81,7 +83,7 @@ function SampleTable({
       tabIndex={0}
       role="region"
       aria-labelledby={captionId}
-      className="overflow-x-auto rounded-md border border-border outline-none focus-visible:ring-3 focus-visible:ring-ring"
+      className="overflow-x-auto rounded-md border border-border outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <table className="w-full border-collapse text-left text-xs">
         <caption id={captionId} className="sr-only">
@@ -273,7 +275,7 @@ export function AiSampleDataCard({
             className="mt-0.5 size-4 shrink-0 text-warning"
           />
           <div className="grid min-w-0 justify-items-start gap-2">
-            <p className="text-[0.8125rem] leading-[1.125rem] text-foreground">
+            <p className={cn(AI_SMALL_TEXT_CLASS_NAME, "text-foreground")}>
               {t("sampleData.outdated")}
             </p>
             <Button variant="secondary" size="sm" onClick={onRetry}>

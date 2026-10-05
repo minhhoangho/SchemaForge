@@ -32,7 +32,9 @@ export function AiQuickActions({
       aria-labelledby={labelId}
       className={cn(
         "flex gap-2",
-        isCompact ? "overflow-x-auto pb-0.5" : "flex-wrap justify-center",
+        // The padding (offset by the margin) keeps the buttons' focus ring
+        // and its offset inside the scroller, which clips them otherwise.
+        isCompact ? "-m-1 overflow-x-auto p-1" : "flex-wrap justify-center",
       )}
     >
       <span id={labelId} className="sr-only">

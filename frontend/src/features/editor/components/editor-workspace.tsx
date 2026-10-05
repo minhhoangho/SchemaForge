@@ -22,6 +22,7 @@ import { uploadLocalSchemas } from "@/lib/sync/upload-local-schemas";
 import { useNotify } from "@/lib/use-notify";
 
 import { useAutosave } from "../hooks/use-autosave";
+import { useIsNarrowViewport } from "../hooks/use-is-narrow-viewport";
 import { useCloudPusher } from "../hooks/use-cloud-pusher";
 import {
   useCloudResolution,
@@ -47,6 +48,7 @@ import { EditorStoreProvider } from "../state/editor-store-provider";
 import { useEditorStore, useEditorStoreApi } from "../state/use-editor-store";
 import { AiLauncher } from "./ai-panel/ai-launcher";
 import { AiWindow, ProposalPreviewBarLoader } from "./ai-panel/ai-panel-loader";
+import { AiTurnStatus } from "./ai-panel/ai-turn-status";
 import { EditorCanvas } from "./canvas/editor-canvas";
 import { EditorFlowProvider } from "./canvas/editor-flow-provider";
 import { ConflictDialog } from "./dialogs/conflict-dialog";
@@ -348,6 +350,14 @@ function WorkspaceLayout({
     [canvasRegionRef, setCanvasRegion],
   );
   const rightPanelMode = useEditorStore((state) => state.rightPanelMode);
+  const isCodeMode = rightPanelMode === "code";
+  // Below 640px the open AI window is a full-screen modal sheet: the rest of
+  // the workspace is inert so focus cannot reach controls under it (2.4.11).
+  const isNarrow = useIsNarrowViewport();
+  const isAiWindowFull = useEditorStore(
+    (state) => state.aiWindow.isOpen && !state.aiWindow.isMinimized,
+  );
+  const isAiSheetModal = isNarrow && isAiWindowFull;
   // A preview locks the panels; an open relation dialog would dispatch into
   // the lock, so it closes (AI plan, issues 32 and 46).
   const isPreviewing = useEditorStore(selectIsPreviewing);
@@ -365,55 +375,77 @@ function WorkspaceLayout({
 
   return (
     <div className="flex h-dvh flex-col">
-      <header>
+      {/* Outside everything that can be hidden or made inert. */}
+      <AiTurnStatus />
+      <header inert={isAiSheetModal}>
         <EditorToolbar onRetrySave={onRetrySave} cloud={cloud} />
       </header>
-      <div className="flex min-h-0 flex-1">
+      {/* Positioned, so the AI launcher and window float over the code panel
+          while it takes the canvas's place below lg. */}
+      <div className="relative flex min-h-0 flex-1">
         {/* The skip link's target while nothing is selected. */}
         <div
           id={leftPanelId}
           tabIndex={-1}
-          inert={isPreviewing}
+          inert={isPreviewing || isAiSheetModal}
           {...commitOnPreview}
           className={cn("flex min-h-0", FOCUS_TARGET_CLASS_NAME)}
         >
           <LeftPanel />
         </div>
-        {/* The focusable canvas region (plan issue 73). */}
-        <main
-          ref={setCanvasRegionRef}
-          tabIndex={-1}
-          aria-label={t("layout.canvasLabel")}
+        {/* The AI launcher and window float over the canvas, which stays
+            usable around them (AI chat floating mockup). They sit beside the
+            main region, not in it, so hiding the canvas below lg leaves them;
+            display:contents then hands their positioning to the row. */}
+        <div
           className={cn(
-            "flex min-w-0 flex-1 flex-col",
-            // Below lg the code panel takes the canvas's place; the toolbar
-            // toggle brings the canvas back. display:none keeps it out of the
-            // tab order.
-            rightPanelMode === "code" && "max-lg:hidden",
-            FOCUS_TARGET_CLASS_NAME,
+            "relative flex min-w-0 flex-1 flex-col",
+            isCodeMode && "max-lg:contents",
           )}
         >
-          <SkipToPanelLink
-            propertiesPanelId={propertiesPanelId}
-            leftPanelId={leftPanelId}
-          />
-          {isPreviewing && <ProposalPreviewBarLoader />}
-          {/* The AI launcher and window float over the canvas, which stays
-              usable around them (AI chat floating mockup). */}
-          <div className="relative min-h-0 flex-1">
-            <EditorCanvas
-              defaultViewport={defaultViewport}
-              onMoveEnd={onMoveEnd}
-              onAddTable={addTable}
-              onConnect={dialog.openFromConnection}
+          {/* The focusable canvas region (plan issue 73). */}
+          <main
+            ref={setCanvasRegionRef}
+            tabIndex={-1}
+            aria-label={t("layout.canvasLabel")}
+            inert={isAiSheetModal}
+            className={cn(
+              "flex min-h-0 min-w-0 flex-1 flex-col",
+              // Below lg the code panel takes the canvas's place; the toolbar
+              // toggle brings the canvas back. display:none keeps it out of
+              // the tab order.
+              isCodeMode && "max-lg:hidden",
+              FOCUS_TARGET_CLASS_NAME,
+            )}
+          >
+            <SkipToPanelLink
+              propertiesPanelId={propertiesPanelId}
+              leftPanelId={leftPanelId}
             />
-            <AiLauncher windowId={aiWindowId} />
-            <AiWindow id={aiWindowId} />
+            {isPreviewing && <ProposalPreviewBarLoader />}
+            <div className="relative min-h-0 flex-1">
+              <EditorCanvas
+                defaultViewport={defaultViewport}
+                onMoveEnd={onMoveEnd}
+                onAddTable={addTable}
+                onConnect={dialog.openFromConnection}
+              />
+            </div>
+          </main>
+          <AiLauncher windowId={aiWindowId} />
+          <AiWindow id={aiWindowId} />
+        </div>
+        {isCodeMode && (
+          <div className="contents" inert={isAiSheetModal}>
+            <CodePanel id={propertiesPanelId} />
           </div>
-        </main>
-        {rightPanelMode === "code" && <CodePanel id={propertiesPanelId} />}
+        )}
         {rightPanelMode === "properties" && (
-          <div className="contents" inert={isPreviewing} {...commitOnPreview}>
+          <div
+            className="contents"
+            inert={isPreviewing || isAiSheetModal}
+            {...commitOnPreview}
+          >
             <PropertiesPanel
               id={propertiesPanelId}
               onCreateRelation={dialog.openFromTable}

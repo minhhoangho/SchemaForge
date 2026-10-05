@@ -8,6 +8,7 @@ export const viAiPanel = {
   unreadReply: "Trợ lý AI, có phản hồi mới",
   minimize: "Thu nhỏ",
   restore: "Khôi phục",
+  restoreUnread: "Khôi phục, có phản hồi mới",
   expand: "Mở rộng cửa sổ",
   shrink: "Thu gọn cửa sổ",
   newConversation: "Cuộc trò chuyện mới",

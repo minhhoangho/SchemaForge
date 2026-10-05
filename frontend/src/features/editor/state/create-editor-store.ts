@@ -33,6 +33,8 @@ import type {
 } from "../code-generator/generator-request";
 import { EMPTY_SELECTION, filterSelection } from "../lib/selection";
 import type { Selection } from "../lib/selection";
+import { CLOSED_AI_WINDOW, createAiWindowActions } from "./ai-window-actions";
+import type { AiWindowState } from "./ai-window-actions";
 import { createProposalActions, isProposalLocked } from "./proposal-actions";
 
 export const HISTORY_LIMIT = 200;
@@ -47,22 +49,6 @@ export type SaveStatus =
 export type LeftPanelTab = "tables" | "enums" | "issues";
 
 export type RightPanelMode = "properties" | "code";
-
-// The floating AI window over the canvas. Not persisted, like the right panel.
-export type AiWindowState = {
-  readonly isOpen: boolean;
-  readonly isMinimized: boolean;
-  readonly isExpanded: boolean;
-  // A turn ended while the window was closed; cleared when it opens.
-  readonly hasUnreadReply: boolean;
-};
-
-const CLOSED_AI_WINDOW: AiWindowState = {
-  isOpen: false,
-  isMinimized: false,
-  isExpanded: false,
-  hasUnreadReply: false,
-};
 
 export type DiffMark = "added" | "changed" | "removed";
 
@@ -235,41 +221,6 @@ function createHistoryStep(
       selection: filterSelection(state.selection, result.schema),
       coalesceKey: null,
     });
-  };
-}
-
-type AiWindowActions = Pick<
-  EditorActions,
-  | "openAiWindow"
-  | "closeAiWindow"
-  | "toggleAiWindowMinimized"
-  | "toggleAiWindowExpanded"
-  | "markAiReplyUnread"
->;
-
-function createAiWindowActions(set: SetState, get: GetState): AiWindowActions {
-  const update = (patch: Partial<AiWindowState>): void => {
-    set({ aiWindow: { ...get().aiWindow, ...patch } });
-  };
-  return {
-    openAiWindow: () => {
-      update({ isOpen: true, hasUnreadReply: false });
-    },
-    // Opening again shows the whole window, not a leftover minimized bar.
-    closeAiWindow: () => {
-      update({ isOpen: false, isMinimized: false });
-    },
-    toggleAiWindowMinimized: () => {
-      update({ isMinimized: !get().aiWindow.isMinimized });
-    },
-    toggleAiWindowExpanded: () => {
-      update({ isExpanded: !get().aiWindow.isExpanded });
-    },
-    markAiReplyUnread: () => {
-      if (!get().aiWindow.isOpen) {
-        update({ hasUnreadReply: true });
-      }
-    },
   };
 }
 

@@ -25,6 +25,7 @@ const addEmail: Operation = {
   insertAt: 1,
 };
 const addColumnProposal = { operation: addEmail, stoppedEarly: false };
+const START_TIME = Date.UTC(2026, 9, 5, 9, 30);
 
 function createDocument(): SchemaDocument {
   return buildSchema({
@@ -94,11 +95,13 @@ function createHarness(scripts: readonly Script[] = []) {
     warn: vi.fn<Logger["warn"]>(),
   };
   const loadClient = vi.fn(() => Promise.resolve<AiChatClient | null>(client));
+  const clock = { now: START_TIME };
   const store: AiChatStore = createAiChatStore({
     editor,
     loadClient,
     getLocale: () => "vi",
     generateId: createCounterIdGenerator(),
+    now: () => clock.now,
     scheduleFrame,
     cancelFrame,
     beforePreview,
@@ -114,6 +117,7 @@ function createHarness(scripts: readonly Script[] = []) {
   return {
     editor,
     store,
+    clock,
     requests,
     scheduleFrame,
     cancelFrame,
@@ -133,6 +137,51 @@ function lastAssistant(store: AiChatStore): AiAssistantMessage {
 }
 
 describe("createAiChatStore", () => {
+  it("stamps each message with the injected clock", async () => {
+    const { store, clock } = createHarness([
+      async function* run() {
+        await Promise.resolve();
+        clock.now = START_TIME + 60_000;
+        yield { kind: "text", text: "hi" } as const;
+      },
+    ]);
+
+    await store.getState().send("hello");
+
+    expect(store.getState().messages.map((entry) => entry.createdAt)).toEqual([
+      START_TIME,
+      START_TIME,
+    ]);
+  });
+
+  it("keeps the draft until a message is sent", async () => {
+    const { store } = createHarness([events([])]);
+
+    store.getState().setDraft("add a ta");
+    expect(store.getState().draft).toBe("add a ta");
+
+    await store.getState().send("add a table");
+    expect(store.getState().draft).toBe("");
+  });
+
+  it("keeps the draft when sending is refused", async () => {
+    const { store } = createHarness();
+    store.getState().setDraft("   ");
+
+    await store.getState().send("   ");
+
+    expect(store.getState().draft).toBe("   ");
+  });
+
+  it("clears the draft on a new conversation", () => {
+    const { store } = createHarness();
+    store.getState().setDraft("half written");
+
+    store.getState().reset();
+
+    expect(store.getState().draft).toBe("");
+  });
+
   it("sends the current document, the history and the locale", async () => {
     const { store, editor, requests } = createHarness([events([])]);
 

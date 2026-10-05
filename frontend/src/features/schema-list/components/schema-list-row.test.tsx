@@ -1,11 +1,17 @@
 import { screen } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
+import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
 import type { ReactElement } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { SchemaActionTarget } from "@/features/schema-list/hooks/use-schema-actions";
+import type { StorageBundle } from "@/lib/storage/create-browser-storage";
+import { SchemaforgeDatabase } from "@/lib/storage/database";
+import { createSchemaLockManager } from "@/lib/storage/schema-lock-manager";
+import { createSchemaRepository } from "@/lib/storage/schema-repository";
 import type { SchemaListEntry } from "@/lib/storage/schema-repository";
 import type { MergedSchemaRow } from "@/lib/sync/merge-schema-list";
+import { createFakeLockRegistry } from "@/testing/fake-lock-registry";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
 import { SchemaListRow } from "./schema-list-row";
@@ -42,8 +48,41 @@ function cloudRow(): MergedSchemaRow {
   };
 }
 
+const databases = new Set<SchemaforgeDatabase>();
+
+afterEach(() => {
+  databases.forEach((database) => {
+    database.close();
+  });
+  databases.clear();
+});
+
+function createStorage(): StorageBundle {
+  const database = new SchemaforgeDatabase({
+    indexedDB: new IDBFactory(),
+    IDBKeyRange,
+  });
+  databases.add(database);
+  return {
+    database,
+    repository: createSchemaRepository({
+      database,
+      clock: () => 1,
+      generateId: () => SCHEMA_ID,
+    }),
+    lockManager: createSchemaLockManager(createFakeLockRegistry().request),
+  };
+}
+
 function renderRow(row: ReactElement): ReturnType<typeof renderWithProviders> {
-  return renderWithProviders(<ul>{row}</ul>, { locale: "en" });
+  return renderWithProviders(<ul>{row}</ul>, {
+    locale: "en",
+    auth: { storage: createStorage() },
+  });
+}
+
+function cachedRow(): MergedSchemaRow {
+  return { ...cloudRow(), source: "cache", label: null };
 }
 
 async function openMenu(user: UserEvent, name: string): Promise<string[]> {
@@ -69,6 +108,7 @@ describe("SchemaListRow", () => {
     expect(await openMenu(user, "shop")).toEqual([
       "Open",
       "Rename",
+      "Download JSON",
       "Save to cloud",
       "Delete",
     ]);
@@ -85,6 +125,56 @@ describe("SchemaListRow", () => {
     );
 
     expect(await openMenu(user, "shop")).toEqual(["Open", "Rename", "Delete"]);
+  });
+
+  it("shows the download item for local and cached rows", async () => {
+    const guest = renderRow(
+      <SchemaListRow
+        kind="guest"
+        entry={guestEntry()}
+        onRename={noop}
+        onDelete={noop}
+        onUploadToCloud={noop}
+      />,
+    );
+    expect(await openMenu(guest.user, "shop")).toContain("Download JSON");
+    guest.unmount();
+
+    const cached = renderRow(
+      <SchemaListRow
+        kind="owned"
+        row={cachedRow()}
+        onRename={noop}
+        onDelete={noop}
+      />,
+    );
+    expect(await openMenu(cached.user, "shop")).toContain("Download JSON");
+  });
+
+  it("hides the download item for unreadable and cloud-only rows", async () => {
+    const unreadable = renderRow(
+      <SchemaListRow
+        kind="guest"
+        entry={{ kind: "unreadable", schemaId: SCHEMA_ID }}
+        onRename={noop}
+        onDelete={noop}
+        onUploadToCloud={noop}
+      />,
+    );
+    expect(await openMenu(unreadable.user, "Unreadable schema")).not.toContain(
+      "Download JSON",
+    );
+    unreadable.unmount();
+
+    const cloud = renderRow(
+      <SchemaListRow
+        kind="owned"
+        row={cloudRow()}
+        onRename={noop}
+        onDelete={noop}
+      />,
+    );
+    expect(await openMenu(cloud.user, "shop")).not.toContain("Download JSON");
   });
 
   it("offers only Delete for an unreadable schema", async () => {

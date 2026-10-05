@@ -126,6 +126,8 @@ export function CodePanel({ id, createWorker }: CodePanelProps): JSX.Element {
             response={shown}
             targetLabel={t(`targets.${target}`)}
             isBusy={isBusy}
+            schemaName={document.name}
+            request={request}
           />
           <GeneratorDiagnosticList
             diagnostics={shown.diagnostics}

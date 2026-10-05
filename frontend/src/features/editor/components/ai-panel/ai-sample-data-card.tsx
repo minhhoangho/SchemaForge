@@ -20,6 +20,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/class-names";
+import { downloadBlob } from "@/lib/download/download-blob";
 import { useNotify } from "@/lib/use-notify";
 
 import { useEditorStore } from "../../state/use-editor-store";
@@ -122,15 +123,6 @@ function SampleTable({
   );
 }
 
-function downloadFile(fileName: string, content: string): void {
-  const url = URL.createObjectURL(new Blob([content]));
-  const link = window.document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 function ValidCard({
   seed,
   document,
@@ -163,7 +155,7 @@ function ValidCard({
 
   function download(): void {
     const { fileName, content } = file();
-    downloadFile(fileName, content);
+    downloadBlob(new Blob([content]), fileName);
   }
 
   const firstTableId = dataset.tables[0]?.tableId;

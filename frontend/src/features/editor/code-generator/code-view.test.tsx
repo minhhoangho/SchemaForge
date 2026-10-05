@@ -43,9 +43,16 @@ afterEach(() => {
 function renderView(
   response: CodeViewProps["response"],
   themePreference: "light" | "dark" = "light",
+  isBusy = false,
 ): ReturnType<typeof renderWithProviders> {
   return renderWithProviders(
-    <CodeView response={response} targetLabel="SQL DDL" isBusy={false} />,
+    <CodeView
+      response={response}
+      targetLabel="SQL DDL"
+      isBusy={isBusy}
+      schemaName="Quản lý"
+      request={{ target: "postgresql", options: {} }}
+    />,
     { locale: "en", themePreference },
   );
 }
@@ -98,9 +105,48 @@ describe("CodeView", () => {
     expect(await screen.findByText("Could not copy the code")).toBeDefined();
   });
 
+  it("downloads the shown output with its file name", async () => {
+    const { user } = renderView(SQL_RESPONSE);
+    let blob: Blob | undefined;
+    const names: string[] = [];
+    vi.stubGlobal(
+      "URL",
+      Object.assign(URL, {
+        createObjectURL: vi.fn((value: Blob) => {
+          blob = value;
+          return "blob:code";
+        }),
+        revokeObjectURL: vi.fn(),
+      }),
+    );
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      names.push(this.download);
+    });
+
+    await user.click(screen.getByRole("button", { name: "Download file" }));
+
+    expect(names).toEqual(["quan-ly.postgresql.sql"]);
+    expect(await blob?.text()).toBe("CREATE TABLE users;\n");
+    expect(blob?.type).toBe("text/plain;charset=utf-8");
+    vi.unstubAllGlobals();
+  });
+
+  it("disables the download button while busy", () => {
+    renderView(SQL_RESPONSE, "light", true);
+
+    expect(
+      screen
+        .getByRole("button", { name: "Download file" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
+  });
+
   it("exposes a focusable code region with a label", async () => {
     const { user } = renderView(SQL_RESPONSE);
 
+    await user.tab();
     await user.tab();
     await user.tab();
 

@@ -15,5 +15,9 @@ export type { LargeSchemaOptions } from "./large-schema.js";
 export { createLargeSchema } from "./large-schema.js";
 export { createNamingEdgeSchema } from "./naming-edge-schema.js";
 export { createSampleSchema } from "./sample-schema.js";
+export {
+  SSMS_SCRIPT_EXPECTED_DIAGNOSTICS,
+  SSMS_SCRIPT_SOURCE,
+} from "./sql-import-fixtures.js";
 export { createTargetLimitSchema } from "./target-limit-schema.js";
 export { unwrapError, unwrapOk } from "./unwrap-result.js";

@@ -17,7 +17,7 @@
   :root {
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, monospace;
-    --panel-w: 20rem; /* 320px = production ai-panel.tsx w-80; toolbar toggles 24rem */
+    --win-w: 380px; --win-h: 640px; --gap: 16px; --launcher: 56px;
     --background: oklch(0.99 0.003 255);
     --foreground: oklch(0.24 0.025 262);
     --card: oklch(1 0 0);
@@ -106,8 +106,8 @@
   .scenario-note { margin: 0; color: var(--muted-foreground); max-width: 80ch; }
 
   /* ---------- Editor frame ---------- */
-  .frame { display: grid; grid-template-columns: minmax(0, 1fr) var(--panel-w); height: 760px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--background); box-shadow: var(--shadow-md); }
-  .canvas { position: relative; min-width: 0; overflow: hidden; background-color: var(--canvas); background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px); background-size: 20px 20px; }
+  .frame { position: relative; container-type: inline-size; height: 760px; width: 100%; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--background); box-shadow: var(--shadow-md); }
+  .canvas { position: absolute; inset: 0; overflow: hidden; background-color: var(--canvas); background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px); background-size: 20px 20px; }
   .canvas-bar { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); box-shadow: var(--shadow-sm); font-size: 13px; }
   .canvas-bar[hidden] { display: none; }
   .tbl { position: absolute; width: 190px; border: 1px solid var(--input); border-radius: 8px; background: var(--card); box-shadow: var(--shadow-sm); overflow: hidden; font-size: 13px; }
@@ -121,11 +121,43 @@
   .tbl.ghost { border-style: dashed; border-color: var(--primary); }
   .tbl.ghost[hidden] { display: none; }
   .tbl .tag { font-size: 11px; font-weight: 600; margin-left: auto; padding: 0 6px; border-radius: 99px; background: var(--primary-foreground); color: var(--table-accent-1); }
-  .relations { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .relations { position: absolute; left: 0; top: 0; width: 800px; height: 760px; pointer-events: none; }
   .relations path { fill: none; stroke: var(--canvas-relation); stroke-width: 1.5; }
 
   /* ---------- AI panel ---------- */
-  .ai { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--border); background: var(--background); }
+  .frame.mobile { width: 390px; max-width: 100%; margin-inline: auto; }
+  .minimap { position: absolute; left: 16px; bottom: 16px; width: 200px; height: 140px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); box-shadow: var(--shadow-md); overflow: hidden; }
+  .minimap i { position: absolute; border-radius: 2px; background: var(--table-accent-1); opacity: 0.8; }
+  .minimap b { position: absolute; inset: 30px 46px 28px 40px; border: 2px solid var(--primary); border-radius: 3px; }
+
+  /* Floating launcher + non-modal chat window, anchored bottom-right of the canvas. */
+  .launcher { position: absolute; right: var(--gap); bottom: var(--gap); z-index: 3; width: var(--launcher); height: var(--launcher); border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--primary); color: var(--primary-foreground); box-shadow: var(--shadow-md), 0 0 0 1px var(--border); cursor: pointer; }
+  .launcher:hover { filter: brightness(1.08); }
+  .launcher .icon { width: 24px; height: 24px; }
+  .launcher .when-open { display: none; }
+  .launcher[aria-expanded="true"] .when-open { display: block; }
+  .launcher[aria-expanded="true"] .when-closed { display: none; }
+  .launcher .dot { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--destructive); border: 2px solid var(--background); }
+  .launcher .tip { position: absolute; right: calc(100% + 8px); top: 50%; transform: translateY(-50%); padding: 4px 8px; border-radius: 6px; background: var(--foreground); color: var(--background); font-size: 12px; line-height: 16px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.12s; }
+  .launcher:hover .tip, .launcher:focus-visible .tip { opacity: 1; }
+  .launcher[aria-expanded="true"] .tip { display: none; }
+
+  .ai { position: absolute; right: var(--gap); bottom: calc(var(--gap) * 2 + var(--launcher)); z-index: 2; display: flex; flex-direction: column; width: min(var(--win-w), calc(100% - var(--gap) * 2)); height: min(var(--win-h), calc(100% - var(--gap) * 3 - var(--launcher) - 56px)); min-height: 0; border: 1px solid var(--border); border-radius: 16px; background: var(--background); box-shadow: var(--shadow-lg, var(--shadow-md)); overflow: hidden; transform-origin: bottom right; transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s, width 0.16s, height 0.16s; }
+  .ai.expanded { --win-w: 520px; --win-h: 4000px; }
+  /* visibility flips at once when opening (so focus() works) and after the fade when closing */
+  .ai.closed { visibility: hidden; opacity: 0; transform: scale(0.92); pointer-events: none; transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s linear 0.16s; }
+  .ai.minimized { height: auto; }
+  .ai.minimized .log, .ai.minimized .dock, .ai.minimized .notice { display: none; }
+  .mini-tray { display: none; padding: 8px 12px; border-top: 1px solid var(--border); gap: 8px; align-items: center; flex-wrap: wrap; }
+  .mini-tray p { margin: 0 auto 0 0; font-size: 13px; font-weight: 600; }
+  .ai.minimized .mini-tray.has-proposal { display: flex; }
+  @media (prefers-reduced-motion: reduce) { .ai, .launcher .tip { transition: none; } }
+  /* Small screens: the window becomes a full-screen sheet (container = the frame / viewport). */
+  @container (max-width: 640px) {
+    .ai, .ai.expanded { inset: 0; width: 100%; height: 100%; border: 0; border-radius: 0; z-index: 4; }
+    .ai.minimized { inset: auto 0 0 0; height: auto; border-top: 1px solid var(--border); }
+    .ai .expand-btn { display: none; }
+  }
   .ai-head { display: flex; align-items: center; gap: 4px; padding: 6px 8px 6px 12px; border-bottom: 1px solid var(--border); }
   .ai-head h2 { margin: 0 auto 0 0; font-size: 14px; line-height: 20px; font-weight: 600; }
   .icon-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; color: var(--foreground); }
@@ -270,11 +302,6 @@
   .newstrings table { font-family: var(--font-sans); font-size: 13px; line-height: 18px; }
   .newstrings td, .newstrings th { white-space: normal; vertical-align: top; }
 
-  @media (max-width: 900px) {
-    .frame { grid-template-columns: minmax(0, 1fr); height: 720px; }
-    .canvas { display: none; }
-    .ai { border-left: 0; }
-  }
 </style>
 </head>
 <body>
@@ -290,12 +317,15 @@
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="i-chevdown" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-minimize" viewBox="0 0 24 24"><path d="M5 19h14"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
   <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4"/></symbol>
 </svg>
 
 <main class="sheet">
   <header>
-    <h1>AI assistant: bubble chat</h1>
+    <h1>AI assistant: floating chat bubble</h1>
     <p class="lede">Mockup for review before any React change. Tokens are the real ones from globals.css; UI strings are the real <code>ai</code> namespace in vi and en. Sample conversation text is invented content. Chrome outside the frame (this toolbar, notes) is English only and not part of the product.</p>
   </header>
 
@@ -308,9 +338,19 @@
       <button type="button" class="seg" data-lang-btn="en" aria-pressed="true">English</button>
       <button type="button" class="seg" data-lang-btn="vi" aria-pressed="false">Tiếng Việt</button>
     </fieldset>
-    <fieldset><legend>Panel width</legend>
-      <button type="button" class="seg" data-width-btn="20rem" aria-pressed="true">320px</button>
-      <button type="button" class="seg" data-width-btn="24rem" aria-pressed="false">384px</button>
+    <fieldset><legend>Window size</legend>
+      <button type="button" class="seg" data-size-btn="normal" aria-pressed="true">Normal</button>
+      <button type="button" class="seg" data-size-btn="expanded" aria-pressed="false">Expanded</button>
+    </fieldset>
+    <fieldset><legend>Window state</legend>
+      <button type="button" class="seg" data-open-btn="open" aria-pressed="true">Open</button>
+      <button type="button" class="seg" data-open-btn="minimized" aria-pressed="false">Minimized</button>
+      <button type="button" class="seg" data-open-btn="closed" aria-pressed="false">Closed</button>
+      <button type="button" class="seg" data-open-btn="unread" aria-pressed="false">Closed, new reply</button>
+    </fieldset>
+    <fieldset><legend>Viewport</legend>
+      <button type="button" class="seg" data-vp-btn="desktop" aria-pressed="true">Desktop</button>
+      <button type="button" class="seg" data-vp-btn="mobile" aria-pressed="false">Mobile</button>
     </fieldset>
     <fieldset id="scenario-set"><legend>Scenario</legend></fieldset>
   </div>
@@ -319,23 +359,29 @@
     <p class="scenario-note" id="scenario-note"></p>
     <div class="frame">
       <div class="canvas" aria-hidden="true">
-        <svg class="relations" viewBox="0 0 800 760" preserveAspectRatio="none"><path d="M230 190 C 300 190, 300 330, 360 330"/><path d="M230 150 C 270 150, 270 560, 360 560"/><path id="ghost-rel" d="M455 270 L455 236" stroke-dasharray="5 4"/></svg>
+        <svg class="relations" viewBox="0 0 800 760"><path d="M230 190 C 300 190, 300 330, 360 330"/><path d="M230 150 C 270 150, 270 560, 360 560"/><path id="ghost-rel" d="M455 270 L455 236" stroke-dasharray="5 4"/></svg>
         <div class="canvas-bar" id="preview-bar" hidden><svg class="icon"><use href="#i-info"/></svg><span data-i18n="ai.proposal.previewBar.title"></span></div>
         <div class="tbl" style="left:40px;top:110px"><h4>users</h4><ul><li><span>id</span><span class="ty">uuid</span></li><li><span>email</span><span class="ty">text</span></li><li><span>created_at</span><span class="ty">timestamptz</span></li></ul></div>
         <div class="tbl t3" style="left:360px;top:270px"><h4>posts</h4><ul><li><span>id</span><span class="ty">uuid</span></li><li><span>author_id</span><span class="ty">uuid</span></li><li><span>title</span><span class="ty">text</span></li></ul></div>
         <div class="tbl t5" style="left:360px;top:500px"><h4>tags</h4><ul><li><span>id</span><span class="ty">uuid</span></li><li><span>name</span><span class="ty">text</span></li></ul></div>
+        <div class="minimap"><i style="left:14px;top:30px;width:34px;height:22px"></i><i style="left:80px;top:60px;width:34px;height:22px;background:var(--table-accent-3)"></i><i style="left:80px;top:98px;width:34px;height:16px;background:var(--table-accent-5)"></i><b></b></div>
         <div class="tbl ghost" id="ghost-table" style="left:360px;top:90px" hidden><h4 style="display:flex;gap:8px">comments <span class="tag" data-i18n="ai.diff.added"></span></h4><ul><li><span>id</span><span class="ty">uuid</span></li><li><span>post_id</span><span class="ty">uuid</span></li><li><span>body</span><span class="ty">text</span></li></ul></div>
       </div>
 
-      <aside class="ai" aria-labelledby="ai-title">
+      <p class="sr-only" role="status" id="live"></p>
+      <button type="button" class="launcher" id="launcher" aria-expanded="true" aria-controls="ai-window"><svg class="icon when-closed" aria-hidden="true"><use href="#i-sparkles"/></svg><svg class="icon when-open" aria-hidden="true"><use href="#i-chevdown"/></svg><span class="dot" id="unread-dot" hidden aria-hidden="true"></span><span class="tip" id="launcher-tip" aria-hidden="true"></span></button>
+
+      <section class="ai" id="ai-window" role="dialog" aria-modal="false" aria-labelledby="ai-title">
         <div class="ai-head">
           <h2 id="ai-title" data-i18n="ai.panel.title"></h2>
           <button type="button" class="icon-btn" data-i18n-attr="aria-label:ai.panel.newConversation"><svg class="icon"><use href="#i-newchat"/></svg></button>
-          <button type="button" class="icon-btn" data-i18n-attr="aria-label:ai.panel.close"><svg class="icon"><use href="#i-x"/></svg></button>
+          <button type="button" class="icon-btn" id="min-btn" aria-expanded="true"><svg class="icon"><use href="#i-minimize"/></svg></button>
+          <button type="button" class="icon-btn expand-btn" id="expand-btn"><svg class="icon"><use href="#i-expand"/></svg></button>
+          <button type="button" class="icon-btn" id="close-btn" data-i18n-attr="aria-label:ai.panel.close"><svg class="icon"><use href="#i-x"/></svg></button>
         </div>
+        <div class="mini-tray" id="mini-tray"><p data-i18n="ai.proposal.title"></p><button type="button" class="btn sm primary" data-i18n="ai.proposal.accept"></button><button type="button" class="btn sm" data-i18n="ai.proposal.discard"></button></div>
         <p class="notice" data-i18n="ai.panel.dataNotice"></p>
         <div class="log" id="log" role="log" tabindex="0" aria-live="polite" aria-relevant="additions text" data-i18n-attr="aria-label:ai.panel.messagesLabel"></div>
-        <p class="sr-only" role="status" id="live"></p>
         <div class="dock" id="dock">
           <div class="chips" id="dock-chips" role="group" data-i18n-attr="aria-label:ai.quickActions.label"></div>
           <div class="field">
@@ -348,7 +394,7 @@
             </div>
           </div>
         </div>
-      </aside>
+      </section>
     </div>
   </section>
 
@@ -358,10 +404,13 @@
       <thead><tr><th scope="col">Suggested key</th><th scope="col">en</th><th scope="col">vi</th></tr></thead>
       <tbody>
         <tr><td><code>panel.emptyTitle</code></td><td>How can I help with this schema?</td><td>Tôi có thể giúp gì cho schema này?</td></tr>
+        <tr><td><code>panel.unreadReply</code> (launcher name when a reply finished while closed)</td><td>AI assistant, new reply</td><td>Trợ lý AI, có phản hồi mới</td></tr>
+        <tr><td><code>panel.minimize</code> / <code>panel.restore</code></td><td>Minimize / Restore</td><td>Thu nhỏ / Khôi phục</td></tr>
+        <tr><td><code>panel.expand</code> / <code>panel.shrink</code></td><td>Expand window / Shrink window</td><td>Mở rộng cửa sổ / Thu gọn cửa sổ</td></tr>
         <tr><td><code>panel.emptyBody</code></td><td>Ask for a change or pick a quick action.</td><td>Hãy yêu cầu một thay đổi hoặc chọn một thao tác nhanh.</td></tr>
       </tbody>
     </table>
-    <p class="scenario-note">No other new UI strings: the avatar and typing dots are decorative (<code>aria-hidden</code>), the sender label reuses <code>panel.userMessage</code>/<code>panel.assistantMessage</code>, timestamps are formatted with <code>Intl.DateTimeFormat</code>, streaming status reuses <code>status.*</code>. The sample conversation text in the frame is invented content, not locale strings.</p>
+    <p class="scenario-note">No other new UI strings: the avatar and typing dots are decorative (<code>aria-hidden</code>), the launcher name reuses <code>panel.toggle</code> and <code>panel.close</code>, the sender label reuses <code>panel.userMessage</code>/<code>panel.assistantMessage</code>, timestamps are formatted with <code>Intl.DateTimeFormat</code>, streaming status reuses <code>status.*</code>. The sample conversation text in the frame is invented content, not locale strings.</p>
   </section>
 </main>
 
@@ -372,7 +421,7 @@
   // ---- Real strings (from frontend/src/lib/i18n/locales/{en,vi}/ai/*) -------------------------
   const L = {
     en: {
-      panel: { title: "AI assistant", newConversation: "New conversation", close: "Close AI assistant",
+      panel: { title: "AI assistant", toggle: "AI assistant", unreadReply: "AI assistant, new reply", minimize: "Minimize", restore: "Restore", expand: "Expand window", shrink: "Shrink window", newConversation: "New conversation", close: "Close AI assistant",
         dataNotice: "Your messages and this schema are sent to Google Gemini to generate answers. SchemaForge does not store the conversation.",
         messagesLabel: "Conversation", userMessage: "You", assistantMessage: "Assistant",
         consent: { title: "Before you start", body: "The assistant sends your messages and the current schema to Google Gemini. Do not include secrets or personal data in them.", termsLink: "Gemini API data terms", opensInNewTab: "(opens in a new tab)", accept: "Agree and continue" },
@@ -395,7 +444,7 @@
       errors: { "ai-upstream-busy": "The AI service is busy. Try again in a moment.", network: "Could not reach the server. Check your connection.", retry: "Try again" },
     },
     vi: {
-      panel: { title: "Trợ lý AI", newConversation: "Cuộc trò chuyện mới", close: "Đóng trợ lý AI",
+      panel: { title: "Trợ lý AI", toggle: "Trợ lý AI", unreadReply: "Trợ lý AI, có phản hồi mới", minimize: "Thu nhỏ", restore: "Khôi phục", expand: "Mở rộng cửa sổ", shrink: "Thu gọn cửa sổ", newConversation: "Cuộc trò chuyện mới", close: "Đóng trợ lý AI",
         dataNotice: "Tin nhắn và schema này được gửi tới Google Gemini để tạo câu trả lời. SchemaForge không lưu cuộc trò chuyện.",
         messagesLabel: "Cuộc trò chuyện", userMessage: "Bạn", assistantMessage: "Trợ lý",
         consent: { title: "Trước khi bắt đầu", body: "Trợ lý gửi tin nhắn của bạn và schema hiện tại tới Google Gemini. Đừng đưa bí mật hoặc dữ liệu cá nhân vào đó.", termsLink: "Điều khoản dữ liệu của Gemini API", opensInNewTab: "(mở trong tab mới)", accept: "Đồng ý và tiếp tục" },
@@ -518,7 +567,7 @@
   }
 
   // ---- Helpers --------------------------------------------------------------------------------
-  const state = { width: "20rem", theme: "light", lang: "en", scene: "conversation", timers: [], streaming: false };
+  const state = { open: "open", unread: false, expanded: false, vp: "desktop", theme: "light", lang: "en", scene: "conversation", timers: [], streaming: false };
   const $ = (sel, root) => (root || document).querySelector(sel);
   const get = (path) => path.replace(/^ai\./, "").split(".").reduce((o, k) => (o ? o[k] : undefined), L[state.lang]);
   const fill = (str, vars) => str.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars[k]));
@@ -662,6 +711,7 @@
       if (stopped) slot.insertAdjacentHTML("beforeend", `<p class="note">${esc(tr("status.stopped"))}</p>`);
       setSending(false);
       live.textContent = tr(stopped ? "status.stopped" : "status.done");
+      if (state.open === "closed") { state.unread = true; applyWindow(); }
     };
     state.finishStream = finish;
     if (reduceMotion()) { state.streamN = Math.ceil(words.length * 0.6); show(state.streamN, true); return; }
@@ -684,6 +734,35 @@
       el.dataset.i18nAttr.split(";").forEach((pair) => { const [attr, key] = pair.split(":"); el.setAttribute(attr, tr(key)); });
     });
     updateCounter();
+    applyWindow();
+  }
+
+  // Window state: open | minimized | closed. Unread dot only while closed.
+  function applyWindow() {
+    const win = $("#ai-window"), launcher = $("#launcher");
+    const isClosed = state.open === "closed", isMin = state.open === "minimized";
+    win.classList.toggle("closed", isClosed);
+    win.classList.toggle("minimized", isMin);
+    win.classList.toggle("expanded", state.expanded);
+    $("#unread-dot").hidden = !(isClosed && state.unread);
+    const name = !isClosed ? tr("panel.close") : state.unread ? tr("panel.unreadReply") : tr("panel.toggle");
+    launcher.setAttribute("aria-label", name);
+    launcher.setAttribute("aria-expanded", String(!isClosed));
+    $("#launcher-tip").textContent = name;
+    $("#min-btn").setAttribute("aria-label", tr(isMin ? "panel.restore" : "panel.minimize"));
+    $("#min-btn").setAttribute("aria-expanded", String(!isMin));
+    $("#expand-btn").setAttribute("aria-label", tr(state.expanded ? "panel.shrink" : "panel.expand"));
+    $("#expand-btn use").setAttribute("href", state.expanded ? "#i-minimize" : "#i-expand");
+    $("#mini-tray").classList.toggle("has-proposal", ["conversation", "proposals"].includes(state.scene));
+    $(".frame").classList.toggle("mobile", state.vp === "mobile");
+    syncPressed();
+  }
+  function setOpen(next, focusTarget) {
+    state.open = next;
+    if (next !== "closed") state.unread = false;
+    applyWindow();
+    if (focusTarget === "composer") composer.focus();
+    if (focusTarget === "launcher") $("#launcher").focus();
   }
 
   function render() {
@@ -732,21 +811,40 @@
   function syncPressed() {
     document.querySelectorAll("[data-theme-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeBtn === state.theme)));
     document.querySelectorAll("[data-lang-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langBtn === state.lang)));
-    document.querySelectorAll("[data-width-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.widthBtn === state.width)));
+    document.querySelectorAll("[data-size-btn]").forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.sizeBtn === "expanded") === state.expanded)));
+    document.querySelectorAll("[data-vp-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.vpBtn === state.vp)));
+    document.querySelectorAll("[data-open-btn]").forEach((b) => {
+      const cur = state.open === "closed" ? (state.unread ? "unread" : "closed") : state.open;
+      b.setAttribute("aria-pressed", String(b.dataset.openBtn === cur));
+    });
     document.querySelectorAll("[data-scenario-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scenarioBtn === state.scene)));
   }
   document.querySelector(".toolbar").addEventListener("click", (e) => {
     const btn = e.target.closest("button"); if (!btn) return;
     if (btn.dataset.themeBtn) { state.theme = btn.dataset.themeBtn; document.documentElement.dataset.theme = state.theme; }
-    else if (btn.dataset.widthBtn) { state.width = btn.dataset.widthBtn; document.documentElement.style.setProperty("--panel-w", state.width); }
+    else if (btn.dataset.sizeBtn) { state.expanded = btn.dataset.sizeBtn === "expanded"; }
+    else if (btn.dataset.vpBtn) { state.vp = btn.dataset.vpBtn; }
+    else if (btn.dataset.openBtn) {
+      const v = btn.dataset.openBtn;
+      state.unread = v === "unread";
+      state.open = v === "unread" ? "closed" : v;
+    }
     else if (btn.dataset.langBtn) { state.lang = btn.dataset.langBtn; render(); }
     else if (btn.dataset.scenarioBtn) { state.scene = btn.dataset.scenarioBtn; render(); }
-    syncPressed();
+    applyWindow();
   });
+
+  $("#launcher").addEventListener("click", () => {
+    if (state.open === "closed") setOpen("open", "composer"); else setOpen("closed", "launcher");
+  });
+  $("#close-btn").addEventListener("click", () => setOpen("closed", "launcher"));
+  $("#min-btn").addEventListener("click", () => setOpen(state.open === "minimized" ? "open" : "minimized"));
+  $("#expand-btn").addEventListener("click", () => { state.expanded = !state.expanded; applyWindow(); });
+  // Non-modal dialog: Escape closes it and returns focus to the launcher; the canvas stays interactive.
+  $("#ai-window").addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen("closed", "launcher"); } });
 
   // Seed theme from the OS, like the app's "system" mode.
   if (window.matchMedia("(prefers-color-scheme: dark)").matches) { state.theme = "dark"; document.documentElement.dataset.theme = "dark"; }
-  syncPressed();
   render();
 })();
 </script>

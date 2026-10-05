@@ -1,11 +1,20 @@
 "use client";
 
-import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
-import type { JSX, ReactNode } from "react";
-import { useMemo } from "react";
-
-import type { ViewportControls } from "../../lib/viewport-controls";
 import {
+  ReactFlowProvider,
+  useNodesInitialized,
+  useReactFlow,
+} from "@xyflow/react";
+import type { Node } from "@xyflow/react";
+import type { JSX, ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import type {
+  CanvasNodeControls,
+  ViewportControls,
+} from "../../lib/viewport-controls";
+import {
+  CanvasNodeControlsProvider,
   FIT_VIEW_PADDING,
   VIEWPORT_TRANSITION_MS,
   ViewportControlsProvider,
@@ -45,16 +54,66 @@ function useViewportControlsOfFlow(): ViewportControls {
   );
 }
 
+function isMeasured(node: Node): boolean {
+  return (
+    node.measured?.width !== undefined && node.measured.height !== undefined
+  );
+}
+
+function useCanvasNodeControlsOfFlow(): CanvasNodeControls {
+  const flow = useReactFlow();
+  // Flips to false while a new node waits for its size and back once it has
+  // one, which re-runs the fit effect below.
+  const isEveryNodeMeasured = useNodesInitialized();
+  const [pendingFitIds, setPendingFitIds] = useState<readonly string[] | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (pendingFitIds === null) {
+      return;
+    }
+    const measuredIds = new Set(
+      flow
+        .getNodes()
+        .filter(isMeasured)
+        .map((node) => node.id),
+    );
+    if (!pendingFitIds.every((id) => measuredIds.has(id))) {
+      return;
+    }
+    void flow.fitView({
+      nodes: pendingFitIds.map((id) => ({ id })),
+      padding: FIT_VIEW_PADDING,
+      duration: getTransitionDuration(),
+    });
+    setPendingFitIds(null);
+  }, [flow, pendingFitIds, isEveryNodeMeasured]);
+
+  return useMemo(
+    () => ({
+      getMeasuredNodes: () => flow.getNodes().filter(isMeasured),
+      fitNodes: (ids) => {
+        setPendingFitIds(ids);
+      },
+    }),
+    [flow],
+  );
+}
+
 type FlowViewportControlsProps = { readonly children: ReactNode };
 
 function FlowViewportControls({
   children,
 }: FlowViewportControlsProps): JSX.Element {
   const controls = useViewportControlsOfFlow();
+  const nodeControls = useCanvasNodeControlsOfFlow();
 
   return (
     <ViewportControlsProvider controls={controls}>
-      {children}
+      <CanvasNodeControlsProvider controls={nodeControls}>
+        {children}
+      </CanvasNodeControlsProvider>
     </ViewportControlsProvider>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import type { Node } from "@xyflow/react";
 import type { JSX, ReactNode } from "react";
 import { createContext, useContext } from "react";
 
@@ -58,6 +59,51 @@ export function useViewportControls(): ViewportControls {
   if (controls === null) {
     throw new Error(
       "useViewportControls must be used inside a ViewportControlsProvider.",
+    );
+  }
+
+  return controls;
+}
+
+/**
+ * Node queries and fitting for the toolbar and import/export, built from the
+ * React Flow instance by `EditorFlowProvider`. A separate context from
+ * `ViewportControls`, so tests that fake those controls need not change.
+ */
+export type CanvasNodeControls = {
+  // Only nodes React Flow has measured (`measured.width` and `.height`).
+  readonly getMeasuredNodes: () => readonly Node[];
+  // Fits the view around these nodes once all of them are measured, so it
+  // can be called right after the dispatch that adds them.
+  readonly fitNodes: (ids: readonly string[]) => void;
+};
+
+export type CanvasNodeControlsProviderProps = {
+  readonly controls: CanvasNodeControls;
+  readonly children: ReactNode;
+};
+
+const CanvasNodeControlsContext = createContext<CanvasNodeControls | null>(
+  null,
+);
+
+export function CanvasNodeControlsProvider({
+  controls,
+  children,
+}: CanvasNodeControlsProviderProps): JSX.Element {
+  return (
+    <CanvasNodeControlsContext value={controls}>
+      {children}
+    </CanvasNodeControlsContext>
+  );
+}
+
+export function useCanvasNodeControls(): CanvasNodeControls {
+  const controls = useContext(CanvasNodeControlsContext);
+
+  if (controls === null) {
+    throw new Error(
+      "useCanvasNodeControls must be used inside a CanvasNodeControlsProvider.",
     );
   }
 

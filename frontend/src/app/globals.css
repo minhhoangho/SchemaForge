@@ -969,6 +969,46 @@
   marker-start: url(#relation-marker-one-hover);
 }
 
+/* While captureCanvasImage takes a PNG or SVG (spec section 10), the canvas
+   drops what only helps editing: handles, issue badges, and selection and
+   focus cues. Only the React Flow viewport is captured, so the minimap, the
+   dot background and the overlays around the canvas (toolbar, panels, the AI
+   launcher and window) never reach the image. The store's selection stays. */
+[data-exporting="true"] .react-flow__handle {
+  visibility: hidden;
+}
+[data-exporting="true"] .table-node-card [role="img"].text-destructive,
+[data-exporting="true"] .react-flow__edgelabel-renderer .text-destructive {
+  display: none;
+}
+[data-exporting="true"] .react-flow__node.selected .table-node-card {
+  border-color: var(--canvas-node-border);
+  --tw-ring-color: transparent;
+}
+[data-exporting="true"] .react-flow__node:focus-visible,
+[data-exporting="true"] .react-flow__edge:focus-visible {
+  outline: none;
+}
+/* A selected edge draws its selected markers and an inline stroke width; the
+   markers are matched on their attribute so issue edges keep theirs. */
+[data-exporting="true"]
+  .react-flow__edge
+  .react-flow__edge-path[marker-end="url(#relation-marker-one-selected)"] {
+  stroke: var(--canvas-relation);
+  stroke-width: var(--xy-edge-stroke-width) !important;
+  marker-end: url(#relation-marker-one-default);
+}
+[data-exporting="true"]
+  .react-flow__edge
+  .react-flow__edge-path[marker-start="url(#relation-marker-many-selected)"] {
+  marker-start: url(#relation-marker-many-default);
+}
+[data-exporting="true"]
+  .react-flow__edge
+  .react-flow__edge-path[marker-start="url(#relation-marker-one-selected)"] {
+  marker-start: url(#relation-marker-one-default);
+}
+
 /* Sonner injects its own stylesheet at runtime with attribute selectors, which
    outrank a single class, so its variables need the same specificity. */
 .toaster[data-sonner-toaster][data-theme] {

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ViewportControls } from "./viewport-controls";
 import {
+  useCanvasNodeControls,
   useViewportControls,
   ViewportControlsProvider,
 } from "./viewport-controls";
@@ -50,6 +51,14 @@ describe("useViewportControls", () => {
   it("throws when used outside the provider", () => {
     expect(() => renderHook(() => useViewportControls())).toThrow(
       "useViewportControls must be used inside a ViewportControlsProvider.",
+    );
+  });
+});
+
+describe("useCanvasNodeControls", () => {
+  it("throws when canvas node controls are used outside their provider", () => {
+    expect(() => renderHook(() => useCanvasNodeControls())).toThrow(
+      "useCanvasNodeControls must be used inside a CanvasNodeControlsProvider.",
     );
   });
 });

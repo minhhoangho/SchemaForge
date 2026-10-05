@@ -432,3 +432,62 @@ describe("serializeSeedDataset as sql", () => {
     },
   );
 });
+
+// Quoted identifiers and string literals per dialect, scanned left to right so
+// a quote character inside one never opens the other.
+const QUOTED_PATTERNS: Readonly<Record<SqlDialect, RegExp>> = {
+  postgresql: /"(?:[^"]|"")*"|'(?:[^']|'')*'/g,
+  mysql: /`(?:[^`]|``)*`|'(?:[^'\\]|''|\\[\s\S])*'/g,
+  sqlserver: /\[(?:[^\]]|\]\])*\]|N'(?:[^']|'')*'/g,
+};
+
+const ADVERSARIAL_TEXT = "O'Brien\\'); DROP TABLE t;--\n";
+
+describe.each<[SqlDialect, string, string, string, string]>([
+  ["postgresql", '"', '"t""x"', '"c""x"', '"__proto__"'],
+  ["mysql", "`", "`t``x`", "`c``x`", "`__proto__`"],
+  ["sqlserver", "]", "[t]]x]", "[c]]x]", "[__proto__]"],
+])(
+  "serializeSeedDataset as sql (%s) with hostile text",
+  (dialect, quote, table, name, proto) => {
+    const schema = buildSchema({
+      tables: [makeTable({ id: "tbl_t", name: `t${quote}x` })],
+      columns: [
+        column("t", `c${quote}x`, {
+          id: "col_t_hostile",
+          type: { kind: "text" },
+        }),
+        column("t", "__proto__", { type: { kind: "text" } }),
+      ],
+    });
+    const dataset: SeedDataset = {
+      tables: [
+        {
+          tableId: "tbl_t",
+          rows: [
+            {
+              col_t_hostile: ADVERSARIAL_TEXT,
+              col_t___proto__: ADVERSARIAL_TEXT,
+            },
+          ],
+        },
+      ],
+    };
+    const result = content(schema, dataset, dialect);
+
+    it("doubles the quote character in table and column names and keeps __proto__", () => {
+      expect(result).toContain(
+        `INSERT INTO ${table} (${name}, ${proto}) VALUES`,
+      );
+    });
+
+    it("writes one INSERT statement for an adversarial row", () => {
+      const outsideQuotes = result.replaceAll(QUOTED_PATTERNS[dialect], "");
+
+      expect([
+        outsideQuotes.match(/;/g)?.length,
+        outsideQuotes.match(/INSERT INTO/g)?.length,
+      ]).toStrictEqual([1, 1]);
+    });
+  },
+);

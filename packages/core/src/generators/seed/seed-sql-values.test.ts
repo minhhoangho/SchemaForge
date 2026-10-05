@@ -114,6 +114,29 @@ describe("formatSeedSqlValue", () => {
     },
   );
 
+  // User text must never leave its literal: quotes are doubled and the
+  // backslash follows each dialect's rules, so one value stays one literal.
+  const ADVERSARIAL = "O'Brien\\'); SELECT 1;--\n";
+
+  it.each<[SqlDialect, string, string]>([
+    ["postgresql", ADVERSARIAL, "'O''Brien\\''); SELECT 1;--\n'"],
+    ["mysql", ADVERSARIAL, "'O''Brien\\\\''); SELECT 1;--\n'"],
+    ["sqlserver", ADVERSARIAL, "N'O''Brien\\''); SELECT 1;--\n'"],
+    ["postgresql", "a\\", "'a\\'"],
+    ["mysql", "a\\", "'a\\\\'"],
+    ["sqlserver", "a\\", "N'a\\'"],
+    // T-SQL drops a backslash before a line break, so it is doubled there.
+    ["sqlserver", "a\\\nb", "N'a\\\\\n\nb'"],
+    ["postgresql", "'''", "''''''''"],
+    ["mysql", "'''", "''''''''"],
+    ["sqlserver", "'''", "N''''''''"],
+  ])(
+    "keeps an adversarial text inside one literal (%s %j)",
+    (dialect, text, expected) => {
+      expect(formatValue(dialect, { kind: "text" }, text)).toBe(expected);
+    },
+  );
+
   it("removes a null character from a PostgreSQL string", () => {
     expect(formatValue("postgresql", { kind: "text" }, "a\u0000b")).toBe(
       "'ab'",

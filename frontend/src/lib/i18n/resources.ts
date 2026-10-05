@@ -8,6 +8,8 @@ import { enCommon } from "./locales/en/common";
 import { enEditor } from "./locales/en/editor";
 import { enErrors } from "./locales/en/errors";
 import { enGeneratorDiagnostics } from "./locales/en/generator-diagnostics";
+import { enImportDiagnostics } from "./locales/en/import-diagnostics";
+import { enImportExport } from "./locales/en/import-export";
 import { enIssues } from "./locales/en/issues";
 import { enSchemaList } from "./locales/en/schema-list";
 import { enStorage } from "./locales/en/storage";
@@ -21,6 +23,8 @@ import { viCommon } from "./locales/vi/common";
 import { viEditor } from "./locales/vi/editor";
 import { viErrors } from "./locales/vi/errors";
 import { viGeneratorDiagnostics } from "./locales/vi/generator-diagnostics";
+import { viImportDiagnostics } from "./locales/vi/import-diagnostics";
+import { viImportExport } from "./locales/vi/import-export";
 import { viIssues } from "./locales/vi/issues";
 import { viSchemaList } from "./locales/vi/schema-list";
 import { viStorage } from "./locales/vi/storage";
@@ -41,6 +45,8 @@ export const NAMESPACES = [
   "codeGenerator",
   "generatorDiagnostics",
   "ai",
+  "importExport",
+  "importDiagnostics",
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -61,6 +67,8 @@ export const enResources = {
   codeGenerator: enCodeGenerator,
   generatorDiagnostics: enGeneratorDiagnostics,
   ai: enAi,
+  importExport: enImportExport,
+  importDiagnostics: enImportDiagnostics,
 } as const;
 
 export const viResources = {
@@ -77,6 +85,8 @@ export const viResources = {
   codeGenerator: viCodeGenerator,
   generatorDiagnostics: viGeneratorDiagnostics,
   ai: viAi,
+  importExport: viImportExport,
+  importDiagnostics: viImportDiagnostics,
 } as const satisfies LocaleNamespace<typeof enResources>;
 
 export const RESOURCES = {

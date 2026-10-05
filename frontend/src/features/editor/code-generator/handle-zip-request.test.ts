@@ -39,6 +39,22 @@ const request: BuildZipRequest = {
   images: [{ fileName: "shop.png", bytes: new Uint8Array([1, 2, 3]) }],
 };
 
+// The compression method of the local file header whose name is `fileName`.
+function localHeaderMethod(zip: Uint8Array, fileName: string): number {
+  const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);
+  let offset = 0;
+  while (view.getUint32(offset, true) === 0x04034b50) {
+    const method = view.getUint16(offset + 8, true);
+    const compressedSize = view.getUint32(offset + 18, true);
+    const nameLength = view.getUint16(offset + 26, true);
+    const extraLength = view.getUint16(offset + 28, true);
+    const name = strFromU8(zip.subarray(offset + 30, offset + 30 + nameLength));
+    if (name === fileName) return method;
+    offset += 30 + nameLength + extraLength + compressedSize;
+  }
+  throw new Error(`${fileName} not found`);
+}
+
 describe("handleZipRequest", () => {
   it("zips the selected generator outputs, json and images with spec file names", async () => {
     const response = await handleZipRequest(request, {
@@ -60,6 +76,27 @@ describe("handleZipRequest", () => {
       serializeSchemaDocument(document),
     );
     expect(Array.from(files["shop.png"] ?? [])).toStrictEqual([1, 2, 3]);
+  });
+
+  it("stores a png as is and deflates an svg", async () => {
+    const response = await handleZipRequest(
+      {
+        ...request,
+        generators: [],
+        includeJson: false,
+        images: [
+          { fileName: "shop.png", bytes: new Uint8Array([1, 2, 3]) },
+          {
+            fileName: "shop.svg",
+            bytes: new TextEncoder().encode("<svg></svg>".repeat(500)),
+          },
+        ],
+      },
+      { loadGenerator: fakeLoad(0) },
+    );
+
+    expect(localHeaderMethod(response.bytes, "shop.png")).toBe(0);
+    expect(localHeaderMethod(response.bytes, "shop.svg")).toBe(8);
   });
 
   it("sums generator diagnostics", async () => {

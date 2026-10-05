@@ -63,6 +63,9 @@ export function useGeneratedCode(input: {
     const worker = startWorker();
     const requestId = ++latestRequestId.current;
     const fail = (): void => {
+      // A worker that failed to load would never answer again.
+      worker.terminate();
+      if (workerRef.current === worker) workerRef.current = null;
       if (requestId === latestRequestId.current) setState({ status: "failed" });
     };
     worker.onmessage = (event: MessageEvent<GenerateCodeResponse>): void => {

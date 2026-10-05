@@ -1,9 +1,10 @@
 import { createEmptySchema } from "@schemaforge/core";
 import { createCounterIdGenerator } from "@schemaforge/core/testing";
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import type { JSX } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { logger } from "@/lib/logger";
 import type { Logger } from "@/lib/logger";
 import type { Notify } from "@/lib/notify";
 import { renderWithProviders } from "@/testing/render-with-providers";
@@ -15,7 +16,7 @@ import type { CanvasNodeControls } from "../lib/viewport-controls";
 import { createEditorStore } from "../state/create-editor-store";
 import { EditorStoreProvider } from "../state/editor-store-provider";
 import type { BuiltZip } from "./use-build-zip";
-import { useBuildZip } from "./use-build-zip";
+import { BuildCancelledError, useBuildZip } from "./use-build-zip";
 import { isBuildZipRequest } from "./worker-protocol";
 import type { BuildZipRequest, BuildZipResponse } from "./worker-protocol";
 
@@ -30,7 +31,10 @@ class FakeWorker extends EventTarget implements Worker {
   onerror: ((event: ErrorEvent) => void) | null = null;
   readonly terminate = vi.fn();
   readonly requests: BuildZipRequest[] = [];
-  reply: (request: BuildZipRequest) => BuildZipResponse | null = (request) => ({
+  // null: the worker errors; "hang": it never answers.
+  reply: (request: BuildZipRequest) => BuildZipResponse | null | "hang" = (
+    request,
+  ) => ({
     requestId: request.requestId,
     kind: "zip",
     bytes: new Uint8Array([9]),
@@ -50,6 +54,7 @@ class FakeWorker extends EventTarget implements Worker {
       : (options?.transfer?.length ?? 0);
     this.requests.push(message);
     const response = this.reply(message);
+    if (response === "hang") return;
     if (response === null) {
       this.onerror?.(new ErrorEvent("error"));
     } else {
@@ -58,34 +63,51 @@ class FakeWorker extends EventTarget implements Worker {
   });
 }
 
-type Result = { built: BuiltZip | null; hasFailed: boolean };
+type Result = {
+  built: BuiltZip | null;
+  hasFailed: boolean;
+  isCancelled: boolean;
+};
 
 function Probe({
-  worker,
+  createWorker,
   result,
 }: {
-  readonly worker: FakeWorker;
+  readonly createWorker: () => FakeWorker;
   readonly result: Result;
 }): JSX.Element {
-  const { build, isBuilding } = useBuildZip({ createWorker: () => worker });
+  const { build, isBuilding, cancel } = useBuildZip({ createWorker });
   return (
-    <button
-      type="button"
-      onClick={() => {
-        build().then(
-          (built) => {
-            result.built = built;
-          },
-          () => {
-            result.hasFailed = true;
-          },
-        );
-      }}
-    >
-      {isBuilding ? "busy" : "build"}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          build().then(
+            (built) => {
+              result.built = built;
+            },
+            (error: unknown) => {
+              if (error instanceof BuildCancelledError) {
+                result.isCancelled = true;
+              } else {
+                result.hasFailed = true;
+              }
+            },
+          );
+        }}
+      >
+        {isBuilding ? "busy" : "build"}
+      </button>
+      <button type="button" onClick={cancel}>
+        cancel
+      </button>
+    </>
   );
 }
+
+vi.mock("@/lib/logger", () => ({
+  logger: { error: vi.fn(), warn: vi.fn() },
+}));
 
 function setup(zipSelection = DEFAULT_ZIP_SELECTION, hasCanvas = true) {
   const store = createEditorStore({
@@ -96,8 +118,14 @@ function setup(zipSelection = DEFAULT_ZIP_SELECTION, hasCanvas = true) {
     logger: { error: vi.fn<Logger["error"]>(), warn: vi.fn<Logger["warn"]>() },
   });
   store.getState().setZipSelection(zipSelection);
-  const worker = new FakeWorker();
-  const result: Result = { built: null, hasFailed: false };
+  const workers: FakeWorker[] = [new FakeWorker()];
+  const createWorker = vi.fn((): FakeWorker => {
+    const next = workers.at(-1);
+    if (next === undefined) throw new Error("no worker");
+    return next;
+  });
+  const worker = workers[0] ?? new FakeWorker();
+  const result: Result = { built: null, hasFailed: false, isCancelled: false };
   const controls: CanvasNodeControls = {
     getMeasuredNodes: () => [],
     fitNodes: vi.fn<CanvasNodeControls["fitNodes"]>(),
@@ -106,16 +134,17 @@ function setup(zipSelection = DEFAULT_ZIP_SELECTION, hasCanvas = true) {
     <EditorStoreProvider store={store}>
       <CanvasNodeControlsProvider controls={controls}>
         {hasCanvas && <div data-export-root="" />}
-        <Probe worker={worker} result={result} />
+        <Probe createWorker={createWorker} result={result} />
       </CanvasNodeControlsProvider>
     </EditorStoreProvider>,
     { locale: "en" },
   );
-  return { ...view, worker, result };
+  return { ...view, worker, workers, createWorker, result };
 }
 
 beforeEach(() => {
   capture.mockReset();
+  vi.mocked(logger.error).mockReset();
 });
 
 describe("useBuildZip", () => {
@@ -179,14 +208,73 @@ describe("useBuildZip", () => {
     });
   });
 
-  it("rejects when the worker fails to load", async () => {
-    const { user, worker, result } = setup();
+  it("rejects when the worker fails to load, then builds with a new worker", async () => {
+    const { user, worker, workers, createWorker, result } = setup();
     worker.reply = () => null;
     await user.click(screen.getByRole("button", { name: "build" }));
 
     await waitFor(() => {
       expect(result.hasFailed).toBe(true);
     });
+    expect(worker.terminate).toHaveBeenCalledOnce();
+    expect(logger.error).toHaveBeenCalledWith("export.zip-failed", {
+      errorName: "Error",
+    });
+
+    workers.push(new FakeWorker());
+    await user.click(screen.getByRole("button", { name: "build" }));
+    await waitFor(() => {
+      expect(result.built).not.toBeNull();
+    });
+    expect(createWorker).toHaveBeenCalledTimes(2);
+  });
+
+  it("cancels a build in flight and builds again afterwards", async () => {
+    const { user, worker, workers, result } = setup();
+    worker.reply = () => "hang";
+    await user.click(screen.getByRole("button", { name: "build" }));
+    expect(screen.getByRole("button", { name: "busy" })).toBeDefined();
+
+    await user.click(screen.getByRole("button", { name: "cancel" }));
+
+    await waitFor(() => {
+      expect(result.isCancelled).toBe(true);
+    });
+    expect(worker.terminate).toHaveBeenCalledOnce();
+    expect(result.hasFailed).toBe(false);
+    expect(logger.error).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "build" })).toBeDefined();
+
+    workers.push(new FakeWorker());
+    await user.click(screen.getByRole("button", { name: "build" }));
+    await waitFor(() => {
+      expect(result.built).not.toBeNull();
+    });
+  });
+
+  it("does not post to the worker when cancelled during image capture", async () => {
+    let finish: (value: { blob: Blob; isScaledDown: boolean }) => void = () =>
+      undefined;
+    capture.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const { user, worker, result } = setup({
+      ...DEFAULT_ZIP_SELECTION,
+      png: true,
+    });
+    await user.click(screen.getByRole("button", { name: "build" }));
+    await user.click(screen.getByRole("button", { name: "cancel" }));
+    await act(async () => {
+      finish({ blob: new Blob(["x"]), isScaledDown: false });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(result.isCancelled).toBe(true);
+    });
+    expect(worker.postMessage).not.toHaveBeenCalled();
   });
 
   it("rejects when the canvas is not mounted for an image", async () => {

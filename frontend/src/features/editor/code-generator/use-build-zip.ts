@@ -5,9 +5,13 @@ import { useTranslation } from "react-i18next";
 
 import { toImageFileName } from "@/lib/import-export/download-file-names";
 import { toDownloadBaseName } from "@/lib/import-export/to-download-base-name";
+import { logger } from "@/lib/logger";
 
 import { captureCanvasImage } from "../import-export/capture-canvas-image";
-import type { ImageFormat } from "../import-export/compute-image-frame";
+import {
+  hasSelfRelation,
+  type ImageFormat,
+} from "../import-export/compute-image-frame";
 import { toZipGeneratorRequests } from "../import-export/zip-selection";
 import { useCanvasNodeControls } from "../lib/viewport-controls";
 import { useEditorStore } from "../state/use-editor-store";
@@ -24,7 +28,16 @@ export type BuildZip = {
   readonly isBuilding: boolean;
   // Rejects when the capture or the worker fails; the caller reports it.
   readonly build: () => Promise<BuiltZip>;
+  // Drops the build in flight: its promise rejects with BuildCancelledError.
+  readonly cancel: () => void;
 };
+
+export class BuildCancelledError extends Error {
+  constructor() {
+    super("The zip build was cancelled.");
+    this.name = "BuildCancelledError";
+  }
+}
 
 const EXPORT_ROOT_SELECTOR = "[data-export-root]";
 
@@ -45,6 +58,9 @@ export function useBuildZip(options?: {
   const [isBuilding, setIsBuilding] = useState(false);
   const workerRef = useRef<Worker | null>(null);
   const nextRequestId = useRef(0);
+  // Bumped by cancel() so a build that is past its capture step notices.
+  const buildGeneration = useRef(0);
+  const rejectPending = useRef<((error: Error) => void) | null>(null);
   const createWorker = options?.createWorker;
 
   useEffect(
@@ -71,9 +87,7 @@ export function useBuildZip(options?: {
         const { blob } = await captureCanvasImage({
           root,
           nodes: getMeasuredNodes(),
-          hasSelfRelation: Object.values(schema.relations).some(
-            (relation) => relation.fromTableId === relation.toTableId,
-          ),
+          hasSelfRelation: hasSelfRelation(schema),
           format,
         });
         images.push({
@@ -86,14 +100,27 @@ export function useBuildZip(options?: {
     [getMeasuredNodes, schema, selection.png, selection.svg],
   );
 
+  const cancel = useCallback((): void => {
+    buildGeneration.current += 1;
+    workerRef.current?.terminate();
+    workerRef.current = null;
+    rejectPending.current?.(new BuildCancelledError());
+    rejectPending.current = null;
+    setIsBuilding(false);
+  }, []);
+
   const build = useCallback(async (): Promise<BuiltZip> => {
     if (isBuilding) {
       throw new Error("A zip is already being built.");
     }
     setIsBuilding(true);
+    const generation = buildGeneration.current;
     try {
       const baseName = toDownloadBaseName(schema.name);
       const images = await captureImages(baseName);
+      if (generation !== buildGeneration.current) {
+        throw new BuildCancelledError();
+      }
       workerRef.current ??= (createWorker ?? createDefaultWorker)();
       const worker = workerRef.current;
       const requestId = ++nextRequestId.current;
@@ -112,10 +139,14 @@ export function useBuildZip(options?: {
       };
       const response = await new Promise<BuildZipResponse>(
         (resolve, reject) => {
+          rejectPending.current = reject;
           worker.onmessage = (event: MessageEvent<BuildZipResponse>): void => {
             if (event.data.requestId === requestId) resolve(event.data);
           };
           const fail = (): void => {
+            // A worker that failed to load would never answer again.
+            worker.terminate();
+            if (workerRef.current === worker) workerRef.current = null;
             reject(new Error("The zip worker failed."));
           };
           worker.onerror = fail;
@@ -133,8 +164,19 @@ export function useBuildZip(options?: {
         diagnosticCount: response.diagnosticCount,
         baseName,
       };
+    } catch (error) {
+      if (!(error instanceof BuildCancelledError)) {
+        // Only the error name: the message may quote schema content.
+        logger.error("export.zip-failed", {
+          errorName: error instanceof Error ? error.name : "unknown",
+        });
+      }
+      throw error;
     } finally {
-      setIsBuilding(false);
+      if (generation === buildGeneration.current) {
+        rejectPending.current = null;
+        setIsBuilding(false);
+      }
     }
   }, [
     captureImages,
@@ -146,5 +188,5 @@ export function useBuildZip(options?: {
     t,
   ]);
 
-  return { isBuilding, build };
+  return { isBuilding, build, cancel };
 }

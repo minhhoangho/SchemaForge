@@ -141,7 +141,9 @@ export const viImportExport = {
     clearAll: "Bỏ chọn tất cả",
     filesOnly_one: "{{count}} file",
     filesOnly_other: "{{count}} file",
-    summary: "{{files}} file, {{diagnostics}} lưu ý về đầu ra",
+    notes_one: "{{count}} lưu ý về đầu ra",
+    notes_other: "{{count}} lưu ý về đầu ra",
+    summary: "{{files}}, {{notes}}",
     issueWarning_one:
       "Schema có {{count}} vấn đề, nên các file được tạo có thể thiếu hoặc không hợp lệ.",
     issueWarning_other:

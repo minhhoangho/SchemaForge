@@ -30,11 +30,7 @@ export function ExportMenu(): JSX.Element {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            ref={triggerRef}
-            variant="ghost"
-            aria-busy={isGeneratingImage}
-          >
+          <Button ref={triggerRef} variant="ghost">
             <DownloadIcon aria-hidden />
             {t("export.menu")}
           </Button>

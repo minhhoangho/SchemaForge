@@ -1,7 +1,14 @@
+import {
+  buildSchema,
+  makeColumn,
+  makeRelation,
+  makeTable,
+} from "@schemaforge/core/testing";
 import { describe, expect, it } from "vitest";
 
 import {
   computeImageFrame,
+  hasSelfRelation,
   IMAGE_PADDING,
   MAX_PNG_PIXELS,
   MAX_PNG_SIDE,
@@ -86,5 +93,48 @@ describe("computeImageFrame", () => {
 
     expect(frame.pixelRatio).toBe(1);
     expect(frame.isScaledDown).toBe(false);
+  });
+});
+
+describe("hasSelfRelation", () => {
+  const tables = [
+    makeTable({ id: "tbl_a", name: "a" }),
+    makeTable({ id: "tbl_b", name: "b" }),
+  ];
+  const columns = [
+    makeColumn({ id: "col_a", tableId: "tbl_a" }),
+    makeColumn({ id: "col_b", tableId: "tbl_b" }),
+  ];
+
+  it("is true when a relation starts and ends on the same table", () => {
+    const schema = buildSchema({
+      tables,
+      columns,
+      relations: [
+        makeRelation({
+          id: "rel_a_a",
+          fromTableId: "tbl_a",
+          toTableId: "tbl_a",
+          columnPairs: [{ fromColumnId: "col_a", toColumnId: "col_a" }],
+        }),
+      ],
+    });
+    expect(hasSelfRelation(schema)).toBe(true);
+  });
+
+  it("is false when every relation joins two tables", () => {
+    const schema = buildSchema({
+      tables,
+      columns,
+      relations: [
+        makeRelation({
+          id: "rel_a_b",
+          fromTableId: "tbl_a",
+          toTableId: "tbl_b",
+          columnPairs: [{ fromColumnId: "col_a", toColumnId: "col_b" }],
+        }),
+      ],
+    });
+    expect(hasSelfRelation(schema)).toBe(false);
   });
 });

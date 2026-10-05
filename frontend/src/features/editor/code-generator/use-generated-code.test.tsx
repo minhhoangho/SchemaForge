@@ -142,6 +142,15 @@ describe("useGeneratedCode", () => {
     expect(result.current).toEqual({ status: "failed" });
   });
 
+  it("terminates a worker that failed and uses a new one for the next request", () => {
+    const { worker, createWorker, rerender } = setup();
+    worker.fail();
+    expect(worker.terminate).toHaveBeenCalledOnce();
+
+    rerender({ ...base, document: docB });
+    expect(createWorker).toHaveBeenCalledTimes(2);
+  });
+
   it("reports failed when a message cannot be deserialized", () => {
     const { result, worker } = setup();
     act(() => {

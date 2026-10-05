@@ -81,6 +81,7 @@ function renderDialog(
     logger: { error: vi.fn<Logger["error"]>(), warn: vi.fn<Logger["warn"]>() },
   });
   const worker = new FakeWorker();
+  const onOpenChange = vi.fn<(open: boolean) => void>();
   const controls: CanvasNodeControls = {
     getMeasuredNodes: () => [],
     fitNodes: vi.fn<CanvasNodeControls["fitNodes"]>(),
@@ -88,12 +89,16 @@ function renderDialog(
   const result = renderWithProviders(
     <EditorStoreProvider store={store}>
       <CanvasNodeControlsProvider controls={controls}>
-        <ZipDialog open onOpenChange={vi.fn()} createWorker={() => worker} />
+        <ZipDialog
+          open
+          onOpenChange={onOpenChange}
+          createWorker={() => worker}
+        />
       </CanvasNodeControlsProvider>
     </EditorStoreProvider>,
     { locale: "en", themePreference },
   );
-  return { ...result, store, worker };
+  return { ...result, store, worker, onOpenChange };
 }
 
 beforeEach(() => {
@@ -198,6 +203,87 @@ describe("ZipDialog", () => {
       });
     });
     expect(downloadBlob).not.toHaveBeenCalled();
+  });
+
+  it("downloads nothing when the dialog is closed during a build, and builds again later", async () => {
+    const { user, worker, onOpenChange } = renderDialog();
+    await user.click(screen.getByRole("button", { name: "Download" }));
+    const firstRequestId = worker.lastRequest?.requestId ?? 0;
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    worker.reply({
+      requestId: firstRequestId,
+      kind: "zip",
+      bytes: new Uint8Array([1]),
+      diagnosticCount: 0,
+    });
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(worker.terminate).toHaveBeenCalledOnce();
+    expect(downloadBlob).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Download" }));
+    worker.reply({
+      requestId: worker.lastRequest?.requestId ?? 0,
+      kind: "zip",
+      bytes: new Uint8Array([2]),
+      diagnosticCount: 0,
+    });
+    await waitFor(() => {
+      expect(downloadBlob).toHaveBeenCalledOnce();
+    });
+  });
+
+  it("keeps focus on the download button while building and ignores a second click", async () => {
+    const { user, worker } = renderDialog();
+    const button = screen.getByRole("button", { name: "Download" });
+    await user.click(button);
+
+    const busyButton = screen.getByRole("button", { name: "Generating…" });
+    expect(busyButton).toBe(button);
+    expect(busyButton.getAttribute("aria-disabled")).toBe("true");
+    expect(busyButton.hasAttribute("disabled")).toBe(false);
+    expect(document.activeElement).toBe(busyButton);
+
+    await user.click(busyButton);
+    expect(worker.postMessage).toHaveBeenCalledOnce();
+  });
+
+  it("drops the diagnostic count when the selection changes", async () => {
+    const { user, worker } = renderDialog();
+    await user.click(screen.getByRole("button", { name: "Download" }));
+    worker.reply({
+      requestId: worker.lastRequest?.requestId ?? 0,
+      kind: "zip",
+      bytes: new Uint8Array([1]),
+      diagnosticCount: 4,
+    });
+    expect(
+      await screen.findByText("1 file, 4 notes about the output"),
+    ).toBeDefined();
+
+    await user.click(screen.getByRole("checkbox", { name: "PostgreSQL" }));
+
+    expect(screen.getByText("2 files")).toBeDefined();
+  });
+
+  it("drops the diagnostic count when the dialog closes", async () => {
+    const { user, worker } = renderDialog();
+    await user.click(screen.getByRole("button", { name: "Download" }));
+    worker.reply({
+      requestId: worker.lastRequest?.requestId ?? 0,
+      kind: "zip",
+      bytes: new Uint8Array([1]),
+      diagnosticCount: 1,
+    });
+    expect(
+      await screen.findByText("1 file, 1 note about the output"),
+    ).toBeDefined();
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.getByText("1 file")).toBeDefined();
   });
 
   it("changes the prisma provider used for the request", async () => {

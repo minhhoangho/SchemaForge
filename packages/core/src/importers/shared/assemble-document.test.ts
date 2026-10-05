@@ -148,6 +148,7 @@ function assemble(draft: ImportDraft): ReturnType<typeof assembleDocument> {
 }
 
 const REFERENCE_NOT_FOUND = "reference-not-found";
+const UNNAMED_INDEX_COUNT = 5000;
 
 describe("assembleDocument", () => {
   it("assigns ids in the documented order", () => {
@@ -438,6 +439,28 @@ describe("assembleDocument", () => {
       document.indexes.idx_8?.name,
       document.indexes.idx_9?.name,
     ]).toStrictEqual(["orders_user_id_idx", "orders_user_id_idx2"]);
+  });
+
+  // Each name resumes the number search of the one before it; restarting at 2
+  // every time took about 15 s for this draft.
+  it("names 5000 unnamed indexes on one column distinctly in draft order", () => {
+    const draft = makeShopDraft({
+      indexes: Array.from({ length: UNNAMED_INDEX_COUNT }, () =>
+        makeDraftIndex({ name: null }),
+      ),
+    });
+
+    const names = Object.values(unwrapOk(assemble(draft)).document.indexes).map(
+      (index) => index.name,
+    );
+
+    expect(names).toStrictEqual([
+      "orders_user_id_idx",
+      ...Array.from(
+        { length: UNNAMED_INDEX_COUNT - 1 },
+        (_, position) => `orders_user_id_idx${String(position + 2)}`,
+      ),
+    ]);
   });
 
   it("places tables through placeElements", () => {

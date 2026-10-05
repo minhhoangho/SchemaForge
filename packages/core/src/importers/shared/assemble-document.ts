@@ -1,13 +1,15 @@
 import type { Column } from "../../model/column.js";
 import type { ColumnType } from "../../model/column-type.js";
-import type { ColumnId, IndexId, TableId } from "../../model/ids.js";
+import type { ColumnId, TableId } from "../../model/ids.js";
 import type { Position } from "../../model/position.js";
 import type { Relation } from "../../model/relation.js";
 import { CURRENT_SCHEMA_VERSION } from "../../model/schema-document.js";
 import type { SchemaDocument } from "../../model/schema-document.js";
 import type { Index } from "../../model/table-index.js";
 import type { Table } from "../../model/table.js";
-import { suggestIndexName } from "../../operations/suggest-index-name.js";
+import { createNameClaimer } from "../../operations/pick-unused-name.js";
+import type { NameClaimer } from "../../operations/pick-unused-name.js";
+import { claimIndexName } from "../../operations/suggest-index-name.js";
 import { parseSchemaDocument } from "../../parse/parse-schema-document.js";
 import { err, ok } from "../../result.js";
 import { assignImportIds } from "./assign-import-ids.js";
@@ -30,7 +32,12 @@ import type {
 import { placeElements } from "./place-elements.js";
 import type { Placement } from "./place-elements.js";
 import { elementAt, resolveDraftReferences } from "./resolve-references.js";
-import type { ResolvedColumn, ResolvedDraft } from "./resolve-references.js";
+import type {
+  ResolvedColumn,
+  ResolvedDraft,
+  ResolvedIndex,
+  ResolvedTable,
+} from "./resolve-references.js";
 
 function countDraftElements(draft: ImportDraft): number {
   return [
@@ -122,37 +129,48 @@ function buildTablesAndColumns(
   };
 }
 
-// Named in draft order, so each suggestion sees the names before it.
+function claimDraftIndexName(
+  claimer: NameClaimer,
+  { index, columns }: ResolvedIndex,
+  table: ResolvedTable,
+): string {
+  if (index.name !== null) {
+    claimer.reserve(index.name);
+    return index.name;
+  }
+  return claimIndexName(claimer, {
+    tableName: table.table.name,
+    columnNames: columns.map((at) => elementAt(table.columns, at).column.name),
+    isUnique: index.isUnique,
+  });
+}
+
+// Named in draft order, so each suggestion sees the names before it, as
+// suggestIndexName on the document built so far would.
 function buildIndexes(
   base: SchemaDocument,
   resolved: ResolvedDraft,
   ids: AssignedIds,
 ): SchemaDocument["indexes"] {
-  const indexes: Record<IndexId, Index> = {};
-  const schema: SchemaDocument = { ...base, indexes };
-  resolved.indexes.forEach(({ index, tableIndex, columns }, position) => {
-    const table = elementAt(resolved.tables, tableIndex);
-    const columnIds = elementAt(ids.columns, tableIndex);
-    const id = elementAt(ids.indexes, position);
-    const columnNames = columns.map(
-      (at) => elementAt(table.columns, at).column.name,
-    );
-    const { isUnique } = index;
-    indexes[id] = {
-      id,
-      tableId: elementAt(ids.tables, tableIndex),
-      name:
-        index.name ??
-        suggestIndexName(schema, {
-          tableName: table.table.name,
-          columnNames,
-          isUnique,
-        }),
-      columnIds: columns.map((at) => elementAt(columnIds, at)),
-      isUnique,
-    };
-  });
-  return indexes;
+  const claimer = createNameClaimer(
+    Object.values(base.tables).map((table) => table.name),
+  );
+  return Object.fromEntries(
+    resolved.indexes.map((resolvedIndex, position) => {
+      const { tableIndex, columns } = resolvedIndex;
+      const table = elementAt(resolved.tables, tableIndex);
+      const columnIds = elementAt(ids.columns, tableIndex);
+      const id = elementAt(ids.indexes, position);
+      const element: Index = {
+        id,
+        tableId: elementAt(ids.tables, tableIndex),
+        name: claimDraftIndexName(claimer, resolvedIndex, table),
+        columnIds: columns.map((at) => elementAt(columnIds, at)),
+        isUnique: resolvedIndex.index.isUnique,
+      };
+      return [id, element];
+    }),
+  );
 }
 
 function buildRelations(

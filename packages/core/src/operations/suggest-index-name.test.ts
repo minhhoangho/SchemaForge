@@ -8,7 +8,8 @@ import {
   makeIndex,
   makeTable,
 } from "../testing/factories.js";
-import { suggestIndexName } from "./suggest-index-name.js";
+import { createNameClaimer } from "./pick-unused-name.js";
+import { claimIndexName, suggestIndexName } from "./suggest-index-name.js";
 
 function buildSchemaWithIndexNames(
   indexNames: readonly string[],
@@ -161,5 +162,43 @@ describe("suggestIndexName", () => {
     });
 
     expect(suggestion).toBe(`${longTableName}_${"b".repeat(17)}_idx2`);
+  });
+});
+
+describe("claimIndexName", () => {
+  const ORDERS_USER_ID = {
+    tableName: "orders",
+    columnNames: ["user_id"],
+    isUnique: false,
+  };
+
+  it("claims the names suggestIndexName would suggest and takes each one", () => {
+    const claimer = createNameClaimer(["ORDERS_USER_ID_IDX2"]);
+
+    const names = [ORDERS_USER_ID, ORDERS_USER_ID, ORDERS_USER_ID].map(
+      (input) => claimIndexName(claimer, input),
+    );
+
+    expect(names).toStrictEqual([
+      "orders_user_id_idx",
+      "orders_user_id_idx3",
+      "orders_user_id_idx4",
+    ]);
+  });
+
+  it("numbers unique and plain index names separately", () => {
+    const claimer = createNameClaimer([]);
+
+    const names = [
+      ORDERS_USER_ID,
+      { ...ORDERS_USER_ID, isUnique: true },
+      ORDERS_USER_ID,
+    ].map((input) => claimIndexName(claimer, input));
+
+    expect(names).toStrictEqual([
+      "orders_user_id_idx",
+      "orders_user_id_key",
+      "orders_user_id_idx2",
+    ]);
   });
 });

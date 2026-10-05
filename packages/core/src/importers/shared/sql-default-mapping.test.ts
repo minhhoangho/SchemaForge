@@ -124,6 +124,35 @@ describe("mapSqlDefault", () => {
     },
   );
 
+  // mysqldump writes DEFAULT '1' and '0' on TINYINT(1), which maps to boolean.
+  it.each<DefaultCase>([
+    ["mysql", { kind: "string", text: "1" }, BOOLEAN, literal("true")],
+    ["mysql", { kind: "string", text: "0" }, BOOLEAN, literal("false")],
+    ["mysql", expression("'1'"), BOOLEAN, literal("true")],
+  ])(
+    "maps a MySQL string 1 or 0 on a boolean column to a boolean: %s %j",
+    (dialect, raw, columnType, expected) => {
+      expect(mapSqlDefault({ raw, columnType, dialect })).toStrictEqual(
+        expected,
+      );
+    },
+  );
+
+  it.each<DefaultCase>([
+    ["mysql", { kind: "string", text: "1" }, INTEGER, literal("1")],
+    ["mysql", { kind: "string", text: "2" }, BOOLEAN, literal("2")],
+    ["postgresql", { kind: "string", text: "1" }, BOOLEAN, literal("1")],
+    ["sqlserver", { kind: "string", text: "0" }, BOOLEAN, literal("0")],
+    ["any", { kind: "string", text: "1" }, BOOLEAN, literal("1")],
+  ])(
+    "keeps a string 1 or 0 as text outside a MySQL boolean column: %s %j on %j",
+    (dialect, raw, columnType, expected) => {
+      expect(mapSqlDefault({ raw, columnType, dialect })).toStrictEqual(
+        expected,
+      );
+    },
+  );
+
   it.each<RawSqlDefault>([
     { kind: "number", text: "12345678901234567890.123" },
     expression("12345678901234567890.123"),

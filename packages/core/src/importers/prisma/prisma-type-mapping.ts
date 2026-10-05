@@ -13,6 +13,7 @@ import type {
   PrismaAttribute,
   PrismaField,
   PrismaPosition,
+  PrismaValue,
 } from "./prisma-ast.js";
 import { mapPrismaDefault } from "./prisma-default-mapping.js";
 
@@ -41,6 +42,8 @@ export type PrismaFieldMapping = {
 const NATIVE_PREFIX = "db.";
 const DEFAULT_ATTRIBUTE = "default";
 const UUID_FUNCTION = "uuid";
+const DB_GENERATED_FUNCTION = "dbgenerated";
+const UUID_COLUMN_TYPE: DraftColumnType = { kind: "uuid" };
 const LIST_SUFFIX = "[]";
 const NO_ENUM_NAMES: ReadonlySet<string> = new Set();
 const TYPE_NOT_SUPPORTED = mapped({ kind: "text" }, ["type-not-supported"]);
@@ -201,6 +204,29 @@ function mapFieldType(
   return scalar === undefined ? TYPE_NOT_SUPPORTED : mapped(scalar);
 }
 
+// `uuid()`, or a `dbgenerated("…")` expression that generates a UUID, as
+// `prisma db pull` writes MySQL's `DEFAULT (uuid())` (spec sections 5 and 6).
+function isUuidDefault(
+  value: PrismaValue | null,
+  provider: SqlDialect,
+): boolean {
+  if (value?.kind !== "call") {
+    return false;
+  }
+  if (value.name === UUID_FUNCTION) {
+    return true;
+  }
+  return (
+    value.name === DB_GENERATED_FUNCTION &&
+    mapPrismaDefault({
+      value,
+      columnType: UUID_COLUMN_TYPE,
+      provider,
+      enumValues: undefined,
+    }).defaultValue?.kind === "generateUuid"
+  );
+}
+
 /**
  * Maps the type and `@default` of a field that holds a column (import / export
  * spec, section 6 "Tên, kiểu, thuộc tính"). Relation fields never get here.
@@ -217,7 +243,7 @@ export function mapPrismaScalarField(
   const value =
     defaultAttribute?.args.find((argument) => argument.name === null)?.value ??
     null;
-  const hasUuidDefault = value?.kind === "call" && value.name === UUID_FUNCTION;
+  const hasUuidDefault = isUuidDefault(value, context.provider);
   const type = mapFieldType(field, context, hasUuidDefault);
   const typePosition = (findNativeAttribute(field) ?? field).position;
   const defaultMapping = mapPrismaDefault({

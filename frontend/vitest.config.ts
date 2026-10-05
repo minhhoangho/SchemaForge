@@ -10,6 +10,10 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // Editor journeys render the full workspace (React Flow, axe) and take
+    // several seconds when the machine is loaded; 5 s flaked in full runs.
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
     include: ["src/**/*.test.{ts,tsx}"],
     setupFiles: ["./src/testing/setup-tests.ts"],
     coverage: {

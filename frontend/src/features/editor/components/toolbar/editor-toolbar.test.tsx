@@ -24,8 +24,14 @@ import { expectNoAxeViolations } from "@/testing/expect-no-axe-violations";
 import { renderWithProviders } from "@/testing/render-with-providers";
 
 import type { CloudStatusView } from "../../lib/to-cloud-status-view";
-import type { ViewportControls } from "../../lib/viewport-controls";
-import { ViewportControlsProvider } from "../../lib/viewport-controls";
+import type {
+  CanvasNodeControls,
+  ViewportControls,
+} from "../../lib/viewport-controls";
+import {
+  CanvasNodeControlsProvider,
+  ViewportControlsProvider,
+} from "../../lib/viewport-controls";
 import { createEditorStore } from "../../state/create-editor-store";
 import type { EditorStore } from "../../state/create-editor-store";
 import { EditorStoreProvider } from "../../state/editor-store-provider";
@@ -143,21 +149,27 @@ function renderToolbar(options: HarnessOptions = {}): Harness {
     setCenter: vi.fn<ViewportControls["setCenter"]>(),
     getZoom: vi.fn<ViewportControls["getZoom"]>(() => 1),
   };
+  const nodeControls: CanvasNodeControls = {
+    getMeasuredNodes: () => [],
+    fitNodes: vi.fn<CanvasNodeControls["fitNodes"]>(),
+  };
   const onRetrySave = vi.fn<() => void>();
   const onSaveToCloud = vi.fn<CloudStatusBadgeProps["onSaveToCloud"]>();
   const result = renderWithProviders(
     <EditorStoreProvider store={store}>
       <ViewportControlsProvider controls={controls}>
-        <EditorToolbar
-          onRetrySave={onRetrySave}
-          cloud={{
-            status: options.cloudStatus ?? { kind: "local-only" },
-            onRetry: vi.fn<CloudStatusBadgeProps["onRetry"]>(),
-            onSaveToCloud,
-            onOpenCloudDialog:
-              vi.fn<CloudStatusBadgeProps["onOpenCloudDialog"]>(),
-          }}
-        />
+        <CanvasNodeControlsProvider controls={nodeControls}>
+          <EditorToolbar
+            onRetrySave={onRetrySave}
+            cloud={{
+              status: options.cloudStatus ?? { kind: "local-only" },
+              onRetry: vi.fn<CloudStatusBadgeProps["onRetry"]>(),
+              onSaveToCloud,
+              onOpenCloudDialog:
+                vi.fn<CloudStatusBadgeProps["onOpenCloudDialog"]>(),
+            }}
+          />
+        </CanvasNodeControlsProvider>
       </ViewportControlsProvider>
     </EditorStoreProvider>,
     {
@@ -170,6 +182,15 @@ function renderToolbar(options: HarnessOptions = {}): Harness {
 }
 
 describe("EditorToolbar", () => {
+  it("shows the export menu after the add buttons", () => {
+    renderToolbar();
+
+    const names = screen
+      .getAllByRole("button")
+      .map((button) => button.textContent);
+    expect(names.indexOf("Export")).toBe(names.indexOf("Add enum") + 1);
+  });
+
   it.each([
     [
       "en",

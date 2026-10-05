@@ -93,6 +93,11 @@ describe("RESOURCES", () => {
     expect(NAMESPACES).toContain("apiErrors");
   });
 
+  it("registers the import and export namespaces", () => {
+    expect(NAMESPACES).toContain("importExport");
+    expect(NAMESPACES).toContain("importDiagnostics");
+  });
+
   it("registers the ai namespace", () => {
     expect(NAMESPACES).toContain("ai");
   });

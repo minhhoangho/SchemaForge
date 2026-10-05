@@ -15,6 +15,7 @@ import type { Table } from "../model/table.js";
 import type { Result } from "../result.js";
 import { err, ok } from "../result.js";
 import type { Operation } from "./operation.js";
+import { pickUnusedName } from "./pick-unused-name.js";
 import { suggestIndexName } from "./suggest-index-name.js";
 
 export type RelationInput = {
@@ -39,8 +40,6 @@ type RelationTables = {
 };
 
 const NAME_SEPARATOR = "_";
-// The unsuffixed name is the first candidate, so numbering starts at 2.
-const FIRST_SUFFIX_NUMBER = 2;
 
 function rejectInput(
   code: ErrorCode,
@@ -57,19 +56,6 @@ function findColumn(schema: SchemaDocument, columnId: ColumnId): Column {
     throw new Error(`Column ${columnId} listed by a table does not exist`);
   }
   return column;
-}
-
-function pickUnusedName(
-  baseName: string,
-  usedNameKeys: ReadonlySet<string>,
-): string {
-  let candidate = baseName;
-  let suffixNumber = FIRST_SUFFIX_NUMBER;
-  while (usedNameKeys.has(toNameKey(candidate))) {
-    candidate = `${baseName}${NAME_SEPARATOR}${String(suffixNumber)}`;
-    suffixNumber += 1;
-  }
-  return candidate;
 }
 
 function resolveReferencedColumnIds(

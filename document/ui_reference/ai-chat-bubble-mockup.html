@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>SchemaForge AI chat bubble mockup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- Fonts: same Google Fonts as visual-refresh-mockup.html; system fallbacks keep it working offline. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+/>
+<style>
+  /* Tokens copied from frontend/src/app/globals.css (same values as visual-refresh-mockup.html).
+     Unlike the precedent, dark is selected only by [data-theme]; JS seeds it from prefers-color-scheme. */
+  :root {
+    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --panel-w: 20rem; /* 320px = production ai-panel.tsx w-80; toolbar toggles 24rem */
+    --background: oklch(0.99 0.003 255);
+    --foreground: oklch(0.24 0.025 262);
+    --card: oklch(1 0 0);
+    --primary: oklch(0.55 0.18 259);
+    --primary-foreground: oklch(0.99 0.004 255);
+    --secondary: oklch(0.955 0.01 255);
+    --muted: oklch(0.965 0.007 255);
+    --muted-foreground: oklch(0.5 0.025 260);
+    --accent: oklch(0.945 0.025 258);
+    --accent-foreground: oklch(0.36 0.12 262);
+    --destructive: oklch(0.54 0.2 27);
+    --success: oklch(0.5 0.12 155);
+    --warning: oklch(0.54 0.12 60);
+    --border: oklch(0.915 0.01 258);
+    --input: oklch(0.62 0.02 260);
+    --ring: oklch(0.25 0.07 262);
+    --canvas: oklch(0.97 0.006 255);
+    --canvas-dot: oklch(0.82 0.015 258);
+    --canvas-relation: oklch(0.6 0.03 260);
+    --table-accent-1: oklch(0.52 0.16 259);
+    --table-accent-3: oklch(0.5 0.12 155);
+    --table-accent-5: oklch(0.54 0.16 40);
+    --shadow-sm: 0 1px 2px oklch(0.24 0.025 262 / 6%);
+    --shadow-md: 0 1px 2px oklch(0.24 0.025 262 / 6%), 0 4px 12px oklch(0.24 0.025 262 / 8%);
+    /* New tokens this design needs; proposed for globals.css, both themes defined here. */
+    --bubble-user: var(--primary);
+    --bubble-user-foreground: var(--primary-foreground);
+    --bubble-assistant: var(--muted);
+    --bubble-assistant-foreground: var(--foreground);
+  }
+  :root[data-theme="dark"] {
+    --background: oklch(0.185 0.012 262);
+    --foreground: oklch(0.95 0.006 255);
+    --card: oklch(0.225 0.014 262);
+    --primary: oklch(0.88 0.07 255);
+    --primary-foreground: oklch(0.22 0.05 262);
+    --secondary: oklch(0.28 0.016 262);
+    --muted: oklch(0.26 0.014 262);
+    --muted-foreground: oklch(0.72 0.02 258);
+    --accent: oklch(0.3 0.03 262);
+    --accent-foreground: oklch(0.95 0.006 255);
+    --destructive: oklch(0.7 0.17 22);
+    --success: oklch(0.74 0.14 155);
+    --warning: oklch(0.8 0.13 75);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 45%);
+    --ring: oklch(0.56 0.11 258);
+    --canvas: oklch(0.165 0.012 262);
+    --canvas-dot: oklch(0.34 0.015 262);
+    --canvas-relation: oklch(0.6 0.025 260);
+    --table-accent-1: oklch(0.48 0.14 259);
+    --table-accent-3: oklch(0.46 0.1 155);
+    --table-accent-5: oklch(0.5 0.14 40);
+    --shadow-sm: 0 1px 2px oklch(0 0 0 / 40%);
+    --shadow-md: 0 2px 8px oklch(0 0 0 / 45%);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--muted);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 20px;
+  }
+  button, textarea, select { font: inherit; color: inherit; }
+  svg { display: block; flex: none; }
+  [hidden] { display: none !important; }
+  .icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  /* ---------- Mockup page chrome (outside the frame) ---------- */
+  .sheet { max-width: 1240px; margin: 0 auto; padding: 24px 16px 64px; display: grid; gap: 20px; }
+  .sheet h1 { margin: 0; font-size: 24px; line-height: 32px; font-weight: 700; text-wrap: balance; }
+  .sheet .lede { margin: 4px 0 0; color: var(--muted-foreground); max-width: 70ch; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+  .toolbar fieldset { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
+  .toolbar legend { float: left; padding: 0; margin-right: 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); line-height: 32px; }
+  .seg { min-height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--background); cursor: pointer; }
+  .seg:hover { background: var(--accent); }
+  .seg[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); font-weight: 600; }
+  .stage { display: grid; gap: 12px; min-width: 0; }
+  .scenario-note { margin: 0; color: var(--muted-foreground); max-width: 80ch; }
+
+  /* ---------- Editor frame ---------- */
+  .frame { display: grid; grid-template-columns: minmax(0, 1fr) var(--panel-w); height: 760px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--background); box-shadow: var(--shadow-md); }
+  .canvas { position: relative; min-width: 0; overflow: hidden; background-color: var(--canvas); background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px); background-size: 20px 20px; }
+  .canvas-bar { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); box-shadow: var(--shadow-sm); font-size: 13px; }
+  .canvas-bar[hidden] { display: none; }
+  .tbl { position: absolute; width: 190px; border: 1px solid var(--input); border-radius: 8px; background: var(--card); box-shadow: var(--shadow-sm); overflow: hidden; font-size: 13px; }
+  .tbl h4 { margin: 0; padding: 6px 10px; font-size: 13px; line-height: 20px; color: var(--primary-foreground); background: var(--table-accent-1); }
+  .tbl.t3 h4 { background: var(--table-accent-3); }
+  .tbl.t5 h4 { background: var(--table-accent-5); }
+  :root[data-theme="dark"] .tbl h4 { color: oklch(0.99 0.004 255); }
+  .tbl ul { list-style: none; margin: 0; padding: 4px 10px 6px; }
+  .tbl li { display: flex; justify-content: space-between; gap: 8px; line-height: 22px; }
+  .tbl .ty { font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground); }
+  .tbl.ghost { border-style: dashed; border-color: var(--primary); }
+  .tbl.ghost[hidden] { display: none; }
+  .tbl .tag { font-size: 11px; font-weight: 600; margin-left: auto; padding: 0 6px; border-radius: 99px; background: var(--primary-foreground); color: var(--table-accent-1); }
+  .relations { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .relations path { fill: none; stroke: var(--canvas-relation); stroke-width: 1.5; }
+
+  /* ---------- AI panel ---------- */
+  .ai { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--border); background: var(--background); }
+  .ai-head { display: flex; align-items: center; gap: 4px; padding: 6px 8px 6px 12px; border-bottom: 1px solid var(--border); }
+  .ai-head h2 { margin: 0 auto 0 0; font-size: 14px; line-height: 20px; font-weight: 600; }
+  .icon-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; color: var(--foreground); }
+  .icon-btn:hover { background: var(--accent); }
+  .notice { margin: 0; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+
+  .log { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 8px; scroll-padding-bottom: 12px; }
+  .log:focus-visible { outline-offset: -2px; }
+  .log > ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+
+  /* Message rows. Group = consecutive rows of the same sender: 2px apart inside a group, 16px between groups. */
+  .msg { display: flex; gap: 8px; margin-top: 16px; }
+  .msg.cont { margin-top: 2px; }
+  .msg:first-child { margin-top: 0; }
+  .msg.user { justify-content: flex-end; }
+  .avatar, .avatar-slot { width: 28px; height: 28px; flex: none; }
+  .avatar { display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: var(--accent-foreground); border: 1px solid var(--border); }
+  .stack { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+  .msg.user .stack { flex: 0 1 85%; align-items: flex-end; }
+  .row { display: flex; align-items: flex-end; gap: 6px; max-width: 100%; }
+  .msg.user .row { flex-direction: row-reverse; }
+  .row.bubble-row + .row.bubble-row { margin-top: -4px; } /* parts of one message: 2px apart */
+
+  .bubble { min-width: 0; padding: 8px 12px; border-radius: 16px; font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
+  .bubble p { margin: 0; white-space: pre-wrap; }
+  .bubble p + ul, .bubble ul + p { margin-top: 4px; }
+  .bubble ul { margin: 0; padding-left: 18px; }
+  .msg.assistant .bubble { max-width: calc(100% - 40px); background: var(--bubble-assistant); color: var(--bubble-assistant-foreground); border: 1px solid var(--border); }
+  .msg.user .bubble { background: var(--bubble-user); color: var(--bubble-user-foreground); }
+  /* Asymmetric corner: the tail-side top corner is small on the first bubble of a group only. */
+  .msg.assistant:not(.cont) .row.first .bubble { border-top-left-radius: 4px; }
+  .msg.user:not(.cont) .row.first .bubble { border-top-right-radius: 4px; }
+  .bubble.muted { color: var(--muted-foreground); border-style: dashed; }
+  .bubble.muted::after { content: none; }
+
+  .ts { flex: none; width: 36px; font-size: 12px; line-height: 16px; color: var(--muted-foreground); opacity: 0; transition: opacity 0.12s; font-variant-numeric: tabular-nums; }
+  .msg.user .ts { text-align: right; }
+  .msg:hover .ts, .msg:focus-within .ts { opacity: 1; }
+
+  .note { margin: 0; font-size: 12px; line-height: 16px; color: var(--muted-foreground); display: flex; align-items: center; gap: 6px; }
+
+  /* Streaming: caret and typing dots. Motion is switched off for prefers-reduced-motion. */
+  .caret::after { content: ""; display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; vertical-align: text-bottom; background: currentColor; animation: blink 1s steps(2, start) infinite; }
+  .dots { display: inline-flex; gap: 4px; padding: 6px 0; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted-foreground); animation: bounce 1.2s ease-in-out infinite; }
+  .dots i:nth-child(2) { animation-delay: 0.15s; }
+  .dots i:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes blink { to { visibility: hidden; } }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .caret::after, .dots i { animation: none; }
+    .ts { transition: none; }
+  }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--input); background: var(--card); color: var(--foreground); font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .btn:hover:not(:disabled) { background: var(--accent); }
+  .btn.primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+  .btn.primary:hover:not(:disabled) { background: var(--primary); filter: brightness(1.08); }
+  .btn.sm { min-height: 28px; padding: 0 10px; font-size: 13px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Cards attached to an assistant message */
+  .card { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-sm); display: grid; gap: 10px; min-width: 0; }
+  .card-head { display: flex; align-items: center; gap: 8px; }
+  .card-head h3 { margin: 0 auto 0 0; font-size: 13px; line-height: 20px; font-weight: 600; }
+  .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .card-actions .btn { flex: 1 1 0; }
+  .state { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; line-height: 16px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--border); background: var(--muted); }
+  .state .icon { width: 14px; height: 14px; }
+  .state.ok .icon { color: var(--success); }
+  .state.off .icon { color: var(--muted-foreground); }
+  .card.prop[data-state="pending"] { border-color: var(--primary); }
+  .card.prop[data-state="stale"], .card.prop[data-state="discarded"] { background: var(--muted); box-shadow: none; }
+  .counts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .counts li { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 99px; font-size: 12px; line-height: 20px; background: var(--background); }
+  .counts .g { font-family: var(--font-mono); font-weight: 600; width: 10px; text-align: center; }
+  .counts .add .g { color: var(--success); }
+  .counts .chg .g { color: var(--warning); }
+  .counts .del .g { color: var(--destructive); }
+  .callout { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-left: 3px solid var(--warning); border-radius: 8px; background: var(--background); font-size: 13px; line-height: 18px; }
+  .callout .icon { margin-top: 1px; color: var(--warning); }
+  .callout.err { border-left-color: var(--destructive); }
+  .callout.err .icon { color: var(--destructive); }
+  .callout.info { border-left-color: var(--primary); }
+  .callout.info .icon { color: var(--accent-foreground); }
+  .callout .body { display: grid; gap: 8px; justify-items: start; min-width: 0; }
+  .callout p { margin: 0; }
+
+  .findings { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .finding { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--background); }
+  .finding .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .chip-kind { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; line-height: 16px; }
+  .chip-kind.issue .icon { color: var(--destructive); }
+  .chip-kind.suggestion .icon { color: var(--warning); }
+  .chip-kind .icon { width: 14px; height: 14px; }
+  .tag-cat { font-size: 12px; line-height: 16px; padding: 0 8px; border-radius: 99px; background: var(--secondary); border: 1px solid var(--border); }
+  .finding strong { font-weight: 600; font-size: 13px; }
+  .finding p { margin: 0; color: var(--muted-foreground); font-size: 13px; line-height: 18px; }
+  .finding .btn { justify-self: start; margin-top: 4px; }
+
+  .sample-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .sample-tools label { font-size: 12px; font-weight: 600; }
+  .select { min-height: 28px; padding: 0 8px; border: 1px solid var(--input); border-radius: 8px; background: var(--card); }
+  .grid-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; line-height: 16px; font-family: var(--font-mono); }
+  caption { text-align: left; padding: 6px 8px; font-family: var(--font-sans); font-size: 12px; color: var(--muted-foreground); }
+  th, td { text-align: left; padding: 4px 8px; border-top: 1px solid var(--border); white-space: nowrap; }
+  th { background: var(--muted); font-weight: 600; }
+  .row-count { font-size: 12px; color: var(--muted-foreground); }
+
+  /* Empty / consent */
+  .empty { height: 100%; display: grid; align-content: center; justify-items: center; gap: 12px; padding: 16px; text-align: center; }
+  .empty .avatar { width: 48px; height: 48px; }
+  .empty .avatar .icon { width: 24px; height: 24px; }
+  .empty h3 { margin: 0; font-size: 16px; line-height: 24px; }
+  .empty p { margin: 0; color: var(--muted-foreground); max-width: 32ch; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .empty .chips { justify-content: center; margin-top: 4px; }
+  .chip { min-height: 32px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--input); background: var(--card); cursor: pointer; font-weight: 500; }
+  .chip:hover:not(:disabled) { background: var(--accent); }
+  .chip:disabled { opacity: 0.5; cursor: not-allowed; }
+  .consent { max-width: 100%; text-align: left; justify-items: start; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-sm); display: grid; gap: 8px; }
+  .consent h3 { font-size: 14px; line-height: 20px; }
+  .consent p { max-width: none; color: var(--foreground); font-size: 13px; line-height: 18px; }
+  .consent a { color: var(--accent-foreground); text-decoration: underline; text-underline-offset: 2px; }
+  :root:not([data-theme="dark"]) .consent a { color: var(--primary); }
+
+  /* Composer, docked */
+  .dock { border-top: 1px solid var(--border); background: var(--background); padding: 8px 12px 12px; display: grid; gap: 8px; }
+  .dock .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+  .dock .chip { flex: none; min-height: 28px; padding: 0 12px; font-size: 13px; }
+  .field { border: 1px solid var(--input); border-radius: 12px; background: var(--card); padding: 8px 8px 8px 12px; display: grid; gap: 4px; }
+  .field:focus-within { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .field textarea { width: 100%; resize: none; border: 0; background: transparent; padding: 0; margin: 0; line-height: 20px; max-height: 120px; overflow-y: auto; outline: none; }
+  .field textarea::placeholder { color: var(--muted-foreground); opacity: 1; }
+  .field-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .counter { font-size: 12px; line-height: 16px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+
+  .newstrings { padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+  .newstrings h2 { margin: 0 0 8px; font-size: 16px; }
+  .newstrings table { font-family: var(--font-sans); font-size: 13px; line-height: 18px; }
+  .newstrings td, .newstrings th { white-space: normal; vertical-align: top; }
+
+  @media (max-width: 900px) {
+    .frame { grid-template-columns: minmax(0, 1fr); height: 720px; }
+    .canvas { display: none; }
+    .ai { border-left: 0; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-newchat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 7v6M9 10h6"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 19V5"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-retry" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4"/></symbol>
+</svg>
+
+<main class="sheet">
+  <header>
+    <h1>AI assistant: bubble chat</h1>
+    <p class="lede">Mockup for review before any React change. Tokens are the real ones from globals.css; UI strings are the real <code>ai</code> namespace in vi and en. Sample conversation text is invented content. Chrome outside the frame (this toolbar, notes) is English only and not part of the product.</p>
+  </header>
+
+  <div class="toolbar" role="toolbar" aria-label="Mockup controls">
+    <fieldset><legend>Theme</legend>
+      <button type="button" class="seg" data-theme-btn="light" aria-pressed="true">Light</button>
+      <button type="button" class="seg" data-theme-btn="dark" aria-pressed="false">Dark</button>
+    </fieldset>
+    <fieldset><legend>Language</legend>
+      <button type="button" class="seg" data-lang-btn="en" aria-pressed="true">English</button>
+      <button type="button" class="seg" data-lang-btn="vi" aria-pressed="false">Tiếng Việt</button>
+    </fieldset>
+    <fieldset><legend>Panel width</legend>
+      <button type="button" class="seg" data-width-btn="20rem" aria-pressed="true">320px</button>
+      <button type="button" class="seg" data-width-btn="24rem" aria-pressed="false">384px</button>
+    </fieldset>
+    <fieldset id="scenario-set"><legend>Scenario</legend></fieldset>
+  </div>
+
+  <section class="stage" aria-label="Preview">
+    <p class="scenario-note" id="scenario-note"></p>
+    <div class="frame">
+      <div class="canvas" aria-hidden="true">
+        <svg class="relations" viewBox="0 0 800 760" preserveAspectRatio="none"><path d="M230 190 C 300 190, 300 330, 360 330"/><path d="M230 150 C 270 150, 270 560, 360 560"/><path id="ghost-rel" d="M455 270 L455 236" stroke-dasharray="5 4"/></svg>
+        <div class="canvas-bar" id="preview-bar" hidden><svg class="icon"><use href="#i-info"/></svg><span data-i18n="ai.proposal.previewBar.title"></span></div>
+        <div class="tbl" style="left:40px;top:110px"><h4>users</h4><ul><li><span>id</span><span class="ty">uuid</span></li><li><span>email</span><span class="ty">text</span></li><li><span>created_at</span><span class="ty">timestamptz</span></li></ul></div>
+        <div class="tbl t3" style="left:360px;top:270px"><h4>posts</h4><ul><li><span>id</span><span class="ty">uuid</span></li><li><span>author_id</span><span class="ty">uuid</span></li><li><span>title</span><span class="ty">text</span></li></ul></div>
+        <div class="tbl t5" style="left:360px;top:500px"><h4>tags</h4><ul><li><span>id</span><span class="ty">uuid</span></li><li><span>name</span><span class="ty">text</span></li></ul></div>
+        <div class="tbl ghost" id="ghost-table" style="left:360px;top:90px" hidden><h4 style="display:flex;gap:8px">comments <span class="tag" data-i18n="ai.diff.added"></span></h4><ul><li><span>id</span><span class="ty">uuid</span></li><li><span>post_id</span><span class="ty">uuid</span></li><li><span>body</span><span class="ty">text</span></li></ul></div>
+      </div>
+
+      <aside class="ai" aria-labelledby="ai-title">
+        <div class="ai-head">
+          <h2 id="ai-title" data-i18n="ai.panel.title"></h2>
+          <button type="button" class="icon-btn" data-i18n-attr="aria-label:ai.panel.newConversation"><svg class="icon"><use href="#i-newchat"/></svg></button>
+          <button type="button" class="icon-btn" data-i18n-attr="aria-label:ai.panel.close"><svg class="icon"><use href="#i-x"/></svg></button>
+        </div>
+        <p class="notice" data-i18n="ai.panel.dataNotice"></p>
+        <div class="log" id="log" role="log" tabindex="0" aria-live="polite" aria-relevant="additions text" data-i18n-attr="aria-label:ai.panel.messagesLabel"></div>
+        <p class="sr-only" role="status" id="live"></p>
+        <div class="dock" id="dock">
+          <div class="chips" id="dock-chips" role="group" data-i18n-attr="aria-label:ai.quickActions.label"></div>
+          <div class="field">
+            <label for="composer" class="sr-only" data-i18n="ai.composer.label"></label>
+            <textarea id="composer" rows="1" maxlength="4000" aria-describedby="counter" data-i18n-attr="placeholder:ai.composer.placeholder"></textarea>
+            <div class="field-foot">
+              <span id="counter" class="counter"></span>
+              <button type="button" class="btn primary" id="send"><svg class="icon"><use href="#i-send"/></svg><span data-i18n="ai.composer.send"></span></button>
+              <button type="button" class="btn" id="stop" hidden><svg class="icon"><use href="#i-stop"/></svg><span data-i18n="ai.composer.stop"></span></button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="newstrings" aria-labelledby="ns-h">
+    <h2 id="ns-h">New strings (not in the current <code>ai</code> namespace)</h2>
+    <table>
+      <thead><tr><th scope="col">Suggested key</th><th scope="col">en</th><th scope="col">vi</th></tr></thead>
+      <tbody>
+        <tr><td><code>panel.emptyTitle</code></td><td>How can I help with this schema?</td><td>Tôi có thể giúp gì cho schema này?</td></tr>
+        <tr><td><code>panel.emptyBody</code></td><td>Ask for a change or pick a quick action.</td><td>Hãy yêu cầu một thay đổi hoặc chọn một thao tác nhanh.</td></tr>
+      </tbody>
+    </table>
+    <p class="scenario-note">No other new UI strings: the avatar and typing dots are decorative (<code>aria-hidden</code>), the sender label reuses <code>panel.userMessage</code>/<code>panel.assistantMessage</code>, timestamps are formatted with <code>Intl.DateTimeFormat</code>, streaming status reuses <code>status.*</code>. The sample conversation text in the frame is invented content, not locale strings.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- Real strings (from frontend/src/lib/i18n/locales/{en,vi}/ai/*) -------------------------
+  const L = {
+    en: {
+      panel: { title: "AI assistant", newConversation: "New conversation", close: "Close AI assistant",
+        dataNotice: "Your messages and this schema are sent to Google Gemini to generate answers. SchemaForge does not store the conversation.",
+        messagesLabel: "Conversation", userMessage: "You", assistantMessage: "Assistant",
+        consent: { title: "Before you start", body: "The assistant sends your messages and the current schema to Google Gemini. Do not include secrets or personal data in them.", termsLink: "Gemini API data terms", opensInNewTab: "(opens in a new tab)", accept: "Agree and continue" },
+        emptyTitle: "How can I help with this schema?", emptyBody: "Ask for a change or pick a quick action." },
+      composer: { label: "Message to the AI assistant", placeholder: "Describe a schema or ask for a change", send: "Send", stop: "Stop", counter: "{{count}} of {{max}} characters" },
+      quickActions: { label: "Quick actions", improve: "Improve", explain: "Explain", findIssues: "Find issues", sampleData: "Sample data",
+        findIssuesMessage: "Find design issues in this schema.", sampleDataMessage: "Generate sample data for this schema." },
+      status: { responding: "The assistant is responding", done: "The assistant finished responding", stopped: "The response was stopped" },
+      proposal: { title: "Proposed changes", accept: "Accept", discard: "Discard", accepted: "Accepted", discarded: "Discarded",
+        stale: "This proposal no longer applies because the schema has changed.",
+        stoppedEarly: "The assistant stopped before finishing this proposal.",
+        previewBar: { title: "Previewing the proposed changes on the canvas" },
+        counts: { addedTables: ["{{count}} table added", "{{count}} tables added"], addedColumns: ["{{count}} column added", "{{count}} columns added"], changedColumns: ["{{count}} column changed", "{{count}} columns changed"], removedTables: ["{{count}} table removed", "{{count}} tables removed"] } },
+      diff: { added: "New" },
+      findings: { title: "Review results", kinds: { suggestion: "Suggestion", issue: "Issue" }, categories: { index: "Index", naming: "Naming", relation: "Relation" },
+        apply: "Apply", fixForMe: "Fix it for me", targetUnavailable: "This part of the schema no longer exists." },
+      sampleData: { title: "Sample data", caption: "Sample rows for table {{table}}", format: "Format", copy: "Copy", download: "Download",
+        outdated: "The schema changed after this data was generated. Generate it again.", retry: "Generate again",
+        rowCount: ["{{count}} row", "{{count}} rows"], sqlReminder: "This data was generated by AI. Read the SQL before you run it on a database." },
+      errors: { "ai-upstream-busy": "The AI service is busy. Try again in a moment.", network: "Could not reach the server. Check your connection.", retry: "Try again" },
+    },
+    vi: {
+      panel: { title: "Trợ lý AI", newConversation: "Cuộc trò chuyện mới", close: "Đóng trợ lý AI",
+        dataNotice: "Tin nhắn và schema này được gửi tới Google Gemini để tạo câu trả lời. SchemaForge không lưu cuộc trò chuyện.",
+        messagesLabel: "Cuộc trò chuyện", userMessage: "Bạn", assistantMessage: "Trợ lý",
+        consent: { title: "Trước khi bắt đầu", body: "Trợ lý gửi tin nhắn của bạn và schema hiện tại tới Google Gemini. Đừng đưa bí mật hoặc dữ liệu cá nhân vào đó.", termsLink: "Điều khoản dữ liệu của Gemini API", opensInNewTab: "(mở trong tab mới)", accept: "Đồng ý và tiếp tục" },
+        emptyTitle: "Tôi có thể giúp gì cho schema này?", emptyBody: "Hãy yêu cầu một thay đổi hoặc chọn một thao tác nhanh." },
+      composer: { label: "Tin nhắn gửi trợ lý AI", placeholder: "Mô tả một schema hoặc yêu cầu thay đổi", send: "Gửi", stop: "Dừng", counter: "{{count}}/{{max}} ký tự" },
+      quickActions: { label: "Thao tác nhanh", improve: "Cải thiện", explain: "Giải thích", findIssues: "Tìm lỗi", sampleData: "Dữ liệu mẫu",
+        findIssuesMessage: "Hãy tìm lỗi thiết kế trong schema này.", sampleDataMessage: "Hãy sinh dữ liệu mẫu cho schema này." },
+      status: { responding: "Trợ lý đang trả lời", done: "Trợ lý đã trả lời xong", stopped: "Đã dừng câu trả lời" },
+      proposal: { title: "Thay đổi được đề xuất", accept: "Chấp nhận", discard: "Bỏ", accepted: "Đã chấp nhận", discarded: "Đã bỏ",
+        stale: "Đề xuất không còn áp dụng được vì schema đã thay đổi.",
+        stoppedEarly: "Trợ lý đã dừng trước khi hoàn tất đề xuất này.",
+        previewBar: { title: "Đang xem trước các thay đổi được đề xuất trên canvas" },
+        counts: { addedTables: ["{{count}} bảng mới", "{{count}} bảng mới"], addedColumns: ["{{count}} cột mới", "{{count}} cột mới"], changedColumns: ["{{count}} cột được sửa", "{{count}} cột được sửa"], removedTables: ["{{count}} bảng bị xóa", "{{count}} bảng bị xóa"] } },
+      diff: { added: "Mới" },
+      findings: { title: "Kết quả đánh giá", kinds: { suggestion: "Gợi ý", issue: "Vấn đề" }, categories: { index: "Index", naming: "Đặt tên", relation: "Quan hệ" },
+        apply: "Áp dụng", fixForMe: "Sửa giúp tôi", targetUnavailable: "Phần này của schema không còn tồn tại." },
+      sampleData: { title: "Dữ liệu mẫu", caption: "Các dòng mẫu của bảng {{table}}", format: "Định dạng", copy: "Sao chép", download: "Tải xuống",
+        outdated: "Schema đã thay đổi sau khi dữ liệu này được sinh. Hãy sinh lại.", retry: "Sinh lại",
+        rowCount: ["{{count}} dòng", "{{count}} dòng"], sqlReminder: "Dữ liệu này do AI sinh. Hãy đọc lại SQL trước khi chạy trên database." },
+      errors: { "ai-upstream-busy": "Dịch vụ AI đang bận. Hãy thử lại sau ít phút.", network: "Không kết nối được tới máy chủ. Hãy kiểm tra kết nối mạng.", retry: "Thử lại" },
+    },
+  };
+
+  // ---- Invented sample content (not locale strings) --------------------------------------------
+  const S = {
+    en: {
+      u1: "Add a comments table linked to posts and users.",
+      a1: "I will add one table and link it to the existing ones:\n- comments: id, post_id, author_id, body, created_at\n- foreign keys to posts and users",
+      a1b: "Check the preview on the canvas, then accept or discard it.",
+      a2: "I found three things worth a look.",
+      a3: "Here are three sample users. Check the email addresses before you use them.",
+      uTags: "Add a tags table.", uDrop: "Rename users.mail to users.email.", uRename: "Add a unique index on tags.name.",
+      aShort: "Done, here is the change.",
+      u5: "Explain how comments relate to posts.",
+      stream: "A comment belongs to one post and one author, so comments holds two foreign keys:\n- post_id points to posts.id\n- author_id points to users.id\nDeleting a post can cascade to its comments",
+      uErr: "Add soft delete to every table.",
+      errPartial: "I will add a deleted_at column to",
+      u7: "Thanks, that works.",
+      s1: "Posts have no index on author_id, and users.mail should be renamed.",
+      finding: [
+        ["issue", "index", "posts.author_id has no index", "Queries that list posts by author scan the whole table."],
+        ["suggestion", "naming", "Rename users.mail to users.email", "The other tables use the full word."],
+        ["suggestion", "relation", "Add a unique constraint to tags.name", "Two tags can share the same name today.", true],
+      ],
+    },
+    vi: {
+      u1: "Thêm bảng comments liên kết với posts và users.",
+      a1: "Tôi sẽ thêm một bảng và liên kết nó với các bảng hiện có:\n- comments: id, post_id, author_id, body, created_at\n- khóa ngoại tới posts và users",
+      a1b: "Hãy xem bản xem trước trên canvas rồi chấp nhận hoặc bỏ đề xuất.",
+      a2: "Tôi thấy ba điểm đáng chú ý.",
+      a3: "Đây là ba người dùng mẫu. Hãy kiểm tra địa chỉ email trước khi dùng.",
+      uTags: "Thêm bảng tags.", uDrop: "Đổi tên users.mail thành users.email.", uRename: "Thêm unique index cho tags.name.",
+      aShort: "Xong, đây là thay đổi.",
+      u5: "Giải thích quan hệ giữa comments và posts.",
+      stream: "Một bình luận thuộc về một bài viết và một tác giả, nên comments có hai khóa ngoại:\n- post_id trỏ tới posts.id\n- author_id trỏ tới users.id\nXóa một bài viết có thể xóa theo các bình luận của nó",
+      uErr: "Thêm xóa mềm cho mọi bảng.",
+      errPartial: "Tôi sẽ thêm cột deleted_at vào",
+      u7: "Cảm ơn, được rồi.",
+      s1: "",
+      finding: [
+        ["issue", "index", "posts.author_id chưa có index", "Truy vấn liệt kê bài viết theo tác giả phải quét toàn bảng."],
+        ["suggestion", "naming", "Đổi tên users.mail thành users.email", "Các bảng khác dùng từ đầy đủ."],
+        ["suggestion", "relation", "Thêm ràng buộc unique cho tags.name", "Hiện hai tag có thể trùng tên.", true],
+      ],
+    },
+  };
+
+  const SCENARIOS = {
+    firstUse: { label: "First use (consent)", note: "Consent notice shown as a card in the log before the first message. Composer and quick actions stay disabled until the user agrees." },
+    empty: { label: "Empty", note: "No messages yet: centered avatar, short prompt and the four quick actions as chips. Once a conversation exists the chips collapse into one compact scrolling row above the composer." },
+    conversation: { label: "Conversation", note: "Two groups of consecutive messages (avatar once, 2px gaps, tail corner on the first bubble). Assistant message = text bubble, attached proposal card (pending), closing bubble. Hover or focus inside a message to see its time." },
+    proposals: { label: "Proposal states", note: "Proposal card states: accepted, discarded, stale, pending (the last one). Pending shows the canvas preview bar and the dashed ghost table." },
+    cards: { label: "Findings and sample data", note: "Findings card (issue, suggestion, unavailable target) and sample data cards (normal and outdated)." },
+    streaming: { label: "Streaming", note: "Typing dots first, then text with a caret. Composer shows Stop instead of Send. Press Stop to see the stopped note; reduced-motion users get static dots and caret." },
+    error: { label: "Error", note: "Failed turn with partial text muted (dashed bubble), error callout with Try again; plus a stopped-early proposal note. Only the last failed turn offers retry." },
+  };
+
+  // Message model: { r: role, time, parts: [{ t: type, ... }] }
+  function build(scene, s) {
+    const u = (time, text) => ({ r: "user", time, parts: [{ t: "text", text }] });
+    switch (scene) {
+      case "conversation":
+        return [
+          u("10:41", s.u1),
+          { r: "assistant", time: "10:41", parts: [{ t: "text", text: s.a1 }, { t: "proposal", state: "pending", counts: [["add", "addedTables", 1], ["add", "addedColumns", 5], ["chg", "changedColumns", 1]] }, { t: "text", text: s.a1b }] },
+          u("10:43", "L:quickActions.findIssuesMessage"),
+          { r: "assistant", time: "10:43", parts: [{ t: "text", text: s.a2 }, { t: "findings" }] },
+        ];
+      case "proposals":
+        return [
+          u("10:20", s.uTags),
+          { r: "assistant", time: "10:20", parts: [{ t: "text", text: s.aShort }, { t: "proposal", state: "accepted", counts: [["add", "addedTables", 1], ["add", "addedColumns", 2]] }] },
+          u("10:24", s.uDrop),
+          { r: "assistant", time: "10:24", parts: [{ t: "text", text: s.aShort }, { t: "proposal", state: "discarded", counts: [["chg", "changedColumns", 1]] }] },
+          u("10:30", s.uRename),
+          { r: "assistant", time: "10:30", parts: [{ t: "text", text: s.aShort }, { t: "proposal", state: "stale", counts: [["chg", "changedColumns", 1], ["del", "removedTables", 1]] }] },
+          u("10:41", s.u1),
+          { r: "assistant", time: "10:41", parts: [{ t: "proposal", state: "pending", counts: [["add", "addedTables", 1], ["add", "addedColumns", 5]] }] },
+        ];
+      case "cards":
+        return [
+          u("10:43", "L:quickActions.findIssuesMessage"),
+          { r: "assistant", time: "10:43", parts: [{ t: "text", text: s.a2 }, { t: "findings" }] },
+          u("10:46", "L:quickActions.sampleDataMessage"),
+          { r: "assistant", time: "10:46", parts: [{ t: "text", text: s.a3 }, { t: "sample", outdated: false }] },
+          { r: "assistant", time: "10:52", parts: [{ t: "sample", outdated: true }] },
+        ];
+      case "streaming":
+        return [u("10:55", s.u5), { r: "assistant", time: "10:55", parts: [{ t: "stream" }] }];
+      case "error":
+        return [
+          u("10:41", s.u1),
+          { r: "assistant", time: "10:41", parts: [{ t: "text", text: s.aShort }, { t: "proposal", state: "pending", stoppedEarly: true, counts: [["add", "addedTables", 1]] }] },
+          u("10:58", s.uErr),
+          { r: "assistant", time: "10:58", parts: [{ t: "text", text: s.errPartial, muted: true }, { t: "error", code: "ai-upstream-busy" }] },
+        ];
+      default:
+        return [];
+    }
+  }
+
+  // ---- Helpers --------------------------------------------------------------------------------
+  const state = { width: "20rem", theme: "light", lang: "en", scene: "conversation", timers: [], streaming: false };
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const get = (path) => path.replace(/^ai\./, "").split(".").reduce((o, k) => (o ? o[k] : undefined), L[state.lang]);
+  const fill = (str, vars) => str.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars[k]));
+  const tr = (path, vars) => { const v = get(path); return vars ? fill(v, vars) : v; };
+  const plural = (path, n) => fill(get(path)[n === 1 ? 0 : 1], { count: n });
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const icon = (id) => `<svg class="icon" aria-hidden="true" focusable="false"><use href="#i-${id}"/></svg>`;
+  const resolve = (text) => (text.startsWith("L:") ? tr(text.slice(2)) : text);
+  const fmtTime = (hhmm) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    return new Intl.DateTimeFormat(state.lang, { hour: "2-digit", minute: "2-digit" }).format(new Date(2026, 9, 5, h, m));
+  };
+  const clearTimers = () => { state.timers.forEach((id) => { clearTimeout(id); clearInterval(id); }); state.timers = []; };
+  const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Plain assistant text: paragraphs, and consecutive "- " lines become a list. No Markdown.
+  function plainText(text) {
+    const out = []; let list = [];
+    const flush = () => { if (list.length) { out.push(`<ul>${list.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>`); list = []; } };
+    text.split("\n").forEach((line) => {
+      if (line.startsWith("- ")) list.push(line.slice(2));
+      else { flush(); out.push(`<p>${esc(line)}</p>`); }
+    });
+    flush();
+    return out.join("");
+  }
+
+  // ---- Part renderers ---------------------------------------------------------------------------
+  function bubbleRow(role, time, html, cls, first) {
+    return `<div class="row bubble-row${first ? " first" : ""}"><div class="bubble ${cls || ""}">${html}</div><time class="ts" datetime="2026-10-05T${time}">${esc(fmtTime(time))}</time></div>`;
+  }
+
+  function proposalCard(p) {
+    const st = p.state;
+    const badge = st === "accepted" ? `<span class="state ok">${icon("check")}${esc(tr("proposal.accepted"))}</span>`
+      : st === "discarded" ? `<span class="state off">${icon("x")}${esc(tr("proposal.discarded"))}</span>` : "";
+    const glyph = { add: "+", chg: "~", del: "−" };
+    const counts = p.counts.map(([k, key, n]) => `<li class="${k}"><span class="g" aria-hidden="true">${glyph[k]}</span>${esc(plural("proposal.counts." + key, n))}</li>`).join("");
+    const callout = st === "stale" ? `<div class="callout">${icon("alert")}<div class="body"><p>${esc(tr("proposal.stale"))}</p></div></div>` : "";
+    const early = p.stoppedEarly ? `<div class="callout">${icon("alert")}<div class="body"><p>${esc(tr("proposal.stoppedEarly"))}</p></div></div>` : "";
+    const actions = st === "pending" && !p.stoppedEarly ? `<div class="card-actions"><button type="button" class="btn primary">${esc(tr("proposal.accept"))}</button><button type="button" class="btn">${esc(tr("proposal.discard"))}</button></div>` : "";
+    return `<section class="card prop" data-state="${st}">` +
+      `<div class="card-head"><h3>${esc(tr("proposal.title"))}</h3>${badge}</div><ul class="counts">${counts}</ul>${callout}${early}${actions}</section>`;
+  }
+
+  function findingsCard() {
+    const items = S[state.lang].finding.map(([kind, cat, title, detail, gone]) => {
+      const action = kind === "issue" ? tr("findings.fixForMe") : tr("findings.apply");
+      const extra = gone ? `<p>${esc(tr("findings.targetUnavailable"))}</p>` : "";
+      return `<li class="finding"><div class="meta"><span class="chip-kind ${kind}">${icon(kind === "issue" ? "alert" : "bulb")}${esc(tr("findings.kinds." + kind))}</span><span class="tag-cat">${esc(tr("findings.categories." + cat))}</span></div>` +
+        `<strong>${esc(title)}</strong><p>${esc(detail)}</p>${extra}<button type="button" class="btn sm"${gone ? " disabled" : ""}>${esc(action)}</button></li>`;
+    }).join("");
+    return `<section class="card"><div class="card-head"><h3>${esc(tr("findings.title"))}</h3></div><ul class="findings">${items}</ul></section>`;
+  }
+
+  function sampleCard(outdated) {
+    if (outdated) {
+      return `<section class="card"><div class="card-head"><h3>${esc(tr("sampleData.title"))}</h3></div><div class="callout">${icon("alert")}<div class="body"><p>${esc(tr("sampleData.outdated"))}</p><button type="button" class="btn sm">${icon("retry")}${esc(tr("sampleData.retry"))}</button></div></div></section>`;
+    }
+    const rows = [["1", "ada@example.test", "2026-01-03"], ["2", "linh@example.test", "2026-02-11"], ["3", "sam@example.test", "2026-03-27"]]
+      .map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("");
+    return `<section class="card"><div class="card-head"><h3>${esc(tr("sampleData.title"))}</h3><span class="row-count">${esc(plural("sampleData.rowCount", 3))}</span></div>` +
+      `<div class="sample-tools"><label for="fmt">${esc(tr("sampleData.format"))}</label><select class="select" id="fmt"><option>PostgreSQL</option><option>MySQL</option><option>SQL Server</option><option>JSON</option></select>` +
+      `<button type="button" class="btn sm">${icon("copy")}${esc(tr("sampleData.copy"))}</button><button type="button" class="btn sm">${icon("download")}${esc(tr("sampleData.download"))}</button></div>` +
+      `<div class="grid-wrap" tabindex="0" role="region" aria-label="users"><table><caption>${esc(fill(tr("sampleData.caption"), { table: "users" }))}</caption><thead><tr><th scope="col">id</th><th scope="col">email</th><th scope="col">created_at</th></tr></thead><tbody>${rows}</tbody></table></div>` +
+      `<div class="callout info">${icon("info")}<div class="body"><p>${esc(tr("sampleData.sqlReminder"))}</p></div></div></section>`;
+  }
+
+  function errorBox(code) {
+    return `<div class="callout err" role="group">${icon("alert")}<div class="body"><p>${esc(tr("errors." + code))}</p><button type="button" class="btn sm">${icon("retry")}${esc(tr("errors.retry"))}</button></div></div>`;
+  }
+
+  function renderParts(msg, s) {
+    let firstBubble = true;
+    return msg.parts.map((p) => {
+      switch (p.t) {
+        case "text": {
+          const html = bubbleRow(msg.r, msg.time, plainText(resolve(p.text)), p.muted ? "muted" : "", firstBubble);
+          firstBubble = false;
+          return html;
+        }
+        case "proposal": return proposalCard(p);
+        case "findings": return findingsCard();
+        case "sample": return sampleCard(p.outdated);
+        case "error": return errorBox(p.code);
+        case "stream": return `<div id="stream-slot"></div>`;
+        default: return "";
+      }
+    }).join("");
+  }
+
+  function renderMessages(list, s) {
+    let prev = null;
+    const items = list.map((m) => {
+      const cont = prev === m.r;
+      prev = m.r;
+      const sender = `<span class="sr-only">${esc(tr(m.r === "user" ? "panel.userMessage" : "panel.assistantMessage"))}</span>`;
+      const lead = m.r === "assistant" ? (cont ? `<span class="avatar-slot" aria-hidden="true"></span>` : `<span class="avatar" aria-hidden="true"><svg class="icon"><use href="#i-sparkles"/></svg></span>`) : "";
+      return `<li class="msg ${m.r}${cont ? " cont" : ""}">${lead}<div class="stack">${sender}${renderParts(m, s)}</div></li>`;
+    });
+    return `<ul>${items.join("")}</ul>`;
+  }
+
+  function chipsHtml() {
+    return ["improve", "explain", "findIssues", "sampleData"].map((k) => `<button type="button" class="chip">${esc(tr("quickActions." + k))}</button>`).join("");
+  }
+
+  function emptyHtml() {
+    return `<div class="empty"><span class="avatar" aria-hidden="true"><svg class="icon"><use href="#i-sparkles"/></svg></span><h3>${esc(tr("panel.emptyTitle"))}</h3><p>${esc(tr("panel.emptyBody"))}</p><div class="chips" role="group" aria-label="${esc(tr("quickActions.label"))}">${chipsHtml()}</div></div>`;
+  }
+
+  function consentHtml() {
+    const c = L[state.lang].panel.consent;
+    return `<div class="empty"><section class="consent" aria-labelledby="consent-h"><h3 id="consent-h">${esc(c.title)}</h3><p>${esc(c.body)}</p>` +
+      `<p><a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">${esc(c.termsLink)}<span class="sr-only"> ${esc(c.opensInNewTab)}</span></a></p>` +
+      `<button type="button" class="btn primary">${esc(c.accept)}</button></section></div>`;
+  }
+
+  // ---- Streaming demo ---------------------------------------------------------------------------
+  function streamShell(inner) {
+    return `<div class="row bubble-row first"><div class="bubble" id="stream-bubble">${inner}</div></div>`;
+  }
+  function setSending(on) {
+    state.streaming = on;
+    $("#send").hidden = on; $("#stop").hidden = !on;
+    $("#log").setAttribute("aria-busy", String(on));
+  }
+  function startStream() {
+    const slot = $("#stream-slot");
+    if (!slot) return;
+    const words = S[state.lang].stream.split(" ");
+    const live = $("#live");
+    setSending(true);
+    live.textContent = tr("status.responding");
+    const show = (n, caret) => {
+      slot.innerHTML = streamShell(`<div class="${caret ? "caret" : ""}">${plainText(words.slice(0, n).join(" "))}</div>`);
+      const log = $("#log"); log.scrollTop = log.scrollHeight;
+    };
+    const finish = (stopped) => {
+      show(stopped ? Math.min(words.length, state.streamN || words.length) : words.length, false);
+      if (stopped) slot.insertAdjacentHTML("beforeend", `<p class="note">${esc(tr("status.stopped"))}</p>`);
+      setSending(false);
+      live.textContent = tr(stopped ? "status.stopped" : "status.done");
+    };
+    state.finishStream = finish;
+    if (reduceMotion()) { state.streamN = Math.ceil(words.length * 0.6); show(state.streamN, true); return; }
+    slot.innerHTML = streamShell(`<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>`);
+    let n = 0;
+    state.timers.push(setTimeout(() => {
+      const id = setInterval(() => {
+        n += 1; state.streamN = n; show(n, true);
+        if (n >= words.length) { clearInterval(id); finish(false); }
+      }, 90);
+      state.timers.push(id);
+    }, 1200));
+  }
+
+  // ---- Render ---------------------------------------------------------------------------------
+  function applyStatic() {
+    document.documentElement.lang = state.lang;
+    document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = tr(el.dataset.i18n); });
+    document.querySelectorAll("[data-i18n-attr]").forEach((el) => {
+      el.dataset.i18nAttr.split(";").forEach((pair) => { const [attr, key] = pair.split(":"); el.setAttribute(attr, tr(key)); });
+    });
+    updateCounter();
+  }
+
+  function render() {
+    clearTimers();
+    const s = S[state.lang], scene = state.scene;
+    const log = $("#log"), chips = $("#dock-chips"), dock = $("#dock");
+    setSending(false);
+    $("#live").textContent = "";
+    $("#scenario-note").textContent = SCENARIOS[scene].note;
+    applyStatic();
+
+    const empty = scene === "empty", consent = scene === "firstUse";
+    log.innerHTML = consent ? consentHtml() : empty ? emptyHtml() : renderMessages(build(scene, s), s);
+    chips.innerHTML = chipsHtml();
+    chips.hidden = empty || consent;
+    dock.querySelectorAll("textarea, #send").forEach((el) => { el.disabled = consent; });
+    if (consent) $("#send").disabled = true; else updateSendState();
+
+    const hasPending = ["conversation", "proposals", "error"].includes(scene);
+    $("#preview-bar").hidden = !hasPending || scene === "error";
+    $("#ghost-table").hidden = !(scene === "conversation" || scene === "proposals");
+    $("#ghost-rel").style.display = $("#ghost-table").hidden ? "none" : "";
+
+    log.scrollTop = log.scrollHeight;
+    if (scene === "streaming") startStream();
+  }
+
+  // ---- Composer ---------------------------------------------------------------------------------
+  const composer = $("#composer");
+  function updateCounter() { $("#counter").textContent = fill(tr("composer.counter"), { count: composer.value.length, max: 4000 }); }
+  function updateSendState() { $("#send").disabled = composer.value.trim() === ""; }
+  composer.addEventListener("input", () => {
+    composer.style.height = "auto";
+    composer.style.height = Math.min(composer.scrollHeight, 120) + "px";
+    updateCounter(); updateSendState();
+  });
+  $("#stop").addEventListener("click", () => { if (state.finishStream) { clearTimers(); state.finishStream(true); } });
+
+  // ---- Toolbar ----------------------------------------------------------------------------------
+  const scenarioSet = $("#scenario-set");
+  Object.keys(SCENARIOS).forEach((id) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "seg"; b.dataset.scenarioBtn = id; b.textContent = SCENARIOS[id].label;
+    scenarioSet.appendChild(b);
+  });
+  function syncPressed() {
+    document.querySelectorAll("[data-theme-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeBtn === state.theme)));
+    document.querySelectorAll("[data-lang-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langBtn === state.lang)));
+    document.querySelectorAll("[data-width-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.widthBtn === state.width)));
+    document.querySelectorAll("[data-scenario-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scenarioBtn === state.scene)));
+  }
+  document.querySelector(".toolbar").addEventListener("click", (e) => {
+    const btn = e.target.closest("button"); if (!btn) return;
+    if (btn.dataset.themeBtn) { state.theme = btn.dataset.themeBtn; document.documentElement.dataset.theme = state.theme; }
+    else if (btn.dataset.widthBtn) { state.width = btn.dataset.widthBtn; document.documentElement.style.setProperty("--panel-w", state.width); }
+    else if (btn.dataset.langBtn) { state.lang = btn.dataset.langBtn; render(); }
+    else if (btn.dataset.scenarioBtn) { state.scene = btn.dataset.scenarioBtn; render(); }
+    syncPressed();
+  });
+
+  // Seed theme from the OS, like the app's "system" mode.
+  if (window.matchMedia("(prefers-color-scheme: dark)").matches) { state.theme = "dark"; document.documentElement.dataset.theme = "dark"; }
+  syncPressed();
+  render();
+})();
+</script>
+</body>
+</html>

@@ -687,6 +687,10 @@
   --color-overlay: var(--overlay);
   --color-canvas: var(--canvas);
   --color-canvas-dot: var(--canvas-dot);
+  --color-bubble-user: var(--bubble-user);
+  --color-bubble-user-foreground: var(--bubble-user-foreground);
+  --color-bubble-assistant: var(--bubble-assistant);
+  --color-bubble-assistant-foreground: var(--bubble-assistant-foreground);
   --color-canvas-relation-hover: var(--canvas-relation-hover);
   --color-canvas-node-header-foreground: var(--canvas-node-header-foreground);
   /* Intentionally self-referencing: Tailwind emits .shadow-sm with
@@ -725,6 +729,11 @@
   --secondary-foreground: oklch(0.3 0.04 262);
   --muted: oklch(0.965 0.007 255);
   --muted-foreground: oklch(0.5 0.025 260);
+  /* AI chat bubbles alias existing tokens so a theme change needs one edit. */
+  --bubble-user: var(--primary);
+  --bubble-user-foreground: var(--primary-foreground);
+  --bubble-assistant: var(--muted);
+  --bubble-assistant-foreground: var(--foreground);
   --accent: oklch(0.945 0.025 258);
   --accent-foreground: oklch(0.36 0.12 262);
   --destructive: oklch(0.54 0.2 27);
@@ -808,6 +817,11 @@
   --secondary-foreground: oklch(0.95 0.006 255);
   --muted: oklch(0.26 0.014 262);
   --muted-foreground: oklch(0.72 0.02 258);
+  /* AI chat bubbles alias existing tokens so a theme change needs one edit. */
+  --bubble-user: var(--primary);
+  --bubble-user-foreground: var(--primary-foreground);
+  --bubble-assistant: var(--muted);
+  --bubble-assistant-foreground: var(--foreground);
   --accent: oklch(0.3 0.03 262);
   --accent-foreground: oklch(0.95 0.006 255);
   --destructive: oklch(0.7 0.17 22);

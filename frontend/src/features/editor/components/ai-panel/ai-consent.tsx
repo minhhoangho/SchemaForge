@@ -43,12 +43,14 @@ export function AiConsent({ userId, onAccepted }: AiConsentProps): JSX.Element {
   return (
     <section
       aria-labelledby={titleId}
-      className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground"
+      className="flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-3 text-card-foreground shadow-sm"
     >
       <h3 id={titleId} className="text-sm font-semibold">
         {t("panel.consent.title")}
       </h3>
-      <p className="text-sm">{t("panel.consent.body")}</p>
+      <p className="text-[0.8125rem] leading-[1.125rem]">
+        {t("panel.consent.body")}
+      </p>
       <a
         href={GEMINI_API_TERMS_URL}
         target="_blank"

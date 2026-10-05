@@ -20,6 +20,8 @@ export const enAiPanel = {
   assistantMessage: "Assistant",
   loading: "Loading the AI assistant",
   loadFailed: "The AI assistant could not load. Reload the page to try again.",
+  emptyTitle: "How can I help with this schema?",
+  emptyBody: "Ask for a change or pick a quick action.",
   consent: {
     title: "Before you start",
     body: "The assistant sends your messages and the current schema to Google Gemini. Do not include secrets or personal data in them.",

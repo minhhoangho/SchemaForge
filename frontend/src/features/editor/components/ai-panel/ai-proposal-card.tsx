@@ -1,6 +1,7 @@
 "use client";
 
 import type { TFunction } from "i18next";
+import { CheckIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import type { JSX } from "react";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
@@ -104,16 +105,17 @@ function CountList({
   const { t } = useTranslation("ai");
 
   return (
-    <ul className="flex flex-col gap-1 text-sm">
+    <ul className="flex flex-wrap gap-1.5 text-xs">
       {buildCountLines(counts, t).map((line) => (
         <li
           key={line.text}
           // Destructive lines are bold as well as barred, so the difference
           // does not rest on the color of the bar alone.
           className={cn(
+            "rounded-full border bg-background px-2 py-0.5",
             line.isDestructive
-              ? "border-l-2 border-diff-removed pl-2 font-bold text-foreground"
-              : "text-muted-foreground",
+              ? "border-diff-removed font-bold text-foreground"
+              : "border-border text-muted-foreground",
           )}
         >
           {line.text}
@@ -157,9 +159,19 @@ function StatusBody({
     case "invalid":
       return (
         <>
-          <p id={stateId} role="status" className="text-sm">
-            {t(`proposal.${status}`)}
-          </p>
+          <div className="flex items-start gap-2 rounded-lg border border-l-[3px] border-border border-l-warning bg-background p-2">
+            <TriangleAlertIcon
+              aria-hidden
+              className="mt-0.5 size-4 text-warning"
+            />
+            <p
+              id={stateId}
+              role="status"
+              className="text-[0.8125rem] leading-[1.125rem]"
+            >
+              {t(`proposal.${status}`)}
+            </p>
+          </div>
           <div>
             <Button variant="outline" onClick={onRetry}>
               {t("proposal.retry")}
@@ -170,7 +182,15 @@ function StatusBody({
     case "accepted":
     case "discarded":
       return (
-        <p id={stateId} className="text-sm font-medium">
+        <p
+          id={stateId}
+          className="inline-flex items-center gap-1 self-start rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold"
+        >
+          {status === "accepted" ? (
+            <CheckIcon aria-hidden className="size-3.5 text-success" />
+          ) : (
+            <XIcon aria-hidden className="size-3.5 text-muted-foreground" />
+          )}
           {t(`proposal.${status}`)}
         </p>
       );
@@ -193,14 +213,25 @@ export function AiProposalCard({
       role="group"
       aria-labelledby={titleId}
       aria-describedby={body.status === "preview" ? undefined : stateId}
-      className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 text-card-foreground"
+      className={cn(
+        "flex w-full flex-col gap-2.5 rounded-xl border bg-card p-2.5 text-card-foreground shadow-sm",
+        body.status === "preview" ? "border-primary" : "border-border",
+        (body.status === "stale" ||
+          body.status === "invalid" ||
+          body.status === "discarded") &&
+          "bg-muted shadow-none",
+      )}
     >
       <p id={titleId} className="text-sm font-semibold">
         {t("proposal.title")}
       </p>
       <StatusBody stateId={stateId} {...body} />
       {hasStoppedEarly ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="flex items-start gap-2 rounded-lg border border-l-[3px] border-border border-l-warning bg-background p-2 text-[0.8125rem] leading-[1.125rem]">
+          <TriangleAlertIcon
+            aria-hidden
+            className="mt-0.5 size-4 shrink-0 text-warning"
+          />
           {t("proposal.stoppedEarly")}
         </p>
       ) : null}

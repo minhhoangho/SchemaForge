@@ -23,6 +23,8 @@ export const viAiPanel = {
   assistantMessage: "Trợ lý",
   loading: "Đang tải trợ lý AI",
   loadFailed: "Không tải được trợ lý AI. Hãy tải lại trang để thử lại.",
+  emptyTitle: "Tôi có thể giúp gì cho schema này?",
+  emptyBody: "Hãy yêu cầu một thay đổi hoặc chọn một thao tác nhanh.",
   consent: {
     title: "Trước khi bắt đầu",
     body: "Trợ lý gửi tin nhắn của bạn và schema hiện tại tới Google Gemini. Đừng đưa bí mật hoặc dữ liệu cá nhân vào đó.",

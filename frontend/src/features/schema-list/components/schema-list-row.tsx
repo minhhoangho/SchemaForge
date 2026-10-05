@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useDownloadSchemaJson } from "@/features/schema-list/hooks/use-download-schema-json";
 import type { SchemaActionTarget } from "@/features/schema-list/hooks/use-schema-actions";
 import { getSchemaListEntryId } from "@/features/schema-list/hooks/use-schema-list";
 import type { SchemaListEntry } from "@/lib/storage/schema-repository";
@@ -99,6 +100,26 @@ function RowSummary({ schema, label }: RowSummaryProps): JSX.Element {
   );
 }
 
+// Its own component so only rows with a local copy need the storage context.
+function DownloadJsonItem({
+  schemaId,
+}: {
+  readonly schemaId: string;
+}): JSX.Element {
+  const { t } = useTranslation("importExport");
+  const downloadJson = useDownloadSchemaJson();
+
+  return (
+    <DropdownMenuItem
+      onSelect={() => {
+        void downloadJson(schemaId);
+      }}
+    >
+      {t("download.json")}
+    </DropdownMenuItem>
+  );
+}
+
 type RowMenuProps = {
   readonly target: SchemaActionTarget;
   // A row whose metadata cannot be read can only be deleted.
@@ -160,6 +181,9 @@ function RowMenu({
             >
               {t("row.rename")}
             </DropdownMenuItem>
+            {target.source === "cloud-only" ? null : (
+              <DownloadJsonItem schemaId={target.id} />
+            )}
             {onUploadToCloud === undefined ? null : (
               <DropdownMenuItem
                 onSelect={() => {

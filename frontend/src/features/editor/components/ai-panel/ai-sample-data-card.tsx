@@ -3,7 +3,7 @@
 import type { SchemaDocument } from "@schemaforge/core";
 import type * as SeedNamespace from "@schemaforge/core/generators/seed";
 import type { SeedDataset } from "@schemaforge/core/generators/seed";
-import { CopyIcon, DownloadIcon } from "lucide-react";
+import { CopyIcon, DownloadIcon, TriangleAlertIcon } from "lucide-react";
 import type { JSX } from "react";
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -25,6 +25,10 @@ import { useEditorStore } from "../../state/use-editor-store";
 
 // Loaded on demand so the seed module stays out of the editor's first chunk.
 type SeedModule = typeof SeedNamespace;
+
+// Sits in the assistant column at its full width, like the other cards.
+const CARD_CLASS_NAME =
+  "grid w-full min-w-0 gap-2.5 rounded-xl border border-border bg-card p-2.5 text-card-foreground shadow-sm";
 
 const FORMATS = ["postgresql", "mysql", "sqlserver", "json"] as const;
 type Format = (typeof FORMATS)[number];
@@ -163,7 +167,7 @@ function ValidCard({
   const firstTableId = dataset.tables[0]?.tableId;
 
   return (
-    <div role="group" aria-labelledby={titleId} className="grid gap-3">
+    <div role="group" aria-labelledby={titleId} className={CARD_CLASS_NAME}>
       <p id={titleId} className="text-sm font-semibold">
         {t("sampleData.title")}
       </p>
@@ -262,16 +266,21 @@ export function AiSampleDataCard({
     seed.validateSeedDataset(document, parsed.value).length > 0
   ) {
     return (
-      <div className="grid gap-2">
-        <p className="text-sm text-foreground">{t("sampleData.outdated")}</p>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="justify-self-start"
-          onClick={onRetry}
-        >
-          {t("sampleData.retry")}
-        </Button>
+      <div className={CARD_CLASS_NAME}>
+        <div className="flex items-start gap-2 rounded-lg border border-l-[3px] border-border border-l-warning bg-background p-2">
+          <TriangleAlertIcon
+            aria-hidden
+            className="mt-0.5 size-4 shrink-0 text-warning"
+          />
+          <div className="grid min-w-0 justify-items-start gap-2">
+            <p className="text-[0.8125rem] leading-[1.125rem] text-foreground">
+              {t("sampleData.outdated")}
+            </p>
+            <Button variant="secondary" size="sm" onClick={onRetry}>
+              {t("sampleData.retry")}
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }

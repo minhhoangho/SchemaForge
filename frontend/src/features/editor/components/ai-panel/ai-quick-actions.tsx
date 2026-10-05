@@ -5,10 +5,14 @@ import { useId } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/class-names";
 
 export type AiQuickActionsProps = {
   readonly isDisabled: boolean;
   readonly onSend: (text: string) => void;
+  // "large": chips that wrap, for an empty conversation. "compact": one row
+  // that scrolls sideways above the composer once a conversation exists.
+  readonly variant?: "large" | "compact";
 };
 
 const ACTIONS = ["improve", "explain", "findIssues", "sampleData"] as const;
@@ -16,15 +20,20 @@ const ACTIONS = ["improve", "explain", "findIssues", "sampleData"] as const;
 export function AiQuickActions({
   isDisabled,
   onSend,
+  variant = "large",
 }: AiQuickActionsProps): JSX.Element {
   const { t } = useTranslation("ai");
   const labelId = useId();
+  const isCompact = variant === "compact";
 
   return (
     <div
       role="group"
       aria-labelledby={labelId}
-      className="flex flex-wrap gap-2"
+      className={cn(
+        "flex gap-2",
+        isCompact ? "overflow-x-auto pb-0.5" : "flex-wrap justify-center",
+      )}
     >
       <span id={labelId} className="sr-only">
         {t("quickActions.label")}
@@ -33,7 +42,8 @@ export function AiQuickActions({
         <Button
           key={action}
           variant="outline"
-          size="sm"
+          size={isCompact ? "sm" : "default"}
+          className={cn("rounded-full", isCompact ? "px-3" : "px-3.5")}
           disabled={isDisabled}
           onClick={() => {
             onSend(t(`quickActions.${action}Message`));

@@ -1,7 +1,8 @@
 "use client";
 
-import type { JSX } from "react";
-import { useEffect, useRef } from "react";
+import { TriangleAlertIcon } from "lucide-react";
+import type { JSX, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,12 @@ import type {
 } from "../../state/create-ai-chat-store";
 import { useEditorStore } from "../../state/use-editor-store";
 import { AiFindingsCard } from "./ai-findings-card";
+import {
+  AssistantAvatar,
+  MessageBubble,
+  PlainText,
+  TypingDots,
+} from "./ai-message-bubble";
 import { AiProposalCard } from "./ai-proposal-card";
 import { AiSampleDataCard } from "./ai-sample-data-card";
 import { focusProposalCard } from "./proposal-decision";
@@ -35,9 +42,6 @@ const TOO_MANY_REQUESTS_STATUS = 429;
 // Within this distance of the end, the log counts as read to the end and
 // follows new text; further up, the reader keeps their place.
 const FOLLOW_SCROLL_THRESHOLD_PX = 40;
-
-// AI text is a plain text node: no Markdown, no HTML (AI-R52).
-const MESSAGE_TEXT_CLASS_NAME = "whitespace-pre-wrap [overflow-wrap:anywhere]";
 
 function useFailureText(): (failure: AiChatFailure) => string {
   const { t } = useTranslation("ai");
@@ -141,51 +145,115 @@ function FailureNotice({
   const failureText = useFailureText();
 
   return (
-    <div className="flex flex-col items-start gap-2 rounded-md border border-destructive p-2">
-      <p className="text-sm font-medium">{failureText(failure)}</p>
-      {canRetry ? (
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isSending}
-          onClick={onRetry}
-        >
-          {t("errors.retry")}
-        </Button>
-      ) : null}
+    <div className="flex items-start gap-2 rounded-lg border border-l-[3px] border-border border-l-destructive bg-background p-2">
+      <TriangleAlertIcon
+        aria-hidden
+        className="mt-0.5 size-4 text-destructive"
+      />
+      <div className="flex min-w-0 flex-col items-start gap-2">
+        <p className="text-[0.8125rem] leading-[1.125rem] font-medium">
+          {failureText(failure)}
+        </p>
+        {canRetry ? (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isSending}
+            onClick={onRetry}
+          >
+            {t("errors.retry")}
+          </Button>
+        ) : null}
+      </div>
     </div>
+  );
+}
+
+type MessageRowProps = {
+  readonly sender: "user" | "assistant";
+  // The previous message has the same sender: same group.
+  readonly isContinuation: boolean;
+  readonly children: (sentAt: Date) => ReactNode;
+};
+
+// Consecutive messages of one sender form a group: tight gap, the avatar
+// once, the tail corner on the first bubble only.
+function MessageRow({
+  sender,
+  isContinuation,
+  children,
+}: MessageRowProps): JSX.Element {
+  const { t } = useTranslation("ai");
+  // Messages carry no time, so a row stamps the moment it first appears.
+  const [sentAt] = useState(() => new Date());
+  const isUser = sender === "user";
+
+  return (
+    <li
+      className={cn(
+        "group/msg flex gap-2 first:mt-0",
+        isContinuation ? "mt-0.5" : "mt-4",
+        isUser && "justify-end",
+      )}
+    >
+      {isUser ? null : isContinuation ? (
+        <span aria-hidden className="size-7 shrink-0" />
+      ) : (
+        <AssistantAvatar />
+      )}
+      <div
+        className={cn(
+          "flex min-w-0 flex-col gap-1.5",
+          isUser ? "flex-[0_1_85%] items-end" : "flex-1",
+        )}
+      >
+        <span className="sr-only">
+          {t(isUser ? "panel.userMessage" : "panel.assistantMessage")}
+        </span>
+        {children(sentAt)}
+      </div>
+    </li>
   );
 }
 
 type AssistantMessageProps = Omit<AiMessageListProps, "messages"> & {
   readonly message: AiAssistantMessage;
   readonly isLast: boolean;
+  readonly hasTail: boolean;
+  readonly sentAt: Date;
 };
 
 function AssistantMessage({
   message,
   isLast,
+  hasTail,
+  sentAt,
   ...actions
 }: AssistantMessageProps): JSX.Element {
   const { t } = useTranslation("ai");
   const revealTable = useRevealTable();
   const isFailed = message.status === "failed";
+  const isStreaming = message.status === "streaming";
 
   return (
-    <li className="flex flex-col gap-2">
-      <span className="sr-only">{t("panel.assistantMessage")}</span>
-      {message.text === "" ? null : (
+    <>
+      {message.text === "" ? (
+        isStreaming ? (
+          <MessageBubble sender="assistant" hasTail={hasTail} sentAt={sentAt}>
+            <TypingDots />
+          </MessageBubble>
+        ) : null
+      ) : (
         // Text streamed before a failure stays visible but muted, so it never
         // reads as a finished answer (AI security review, L2).
-        <p
-          className={cn(
-            MESSAGE_TEXT_CLASS_NAME,
-            "text-sm",
-            isFailed && "text-muted-foreground",
-          )}
+        <MessageBubble
+          sender="assistant"
+          hasTail={hasTail}
+          isMuted={isFailed}
+          sentAt={sentAt}
         >
-          {message.text}
-        </p>
+          <PlainText text={message.text} hasCaret={isStreaming} />
+        </MessageBubble>
       )}
       {message.status === "stopped" ? (
         <p className="text-xs text-muted-foreground">{t("status.stopped")}</p>
@@ -221,7 +289,21 @@ function AssistantMessage({
           onRetry={actions.onRetry}
         />
       )}
-    </li>
+    </>
+  );
+}
+
+function EmptyState(): JSX.Element {
+  const { t } = useTranslation("ai");
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3 p-4 text-center">
+      <AssistantAvatar isLarge />
+      <h3 className="text-base font-semibold">{t("panel.emptyTitle")}</h3>
+      <p className="max-w-[32ch] text-sm text-muted-foreground">
+        {t("panel.emptyBody")}
+      </p>
+    </div>
   );
 }
 
@@ -267,26 +349,42 @@ export function AiMessageList({
             FOLLOW_SCROLL_THRESHOLD_PX;
         }}
       >
-        <ul className="flex flex-col gap-4">
-          {messages.map((message, index) =>
-            message.role === "user" ? (
-              <li
-                key={message.id}
-                className="ml-auto max-w-[85%] rounded-lg bg-muted px-3 py-2 text-sm"
-              >
-                <span className="sr-only">{t("panel.userMessage")}</span>
-                <p className={MESSAGE_TEXT_CLASS_NAME}>{message.text}</p>
-              </li>
-            ) : (
-              <AssistantMessage
-                key={message.id}
-                message={message}
-                isLast={index === messages.length - 1}
-                {...actions}
-              />
-            ),
-          )}
-        </ul>
+        {messages.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <ul className="flex flex-col">
+            {messages.map((message, index) => {
+              const isContinuation = messages[index - 1]?.role === message.role;
+              return (
+                <MessageRow
+                  key={message.id}
+                  sender={message.role}
+                  isContinuation={isContinuation}
+                >
+                  {(sentAt) =>
+                    message.role === "user" ? (
+                      <MessageBubble
+                        sender="user"
+                        hasTail={!isContinuation}
+                        sentAt={sentAt}
+                      >
+                        <PlainText text={message.text} />
+                      </MessageBubble>
+                    ) : (
+                      <AssistantMessage
+                        message={message}
+                        isLast={index === messages.length - 1}
+                        hasTail={!isContinuation}
+                        sentAt={sentAt}
+                        {...actions}
+                      />
+                    )
+                  }
+                </MessageRow>
+              );
+            })}
+          </ul>
+        )}
       </div>
       <p role="status" className="sr-only">
         {announcement}

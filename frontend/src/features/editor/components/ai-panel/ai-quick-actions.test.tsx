@@ -85,6 +85,25 @@ describe("AiQuickActions", () => {
     );
   });
 
+  it("wraps large chips in the empty state and scrolls one row once compact", () => {
+    const onSend = vi.fn<(text: string) => void>();
+    const { rerender } = renderWithProviders(
+      <AiQuickActions isDisabled={false} onSend={onSend} />,
+      { locale: "en" },
+    );
+    const group = screen.getByRole("group", { name: "Quick actions" });
+    expect(group.className).toContain("flex-wrap");
+    expect(group.className).not.toContain("overflow-x-auto");
+
+    rerender(
+      <AiQuickActions isDisabled={false} onSend={onSend} variant="compact" />,
+    );
+
+    expect(group.className).toContain("overflow-x-auto");
+    expect(group.className).not.toContain("flex-wrap");
+    expect(screen.getAllByRole("button")).toHaveLength(4);
+  });
+
   it("disables every button while disabled", () => {
     renderWithProviders(
       <AiQuickActions isDisabled onSend={vi.fn<(text: string) => void>()} />,

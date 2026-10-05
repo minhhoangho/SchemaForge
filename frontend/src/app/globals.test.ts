@@ -317,6 +317,10 @@ const TEXT_CASES: readonly TextCase[] = THEMES.flatMap((theme) =>
       ["background", "card", "muted", "popover", "accent", "secondary"],
     ),
     { text: "primary-foreground", surface: "primary" },
+    // AI chat bubbles, and the muted partial text of a failed turn.
+    { text: "bubble-user-foreground", surface: "bubble-user" },
+    { text: "bubble-assistant-foreground", surface: "bubble-assistant" },
+    { text: "muted-foreground", surface: "bubble-assistant" },
     { text: "secondary-foreground", surface: "secondary" },
     { text: "accent-foreground", surface: "accent" },
     { text: "card-foreground", surface: "card" },

@@ -34,6 +34,18 @@ function getInput(): HTMLTextAreaElement {
 }
 
 describe("AiComposer", () => {
+  it("keeps the field, the counter and the button in one box", () => {
+    renderComposer();
+    const box = getInput().parentElement;
+
+    expect(box?.contains(screen.getByText("0 of 4000 characters"))).toBe(true);
+    expect(box?.contains(screen.getByRole("button", { name: "Send" }))).toBe(
+      true,
+    );
+    expect(getInput().rows).toBe(1);
+    expect(getInput().className).toContain("max-h-[120px]");
+  });
+
   it("sends on Enter and adds a line on Shift+Enter", async () => {
     const { user, onSend } = renderComposer();
     const input = getInput();

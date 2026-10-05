@@ -2,6 +2,7 @@
 
 import type { AiFindingsData } from "@schemaforge/api-contract";
 import type { ColumnId, TableId } from "@schemaforge/core";
+import { LightbulbIcon, TriangleAlertIcon } from "lucide-react";
 import type { JSX } from "react";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
@@ -77,15 +78,27 @@ function FindingItem({
   const isIssue = finding.kind === "issue";
 
   return (
-    <li className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 text-card-foreground">
-      <p className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-        <span className="font-semibold">
+    <li className="flex flex-col items-start gap-1.5 rounded-lg border border-border bg-background p-2 text-foreground">
+      <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1 font-semibold">
+          {isIssue ? (
+            <TriangleAlertIcon
+              aria-hidden
+              className="size-3.5 text-destructive"
+            />
+          ) : (
+            <LightbulbIcon aria-hidden className="size-3.5 text-warning" />
+          )}
           {t(`findings.kinds.${finding.kind}`)}
         </span>
-        <span>{t(`findings.categories.${finding.category}`)}</span>
+        <span className="rounded-full border border-border bg-secondary px-2 text-secondary-foreground">
+          {t(`findings.categories.${finding.category}`)}
+        </span>
       </p>
       <p className="text-sm font-semibold">{title}</p>
-      <p className="text-sm whitespace-pre-wrap">{detail}</p>
+      <p className="text-[0.8125rem] leading-[1.125rem] whitespace-pre-wrap text-muted-foreground">
+        {detail}
+      </p>
       {finding.targets.length === 0 ? null : (
         <div className="flex flex-wrap gap-2">
           {finding.targets.map((target) => (
@@ -123,7 +136,10 @@ export function AiFindingsCard({
   const titleId = useId();
 
   return (
-    <section aria-labelledby={titleId} className="flex flex-col gap-2">
+    <section
+      aria-labelledby={titleId}
+      className="flex w-full flex-col gap-2.5 rounded-xl border border-border bg-card p-2.5 text-card-foreground shadow-sm"
+    >
       <h3 id={titleId} className="text-sm font-semibold">
         {t("findings.title")}
       </h3>

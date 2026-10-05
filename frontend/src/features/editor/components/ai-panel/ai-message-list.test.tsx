@@ -164,11 +164,105 @@ describe("AiMessageList", () => {
     });
 
     expect(container.querySelector("b")).toBeNull();
+    expect(screen.getByText("<b>bold</b>", { selector: "p" })).toBeDefined();
+    expect(screen.getByText("item", { selector: "ul li" })).toBeDefined();
+  });
+
+  it("renders consecutive dash lines as one list and keeps other lines pre-wrapped", () => {
+    renderList({
+      messages: [
+        USER_MESSAGE,
+        assistant({ text: "Intro\nsecond line\n- one\n- two\nOutro" }),
+      ],
+    });
+
+    const items = screen.getAllByText(/^(one|two)$/, { selector: "ul li" });
+    expect(items.map((item) => item.textContent)).toEqual(["one", "two"]);
+    const intro = screen.getByText(
+      (_content, element) => element?.textContent === "Intro\nsecond line",
+      { selector: "p" },
+    );
+    expect(intro.className).toContain("whitespace-pre-wrap");
+    expect(screen.getByText("Outro", { selector: "p" })).toBeDefined();
+  });
+
+  it("groups consecutive messages of one sender: one avatar, one tail corner", () => {
+    const { container } = renderList({
+      messages: [
+        USER_MESSAGE,
+        { id: "u2", role: "user", text: "more" },
+        assistant({ id: "a1", text: "first" }),
+        assistant({ id: "a2", text: "second" }),
+      ],
+    });
+
+    expect(screen.getAllByText("You")).toHaveLength(2);
+    expect(screen.getAllByText("Assistant")).toHaveLength(2);
+    expect(container.querySelectorAll(".bg-accent")).toHaveLength(1);
+    expect(container.querySelectorAll(".rounded-tr-sm")).toHaveLength(1);
+    expect(container.querySelectorAll(".rounded-tl-sm")).toHaveLength(1);
+  });
+
+  it("puts a machine-readable time beside every bubble", () => {
+    const { container } = renderList();
+
+    const times = container.querySelectorAll("time");
+    expect(times).toHaveLength(2);
+    for (const time of times) {
+      expect(time.textContent).toMatch(/^\d{2}:\d{2}$/);
+      expect(Number.isNaN(Date.parse(time.dateTime))).toBe(false);
+    }
+  });
+
+  it("shows the empty state before the first message", () => {
+    renderList({ messages: [] });
+
     expect(
-      screen.getByText((_content, element) => element?.textContent === text, {
-        selector: "p",
-      }),
+      screen.getByRole("heading", { name: "How can I help with this schema?" }),
     ).toBeDefined();
+    expect(
+      screen.getByText("Ask for a change or pick a quick action."),
+    ).toBeDefined();
+    expect(screen.queryByRole("list")).toBeNull();
+  });
+
+  it("shows typing dots before the first text and a caret while text streams", () => {
+    const { container, rerenderWith } = renderList({
+      messages: [USER_MESSAGE, assistant({ text: "", status: "streaming" })],
+      isSending: true,
+    });
+    expect(container.querySelectorAll("i.animate-bounce")).toHaveLength(3);
+
+    rerenderWith({
+      messages: [
+        USER_MESSAGE,
+        assistant({ text: "Part", status: "streaming" }),
+      ],
+    });
+
+    expect(container.querySelector("i.animate-bounce")).toBeNull();
+    expect(screen.getByText("Part").className).toContain("after:animate-pulse");
+    expect(screen.getByText("Part").className).toContain(
+      "motion-reduce:after:animate-none",
+    );
+  });
+
+  it("shows the partial text of a failed turn muted in a dashed bubble", () => {
+    renderList({
+      messages: [
+        USER_MESSAGE,
+        assistant({
+          text: "Partial",
+          status: "failed",
+          failure: { kind: "error", code: "ai-timeout" },
+        }),
+      ],
+    });
+
+    const bubble = screen.getByText("Partial").closest("div.rounded-2xl");
+    expect(bubble?.className).toContain("border-dashed");
+    expect(bubble?.className).toContain("text-muted-foreground");
+    expect(screen.getByRole("button", { name: "Try again" })).toBeDefined();
   });
 
   it("shows the stopped label", () => {
@@ -484,6 +578,48 @@ describe("AiMessageList", () => {
                 }),
               ]}
               isSending={false}
+              onSend={vi.fn<(text: string) => void>()}
+              onRetry={vi.fn<() => void>()}
+              onAccept={vi.fn<(id: string) => void>()}
+              onDiscard={vi.fn<(id: string) => void>()}
+            />
+          </ViewportControlsProvider>
+        </EditorStoreProvider>,
+        { locale: "en", themePreference },
+      );
+
+      await expectNoAxeViolations(container);
+    },
+  );
+
+  it.each(["light", "dark"] as const)(
+    "has no axe violations with grouped bubbles, a list, findings and streaming in the %s theme",
+    async (themePreference) => {
+      const { container } = renderWithProviders(
+        <EditorStoreProvider store={createEditor()}>
+          <ViewportControlsProvider controls={createControls()}>
+            <AiMessageList
+              messages={[
+                USER_MESSAGE,
+                { id: "u2", role: "user", text: "and" },
+                assistant({
+                  id: "a1",
+                  text: "Two things:\n- one\n- two",
+                  findings: [
+                    {
+                      kind: "issue",
+                      category: "naming",
+                      title: "Rename it",
+                      detail: "Use the full word.",
+                      targets: [],
+                    },
+                  ],
+                }),
+                assistant({ id: "a2", text: "More", status: "stopped" }),
+                { id: "u3", role: "user", text: "go on" },
+                assistant({ id: "a3", text: "", status: "streaming" }),
+              ]}
+              isSending
               onSend={vi.fn<(text: string) => void>()}
               onRetry={vi.fn<() => void>()}
               onAccept={vi.fn<(id: string) => void>()}

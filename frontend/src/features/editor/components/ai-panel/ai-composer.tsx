@@ -59,13 +59,16 @@ export function AiComposer({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1 rounded-xl border border-input bg-card p-2 pl-3 shadow-sm focus-within:ring-3 focus-within:ring-ring dark:bg-input/30">
       <label htmlFor={inputId} className="sr-only">
         {t("composer.label")}
       </label>
       <Textarea
         id={inputId}
         ref={inputRef}
+        rows={1}
+        // The box carries the border and the focus ring.
+        className="max-h-[120px] min-h-6 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
         value={text}
         readOnly={isSending}
         maxLength={AI_MAX_USER_MESSAGE_LENGTH}

@@ -10,11 +10,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { getEnumUsage } from "../../lib/enum-usage";
 import { getIssueIndex } from "../../lib/issue-index";
-import { resolveIssueTarget } from "../../lib/resolve-issue-target";
+import { resolveIssueTarget } from "@/lib/schema/resolve-issue-target";
 import { useEditorStore } from "../../state/use-editor-store";
 import { EnumItem } from "./enum-item";
 import { usePendingFocus } from "./enum-pending-focus";
-import { toIssueMessageValues } from "./issue-message-values";
+import { toIssueMessageValues } from "@/lib/schema/issue-message-values";
 
 // One shared empty list, so an unused enum always receives the same array.
 const NO_USAGES: readonly string[] = [];

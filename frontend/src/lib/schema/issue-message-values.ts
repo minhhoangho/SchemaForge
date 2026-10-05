@@ -1,4 +1,4 @@
-import type { IssueValues } from "../../lib/resolve-issue-target";
+import type { IssueValues } from "./resolve-issue-target";
 
 /**
  * Fills every interpolation variable of the `issues` namespace. The typed

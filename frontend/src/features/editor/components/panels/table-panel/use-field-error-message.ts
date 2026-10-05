@@ -2,8 +2,8 @@ import type { Issue, SchemaDocument } from "@schemaforge/core";
 import { useTranslation } from "react-i18next";
 
 import { getIssueIndex } from "../../../lib/issue-index";
-import { resolveIssueTarget } from "../../../lib/resolve-issue-target";
-import { toIssueMessageValues } from "../issue-message-values";
+import { resolveIssueTarget } from "@/lib/schema/resolve-issue-target";
+import { toIssueMessageValues } from "@/lib/schema/issue-message-values";
 
 // An issue path is `[collection, elementId, ...field]`, for example
 // `["columns", id, "type", "scale"]`.

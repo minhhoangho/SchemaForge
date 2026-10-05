@@ -6,6 +6,8 @@ import * as testing from "./index.js";
 // Upper case sorts before lower case by UTF-16 code unit.
 const DOCUMENTED_TESTING_HELPERS = [
   "PRISMA_IMPORT_FIXTURES",
+  "SSMS_SCRIPT_EXPECTED_DIAGNOSTICS",
+  "SSMS_SCRIPT_SOURCE",
   "buildSchema",
   "createCounterIdGenerator",
   "createLargeSchema",

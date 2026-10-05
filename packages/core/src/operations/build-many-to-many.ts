@@ -17,6 +17,7 @@ import type {
   Operation,
   OperationOfType,
 } from "./operation.js";
+import { pickUnusedName } from "./pick-unused-name.js";
 
 export type ManyToManyInput = {
   readonly leftTableId: TableId;
@@ -26,8 +27,6 @@ export type ManyToManyInput = {
 };
 
 const NAME_SEPARATOR = "_";
-// The first generated name carries no number, so numbering starts at 2.
-const FIRST_SUFFIX_NUMBER = 2;
 
 type JoinedTables = {
   readonly left: Table;
@@ -82,19 +81,6 @@ function findPrimaryKeyColumns(
     }
     return column;
   });
-}
-
-function pickUnusedName(
-  baseName: string,
-  usedNameKeys: ReadonlySet<string>,
-): string {
-  let name = baseName;
-  let suffixNumber = FIRST_SUFFIX_NUMBER;
-  while (usedNameKeys.has(toNameKey(name))) {
-    name = `${baseName}${NAME_SEPARATOR}${String(suffixNumber)}`;
-    suffixNumber += 1;
-  }
-  return name;
 }
 
 // Left key columns come before right ones, each in primary key order. Names

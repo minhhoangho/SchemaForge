@@ -149,7 +149,6 @@ const BOUNDARY_CASES = [
   { theme: "light", boundary: "ring", surface: "background", where: "page" },
   { theme: "light", boundary: "ring", surface: "card", where: "card" },
   { theme: "light", boundary: "ring", surface: "muted", where: "panel" },
-  { theme: "light", boundary: "ring", surface: "primary", where: "button" },
   {
     theme: "light",
     boundary: "canvas-node-border",
@@ -168,7 +167,6 @@ const BOUNDARY_CASES = [
   { theme: "dark", boundary: "ring", surface: "background", where: "page" },
   { theme: "dark", boundary: "ring", surface: "card", where: "card" },
   { theme: "dark", boundary: "ring", surface: "muted", where: "panel" },
-  { theme: "dark", boundary: "ring", surface: "primary", where: "button" },
   {
     theme: "dark",
     boundary: "canvas-node-border",
@@ -189,6 +187,13 @@ const BOUNDARY_CASES = [
   },
   { theme: "light", boundary: "ring", surface: "canvas", where: "canvas" },
   { theme: "light", boundary: "ring", surface: "popover", where: "dialog" },
+  { theme: "light", boundary: "ring", surface: "accent", where: "hovered row" },
+  {
+    theme: "light",
+    boundary: "ring",
+    surface: "secondary",
+    where: "hovered row",
+  },
   { theme: "light", boundary: "input", surface: "popover", where: "dialog" },
   {
     theme: "light",
@@ -229,6 +234,13 @@ const BOUNDARY_CASES = [
   },
   { theme: "dark", boundary: "ring", surface: "canvas", where: "canvas" },
   { theme: "dark", boundary: "ring", surface: "popover", where: "dialog" },
+  { theme: "dark", boundary: "ring", surface: "accent", where: "hovered row" },
+  {
+    theme: "dark",
+    boundary: "ring",
+    surface: "secondary",
+    where: "hovered row",
+  },
   { theme: "dark", boundary: "input", surface: "popover", where: "dialog" },
   {
     theme: "dark",
@@ -428,9 +440,10 @@ describe("text on tinted surfaces", () => {
 });
 
 // button.tsx mixes --foreground into --primary on hover (color-mix in oklch,
-// shorter hue). The mix has to keep the focus ring at 3:1 against the hovered
-// fill (1.4.11) and the label at 4.5:1 (1.4.3). 5 keeps headroom
-// in light (3.04:1; 6 only reaches 3.0000:1, too close to browser rounding).
+// shorter hue). The mix has to keep the label at 4.5:1 (1.4.3). The focus ring
+// is not measured against the fill: the light ring is the primary blue, and
+// buttons keep it apart with a background-colored ring offset, so it only
+// touches the surface (measured in BOUNDARY_CASES).
 const HOVER_MIX_PERCENT = 5;
 const OKLCH_PARTS = /^oklch\(([\d.]+) ([\d.]+) ([\d.]+)\)$/;
 const HALF_TURN = 180;
@@ -467,13 +480,10 @@ describe("default button hover", () => {
   });
 
   it.each(THEMES)(
-    "keeps the ring and the label readable on the hovered primary in the %s theme",
+    "keeps the label readable on the hovered primary in the %s theme",
     (theme) => {
       const hovered = mixedOklch(theme, HOVER_MIX_PERCENT);
 
-      expect(
-        contrastRatio(resolveToken(theme, "ring"), hovered),
-      ).toBeGreaterThanOrEqual(NON_TEXT_CONTRAST_MINIMUM);
       expect(
         contrastRatio(resolveToken(theme, "primary-foreground"), hovered),
       ).toBeGreaterThanOrEqual(TEXT_CONTRAST_MINIMUM);

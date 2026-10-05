@@ -132,6 +132,8 @@ Mọi giá trị viết ở dạng `oklch(...)` hoặc `var(--...)` để `globa
 | `--canvas-key` | `oklch(0.62 0.15 65)` | `oklch(0.83 0.15 85)` | Icon khóa chính |
 | `--canvas-foreign-key` | `oklch(0.55 0.11 190)` | `oklch(0.78 0.12 185)` | Icon khóa ngoại |
 
+**Đổi trong lúc cài đặt (2026-10-05; [architecture.md](../architecture.md), hàng "Token viền và focus ring"; lý do: phản hồi người dùng):** light `--ring` đổi thành `var(--primary)`; dark `--ring` đổi thành `oklch(0.58 0.11 258)` (review cửa sổ chat AI: cặp ring trên `--accent` chưa đạt 3:1). Giá trị hiện hành nằm ở hàng đó của `architecture.md`; xem thêm ghi chú ở [Độ tương phản](#độ-tương-phản).
+
 `--sidebar-*` đặt bằng `var()` của token chính tương ứng (`--sidebar: var(--background)`, `--sidebar-primary: var(--primary)`, `--sidebar-ring: var(--ring)`…) để không còn giá trị lệch; `--chart-*` giữ nguyên vì chưa có chỗ dùng.
 
 ### Bảng màu dải tiêu đề bảng
@@ -208,6 +210,8 @@ Tỉ lệ đo được (light / dark), cặp thấp nhất của mỗi nhóm:
 | `--canvas-foreign-key` trên `--card` | 4,49 | 9,00 |
 
 `--ring` phải đạt 3:1 với cả nền trang lẫn nền nút chính (case `ring` trên `primary` có sẵn trong `globals.test.ts`). Với màu chính xanh lam độ sáng vừa, chỉ ring rất tối (light) hoặc màu chính rất sáng (dark) thỏa cả hai; đó là lý do light ring là xanh đen `oklch(0.25 0.07 262)` và dark primary là xanh nhạt `oklch(0.88 0.07 255)`. Lề an toàn ở dark mode hẹp (3,25 và 3,32), nên plan không được chỉnh `--ring`, `--primary`, `--muted` của dark mà không chạy lại test.
+
+**Đổi trong lúc cài đặt (2026-10-05; [architecture.md](../architecture.md), hàng "Token viền và focus ring"; lý do: phản hồi người dùng, vòng gần đen dày 3px trông quá nặng trên mọi component):** light `--ring` đổi từ `oklch(0.25 0.07 262)` sang `var(--primary)` (`oklch(0.55 0.18 259)`); dark `--ring` sau đó tăng từ `oklch(0.56 0.11 258)` lên `oklch(0.58 0.11 258)` vì cặp ring trên `--accent` (nền hàng đang hover) chỉ đạt 2,92:1. Yêu cầu `--ring` đạt 3:1 trên nền nút chính được thay bằng khe offset màu nền trên control (`ring-2` + `ring-offset-2 ring-offset-background` ở `Button`, `Checkbox`, `RadioGroup`, `Tabs`; viewport của `ScrollArea` dùng `ring-inset` vì nằm sát cạnh vùng cuộn); `globals.test.ts` bỏ case `ring` trên `primary` (light và dark), nên hai hàng `--ring` trên `--primary` ở bảng trên không còn là ràng buộc. `--ring` vẫn phải đạt 3:1 trên nền trang, card, popover, muted, canvas, accent và secondary; giá trị và tỉ lệ hiện hành xem hàng đó của `architecture.md`.
 
 ### Mở rộng `globals.test.ts`
 
@@ -511,7 +515,7 @@ Không có file nào trong `packages/`, `backend/` bị đổi.
 
 ## Rủi ro cần kiểm tra khi triển khai
 
-- **Lề tương phản hẹp ở dark mode:** `--ring` trên `--primary` 3,25 và trên `--muted` 3,32. Chỉnh bất kỳ token nào trong ba token này phải chạy lại `globals.test.ts`.
+- **Lề tương phản hẹp ở dark mode:** `--ring` trên `--primary` 3,25 và trên `--muted` 3,32. Từ 2026-10-05 case `ring` trên `primary` đã bỏ (xem ghi chú ở [Độ tương phản](#độ-tương-phản)); sau khi dark `--ring` lên `oklch(0.58 0.11 258)`, lề hẹp nhất là `--ring` trên `--accent` 3,17 (trên `--muted` 3,61). Chỉnh `--ring`, `--accent` hay `--muted` của dark phải chạy lại `globals.test.ts`.
 - **Chữ trên nền pha** (`bg-destructive/10`, `bg-warning/10`, `bg-accent`) chưa có test tự động; nếu dưới 4,5:1 thì tăng độ đậm chữ hoặc bỏ nền pha.
 - **Marker hover bằng CSS:** đặt `marker-start`, `marker-end` qua CSS ghi đè thuộc tính SVG; cần thử trên Chrome, Firefox, Safari. Nếu một trình duyệt không áp, bỏ biến thể marker hover và chỉ đổi màu nét.
 - **`getSmoothStepPath` với quan hệ tự tham chiếu** (cả hai đầu ở cạnh phải): đường vòng có thể chồng lên node; kiểm tra với `offset` 16 px và tăng nếu cần.

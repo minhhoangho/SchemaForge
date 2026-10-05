@@ -85,7 +85,7 @@ export function CodeView({
         role="region"
         aria-label={t("codeArea", { target: targetLabel })}
         aria-busy={isBusy}
-        className="min-h-48 flex-1 overflow-auto rounded-md border border-border bg-(--code-background) p-3 font-mono text-xs leading-5 text-(--code-foreground) outline-none focus-visible:ring-3 focus-visible:ring-ring"
+        className="min-h-48 flex-1 overflow-auto rounded-md border border-border bg-(--code-background) p-3 font-mono text-xs leading-5 text-(--code-foreground) outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <code>
           {tokens === null ? file.content : <Tokens tokens={tokens} />}

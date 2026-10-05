@@ -32,7 +32,7 @@ function IssueRow({ issue, schema, onSelect }: IssueRowProps): JSX.Element {
     <li>
       <button
         type="button"
-        className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-1 focus-visible:outline-ring"
+        className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-1 focus-visible:outline-ring"
         onClick={() => {
           onSelect(issue);
         }}

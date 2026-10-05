@@ -95,11 +95,11 @@ Gói đã xem xét nhưng không dùng:
 
 ### Luồng chính
 
-**AI-R1. Mở panel.** Thanh công cụ của editor có nút "Trợ lý AI" (icon `Sparkles` của `lucide-react`). Bấm nút mở panel AI ở cột phải, thay chỗ panel thuộc tính; bấm lại hoặc nút đóng trong panel thì panel thuộc tính trở lại. Trạng thái mở, đóng không được nhớ qua lần tải lại.
+**AI-R1. Mở cửa sổ trợ lý.** Góc dưới phải của vùng canvas có nút launcher tròn (icon `Sparkles` của `lucide-react`). Bấm launcher mở cửa sổ chat AI nổi ngay phía trên nút, không modal trên màn rộng; bấm lại launcher, nút đóng trong cửa sổ hoặc Escape thì cửa sổ đóng. Trên màn rộng, panel thuộc tính và panel code ở cột phải vẫn dùng được khi cửa sổ mở; dưới 640px cửa sổ là sheet modal (AI-R51). Trạng thái mở, đóng không được nhớ qua lần tải lại. Bố cục cửa sổ ở AI-R51.
 
 **AI-R2. Khách.** Khi chưa đăng nhập (theo auth store của phần 4), panel chỉ hiện lời mời đăng nhập và một link tới `/sign-in` với `returnTo` là đường dẫn editor hiện tại, dựng bằng `buildAuthHref` có sẵn trong `frontend/src/lib/auth/sanitize-return-to.ts`. Frontend không gọi `POST /ai/chat` khi biết người dùng chưa đăng nhập.
 
-**AI-R3. Gửi tin nhắn.** Người dùng gõ vào ô nhập (Enter gửi, Shift+Enter xuống dòng) hoặc bấm một nút gợi ý nhanh khi hội thoại rỗng: "Gợi ý cải thiện", "Giải thích schema", "Tìm lỗi thiết kế", "Sinh dữ liệu mẫu". Nút gợi ý nhanh chỉ điền một tin nhắn soạn sẵn theo ngôn ngữ giao diện rồi gửi như tin nhắn thường; không có chế độ riêng ở backend.
+**AI-R3. Gửi tin nhắn.** Người dùng gõ vào ô nhập (Enter gửi, Shift+Enter xuống dòng) hoặc bấm một nút gợi ý nhanh (chip lớn khi hội thoại rỗng, một hàng chip nhỏ cuộn ngang khi đã có tin): "Gợi ý cải thiện", "Giải thích schema", "Tìm lỗi thiết kế", "Sinh dữ liệu mẫu". Nút gợi ý nhanh chỉ điền một tin nhắn soạn sẵn theo ngôn ngữ giao diện rồi gửi như tin nhắn thường; không có chế độ riêng ở backend.
 
 **AI-R4. Nhận câu trả lời.** Văn bản stream dần vào bong bóng của AI. Trong lúc chờ, ô nhập bị khóa, nút "Dừng" hủy request. Khi lượt kết thúc, bong bóng có thể kèm một trong ba thẻ: đề xuất thay đổi (mục 7), danh sách gợi ý hoặc vấn đề (mục 8), dữ liệu mẫu (mục 9).
 
@@ -735,7 +735,9 @@ Thứ tự kiểm tra của một request: `OriginGuard`, `JwtAuthGuard`, `RateL
 
 ### Bố cục
 
-**AI-R51.** Panel AI là `<section>` có `aria-label` ở cột phải (AI-R1), dựng lazy bằng `next/dynamic` cùng client stream. Từ trên xuống: tiêu đề, nút "Cuộc trò chuyện mới", nút đóng; dòng thông báo dữ liệu (AI-R48); danh sách tin nhắn; khối gợi ý nhanh khi hội thoại rỗng; ô soạn tin. Màu, viền, bo góc dùng token có sẵn của `frontend/src/app/globals.css`; chỉ thêm ba token diff ở mục 7.
+**AI-R51.** Panel AI là cửa sổ chat nổi trên vùng canvas (AI-R1): `<section role="dialog" aria-modal="false">` (dưới 640px `aria-modal="true"`, xem ghi chú bên dưới) gắn nhãn bằng tiêu đề qua `aria-labelledby`, dựng lazy bằng `next/dynamic` cùng client stream. Từ trên xuống: tiêu đề cùng các nút "Cuộc trò chuyện mới", Thu nhỏ, Mở rộng, Đóng; dòng thông báo dữ liệu (AI-R48); danh sách tin nhắn; hàng gợi ý nhanh; ô soạn tin. Màu, viền, bo góc dùng token có sẵn của `frontend/src/app/globals.css`; chỉ thêm ba token diff ở mục 7 và bốn token `--bubble-*` (alias của token có sẵn) cho bong bóng chat.
+
+**Đổi trong lúc cài đặt (2026-10-05; mockup [ai-chat-bubble-mockup.html](../ui_reference/ai-chat-bubble-mockup.html), log [task 1](../executions/logs/2026-10-05-ai-chat-floating-task-1.md), [task 2](../executions/logs/2026-10-05-ai-chat-floating-task-2.md), [task 3](../executions/logs/2026-10-05-ai-chat-floating-task-3.md), [task 4](../executions/logs/2026-10-05-ai-chat-floating-task-4.md) sửa theo [review](../executions/logs/2026-10-05-ai-chat-floating-review-1.md), [task 6](../executions/logs/2026-10-05-ai-chat-floating-task-6.md) sửa theo [review lần 2](../executions/logs/2026-10-05-ai-chat-floating-review-2.md); lý do: người dùng yêu cầu trợ lý dạng chat bubble và duyệt mockup launcher nổi):** panel AI không còn dock ở cột phải thay chỗ panel thuộc tính, và thanh công cụ bỏ nút "Trợ lý AI". (1) Điểm vào là launcher tròn 56px, nền `--primary`, ở góc dưới phải vùng canvas (`ai-launcher.tsx`, id `AI_LAUNCHER_ID`), có tooltip; tên truy cập ổn định `panel.toggle`, trạng thái nằm ở `aria-expanded`, `aria-controls` chỉ có khi cửa sổ mở (trỏ tới khung cửa sổ). Khi một lượt kết thúc với status `done` lúc người dùng không thấy log (cửa sổ đóng hoặc thu nhỏ), launcher hiện chấm chưa đọc (`aria-hidden`, thông tin nằm trong tên truy cập `panel.unreadReply`); lượt lỗi hoặc bị dừng không đánh dấu. Khi cửa sổ thu nhỏ và có phản hồi chưa đọc, nút Khôi phục ở header cũng hiện chấm (`aria-hidden`) và có tên `panel.restoreUnread` ("Restore, new reply" / "Khôi phục, có phản hồi mới"), để màn hẹp, nơi launcher không render, vẫn thấy được. Mở cửa sổ hoặc Khôi phục từ trạng thái thu nhỏ thì chấm mất. (2) Cửa sổ rộng 380px, mở rộng 520px (nút Mở rộng ẩn khi hẹp), chiều cao theo vùng canvas; dưới 640px là sheet toàn màn hình, thu nhỏ thành thanh ở đáy. Sheet đang mở và không thu nhỏ là modal: `aria-modal="true"`, header (thanh công cụ), panel trái, `<main>` và panel phải của workspace mang `inert`; trên màn hẹp launcher không render trong lúc cửa sổ mở (kể cả thu nhỏ), vì header và thanh thu nhỏ đã có Đóng và Khôi phục, và Đóng, Escape render lại launcher rồi đưa focus về đó. Thu nhỏ chỉ ẩn phần thân bằng thuộc tính `hidden`, không unmount. Bản nháp ô soạn tin nằm trong store chat (`draft`, `setDraft`; `AiComposer` là controlled), nên còn qua thu nhỏ và cả đóng rồi mở lại; bản nháp chỉ xóa khi lệnh gửi thật sự bắt đầu một lượt (bị từ chối vì rỗng hay đang gửi thì giữ) hoặc khi `reset` (Cuộc trò chuyện mới, đổi tài khoản); khi đang xem trước đề xuất, cửa sổ thu nhỏ vẫn hiện nhóm "Proposed changes" với Chấp nhận, Bỏ (`minimized-proposal-actions.tsx`, dùng lại `AcceptProposalButton` và action của store chat, không thêm đường mutation). Escape đóng cửa sổ và trả focus về launcher; Escape trong lúc gõ bằng bộ gõ IME (`event.isComposing`) bị bỏ qua. Đóng giữ nguyên trạng thái thu nhỏ và mở rộng; mở cửa sổ thì bỏ trạng thái thu nhỏ. Trạng thái cửa sổ (`aiWindow`) nằm trong editor store, không lưu qua lần tải lại; kiểu `AiWindowState`, `CLOSED_AI_WINDOW` và các action (`createAiWindowActions`) nằm ở `state/ai-window-actions.ts`; `RightPanelMode` chỉ còn `"properties" | "code"`. (3) Focus sau Chấp nhận, Bỏ (AI-R34): về thẻ đề xuất; nếu thẻ không có hoặc đang bị ẩn vì cửa sổ thu nhỏ thì về launcher; nếu launcher cũng không render (màn hẹp khi cửa sổ mở) thì về nút Khôi phục ở header, có id cố định `AI_RESTORE_ID` (`ai-panel-ids.ts`). Thứ tự fallback: thẻ, launcher, Khôi phục. Riêng hàng nút của cửa sổ thu nhỏ trả focus về nút Khôi phục. (4) Vùng `role="status"` của lượt chat (`ai-turn-status.tsx`) nằm ở gốc layout workspace, luôn mount, ngoài mọi vùng bị ẩn hay `inert`, và cũng là nơi theo dõi lượt để đặt cờ chưa đọc. "AI đã trả lời xong" luôn do vùng này báo, đúng một lần dù cửa sổ mở, thu nhỏ hay đóng; lỗi do hộp lỗi trong `role="log"` đọc nếu log đang hiện lúc lượt kết thúc, ngược lại do vùng status đọc. (5) Tin nhắn là bong bóng chat: người dùng bên phải, trợ lý bên trái kèm avatar, tin liên tiếp cùng người gửi gộp nhóm; giờ gửi lưu ở `createdAt` (epoch ms) của mục chat, do store chat đóng dấu bằng clock tiêm vào (`now`; tin trợ lý đóng dấu lúc bắt đầu lượt), và luôn hiện bằng chữ nhỏ dưới tin cuối của mỗi nhóm người gửi, không phụ thuộc hover; dòng `- ` liên tiếp hiển thị thành danh sách bằng React element, vẫn không render Markdown (AI-R52). Gợi ý nhanh luôn hiện: chip lớn khi hội thoại rỗng, một hàng chip nhỏ cuộn ngang khi đã có tin. (6) Minimap của canvas chuyển sang góc dưới trái để nhường góc dưới phải cho launcher. Trên màn rộng, node hay edge được focus bằng bàn phím mà nằm dưới khung cửa sổ đang mở (thuộc tính `data-ai-window-overlay`) được pan ra phần canvas còn thấy (`use-reveal-focused-element.ts`), để focus không bị che (WCAG 2.2, tiêu chí 2.4.11). Dưới `lg` ở chế độ code, launcher, cửa sổ và vùng status vẫn hiện, nổi trên panel code. Bundle vẫn như mục 15: launcher và vùng status nằm trong chunk editor, panel, thanh báo xem trước và SDK `ai` vẫn tải lazy.
 
 **AI-R52. Hiển thị văn bản.** Câu trả lời là văn bản thuần trong phần tử có `white-space: pre-wrap` và `overflow-wrap: anywhere`. ⚠ Không render Markdown: chỉ dẫn yêu cầu văn bản thuần (AI-R28, điểm 7); dòng `- ` vẫn đọc được như danh sách. Lý do: không thêm dependency trong khi chưa biết người dùng có cần định dạng phong phú không; renderer Markdown là thay đổi chỉ ở frontend, thêm sau được mà không đổi hợp đồng.
 
@@ -743,7 +745,7 @@ Thứ tự kiểm tra của một request: `OriginGuard`, `JwtAuthGuard`, `RateL
 
 - Danh sách tin nhắn có `role="log"`. Bong bóng đang stream có `aria-busy="true"` để trình đọc màn hình không đọc từng mảnh; một vùng `role="status"` ẩn báo "AI đang trả lời" và "AI đã trả lời xong".
 - Ô soạn tin là `<textarea>` có nhãn (ẩn trực quan), bộ đếm ký tự liên kết bằng `aria-describedby`; Enter gửi, Shift+Enter xuống dòng; nút gửi, dừng có tên qua i18n; mục tiêu bấm ≥ 24×24 px.
-- Mở panel thì focus vào ô soạn tin; đóng panel thì focus về nút "Trợ lý AI" trên thanh công cụ.
+- Mở cửa sổ thì focus vào ô soạn tin; đóng cửa sổ (nút đóng, launcher hoặc Escape) thì focus về launcher.
 - Thẻ đề xuất, gợi ý, dữ liệu mẫu dùng nút thật; tab bảng của dữ liệu mẫu dùng component `Tabs` của shadcn/ui (Radix) có điều hướng bàn phím; bảng dữ liệu có `<caption>` và `<th scope="col">`.
 - Trạng thái diff không chỉ truyền bằng màu (AI-R34).
 - Thanh báo xem trước không che phần tử đang có focus (2.4.11): nằm ở cạnh trên của vùng canvas, không phủ lên panel.
@@ -839,19 +841,26 @@ frontend/
   package.json                    (sửa) thêm ai
   src/lib/api/                    ai-chat-client.ts, ai-chat-client.test.ts
   src/features/editor/state/      create-ai-chat-store.ts, create-ai-chat-store.test.ts;
+                                  ai-window-actions.ts, ai-window-actions.test.ts (trạng thái cửa sổ AI, AI-R51);
                                   (sửa) create-editor-store.ts, create-editor-store.test.ts (AI-R33)
   src/features/editor/components/ai-panel/
                                   ai-panel.tsx, ai-panel-loader.tsx (next/dynamic), ai-message-list.tsx,
                                   ai-composer.tsx, ai-quick-actions.tsx, ai-proposal-card.tsx,
                                   ai-findings-card.tsx, ai-sample-data-card.tsx, proposal-preview-bar.tsx,
                                   ai-consent.tsx (AI-R61), confirm-destructive-proposal-dialog.tsx (AI-R60),
+                                  ai-launcher.tsx, ai-turn-status.tsx, ai-panel-header.tsx, ai-message-bubble.tsx,
+                                  minimized-proposal-actions.tsx, use-ai-failure-text.ts (cửa sổ nổi, AI-R51),
+                                  ai-message-row.tsx, ai-text-styles.ts, close-to-launcher.ts,
+                                  use-close-on-escape.ts, use-focus-body-on-reopen.ts (sửa theo review, AI-R51),
                                   test cạnh từng component
-  src/features/editor/components/ (sửa) editor-workspace.tsx (cột phải, inert khi xem trước),
-                                  toolbar/editor-toolbar.tsx (nút "Trợ lý AI", khóa nút khi xem trước),
+  src/features/editor/components/ (sửa) editor-workspace.tsx (launcher và cửa sổ nổi trên vùng canvas, inert khi xem trước),
+                                  toolbar/editor-toolbar.tsx (khóa nút khi xem trước),
                                   canvas/table-node.tsx, canvas/column-row.tsx, canvas/relation-edge.tsx,
                                   canvas/editor-canvas.tsx (trạng thái diff, chỉ đọc), kèm test
   src/features/editor/hooks/      (sửa) use-canvas-elements.ts (vẽ proposal.preview và phần tử bị xóa),
-                                  use-editor-shortcuts.ts, use-delete-selection.ts (tắt khi xem trước), kèm test
+                                  use-editor-shortcuts.ts, use-delete-selection.ts (tắt khi xem trước),
+                                  use-reveal-focused-element.ts (pan node bị cửa sổ AI che), kèm test;
+                                  use-is-narrow-viewport.ts (sheet toàn màn hình dưới 640px, AI-R51)
   src/features/editor/journeys/   journey AI của mục 16
   src/testing/fake-api-backend.ts (sửa) trả SSE dựng sẵn cho POST /ai/chat
   src/app/globals.css, globals.test.ts   (sửa) token --diff-added, --diff-changed, --diff-removed

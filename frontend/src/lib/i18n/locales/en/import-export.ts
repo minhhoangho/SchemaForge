@@ -134,6 +134,8 @@ export const enImportExport = {
     seedFormat: "Seed data format",
     selectAll: "Select all",
     clearAll: "Clear all",
+    filesOnly_one: "{{count}} file",
+    filesOnly_other: "{{count}} files",
     summary: "{{files}} files, {{diagnostics}} notes about the output",
     issueWarning_one:
       "The schema has {{count}} issue, so the generated files may be incomplete or invalid.",

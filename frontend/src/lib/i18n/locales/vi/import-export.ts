@@ -139,6 +139,8 @@ export const viImportExport = {
     seedFormat: "Định dạng dữ liệu mẫu",
     selectAll: "Chọn tất cả",
     clearAll: "Bỏ chọn tất cả",
+    filesOnly_one: "{{count}} file",
+    filesOnly_other: "{{count}} file",
     summary: "{{files}} file, {{diagnostics}} lưu ý về đầu ra",
     issueWarning_one:
       "Schema có {{count}} vấn đề, nên các file được tạo có thể thiếu hoặc không hợp lệ.",

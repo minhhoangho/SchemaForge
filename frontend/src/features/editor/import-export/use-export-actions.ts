@@ -10,6 +10,7 @@ import {
   toSchemaJsonFileName,
 } from "@/lib/import-export/download-file-names";
 import { toDownloadBaseName } from "@/lib/import-export/to-download-base-name";
+import { logger } from "@/lib/logger";
 import { useNotify } from "@/lib/use-notify";
 
 import { useCanvasNodeControls } from "../lib/viewport-controls";
@@ -46,6 +47,12 @@ export function useExportActions(): ExportActions {
         return;
       }
       setIsGeneratingImage(true);
+      // The menu closes on select, so its busy item is never seen; the toast
+      // is the polite announcement that the capture started.
+      notify({
+        tone: "info",
+        titleKey: "importExport:export.generatingImage",
+      });
       try {
         const root = document.querySelector<HTMLElement>(EXPORT_ROOT_SELECTOR);
         if (root === null) {
@@ -69,9 +76,11 @@ export function useExportActions(): ExportActions {
             titleKey: "importExport:export.imageScaledDown",
           });
         }
-      } catch {
-        // The toast is the whole report: the error holds no schema content
-        // worth logging.
+      } catch (error) {
+        // Only the error name: the message may quote schema content.
+        logger.error("export.image-failed", {
+          errorName: error instanceof Error ? error.name : "unknown",
+        });
         notify({ tone: "error", titleKey: "importExport:export.failed" });
       } finally {
         setIsGeneratingImage(false);

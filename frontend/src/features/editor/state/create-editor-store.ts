@@ -31,6 +31,8 @@ import type {
   CodeOptions,
   CodeTarget,
 } from "../code-generator/generator-request";
+import { DEFAULT_ZIP_SELECTION } from "../import-export/zip-selection";
+import type { ZipSelection } from "../import-export/zip-selection";
 import { EMPTY_SELECTION, filterSelection } from "../lib/selection";
 import type { Selection } from "../lib/selection";
 import { CLOSED_AI_WINDOW, createAiWindowActions } from "./ai-window-actions";
@@ -87,6 +89,8 @@ export type EditorState = {
   readonly aiWindow: AiWindowState;
   readonly codeTarget: CodeTarget;
   readonly codeOptions: CodeOptions;
+  // Like the code panel's choices: kept until the store is dropped.
+  readonly zipSelection: ZipSelection;
   readonly proposal: ProposalPreview | null;
 };
 
@@ -111,6 +115,7 @@ export type EditorActions = {
   readonly markAiReplyUnread: () => void;
   readonly setCodeTarget: (target: CodeTarget) => void;
   readonly updateCodeOptions: (patch: Partial<CodeOptions>) => void;
+  readonly setZipSelection: (selection: ZipSelection) => void;
   readonly startProposalPreview: (
     messageId: string,
     operation: unknown,
@@ -244,6 +249,7 @@ export function createEditorStore(input: CreateEditorStoreInput): EditorStore {
     aiWindow: CLOSED_AI_WINDOW,
     codeTarget: "sql",
     codeOptions: DEFAULT_CODE_OPTIONS,
+    zipSelection: DEFAULT_ZIP_SELECTION,
     proposal: null,
     dispatch: createDispatch(set, get, input),
     undo: createHistoryStep(set, get, input, undo),
@@ -272,6 +278,9 @@ export function createEditorStore(input: CreateEditorStoreInput): EditorStore {
     },
     updateCodeOptions: (patch) => {
       set({ codeOptions: { ...get().codeOptions, ...patch } });
+    },
+    setZipSelection: (zipSelection) => {
+      set({ zipSelection });
     },
     replaceDocument: (document) => {
       set({

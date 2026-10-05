@@ -63,6 +63,46 @@ describe("code generator worker", () => {
     expect(post).toHaveBeenCalledWith({ requestId: 9, kind: "failed" });
   });
 
+  it("answers a build zip request with the zip bytes", async () => {
+    await send({
+      kind: "build-zip",
+      requestId: 3,
+      document,
+      baseName: "empty",
+      generators: [],
+      includeJson: true,
+      images: [],
+    });
+    const response = post.mock.calls[0]?.[0];
+    expect(response).toMatchObject({
+      requestId: 3,
+      kind: "zip",
+      diagnosticCount: 0,
+    });
+    expect(response).toHaveProperty("bytes");
+  });
+
+  it("answers zip-failed when a generator throws", async () => {
+    await send({
+      kind: "build-zip",
+      requestId: 4,
+      document,
+      baseName: "empty",
+      generators: [
+        {
+          target: "seed",
+          options: { format: "json", rowsPerTable: -1, seed: 1 },
+        },
+      ],
+      includeJson: false,
+      images: [],
+    });
+    expect(post).toHaveBeenCalledWith(
+      { requestId: 4, kind: "zip-failed" },
+      undefined,
+    );
+  });
+
   it("ignores a malformed message", async () => {
     await send({ requestId: "x" });
     expect(post).not.toHaveBeenCalled();

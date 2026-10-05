@@ -24,10 +24,18 @@ import { ExportMenu } from "./export-menu";
 
 const downloadBlob = vi.fn<(blob: Blob, fileName: string) => void>();
 const notify = vi.fn<Notify>();
+const loggerError = vi.fn<Logger["error"]>();
 
 vi.mock("@/lib/download/download-blob", () => ({
   downloadBlob: (blob: Blob, fileName: string): void => {
     downloadBlob(blob, fileName);
+  },
+}));
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    error: (event: string, fields?: Parameters<Logger["error"]>[1]): void => {
+      loggerError(event, fields);
+    },
   },
 }));
 vi.mock("@/lib/use-notify", () => ({ useNotify: (): Notify => notify }));
@@ -59,7 +67,9 @@ function createDocument(): SchemaDocument {
   });
 }
 
-function renderMenu(): ReturnType<typeof renderWithProviders> & {
+function renderMenu(themePreference: "light" | "dark" = "light"): ReturnType<
+  typeof renderWithProviders
+> & {
   readonly document: SchemaDocument;
 } {
   const document = createDocument();
@@ -81,7 +91,7 @@ function renderMenu(): ReturnType<typeof renderWithProviders> & {
         <ExportMenu />
       </CanvasNodeControlsProvider>
     </EditorStoreProvider>,
-    { locale: "en", themePreference: "light" },
+    { locale: "en", themePreference },
   );
   return { ...result, document };
 }
@@ -95,6 +105,7 @@ async function openMenu(
 beforeEach(() => {
   downloadBlob.mockReset();
   notify.mockReset();
+  loggerError.mockReset();
   capture.mockReset();
 });
 
@@ -110,7 +121,25 @@ describe("ExportMenu", () => {
       screen
         .getByRole("menuitem", { name: "ZIP…" })
         .getAttribute("data-disabled"),
-    ).toBe("");
+    ).toBeNull();
+  });
+
+  it("opens the zip dialog and returns focus to the export button", async () => {
+    const { user } = renderMenu();
+    await openMenu(user);
+    await user.click(screen.getByRole("menuitem", { name: "ZIP…" }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "Download ZIP" }),
+    ).toBeDefined();
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Export" }),
+    );
   });
 
   it("downloads the serialized document as json", async () => {
@@ -136,7 +165,7 @@ describe("ExportMenu", () => {
     expect(capture).toHaveBeenCalledWith(
       expect.objectContaining({ format: "png", hasSelfRelation: true }),
     );
-    expect(notify).not.toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledOnce();
   });
 
   it("shows a busy item and blocks a second capture while generating", async () => {
@@ -150,14 +179,26 @@ describe("ExportMenu", () => {
     const { user } = renderMenu();
     await openMenu(user);
     await user.click(screen.getByRole("menuitem", { name: "SVG image" }));
+    await waitFor(() => {
+      expect(
+        screen
+          .getByRole("button", { name: "Export" })
+          .getAttribute("aria-busy"),
+      ).toBe("true");
+    });
     await openMenu(user);
 
     const busy = await screen.findAllByRole("menuitem", {
       name: "Generating image…",
     });
     expect(busy).toHaveLength(2);
-    busy.forEach((item) => {
-      expect(item.getAttribute("data-disabled")).toBe("");
+    expect(busy.map((item) => item.getAttribute("data-disabled"))).toEqual([
+      "",
+      "",
+    ]);
+    expect(notify).toHaveBeenCalledWith({
+      tone: "info",
+      titleKey: "importExport:export.generatingImage",
     });
     expect(capture).toHaveBeenCalledOnce();
 
@@ -197,10 +238,26 @@ describe("ExportMenu", () => {
     expect(downloadBlob).not.toHaveBeenCalled();
   });
 
-  it("has no axe violations with the menu open", async () => {
+  it("logs only the error name when the capture fails", async () => {
+    capture.mockRejectedValue(new TypeError("secret table name"));
     const { user } = renderMenu();
     await openMenu(user);
+    await user.click(screen.getByRole("menuitem", { name: "PNG image" }));
 
-    await expectNoAxeViolations(document.body);
+    await waitFor(() => {
+      expect(loggerError).toHaveBeenCalledWith("export.image-failed", {
+        errorName: "TypeError",
+      });
+    });
   });
+
+  it.each(["light", "dark"] as const)(
+    "has no axe violations with the menu open in the %s theme",
+    async (themePreference) => {
+      const { user } = renderMenu(themePreference);
+      await openMenu(user);
+
+      await expectNoAxeViolations(document.body);
+    },
+  );
 });

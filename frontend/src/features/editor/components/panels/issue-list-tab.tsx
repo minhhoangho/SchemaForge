@@ -9,9 +9,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { useGoToIssue } from "../../hooks/use-go-to-issue";
 import { getIssueIndex } from "../../lib/issue-index";
-import { resolveIssueTarget } from "../../lib/resolve-issue-target";
+import { resolveIssueTarget } from "@/lib/schema/resolve-issue-target";
 import { useEditorStore } from "../../state/use-editor-store";
-import { toIssueMessageValues } from "./issue-message-values";
+import { toIssueMessageValues } from "@/lib/schema/issue-message-values";
 
 // Two issues never share both code and path, so together they name a row.
 function issueKey(issue: Issue): string {

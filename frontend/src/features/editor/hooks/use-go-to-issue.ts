@@ -1,6 +1,6 @@
 import type { DocumentPath } from "@schemaforge/core";
 
-import { resolveIssueTarget } from "../lib/resolve-issue-target";
+import { resolveIssueTarget } from "@/lib/schema/resolve-issue-target";
 import { useEditorStoreApi } from "../state/use-editor-store";
 import { useRevealTable } from "./use-reveal-table";
 

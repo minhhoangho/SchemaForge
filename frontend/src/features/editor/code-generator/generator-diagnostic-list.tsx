@@ -6,8 +6,8 @@ import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useGoToIssue } from "../hooks/use-go-to-issue";
-import { resolveIssueTarget } from "../lib/resolve-issue-target";
-import { toIssueMessageValues } from "../components/panels/issue-message-values";
+import { resolveIssueTarget } from "@/lib/schema/resolve-issue-target";
+import { toIssueMessageValues } from "@/lib/schema/issue-message-values";
 
 type DiagnosticRowProps = {
   readonly diagnostic: GeneratorDiagnostic;

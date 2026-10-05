@@ -1,7 +1,7 @@
 import type { Issue, SchemaDocument, TableId } from "@schemaforge/core";
 import { validateSchema } from "@schemaforge/core";
 
-import { resolveIssueTarget } from "./resolve-issue-target";
+import { resolveIssueTarget } from "@/lib/schema/resolve-issue-target";
 
 export type IssueIndex = {
   readonly issues: readonly Issue[];

@@ -8,6 +8,8 @@ Các đoạn TypeScript là phác thảo. Plan và code tinh chỉnh tên và ch
 
 Trạng thái: đã duyệt. Người dùng xác nhận các quyết định cần xác nhận: import có hai chế độ, tạo schema mới và gộp vào schema hiện tại, không có chế độ thay thế, tên trùng khi gộp thêm hậu tố `_2`, `_3`… (mục 2); import không dùng chế độ chặt, issue ngữ nghĩa hiện ở bước xem trước và không chặn import (mục 3); export ảnh bằng `modern-screenshot`, theo theme đang hiển thị (mục 10); và `@dbml/core` chỉ được import trong subpath importer (`@schemaforge/core/importers/sql`, `.../dbml`), tải lazy trong Web Worker, không lọt vào entry chính của core hay bundle editor (mục 1).
 
+Sửa 2026-10-05 theo probe Task 8 và review (orchestrator quyết định, không đổi quyết định nào người dùng đã xác nhận): `@dbml/core` 10.2.0 bỏ âm thầm một số thông tin của DDL, nên scanner đọc lại định nghĩa cột trong `CREATE TABLE`, ràng buộc `UNIQUE` cấp bảng và tùy chọn của `CREATE INDEX` để không mất gì âm thầm; PostgreSQL, MySQL `ALTER TABLE … ADD [COLUMN] <cột>` và MySQL `ALTER TABLE … ADD UNIQUE` thành câu không hỗ trợ; bảng phân loại thêm `ROLLBACK`, `ALTER DATABASE … SET`, SQL Server `ALTER TABLE … CHECK|NOCHECK CONSTRAINT` và dữ liệu của `COPY … FROM stdin`; bổ sung quy tắc kiểu `UNSIGNED` và giá trị mặc định `NULL`, `1`/`0`, `'1'`/`'0'` (mục 5); importer bỏ cột lặp trong khóa chính, index (mục 1); khi gộp, bảng nhập trùng tên index của đích cũng được đổi tên (mục 2); importer JSON không dùng `ImportOptions` (mục 8); kết quả probe 10.2.0 cho DBML (mục 7) và các hạn chế đã biết (mục "Rủi ro").
+
 ## Quyết định đã có từ trước
 
 Spec này không bàn lại các điểm sau (nguồn: `architecture.md`, `.claude/rules/`, spec phần 2, 3, 6):
@@ -31,7 +33,7 @@ Spec này không bàn lại các điểm sau (nguồn: `architecture.md`, `.clau
 | 2 | Import vào đâu (câu hỏi 10) | Hai chế độ: tạo schema mới (mặc định) và thêm vào schema hiện tại; không có chế độ thay thế. `buildImportOperation` dựng một `batch` phẳng; khi gộp thì cấp id mới, tên trùng thêm hậu tố `_2`, `_3`… kèm diagnostic. Mỗi lần import là một mục lịch sử |
 | 3 | Issue ngữ nghĩa (câu hỏi 3 của phần 2) | Không dùng chế độ chặt; issue mới hiện ở bước xem trước và không chặn import |
 | 4 | Vị trí bảng | Lưới xác định trong core, gom theo subject area; kích thước ô lấy từ `LayoutMetrics` do frontend truyền vào |
-| 5 | IE-01 SQL | `@dbml/core` kèm statement scanner tự viết để báo câu lệnh bị parser bỏ âm thầm, lấy vị trí, đọc identity của `pg_dump` và comment SQL Server. Bảng ánh xạ kiểu và giá trị mặc định cho ba dialect. Round-trip là điểm bất động của DDL |
+| 5 | IE-01 SQL | `@dbml/core` kèm statement scanner tự viết để báo câu lệnh bị parser bỏ âm thầm, lấy vị trí, đọc identity của `pg_dump` và comment SQL Server, và đọc lại phần parser bỏ âm thầm (văn bản kiểu gốc, thuộc tính cột, `UNIQUE` cấp bảng, `DESC` và `WHERE` của index). Bảng ánh xạ kiểu và giá trị mặc định cho ba dialect. Round-trip là điểm bất động của DDL |
 | 6 | IE-02 Prisma | Parser tự viết trong core, không dependency. Tên bảng, cột theo `@@map`, `@map`. Round-trip bằng nhau với `postgresql`, điểm bất động với `mysql`, `sqlserver` |
 | 7 | IE-03 DBML | `Parser.parse(…, 'dbmlv2')`; `TableGroup` thành subject area, `Note` thành ghi chú; đọc lại văn bản gốc cho kiểu trong nháy và số. Import output của CG-09 cho schema bằng bản gốc |
 | 8 | IE-04, IE-06 JSON | `serializeSchemaDocument` với thứ tự khóa theo khai báo và phần tử theo id; import qua `parseSchemaDocument`, giữ id, giống hệt từng byte |
@@ -48,7 +50,7 @@ Kiểm tra ngày 2026-09-15 bằng `npm view` (phiên bản, ngày phát hành, 
 
 | Gói | Phiên bản | Dùng ở | Ghi chú |
 |---|---|---|---|
-| `@dbml/core` | 10.1.1 | Core, importer SQL và DBML | Apache-2.0. Dependency: `@dbml/parse` 10.1.1, `antlr4`, `lodash`, `lodash-es`, `luxon`, `parsimmon`, `pluralize`. ESM không import module Node. Bundle trình duyệt 15,8 MB, gzip 2,7 MB |
+| `@dbml/core` | 10.1.1 | Core, importer SQL và DBML | Apache-2.0. Dependency: `@dbml/parse` 10.1.1, `antlr4`, `lodash`, `lodash-es`, `luxon`, `parsimmon`, `pluralize`. ESM không import module Node. Bundle trình duyệt 15,8 MB, gzip 2,7 MB. Plan cài 10.2.0 (một bản cho cả repo) và probe lại ngày 2026-10-05, kết quả ở mục 5 "Kết quả probe `@dbml/core` 10.2.0" và mục 7 |
 | `fflate` | 0.8.3 | Frontend, ZIP | MIT, không dependency; `zipSync` và `strToU8` 4,4 KB gzip; phát hành 2026-07-20 |
 | `modern-screenshot` | 4.7.0 | Frontend, PNG và SVG | MIT, không dependency; 9,7 KB gzip; phát hành 2026-04-16 |
 | `@xyflow/react` | 12.11.6 | `getNodesBounds` | Đã có từ phần 3 |
@@ -146,6 +148,7 @@ source ─▶ kiểm tra độ dài ─▶ parse (thư viện hoặc parser tự
 
 - `ImportDraft` là kiểu nội bộ trong `importers/shared/`: bảng với danh sách cột có thứ tự, khóa chính theo tên cột, index, quan hệ, enum, subject area, ghi chú, đều tham chiếu nhau bằng tên. Mỗi adapter định dạng chỉ việc dịch AST sang draft; phần cấp id, xếp vị trí và kiểm tra tham chiếu viết một lần.
 - **Tham chiếu theo tên** (cột trong khóa chính, index, quan hệ; enum của cột; bảng trong nhóm) được giải theo tên chính xác trước, rồi theo tên không phân biệt hoa thường nếu chỉ khớp đúng một phần tử (SQL không quote không phân biệt hoa thường). Không giải được thì bỏ phần tử chứa tham chiếu kèm `reference-not-found`, nên tài liệu luôn đúng cấu trúc.
+- **Cột lặp sau khi giải tên** (sửa 2026-10-05): `assembleDocument` bỏ cột lặp trong khóa chính và index, giữ lần xuất hiện đầu, không diagnostic (liệt kê một cột hai lần không thêm ý nghĩa, nên không mất thông tin); bỏ cặp cột lặp y hệt của quan hệ, và nếu sau đó một cột vẫn xuất hiện hai lần ở một phía thì bỏ quan hệ kèm `reference-not-found`. Index không còn cột và quan hệ không còn cặp cột bị bỏ không diagnostic: importer định dạng tự báo trường hợp rỗng ngay từ nguồn bằng mã của mình (ví dụ `index-expression-not-supported`). Nhờ vậy importer không throw vì danh sách cột lặp hay rỗng.
 - **Cấp id theo thứ tự xác định:** enum, bảng theo thứ tự xuất hiện trong nguồn, cột theo thứ tự trong bảng, rồi index, quan hệ, subject area, ghi chú. Cùng nguồn và cùng bộ sinh id cho cùng tài liệu, nên test dùng `createCounterIdGenerator`.
 
 ### Entry point
@@ -196,6 +199,7 @@ Không có chế độ **thay thế** schema hiện tại.
 
 1. **Id mới cho mọi phần tử**, lấy từ `generateId`, kể cả khi nguồn là JSON: import cùng một file hai lần không được trùng id. Mọi tham chiếu (cột của bảng, khóa chính, cặp cột, `enumId`, `subjectAreaId`) được đổi theo.
 2. **Tên trùng được đổi**, theo đúng phạm vi trùng tên của spec phần 2, mục 7: bảng và enum (chung một không gian tên), index, subject area. Tên trùng (không phân biệt hoa thường) với phần tử của schema đích hoặc với tên vừa cấp thì thêm hậu tố `_2`, `_3`… (số nhỏ nhất chưa dùng), giống quy tắc của `buildManyToMany`. Mỗi lần đổi có diagnostic `table-renamed`, `enum-renamed`, `index-renamed` hoặc `subject-area-renamed`, `path` trỏ tới phần tử đã đổi. Tên cột và giá trị enum không cần đổi vì phạm vi của chúng nằm trong bảng hoặc enum vừa thêm.
+   Sửa 2026-10-05 vì issue `index-name-conflicts-table` (phần 6) ra đời sau spec: tên bảng nhập còn được so với tên index của đích, và tên index nhập được so với tên index, tên bảng của đích cùng tên bảng, tên index vừa cấp. Bảng nhập trùng tên một index có sẵn được đổi như trên (`table-renamed`), nên gộp không bao giờ thêm issue `index-name-conflicts-table` (cài đặt: [log sửa sau review lần 1](../executions/logs/2026-10-05-import-export-review-1-fixes.md)).
 3. **Vị trí được tịnh tiến** để góc trên trái của khung bao các bảng và ghi chú vừa import nằm tại `origin`. Frontend tính `origin` từ kích thước node đã đo: bên phải khung bao các bảng đang có, cách `LayoutMetrics.gap`, cùng cạnh trên; schema chưa có bảng thì `origin` là `{ x: 0, y: 0 }`.
 4. **Thứ tự bước:** `addEnum`, `addSubjectArea`, rồi mỗi bảng `addTable`, các `addColumn`, `setPrimaryKey` (khi có khóa chính), rồi `addIndex`, `addRelation`, `addNote`. Enum và subject area đứng trước bảng vì cột và bảng tham chiếu tới chúng; quan hệ đứng sau mọi bảng vì có thể nối hai bảng bất kỳ.
 5. `renameSchema` không có trong batch: tên schema hiện tại giữ nguyên.
@@ -309,6 +313,29 @@ Bundle ESM đã minify cho trình duyệt (esbuild, chỉ import `Parser`): 15,8
 
 Ba hệ quả cho thiết kế: câu lệnh bị bỏ qua âm thầm phải được phát hiện bằng một bộ quét riêng; vị trí của diagnostic theo phần tử phải lấy từ bộ quét đó; parse phải chạy trong worker có thể hủy (mục 14).
 
+### Kết quả probe `@dbml/core` 10.2.0
+
+Probe lại ngày 2026-10-05 trên 10.2.0 (bản plan cài), Node 24, bằng 83 test đặc tả trong `packages/core/src/importers/shared/dbml-core-adapter.probe.test.ts` ([log Task 8](../executions/logs/2026-10-05-import-export-task-8.md)). Mọi điểm của bảng trên vẫn đúng, kể cả tên không quote giữ nguyên hoa thường ở cả ba dialect. Parser còn bỏ âm thầm hoặc đổi các thông tin sau:
+
+| Thông tin | Hành vi của 10.2.0 | Cách bù (mục dưới) |
+|---|---|---|
+| PostgreSQL `timestamp with time zone`, `time with time zone` | Thành `timestamp`, `time` (mất múi giờ; `pg_dump` ghi đúng dạng này) | Scanner đọc lại văn bản kiểu |
+| PostgreSQL tên kiểu nhiều từ | Bị viết dính: `double precision` → `doubleprecision`, `bit varying(4)` → `bitvarying(4)`, `interval day to second` → `intervaldaytosecond` | Scanner đọc lại văn bản kiểu; `mapSqlType` vẫn nhận các tên viết dính |
+| MySQL `UNSIGNED`, `ZEROFILL` | Bị bỏ (`int unsigned` → `int`) | Scanner đọc lại văn bản kiểu |
+| MySQL `ON UPDATE CURRENT_TIMESTAMP` | Bị bỏ, giá trị mặc định vẫn giữ | Scanner, `on-update-not-supported` |
+| `COLLATE` của cột | Bị bỏ ở cả ba dialect | Scanner, `type-parameter-dropped` |
+| `DESC` của cột index; `WHERE` của index | Bị bỏ | Scanner, `index-option-dropped` |
+| Cột tính toán | PostgreSQL, MySQL: cột thường, không dấu hiệu; SQL Server: tên kiểu `AS <biểu thức> PERSISTED` | Scanner, `computed-column-not-supported` |
+| PostgreSQL, MySQL `ALTER TABLE … ADD [COLUMN] <cột>` | Bị bỏ (SQL Server giữ) | Phân loại `unsupported` |
+| MySQL `ALTER TABLE … ADD [CONSTRAINT …] UNIQUE …` | Bị bỏ (PostgreSQL thành `unique` của cột, SQL Server thành index) | Phân loại `unsupported` |
+| `UNIQUE (…)` cấp bảng so với `CREATE UNIQUE INDEX` | Cả hai thành index `unique`, không phân biệt được | Scanner đọc ràng buộc `UNIQUE` và tên index của `CREATE INDEX` |
+| SQL Server: đoạn văn bản không nhận ra bên trong một câu | Bị bỏ qua, không lỗi | Hạn chế đã biết (mục "Rủi ro") |
+| `DEFAULT NULL` | `{ type: 'boolean', value: 'null' }` (cả DBML `default: null`) | `mapSqlDefault`: không có giá trị mặc định |
+| PostgreSQL `DEFAULT -5` | `expression` | `mapSqlDefault`: literal số |
+| Chuỗi mặc định | Giữ escape gốc (`'it''s'` → `it''s`) | `mapSqlDefault` giải escape theo dialect |
+
+Lỗi cú pháp, vị trí, giá trị mặc định khác, comment, CHECK, enum, auto-increment, câu bị bỏ âm thầm và mọi điểm của DBML (mục 7) khớp bảng trên. Cardinality đầu mút của quan hệ (PostgreSQL, MySQL trả `0..*`, `0..1`; SQL Server, DBML trả `*`, `1`) được adapter chuẩn hóa về `1` hoặc `*` theo cận trên.
+
 ### Luồng xử lý
 
 ```text
@@ -318,35 +345,45 @@ SQL ─▶ statement scanner ─▶ phân loại từng câu lệnh
           ▼
    Parser.parse(văn bản đã lọc, dialect) ─▶ adapter ─▶ ImportDraft ─▶ assembleDocument
           ▲
-   thông tin scanner tự đọc (identity qua ALTER TABLE, comment SQL Server, vị trí bảng và cột)
+   thông tin scanner tự đọc (identity qua ALTER TABLE, comment SQL Server, vị trí bảng và cột,
+   văn bản kiểu và thuộc tính cột trong CREATE TABLE, UNIQUE cấp bảng, DESC và WHERE của CREATE INDEX)
 ```
 
 **Statement scanner** (`importers/sql/statement-scanner.ts`) là tokenizer tự viết, một lượt, không dùng regex có backtracking trên input. Nó nhận biết comment `--`, `/* … */` (lồng nhau với PostgreSQL), `#` (MySQL); chuỗi `'…'` với `''`, `E'…'`, `N'…'` và `\'` (MySQL); dollar quote `$tag$…$tag$` (PostgreSQL); định danh `"…"`, `` `…` ``, `[…]`; dấu `;` ở độ sâu ngoặc 0 và dòng `GO` đứng riêng (SQL Server). Mỗi câu lệnh có vị trí bắt đầu, dãy token kèm vị trí, và loại:
 
 | Loại | Câu lệnh | Xử lý |
 |---|---|---|
-| Cấu trúc, parser đọc | `CREATE TABLE`; `CREATE [UNIQUE] INDEX`; `ALTER TABLE … ADD` cột, `PRIMARY KEY`, `UNIQUE`, `FOREIGN KEY`, `CHECK`; `CREATE TYPE … AS ENUM`; `COMMENT ON TABLE`, `COMMENT ON COLUMN` | Giữ cho parser |
+| Cấu trúc, parser đọc | `CREATE TABLE`; `CREATE [UNIQUE] INDEX`; `ALTER TABLE … ADD` `PRIMARY KEY`, `UNIQUE` (trừ MySQL), `FOREIGN KEY`, `CHECK`; SQL Server `ALTER TABLE … ADD <cột>`; `CREATE TYPE … AS ENUM`; `COMMENT ON TABLE`, `COMMENT ON COLUMN` | Giữ cho parser; scanner đọc lại một phần của `CREATE TABLE`, `CREATE INDEX` và `ALTER TABLE … ADD … UNIQUE` (đoạn "Scanner đọc lại câu đã đưa cho parser" dưới bảng) |
 | Cấu trúc, scanner đọc | PostgreSQL `ALTER TABLE [ONLY] t ALTER COLUMN c ADD GENERATED {ALWAYS \| BY DEFAULT} AS IDENTITY …` và `ALTER COLUMN c SET DEFAULT …`; SQL Server `EXEC [sys.]sp_addextendedproperty` với `@name = N'MS_Description'`, `@value` là chuỗi, `@level1name` và `@level2name` là chuỗi | Scanner ghi vào draft; không đưa cho parser |
-| Không mô tả cấu trúc trong model | `SET`, `SELECT pg_catalog.set_config(…)`, `USE`, `GO`, `BEGIN`, `COMMIT`, `START TRANSACTION`, `DECLARE`, `CREATE DATABASE`, `CREATE SCHEMA`, `CREATE EXTENSION`, `ALTER … OWNER TO`, `GRANT`, `REVOKE`, `DROP …` | Bỏ qua, không diagnostic |
-| Dữ liệu | `INSERT`, `COPY`, `UPDATE`, `DELETE`, `LOCK TABLES`, `UNLOCK TABLES`, `ALTER TABLE … DISABLE KEYS`, `ENABLE KEYS` | Bỏ qua; một diagnostic `data-statements-ignored` tại câu đầu tiên |
+| Không mô tả cấu trúc trong model | `SET`, `SELECT pg_catalog.set_config(…)`, `USE`, `GO`, `BEGIN`, `COMMIT`, `ROLLBACK`, `START TRANSACTION`, `DECLARE`, `CREATE DATABASE`, `CREATE SCHEMA`, `CREATE EXTENSION`, `ALTER DATABASE … SET …`, `ALTER … OWNER TO`, SQL Server `ALTER TABLE … [WITH CHECK \| WITH NOCHECK] CHECK CONSTRAINT …` và `ALTER TABLE … NOCHECK CONSTRAINT …` (SSMS ghi sau mỗi khóa ngoại), `GRANT`, `REVOKE`, `DROP …` | Bỏ qua, không diagnostic |
+| Dữ liệu | `INSERT`, `COPY`, `UPDATE`, `DELETE`, `LOCK TABLES`, `UNLOCK TABLES`, `ALTER TABLE … DISABLE KEYS`, `ENABLE KEYS`. PostgreSQL `COPY … FROM stdin`: các dòng dữ liệu sau câu, tới hết dòng `\.` (thiếu dòng đó thì tới hết nguồn), thuộc câu `COPY` và không được tách thành token | Bỏ qua; một diagnostic `data-statements-ignored` tại câu đầu tiên |
 | Khái niệm model không có | `CREATE [OR REPLACE] [MATERIALIZED] VIEW`; `CREATE [OR REPLACE] FUNCTION`, `PROCEDURE`; `CREATE TRIGGER`; `CREATE SEQUENCE`, `ALTER SEQUENCE`; `CREATE DOMAIN`, `CREATE POLICY`, `CREATE RULE`, `CREATE STATISTICS`; `CREATE TYPE` không phải enum; `ALTER TABLE … ENABLE ROW LEVEL SECURITY` | `view-not-supported`, `routine-not-supported`, `trigger-not-supported`, `sequence-not-supported`, còn lại `statement-not-supported`, tại vị trí câu lệnh |
+| Parser bỏ âm thầm | PostgreSQL, MySQL `ALTER TABLE … ADD [COLUMN] <định nghĩa cột>`; MySQL `ALTER TABLE … ADD [CONSTRAINT …] UNIQUE …` | `statement-not-supported` tại vị trí câu lệnh. `pg_dump` và `mysqldump` ghi cột và ràng buộc unique bên trong `CREATE TABLE` (MySQL) hoặc bằng `ADD CONSTRAINT … UNIQUE` mà parser PostgreSQL đọc được, nên dump không bị ảnh hưởng |
 | Không nhận ra | Mọi câu khác | `statement-not-supported` |
 
-`DROP` được bỏ qua không diagnostic vì `mysqldump` và `pg_dump --clean` ghi `DROP … IF EXISTS` trước mỗi `CREATE`; báo cho từng câu chỉ gây nhiễu.
+`DROP` được bỏ qua không diagnostic vì `mysqldump` và `pg_dump --clean` ghi `DROP … IF EXISTS` trước mỗi `CREATE`; báo cho từng câu chỉ gây nhiễu. `ALTER DATABASE` dạng khác `SET` (ví dụ `MODIFY FILE`) và `CHECK CONSTRAINT` ngoài SQL Server vẫn là `statement-not-supported`. `CREATE UNLOGGED TABLE`, `CREATE TEMPORARY TABLE` cũng vậy.
+
+**Scanner đọc lại câu đã đưa cho parser** (sửa 2026-10-05 theo probe 10.2.0): với mỗi câu `CREATE TABLE`, scanner đọc định nghĩa của từng cột theo token ở độ sâu ngoặc 1 (không regex): văn bản kiểu đúng như trong nguồn (kể cả tên nhiều từ, tham số, `UNSIGNED`, `ZEROFILL`, và `IDENTITY(…)` của SQL Server); có `ON UPDATE` ngoài mệnh đề `REFERENCES` hay không; có `COLLATE`, `CHARACTER SET`, `CHARSET` hay không; cột có phải cột tính toán không (PostgreSQL `GENERATED ALWAYS AS (…) STORED`, MySQL `[GENERATED ALWAYS] AS (…) [VIRTUAL | STORED]`, SQL Server `<cột> AS <biểu thức> [PERSISTED]`); và các ràng buộc `UNIQUE` cấp bảng (`[CONSTRAINT n] UNIQUE [CLUSTERED | NONCLUSTERED] (…)`, MySQL `UNIQUE KEY | INDEX [n] (…)`) cùng tên và tập cột; độ dài tiền tố MySQL `c(10)` giữ cột `c`. Với `ALTER TABLE … ADD [CONSTRAINT n] UNIQUE (…)` scanner đọc tên và tập cột. Với `CREATE [UNIQUE] INDEX`: tên index, bảng, có tùy chọn bị bỏ trên phần tử cột không (`DESC`, `NULLS FIRST | LAST`, opclass, `COLLATE` của phần tử, độ dài tiền tố MySQL `c(10)`; cột `c` vẫn giữ), có `INCLUDE (…)` (SQL Server) không, có `WHERE` không, và tập cột khi `WHERE` chỉ gồm `<cột> IS NOT NULL` nối bằng `AND`. `WITH (…)` và `ON [filegroup]` (giá trị lưu trữ mặc định SSMS ghi) được bỏ qua, không diagnostic. Cột thêm qua `ALTER TABLE` của SQL Server không có định nghĩa do scanner đọc, nên dùng tên kiểu của parser.
 
 **Vị trí của diagnostic theo phần tử:** adapter tìm câu `CREATE TABLE` của bảng trong kết quả scanner, rồi token tên cột ở độ sâu ngoặc 1 của câu đó. Không tìm được (ví dụ cột thêm bằng `ALTER TABLE`) thì dùng vị trí câu lệnh chứa phần tử.
 
 ### Namespace, tên, khóa, quan hệ
 
 - **Namespace:** tên bảng bỏ phần schema (`public.users` → `users`). Bảng ở namespace khác mặc định (`public` với PostgreSQL, `dbo` với SQL Server) có diagnostic `namespace-dropped`. Hai bảng khác namespace mà trùng tên thì giữ cả hai, issue `table-name-duplicate` hiện sau khi import.
-- **Tên** giữ đúng như `@dbml/core` trả về (bỏ dấu quote). Plan xác nhận tên không quote có bị đổi hoa thường không; nếu parser giữ nguyên thì importer cũng giữ nguyên, vì core so trùng không phân biệt hoa thường.
+- **Tên** giữ đúng như `@dbml/core` trả về (bỏ dấu quote). Probe 10.2.0 xác nhận tên không quote giữ nguyên hoa thường, nên importer cũng giữ nguyên, vì core so trùng không phân biệt hoa thường.
 - **Nullable:** `isNullable` là `true` khi cột không có `NOT NULL` và không thuộc khóa chính.
-- **Unique:** `UNIQUE` trên một cột (trong cột hoặc ràng buộc cấp bảng) là `column.isUnique`; `UNIQUE` nhiều cột là index unique mang tên ràng buộc; `CREATE UNIQUE INDEX` luôn là index unique, kể cả một cột. Cách phân biệt này khớp CG-01 (ràng buộc `… UNIQUE` cho `isUnique`, `CREATE UNIQUE INDEX` cho index của người dùng). Plan xác nhận model của parser phân biệt được hai dạng; nếu không, scanner cung cấp danh sách tên index tạo bằng `CREATE INDEX`.
-- **Index:** tên rỗng thì dùng `suggestIndexName`. Cột dạng biểu thức: bỏ index, `index-expression-not-supported`. Loại khác `btree`: giữ index, `index-type-dropped`.
+- **Unique:** `UNIQUE` trên một cột (trong cột hoặc ràng buộc cấp bảng) là `column.isUnique`; `UNIQUE` nhiều cột là index unique mang tên ràng buộc; `CREATE UNIQUE INDEX` luôn là index unique, kể cả một cột. Cách phân biệt này khớp CG-01 (ràng buộc `… UNIQUE` cho `isUnique`, `CREATE UNIQUE INDEX` cho index của người dùng). Parser không phân biệt hai dạng (probe 10.2.0), nên importer dùng thông tin scanner đọc lại (sửa 2026-10-05):
+  - Index unique của parser được ghép với câu `CREATE INDEX` cùng bảng theo tên (so bằng `toNameKey`), hoặc theo bảng và danh sách cột đúng thứ tự khi index không tên. Ghép được thì là index unique (trừ dạng SQL Server ở gạch đầu dòng cuối, được xét trước).
+  - Không ghép được thì index đến từ ràng buộc `UNIQUE` cấp bảng (trong `CREATE TABLE` hoặc `ALTER TABLE … ADD`) có cùng tập cột: một cột thì là `column.isUnique`, nhiều cột thì là index unique mang tên ràng buộc (không tên thì `suggestIndexName`).
+  - MySQL `UNIQUE KEY | INDEX n (c)` một cột trong `CREATE TABLE` (dạng `mysqldump` ghi cho cả ràng buộc lẫn index unique) là `column.isUnique` khi không có tên hoặc `n` bằng tên CG-01 đặt cho ràng buộc unique của cột (`buildConstraintName(bảng, [c], "key")`), ngược lại là index unique tên `n`. Nhờ vậy dump của MySQL vẫn đạt điểm bất động.
+  - SQL Server (xét trước gạch đầu dòng thứ nhất): index unique có `WHERE` chỉ gồm `<cột> IS NOT NULL` trên các cột của chính index là cách CG-01 ghi unique trên cột nullable (spec phần 6), không có `index-option-dropped`; nếu index đó có một cột và tên bằng `buildConstraintName(bảng, [c], "key")` thì là `column.isUnique`, ngược lại là index unique.
+  - So tên với `buildConstraintName(…)` ở hai gạch đầu dòng trên là so **chính xác** (CG-01 ghi đúng tên đó). Tên có hậu tố do `allocateConstraintNames` thêm khi trùng (`t_c_key_2`) được import thành index của người dùng (hạn chế đã biết, mục "Rủi ro").
+- **Index:** tên rỗng thì dùng `suggestIndexName`. Cột dạng biểu thức: bỏ index, `index-expression-not-supported`. Loại khác `btree`: giữ index, `index-type-dropped`. Tùy chọn bị bỏ trên phần tử cột (`DESC`, `NULLS FIRST | LAST`, opclass, `COLLATE`, độ dài tiền tố MySQL; cột vẫn giữ, không coi là biểu thức), SQL Server `INCLUDE (…)` hoặc điều kiện `WHERE` (trừ dạng của SQL Server ở trên): giữ index không kèm các tùy chọn đó, `index-option-dropped`. `WITH (…)`, `ON [filegroup]` không diagnostic (sửa 2026-10-05; mã có sẵn của Prisma, không thêm mã mới).
 - **Quan hệ:** phía có khóa ngoại là `from`. `kind` là `oneToOne` khi tập cột khóa ngoại unique theo định nghĩa của spec phần 2 (bằng khóa chính, một cột `isUnique`, hoặc bằng tập cột của index unique), ngược lại `oneToMany`: SQL không có tín hiệu nào khác, và CG-01 không thêm unique ngầm cho 1-1. Hành động: `CASCADE`, `SET NULL`, `SET DEFAULT`, `RESTRICT`, `NO ACTION`; không ghi là `noAction`. Bảng hoặc cột được tham chiếu không có trong file: bỏ quan hệ, `reference-not-found`.
 - **Comment:** PostgreSQL `COMMENT ON`, MySQL `COMMENT`, SQL Server `sp_addextendedproperty` (scanner). Comment trên đối tượng khác bảng, cột: bỏ qua cùng câu lệnh, `statement-not-supported`.
-- **CHECK:** ràng buộc đúng dạng `<cột> IN (<chuỗi>, …)` trên một cột kiểu chuỗi (có thể có ép kiểu `::text`, tiền tố `N`, định danh trong quote) được đổi thành enum tên `<bảng>_<cột>` và cột dùng enum đó, kèm `check-converted-to-enum`; đây là dạng CG-01 ghi enum cho SQL Server. MySQL `ENUM(…)` trên cột cũng thành enum `<bảng>_<cột>` (bỏ hậu tố `_enum` của parser), không diagnostic. CHECK khác: bỏ, `check-constraint-not-supported`.
-- Cột tính toán (`GENERATED ALWAYS AS (…) STORED`, `AS (…) PERSISTED`): giữ cột như cột thường, `computed-column-not-supported`.
+- **CHECK:** ràng buộc đúng dạng `<cột> IN (<chuỗi>, …)` trên một cột kiểu chuỗi (có thể có ép kiểu `::text`, tiền tố `N`, định danh trong quote) được đổi thành enum tên `<bảng>_<cột>` và cột dùng enum đó, kèm `check-converted-to-enum`; đây là dạng CG-01 ghi enum cho SQL Server. MySQL `ENUM(…)` trên cột cũng thành enum `<bảng>_<cột>` (bỏ hậu tố `_enum` của parser), không diagnostic; quy tắc này xét **trước** `mapSqlType` (đoạn "Nguồn của tên kiểu" ở mục "Ánh xạ kiểu"). CHECK khác: bỏ, `check-constraint-not-supported`.
+- Cột tính toán (scanner nhận ra theo đoạn "Scanner đọc lại câu đã đưa cho parser"): giữ cột như cột thường, `computed-column-not-supported`. PostgreSQL, MySQL dùng kiểu khai báo của cột; cột tính toán của SQL Server không khai báo kiểu, nên thành `text` chỉ với `computed-column-not-supported` (không thêm `type-not-supported` cho tên kiểu `AS …` của parser).
+- **Thuộc tính cột parser bỏ** (sửa 2026-10-05): MySQL `ON UPDATE …` → `on-update-not-supported`; `COLLATE`, `CHARACTER SET`, `CHARSET` của cột → `type-parameter-dropped` (không thêm mã mới). Cả hai giữ cột và phần còn lại của định nghĩa.
 
 ### Ánh xạ kiểu
 
@@ -376,20 +413,27 @@ Tên kiểu so không phân biệt hoa thường, sau khi bỏ quote và gộp k
 
 Kiểu custom không mang diagnostic: tên được giữ nguyên văn và sinh lại đúng như nguồn trên cùng dialect.
 
+**Nguồn của tên kiểu và `UNSIGNED`** (sửa 2026-10-05 theo probe 10.2.0):
+
+- MySQL `ENUM(…)` xét trước: cột có kiểu của parser là enum nội tuyến (`<bảng>_<cột>_enum` có trong danh sách enum của parser) và văn bản kiểu của scanner bắt đầu bằng `ENUM(` thành enum `<bảng>_<cột>`, không gọi `mapSqlType` (hàm đó ánh xạ `ENUM('a','b')` thành `text` kèm `type-not-supported`).
+- `mapSqlType` nhận văn bản kiểu do scanner đọc lại từ `CREATE TABLE`, không nhận tên kiểu của parser (parser bỏ `with time zone`, `UNSIGNED` và viết dính tên nhiều từ). Tên nhiều từ nhận mọi khoảng trắng và hoa thường; tên custom được gộp khoảng trắng (`bit\nvarying(8)` → `bit varying(8)`). `time with time zone` và `bit varying(n)` là `custom`. Cột không có định nghĩa do scanner đọc (thêm qua `ALTER TABLE` của SQL Server) dùng tên kiểu của parser; tên viết dính vẫn được nhận: `doubleprecision` là `double`, `bitvarying` là `custom` `bit varying`.
+- MySQL `UNSIGNED`: ba ô của bảng trên giữ nguyên (`INT UNSIGNED`, `INTEGER UNSIGNED` → `bigint`; `SMALLINT UNSIGNED` → `integer`; `BIGINT UNSIGNED` → `decimal(20, 0)`, đều kèm `type-approximated`). Kiểu khác có `UNSIGNED` (`TINYINT`, `MEDIUMINT`, `DECIMAL`, `DOUBLE`…) cho cùng kiểu chung như bản có dấu, kèm `type-approximated`. `ZEROFILL` (MySQL coi là kèm `UNSIGNED`) thêm `type-parameter-dropped`.
+
 ### Giá trị mặc định
 
 Trước khi so khớp, adapter bỏ ngoặc bao ngoài (`((0))`, `(N'a')`), tiền tố `N` của chuỗi, và ép kiểu cuối của PostgreSQL (`'a'::status`, `'x'::character varying`).
 
 | Nguồn | Kết quả |
 |---|---|
-| Chuỗi, số, `true`/`false` (kể cả `1`/`0` trên cột `bit`) | `literal` với văn bản gốc trong nguồn. Số được lấy từ văn bản của câu lệnh, không từ số JavaScript của parser, để không mất độ chính xác. Literal sai dạng của kiểu vẫn được giữ và thành issue `column-default-invalid` (mục 3) |
-| `NULL` | Không có giá trị mặc định, không diagnostic |
+| Chuỗi, số, `true`/`false` | `literal` với văn bản gốc trong nguồn. Số được lấy từ văn bản của câu lệnh, không từ số JavaScript của parser, để không mất độ chính xác; số có dấu (PostgreSQL `-5`, parser trả dạng biểu thức) cũng là literal số. Chuỗi được giải escape theo dialect (`''` ở cả ba; `\'`, `\\` với MySQL). Literal sai dạng của kiểu vẫn được giữ và thành issue `column-default-invalid` (mục 3) |
+| `1`/`0` trên cột `boolean`, mọi dialect; MySQL chuỗi `'1'`/`'0'` trên cột `boolean` (dạng `mysqldump` ghi cho `tinyint(1)`) | `literal` `true`/`false` (sửa 2026-10-05). Số khác (`2`) và chuỗi khác giữ nguyên, thành issue `column-default-invalid` |
+| `NULL` | Không có giá trị mặc định, không diagnostic. Parser trả `NULL` dưới dạng `{ type: 'boolean', value: 'null' }`; `null` ở mọi loại trừ chuỗi là không có mặc định, còn chuỗi `'null'` (có nháy) là literal |
 | `now()`, `CURRENT_TIMESTAMP`, `CURRENT_TIMESTAMP(n)`, `LOCALTIMESTAMP`, `NOW()`, `sysdatetime()`, `sysdatetimeoffset()`, `getdate()`, `getutcdate()` trên cột `timestamp`, `timestamptz` | `currentTimestamp` |
 | `gen_random_uuid()`, `uuid_generate_v4()`, `(UUID())`, `UUID()`, `newid()` trên cột `uuid` | `generateUuid`; `newsequentialid()` cũng vậy, kèm `default-approximated` |
 | `nextval('…')` trên `smallint`, `integer`, `bigint` | Không có giá trị mặc định; `isAutoIncrement` bật, kèm `sequence-default-as-auto-increment` (dạng `pg_dump` ghi cột `serial`) |
 | Biểu thức khác, hoặc hai biểu thức trên dùng với kiểu khác | Bỏ, `default-not-supported` |
 
-MySQL `ON UPDATE CURRENT_TIMESTAMP` không có trong model: `on-update-not-supported` nếu parser giữ lại thông tin này; plan xác nhận.
+MySQL `ON UPDATE CURRENT_TIMESTAMP` không có trong model. Parser bỏ âm thầm thông tin này (probe 10.2.0), nên scanner phát hiện nó trong định nghĩa cột và importer báo `on-update-not-supported` tại cột; giá trị mặc định của cột vẫn theo bảng trên.
 
 ### Round-trip
 
@@ -503,6 +547,7 @@ Model không lưu dialect, còn SQL mất một phần thông tin (MySQL `CHAR(3
 - Mọi phần tử của model có `token` với vị trí bắt đầu và kết thúc (khác parser SQL), nên diagnostic theo phần tử có dòng, cột chính xác.
 - Tên `Project`, `TableGroup` kèm bảng thành viên, `Note` độc lập (tên và nội dung), `note` của bảng và cột, loại index (`type: hash`), tên `Ref` đều có trong model.
 - Hai điểm mất thông tin mà adapter phải bù: tên kiểu trong nháy kép mất dấu nháy (`"text"` và `text` đều ra `text`); giá trị mặc định dạng số là số JavaScript (`1.5`), nên số lớn mất độ chính xác. Adapter đọc lại văn bản gốc trong `source` theo `token` của cột cho cả hai trường hợp.
+- Probe lại trên 10.2.0 ngày 2026-10-05 (mục 5 "Kết quả probe `@dbml/core` 10.2.0"): mọi điểm trên khớp. Thêm một chi tiết về thứ tự: `ref:` viết trên cột đặt **bảng được tham chiếu trước** trong `endpoints`, còn `Ref:` độc lập (dạng CG-09 ghi) giữ thứ tự trái, phải như trong nguồn. Importer nhận ra `ref:` trên cột (vị trí `token` của ref nằm trong định nghĩa cột của một bảng) và coi cột đó là bên trái khi áp bảng dưới, nên `ref: - users.id` trên `profiles.user_id` vẫn cho `profiles` là phía `from`. `delete:`, `update:` là chữ thường trong DBML (chữ hoa trong SQL); `default: null` ra `{ type: 'boolean', value: 'null' }` như SQL.
 
 ### Ánh xạ
 
@@ -560,6 +605,9 @@ function serializeSchemaDocument(document: SchemaDocument): string;
 4. Kiểm tra số phần tử (mục 1). Tài liệu version cũ đã được migrate ở bước 3.
 
 - Không đổi id hay vị trí. Ở chế độ tạo mới, kết quả **giống hệt** tài liệu trong file: `serializeSchemaDocument(kết quả)` bằng đúng từng byte file do IE-06 xuất ra (tiêu chí IE-04). Ở chế độ gộp, id và tên trùng được đổi theo mục 2.
+- `importJson` không dùng `ImportOptions` (sửa 2026-10-05): id, vị trí và tên lấy từ file, nên `generateId`, `layout`, `fallbackSchemaName` không có tác dụng; hàm vẫn có kiểu `Importer` chung.
+- BOM ở đầu nguồn là `syntax-error` tại dòng 1, cột 1, giống `JSON.parse` (BOM không phải khoảng trắng JSON). Frontend bỏ BOM khi giải mã file (mục 12 "Đọc file", mục 13), nên người dùng không gặp lỗi này khi chọn file.
+- Nguồn JSON thụt lề 2 dấu cách của khoảng 20 000 phần tử đã vượt 2 MiB, nên `too-many-elements` thực tế chỉ gặp với JSON gọn (không thụt lề) hoặc tài liệu nhiều phần tử nhỏ.
 - Issue ngữ nghĩa được cho phép (mục 3).
 
 ## 9. IE-05. Tải output của generator
@@ -699,7 +747,7 @@ Tải JSON từ màn hình danh sách giúp sao lưu mà không phải mở edit
 - Hai tab "Chọn file" và "Dán văn bản". Tab file có nút chọn file (`accept=".sql,.prisma,.dbml,.json"`) và vùng thả file; nút chọn file là đường thay thế cho thao tác kéo thả, dùng được bằng bấm không kéo (WCAG 2.5.7) và bằng bàn phím (WCAG 2.1.1), theo mục tiêu WCAG 2.2 AA ở spec phần 3, mục 12.
 - Định dạng: SQL, Prisma, DBML, JSON. Chọn file thì tự chọn theo phần mở rộng, người dùng đổi được. SQL cần chọn dialect (PostgreSQL, MySQL, SQL Server): lần đầu chưa chọn sẵn, nên nút "Phân tích" bị disable tới khi chọn; lựa chọn được nhớ tới khi tải lại trang.
 - Chế độ (chỉ trong editor): "Tạo schema mới" (mặc định) hoặc "Thêm vào schema hiện tại" (mục 2).
-- **Đọc file:** kiểm tra `file.size` với `MAX_IMPORT_FILE_BYTES` trước khi đọc. Đọc byte, nhận diện BOM (UTF-8, UTF-16 LE, UTF-16 BE) rồi giải mã bằng `TextDecoder` với `fatal: true`; không có BOM thì giải mã UTF-8. Hỗ trợ UTF-16 vì "Generate Scripts" của SQL Server Management Studio mặc định lưu Unicode (UTF-16 LE). Giải mã lỗi thì báo "chỉ hỗ trợ UTF-8 và UTF-16" và không phân tích.
+- **Đọc file:** kiểm tra `file.size` với `MAX_IMPORT_FILE_BYTES` trước khi đọc. Đọc byte, nhận diện BOM (UTF-8, UTF-16 LE, UTF-16 BE) rồi giải mã bằng `TextDecoder` với `fatal: true` (mặc định `ignoreBOM: false`, nên BOM không còn trong văn bản đưa cho importer); không có BOM thì giải mã UTF-8. Hỗ trợ UTF-16 vì "Generate Scripts" của SQL Server Management Studio mặc định lưu Unicode (UTF-16 LE). Giải mã lỗi thì báo "chỉ hỗ trợ UTF-8 và UTF-16" và không phân tích.
 - **Dán văn bản:** độ dài UTF-8 (`TextEncoder`) được kiểm tra với cùng giới hạn trước khi gửi sang worker.
 
 **Bước 2, Phân tích:** gửi nguồn sang worker; hộp thoại hiện trạng thái đang phân tích và nút "Hủy" (hủy worker).
@@ -782,7 +830,7 @@ Mọi test tự động chạy bằng Vitest; frontend trên jsdom. Không có t
 | Chung cho mọi importer | `source-too-large` ở giới hạn + 1, thành công ở đúng giới hạn; `too-many-elements`; không throw với chuỗi ngẫu nhiên và với fixture bị cắt hoặc chèn ký tự ở vị trí ngẫu nhiên (fast-check, seed cố định); cùng nguồn và bộ đếm id cho cùng tài liệu; diagnostic đã sắp và không lặp; tên bảng `__proto__`, `constructor` |
 | Vị trí | Lỗi ở cột đầu dòng cho `{ column: 1 }` với cả parser SQL (cột từ 0) và DBML (cột từ 1); cột tính theo code unit khi dòng có chữ tiếng Việt và emoji trước vị trí lỗi |
 | Mã diagnostic | Mỗi mã trong `IMPORT_DIAGNOSTIC_CODES` có ít nhất một test gây ra nó, kiểm tra đúng `code`, `location` và `path` |
-| SQL | Scanner: comment, chuỗi, dollar quote, định danh `[…]` và `` `…` ``, `;` trong chuỗi, `GO`; mỗi dòng của bảng phân loại câu lệnh; thay câu lệnh bằng khoảng trắng không làm lệch vị trí lỗi của parser ở câu sau. Mỗi dòng của bảng ánh xạ kiểu và bảng giá trị mặc định (`it.each` theo dialect), kể cả số lớn không mất độ chính xác. Identity qua `ALTER TABLE` và `IDENTITY(1, 1)`; comment của ba dialect; CHECK `IN` thành enum; namespace; phân biệt ràng buộc unique với unique index; suy ra `oneToOne` |
+| SQL | Scanner: comment, chuỗi, dollar quote, định danh `[…]` và `` `…` ``, `;` trong chuỗi, `GO`; mỗi dòng của bảng phân loại câu lệnh; thay câu lệnh bằng khoảng trắng không làm lệch vị trí lỗi của parser ở câu sau. Mỗi dòng của bảng ánh xạ kiểu và bảng giá trị mặc định (`it.each` theo dialect), kể cả số lớn không mất độ chính xác. Identity qua `ALTER TABLE` và `IDENTITY(1, 1)`; comment của ba dialect; CHECK `IN` thành enum; namespace; phân biệt ràng buộc unique với unique index (kể cả `UNIQUE KEY` của `mysqldump` và index lọc `IS NOT NULL` của SQL Server); suy ra `oneToOne`. Scanner đọc lại định nghĩa cột (tên kiểu nhiều từ, `with time zone`, `UNSIGNED`, `ZEROFILL`, `ON UPDATE`, `COLLATE`, cột tính toán của ba dialect) và tùy chọn phần tử cột (`DESC`, độ dài tiền tố…), `INCLUDE`, `WHERE` của `CREATE INDEX`, MySQL `ENUM(…)` nội tuyến xét trước `mapSqlType`, mỗi trường hợp với mã diagnostic tương ứng; `ALTER TABLE … ADD COLUMN` (PostgreSQL, MySQL) và MySQL `ALTER TABLE … ADD UNIQUE` báo `statement-not-supported` |
 | Prisma | Lexer và parser cho mọi cấu trúc ở mục 6, lỗi cú pháp có vị trí; bảng kiểu theo ba `provider`; `@map`, `@@map`; khóa, index, tùy chọn bị bỏ; `dbgenerated`; loại quan hệ và hành động mặc định theo `provider`; n-n ngầm; `///` |
 | DBML | Mỗi dòng của bảng ánh xạ ở mục 7; kiểu có và không có nháy kép trùng tên kiểu chung; mặc định số `12345678901234567890.123`; `<>`; `TableGroup` và `Note` |
 | JSON | Vị trí lỗi cú pháp ở nhiều chỗ; lỗi cấu trúc giữ đúng mã và `path` của `parseSchemaDocument`; `version-unsupported` |
@@ -833,7 +881,8 @@ packages/core/src/
                 place-elements.ts, source-location.ts, sql-type-mapping.ts, sql-default-mapping.ts,
                 dbml-core-adapter.ts (chỉ sql/ và dbml/ import)
     sql/        index.ts, import-sql.ts, statement-scanner.ts, classify-statement.ts,
-                postgresql-identity.ts, sqlserver-extended-property.ts, check-to-enum.ts, fixtures/
+                postgresql-identity.ts, sqlserver-extended-property.ts, check-to-enum.ts,
+                sql-column-definitions.ts, sql-index-definitions.ts, fixtures/
     prisma/     index.ts, import-prisma.ts, prisma-lexer.ts, prisma-parser.ts, prisma-ast.ts,
                 prisma-type-mapping.ts, prisma-relations.ts, fixtures/
     dbml/       index.ts, import-dbml.ts, dbml-type-resolution.ts, fixtures/
@@ -874,7 +923,8 @@ frontend/src/
 
 ## Rủi ro cần kiểm tra khi triển khai
 
-- **Hành vi chưa thử của `@dbml/core`:** tên không quote có bị đổi hoa thường không; model có phân biệt ràng buộc `UNIQUE` với `CREATE UNIQUE INDEX` không; `ALTER TABLE … ADD COLUMN`; khóa ngoại qua `ALTER TABLE` trên SQL Server; `ON UPDATE CURRENT_TIMESTAMP`, cột tính toán, collation của cột, chiều `DESC` và điều kiện `WHERE` của index có bị bỏ âm thầm không. Plan viết test cho từng điểm trước khi viết adapter. Thông tin nào parser bỏ âm thầm thì scanner phát hiện và báo diagnostic, và bảng ở mục 5 được sửa trong cùng thay đổi.
+- **Hành vi của `@dbml/core`:** đã probe trên 10.2.0 ngày 2026-10-05; kết quả và cách bù ở mục 5 "Kết quả probe `@dbml/core` 10.2.0". Probe test là đặc tả của bản này: nâng `@dbml/core` mà hành vi đổi thì test đỏ, và mục 5 được sửa cùng test. Scanner tự đọc `INCLUDE (…)` của index (báo `index-option-dropped`) và bỏ qua `WITH (…)`, filegroup `ON [PRIMARY]` (mục 5). Chưa probe: MySQL `ALTER TABLE … ADD INDEX | KEY` và `ALTER TABLE … ADD CONSTRAINT … UNIQUE` nhiều cột trên PostgreSQL (dạng `pg_dump` ghi); cả hai giữ cho parser, Task 12 thử bằng fixture và dừng, báo lại nếu parser bỏ âm thầm.
+- **Hạn chế đã biết của importer SQL** (orchestrator chấp nhận ngày 2026-10-05): (1) parser SQL Server bỏ qua âm thầm đoạn văn bản nó không nhận ra *bên trong* một câu được đưa cho parser (scanner chỉ phân loại cả câu, trước khi parse); câu không nhận ra đứng riêng vẫn có `statement-not-supported`. (2) MySQL `DEFINER=user@host` không quote trước `TRIGGER` (khác dạng `mysqldump` ghi) làm câu thành `statement-not-supported` thay vì `trigger-not-supported`; vẫn có diagnostic, không mất âm thầm. (3) PostgreSQL, MySQL `ALTER TABLE … ADD [COLUMN]` và MySQL `ALTER TABLE … ADD UNIQUE` bị báo không hỗ trợ (mục 5); script viết tay thêm cột bằng `ALTER TABLE` mất cột đó, kèm diagnostic. (4) Ràng buộc unique một cột mà CG-01 đặt tên có hậu tố do `allocateConstraintNames` thêm khi trùng (`t_c_key_2`), ghi dưới dạng MySQL `UNIQUE KEY` hoặc index lọc SQL Server, được import thành index của người dùng thay vì `isUnique`; không có fixture round-trip cho trường hợp này.
 - **Scanner và parser tách câu lệnh khác nhau**, ví dụ `DELIMITER` trong dump MySQL có trigger, hay `GO` giữa chừng một khối. Conformance với `mysqldump` phát hiện; plan thêm `DELIMITER` vào scanner nếu cần.
 - **Kích thước `@dbml/core` trong frontend:** chunk worker khoảng 15,8 MB minify (2,7 MB gzip). Plan kiểm tra Turbopack build được, thời gian tải chunk lần đầu nằm trong ngưỡng ở mục 14, và chunk không lọt vào bundle của editor.
 - **CSP trong worker:** script của worker nằm trong `_next/static`, không đi qua `proxy.ts`. Plan xác nhận worker không vi phạm CSP và không cần `'unsafe-eval'` (mục 13 dựa trên việc thư viện không gọi `Function` trên trình duyệt).

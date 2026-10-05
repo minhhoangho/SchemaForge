@@ -35,7 +35,15 @@ const DBML_RESPONSE: CodeViewProps["response"] = {
   tokens: null,
 };
 
+const downloadBlob = vi.fn<(blob: Blob, fileName: string) => void>();
+vi.mock("@/lib/download/download-blob", () => ({
+  downloadBlob: (blob: Blob, fileName: string): void => {
+    downloadBlob(blob, fileName);
+  },
+}));
+
 afterEach(() => {
+  downloadBlob.mockClear();
   toast.dismiss();
   vi.restoreAllMocks();
 });
@@ -107,30 +115,13 @@ describe("CodeView", () => {
 
   it("downloads the shown output with its file name", async () => {
     const { user } = renderView(SQL_RESPONSE);
-    let blob: Blob | undefined;
-    const names: string[] = [];
-    vi.stubGlobal(
-      "URL",
-      Object.assign(URL, {
-        createObjectURL: vi.fn((value: Blob) => {
-          blob = value;
-          return "blob:code";
-        }),
-        revokeObjectURL: vi.fn(),
-      }),
-    );
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
-      this: HTMLAnchorElement,
-    ) {
-      names.push(this.download);
-    });
 
     await user.click(screen.getByRole("button", { name: "Download file" }));
 
-    expect(names).toEqual(["quan-ly.postgresql.sql"]);
+    const [blob, name] = downloadBlob.mock.calls[0] ?? [];
+    expect(name).toBe("quan-ly.postgresql.sql");
     expect(await blob?.text()).toBe("CREATE TABLE users;\n");
     expect(blob?.type).toBe("text/plain;charset=utf-8");
-    vi.unstubAllGlobals();
   });
 
   it("disables the download button while busy", () => {

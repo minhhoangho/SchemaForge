@@ -984,6 +984,8 @@
 [data-exporting="true"] .react-flow__node.selected .table-node-card {
   border-color: var(--canvas-node-border);
   --tw-ring-color: transparent;
+  /* Same shadow as an unselected card, so every table looks alike. */
+  @apply shadow-sm;
 }
 [data-exporting="true"] .react-flow__node:focus-visible,
 [data-exporting="true"] .react-flow__edge:focus-visible {

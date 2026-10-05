@@ -100,12 +100,12 @@ function RowSummary({ schema, label }: RowSummaryProps): JSX.Element {
   );
 }
 
-// Its own component so only rows with a local copy need the storage context.
-function DownloadJsonItem({
-  schemaId,
-}: {
+type DownloadJsonItemProps = {
   readonly schemaId: string;
-}): JSX.Element {
+};
+
+// Its own component so only rows with a local copy need the storage context.
+function DownloadJsonItem({ schemaId }: DownloadJsonItemProps): JSX.Element {
   const { t } = useTranslation("importExport");
   const downloadJson = useDownloadSchemaJson();
 

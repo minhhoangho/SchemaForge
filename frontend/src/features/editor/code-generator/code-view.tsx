@@ -5,6 +5,11 @@ import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { downloadBlob } from "@/lib/download/download-blob";
 import {
   toGeneratedFileName,
@@ -91,9 +96,14 @@ export function CodeView({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate font-mono text-xs text-muted-foreground">
-          {file.fileName}
-        </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="truncate font-mono text-xs text-muted-foreground">
+              {file.fileName}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{file.fileName}</TooltipContent>
+        </Tooltip>
         <div className="flex shrink-0 gap-2">
           <Button variant="secondary" size="sm" onClick={copy}>
             <CopyIcon aria-hidden />

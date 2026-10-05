@@ -64,9 +64,10 @@ const LIST_ROW_SELECTOR = "li";
 // single test does much more real work than a unit test. Under CPU
 // contention from other processes on the same machine, that work is slower
 // to get scheduled, which can push a journey past Vitest's default 5s test
-// timeout even though every step still succeeds. Unit tests keep that
-// default as a safety net against real hangs; only journeys get the extra
-// headroom, applied once per file so it is set before any test starts.
+// timeout even though every step still succeeds. Unit tests keep the 30s
+// global `testTimeout` from vitest.config.ts as a safety net against real
+// hangs; only journeys get the extra 60s, applied once per file so it is set
+// before any test starts.
 const JOURNEY_TEST_TIMEOUT_MS = 60_000;
 
 /**

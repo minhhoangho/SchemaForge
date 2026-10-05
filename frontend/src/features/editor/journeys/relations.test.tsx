@@ -187,20 +187,16 @@ describe("relations journey", () => {
     await selectEdge(user, "orders.user_id → users.id, one-to-many");
 
     await user.click(screen.getByRole("button", { name: "Remove relation" }));
-    const toastText =
-      await within(getToastRegion()).findByText("Deleted 1 element");
+    await within(getToastRegion()).findByText("Deleted 1 element");
     const edgesAfterDelete = queryEdgeNames();
-    const hasToastBeforeUndo = toastText.isConnected;
     await user.click(
       within(getToastRegion()).getByRole("button", { name: "Undo" }),
     );
 
     expect({
-      hasToast: hasToastBeforeUndo,
       edgesAfterDelete,
       edgesAfterUndo: queryEdgeNames(),
     }).toEqual({
-      hasToast: true,
       edgesAfterDelete: [],
       edgesAfterUndo: ["orders.user_id → users.id, one-to-many"],
     });
@@ -214,21 +210,17 @@ describe("relations journey", () => {
     await user.keyboard("{/Control}");
 
     await user.click(screen.getByRole("button", { name: "Delete all" }));
-    const toastText =
-      await within(getToastRegion()).findByText("Deleted 2 elements");
+    await within(getToastRegion()).findByText("Deleted 2 elements");
     const isOrdersGone = queryOutlineRow("orders") === null;
-    const hasToastBeforeUndo = toastText.isConnected;
     await user.click(
       within(getToastRegion()).getByRole("button", { name: "Undo" }),
     );
 
     expect({
-      hasToast: hasToastBeforeUndo,
       isOrdersGone,
       isOrdersRestored: queryOutlineRow("orders") !== null,
       edgesAfterUndo: queryEdgeNames(),
     }).toEqual({
-      hasToast: true,
       isOrdersGone: true,
       isOrdersRestored: true,
       edgesAfterUndo: ["orders.user_id → users.id, one-to-many"],

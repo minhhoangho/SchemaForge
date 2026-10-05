@@ -460,4 +460,10 @@ describe("AI_INSTRUCTIONS", () => {
   it("explains that a column without nullable is NOT NULL", () => {
     expect(AI_INSTRUCTIONS).toContain('no "nullable" means NOT NULL');
   });
+
+  it("tells the model to keep existing elements unless the user asks to remove them", () => {
+    expect(AI_INSTRUCTIONS).toContain(
+      "Keep every existing table, column, enum, index and relation unless the user explicitly asks to remove, rename or replace it.",
+    );
+  });
 });

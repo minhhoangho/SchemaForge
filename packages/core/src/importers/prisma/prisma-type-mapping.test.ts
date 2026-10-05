@@ -264,9 +264,35 @@ describe("mapPrismaScalarField", () => {
 
   it.each<readonly [string, DraftColumnType]>([
     ["a String @db.Char(36) @default(uuid())", { kind: "uuid" }],
+    [
+      'a String @db.Char(36) @default(dbgenerated("(uuid())"))',
+      { kind: "uuid" },
+    ],
+    [
+      'a String @db.Char(36) @default(dbgenerated("(now())"))',
+      { kind: "char", length: 36 },
+    ],
+    [
+      "a String @db.Char(36) @default(dbgenerated(1))",
+      { kind: "char", length: 36 },
+    ],
     ["a String @db.Char(36)", { kind: "char", length: 36 }],
   ])("maps mysql char(36) with a uuid default to uuid: %s", (line, type) => {
     expect(mapField(line, "mysql").type).toStrictEqual(type);
+  });
+
+  it("keeps the db pull uuid default of a mysql char(36) column", () => {
+    expect(
+      mapField(
+        'a String @db.Char(36) @default(dbgenerated("(uuid())"))',
+        "mysql",
+      ),
+    ).toStrictEqual({
+      type: { kind: "uuid" },
+      isAutoIncrement: false,
+      defaultValue: { kind: "generateUuid" },
+      diagnostics: [],
+    });
   });
 
   it.each<readonly [string, PrismaFieldMapping]>([

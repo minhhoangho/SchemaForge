@@ -59,18 +59,7 @@ describe("importPrisma", () => {
 
   it.each([
     ["PostgreSQL", DB_PULL_POSTGRESQL, DB_PULL_POSTGRESQL_EXPECTED, []],
-    [
-      "MySQL",
-      DB_PULL_MYSQL,
-      DB_PULL_MYSQL_EXPECTED,
-      [
-        diagnostic("default-not-supported", 23, 21, [
-          "columns",
-          "col_10",
-          "defaultValue",
-        ]),
-      ],
-    ],
+    ["MySQL", DB_PULL_MYSQL, DB_PULL_MYSQL_EXPECTED, []],
   ])("imports the %s db pull fixture", (_, source, expected, diagnostics) => {
     const imported = unwrapOk(importPrisma(source, createImportTestOptions()));
 

@@ -228,14 +228,12 @@ function createMysqlExpected(): SchemaDocument {
         name: "user_id",
         type: bigint,
       }),
-      // The type is read before the dbgenerated default, so the import
-      // spec's CHAR(36) DEFAULT (UUID()) rule does not apply and the default
-      // is dropped (open question in the Task 15 execution log).
       makeColumn({
         id: "col_tenants_id",
         tableId: "tbl_tenants",
         name: "id",
-        type: char36,
+        type: { kind: "uuid" },
+        defaultValue: { kind: "generateUuid" },
       }),
       makeColumn({
         id: "col_users_id",

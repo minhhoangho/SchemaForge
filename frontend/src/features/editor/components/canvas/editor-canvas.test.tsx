@@ -340,6 +340,16 @@ describe("EditorCanvas", () => {
     ]).toEqual([true, true]);
   });
 
+  it("renders the relation marker definitions inside the react flow viewport", async () => {
+    const { container } = renderCanvas(createTestStore(createDocument()));
+
+    // The portal target exists only once React Flow has mounted its pane.
+    await screen.findAllByRole("group", { name: /^Table / });
+
+    const marker = container.querySelector("#relation-marker-many-default");
+    expect(marker?.closest(".react-flow__viewport defs")).not.toBeNull();
+  });
+
   it("renders one node per table", () => {
     renderCanvas(createTestStore(createDocument()));
 

@@ -6,6 +6,7 @@ import {
   ConnectionMode,
   MiniMap,
   ReactFlow,
+  ViewportPortal,
 } from "@xyflow/react";
 import type {
   Connection,
@@ -154,8 +155,12 @@ export function EditorCanvas({
   );
 
   return (
-    <div ref={setCanvasElement} className="relative size-full">
-      <RelationMarkers />
+    // `data-export-root` is where captureCanvasImage marks an export.
+    <div
+      ref={setCanvasElement}
+      data-export-root=""
+      className="relative size-full"
+    >
       <ReactFlow<TableFlowNode, RelationFlowEdge>
         nodes={nodes}
         edges={edges}
@@ -181,6 +186,11 @@ export function EditorCanvas({
         fitView={defaultViewport === null}
         fitViewOptions={FIT_VIEW_OPTIONS}
       >
+        {/* Inside the viewport, so an image capture of it keeps the edge
+            markers (spec section 10). */}
+        <ViewportPortal>
+          <RelationMarkers />
+        </ViewportPortal>
         {/* Bottom left: the AI launcher and window take the bottom right. */}
         <MiniMap<TableFlowNode>
           position="bottom-left"

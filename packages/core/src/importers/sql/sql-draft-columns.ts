@@ -4,9 +4,7 @@ import type {
   CoreField,
   CoreTable,
 } from "../shared/dbml-core-adapter-types.js";
-import type { ImportDiagnosticCode } from "../shared/import-diagnostic-codes.js";
 import type { DraftColumn, DraftColumnType } from "../shared/import-draft.js";
-import type { SourceLocation } from "../shared/import-types.js";
 import {
   mapSqlDefault,
   type RawSqlDefault,
@@ -16,15 +14,15 @@ import {
   splitSqlServerIdentity,
 } from "../shared/sql-type-mapping.js";
 import type { SqlColumnDefinition } from "./sql-column-definitions.js";
+import {
+  reportColumnCodes,
+  translateDefault,
+  type ColumnPosition,
+  type FieldCode,
+} from "./sql-draft-column-codes.js";
 import type { SqlDraftContext } from "./sql-draft-context.js";
 import { unescapeParserName } from "./sql-parser-names.js";
 import { tokenizeSql } from "./statement-scanner.js";
-
-type FieldCode = {
-  readonly code: ImportDiagnosticCode;
-  // The last path segment; undefined targets the column itself.
-  readonly field?: string;
-};
 
 type ResolvedType = {
   readonly type: DraftColumnType;
@@ -36,11 +34,6 @@ type ColumnAttributes = {
   readonly isPrimaryKey: boolean;
   // The values of a CHECK (… IN (…)) on the column.
   readonly checkValues: readonly string[] | null;
-};
-
-export type ColumnPosition = {
-  readonly tableIndex: number;
-  readonly columnIndex: number;
 };
 
 const TEXT_TYPE: DraftColumnType = { kind: "text" };
@@ -220,51 +213,21 @@ function definitionCodes(
   ];
 }
 
-function defaultCodeField(code: ImportDiagnosticCode): string {
-  return code === "sequence-default-as-auto-increment"
-    ? "isAutoIncrement"
-    : "defaultValue";
-}
-
-function translateDefault(
-  raw: RawSqlDefault | null,
-  columnType: DraftColumnType,
+// The type of the column, with a CHECK (… IN (…)) turned into an enum.
+function resolveColumnType(
+  field: CoreField,
+  table: CoreTable,
+  rawDefault: RawSqlDefault | null,
+  attributes: ColumnAttributes,
   context: SqlDraftContext,
-): {
-  readonly defaultValue: DraftColumn["defaultValue"];
-  readonly isAutoIncrement: boolean;
-  readonly codes: readonly FieldCode[];
-} {
-  if (raw === null) {
-    return { defaultValue: null, isAutoIncrement: false, codes: [] };
-  }
-  const mapping = mapSqlDefault({ raw, columnType, dialect: context.dialect });
-  return {
-    defaultValue: mapping.defaultValue ?? null,
-    isAutoIncrement: mapping.isAutoIncrement,
-    codes: mapping.codes.map((code) => ({
-      code,
-      field: defaultCodeField(code),
-    })),
-  };
-}
-
-function reportColumnCodes(
-  codes: readonly FieldCode[],
-  location: SourceLocation | null,
-  position: ColumnPosition,
-  context: SqlDraftContext,
-): void {
-  codes.forEach(({ code, field }) =>
-    context.parts.diagnostics.push({
-      code,
-      location,
-      target: {
-        kind: "column",
-        ...position,
-        ...(field === undefined ? {} : { field }),
-      },
-    }),
+): ResolvedType {
+  const resolved = resolveType(field, table, rawDefault, context);
+  return applyCheckEnum(
+    resolved,
+    attributes.checkValues,
+    table,
+    field,
+    context,
   );
 }
 
@@ -277,27 +240,20 @@ export function translateColumn(
   context: SqlDraftContext,
 ): DraftColumn {
   const location = context.locations.column(table.name, field.name);
-  const override = context.overrides.column(
-    position.tableIndex,
-    position.columnIndex,
-  );
+  const override = context.overrides.column(position);
   const definition = context.locations.columnDefinition(table.name, field.name);
   const rawDefault =
     override?.defaultValue?.raw ?? toRawDefault(field.defaultValue, definition);
-  const resolved = applyCheckEnum(
-    resolveType(field, table, rawDefault, context),
-    attributes.checkValues,
-    table,
+  const resolved = resolveColumnType(
     field,
+    table,
+    rawDefault,
+    attributes,
     context,
   );
   const defaultMapping = translateDefault(rawDefault, resolved.type, context);
-  reportColumnCodes(
-    [...definitionCodes(definition), ...resolved.codes],
-    location,
-    position,
-    context,
-  );
+  const codes = [...definitionCodes(definition), ...resolved.codes];
+  reportColumnCodes(codes, location, position, context);
   const defaultLocation = override?.defaultValue?.location ?? location;
   reportColumnCodes(defaultMapping.codes, defaultLocation, position, context);
   return {

@@ -12,6 +12,7 @@ import {
 export type StatementKind =
   | "parser"
   | "postgresqlAlterColumn"
+  | "sqlserverAddDefault"
   | "sqlserverExtendedProperty"
   | "ignored"
   | "data"
@@ -140,16 +141,17 @@ function isAddedDefault(tokens: Tokens, index: number): boolean {
 }
 
 // @dbml/core 10.2.0 drops PostgreSQL and MySQL `ADD [COLUMN] <column>`, MySQL
-// `ADD … UNIQUE` and SQL Server `ADD [CONSTRAINT n] DEFAULT … FOR c` (the form
-// SSMS writes defaults in) without an error (import / export spec, section 5),
-// so they are reported instead of given to the parser. `index` follows ADD.
+// `ADD … UNIQUE` and SQL Server `ADD [CONSTRAINT n] DEFAULT … FOR c` without an
+// error (import / export spec, section 5): the first two are reported instead
+// of given to the parser, and the scanner reads the defaults, which SSMS
+// writes in that form. `index` follows ADD.
 function classifyAlterTableAdd(
   tokens: Tokens,
   index: number,
   dialect: SqlDialect,
 ): StatementKind {
   if (dialect === "sqlserver") {
-    return isAddedDefault(tokens, index) ? "unsupported" : "parser";
+    return isAddedDefault(tokens, index) ? "sqlserverAddDefault" : "parser";
   }
   const word = wordAt(tokens, index);
   const isColumn =

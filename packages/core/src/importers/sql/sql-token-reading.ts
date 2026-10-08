@@ -117,3 +117,14 @@ export function readParenthesizedList(
   items.push({ start: itemStart, end: index });
   return { items, close: index };
 }
+
+// Rebuilds the source text of the tokens, with a space for each character
+// between them (comments and line breaks become spaces).
+export function tokensText(tokens: Tokens): string {
+  const first = tokens[0]?.start ?? 0;
+  let text = "";
+  for (const token of tokens) {
+    text += " ".repeat(token.start - first - text.length) + token.text;
+  }
+  return text;
+}

@@ -5,7 +5,7 @@ import type {
   DraftIndex,
   DraftTable,
 } from "../shared/import-draft.js";
-import type { SqlAddedUniqueConstraint } from "./sql-column-definitions.js";
+import type { SqlAddedUniqueConstraint } from "./sql-table-keys.js";
 import type { SqlElementLocations } from "./sql-element-locations.js";
 import type { SqlIndexDefinition } from "./sql-index-definitions.js";
 import type { SqlOverrides } from "./sql-draft-overrides.js";

@@ -137,6 +137,19 @@ describe("classifyStatement", () => {
   it.each<Case>([
     [
       "sqlserver",
+      "ALTER TABLE [dbo].[t] ADD  CONSTRAINT [DF_t_a]  DEFAULT ((0)) FOR [a]",
+    ],
+    ["sqlserver", "ALTER TABLE t WITH CHECK ADD DEFAULT 0 FOR a"],
+  ])(
+    "classifies a sql server add default the scanner reads: %s",
+    (dialect, source) => {
+      expect(classify(source, dialect)).toStrictEqual(["sqlserverAddDefault"]);
+    },
+  );
+
+  it.each<Case>([
+    [
+      "sqlserver",
       "EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'x', @level0type=N'SCHEMA'",
     ],
     [
@@ -267,11 +280,7 @@ describe("classifyStatement", () => {
     ["postgresql", "EXEC sp_addextendedproperty 'MS_Description', 'x'"],
     ["postgresql", "ALTER TABLE t NOCHECK CONSTRAINT c"],
     ["sqlserver", "ALTER DATABASE [shop] MODIFY FILE (NAME = f)"],
-    [
-      "sqlserver",
-      "ALTER TABLE [dbo].[t] ADD  CONSTRAINT [DF_t_a]  DEFAULT ((0)) FOR [a]",
-    ],
-    ["sqlserver", "ALTER TABLE t ADD DEFAULT 0 FOR a"],
+    ["postgresql", "ALTER TABLE t ADD DEFAULT 0 FOR a"],
     ["postgresql", "CREATE UNLOGGED TABLE t (a int)"],
     ["postgresql", "CREATE TEMPORARY TABLE t (a int)"],
     ["mysql", "CREATE TEMP TABLE t (a int)"],

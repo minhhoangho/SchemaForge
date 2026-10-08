@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { unwrapOk } from "../../testing/unwrap-result.js";
-import {
-  readPostgresqlAlterColumn,
-  type PostgresqlAlterColumn,
-} from "./postgresql-identity.js";
+import { readPostgresqlAlterColumn } from "./postgresql-identity.js";
+import type { ColumnChange } from "./sql-draft-overrides.js";
 import { scanSqlStatements } from "./statement-scanner.js";
 
-function read(source: string): readonly (PostgresqlAlterColumn | null)[] {
+function read(source: string): readonly (ColumnChange | null)[] {
   return unwrapOk(scanSqlStatements(source, "postgresql")).map(
     readPostgresqlAlterColumn,
   );

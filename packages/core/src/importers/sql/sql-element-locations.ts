@@ -6,7 +6,14 @@ import type {
   SqlColumnDefinition,
   SqlTableDefinition,
 } from "./sql-column-definitions.js";
-import { findAlterTableAction, isNameAt, wordAt } from "./sql-token-reading.js";
+import {
+  findAlterTableAction,
+  isNameAt,
+  isSymbolAt,
+  readParenthesizedList,
+  wordAt,
+  type Tokens,
+} from "./sql-token-reading.js";
 import type { SqlStatement } from "./statement-scanner.js";
 
 /**
@@ -27,6 +34,16 @@ export type SqlElementLocations = {
     tableName: string,
     columnName: string,
   ) => SqlColumnDefinition | null;
+  // The ALTER TABLE that adds the foreign key, else the table.
+  readonly foreignKey: (
+    tableName: string,
+    columnNames: readonly string[],
+  ) => SourceLocation | null;
+  // The ALTER TABLE that adds the named check, else the table.
+  readonly check: (
+    tableName: string,
+    checkName: string | null,
+  ) => SourceLocation | null;
 };
 
 type AddedColumn = {
@@ -54,6 +71,67 @@ function readAddedColumn(statement: SqlStatement): AddedColumn | null {
     : null;
 }
 
+// `ALTER TABLE t ADD [CONSTRAINT n] {FOREIGN KEY (…) | CHECK …}`.
+type AddedConstraint = {
+  readonly tableName: string;
+  readonly name: string | null;
+  readonly kind: "foreignKey" | "check";
+  // The foreign key columns; empty for a check.
+  readonly columnNames: readonly string[];
+  readonly start: number;
+};
+
+function readForeignKeyColumns(
+  tokens: Tokens,
+  index: number,
+): readonly string[] {
+  const list = readParenthesizedList(tokens, index);
+  return list.items.map((range) => tokens[range.start]?.value ?? "");
+}
+
+function readAddedConstraint(statement: SqlStatement): AddedConstraint | null {
+  const { tokens } = statement;
+  const action = findAlterTableAction(tokens);
+  const isAdd =
+    wordAt(tokens, 0) === "ALTER" &&
+    wordAt(tokens, 1) === "TABLE" &&
+    wordAt(tokens, action.index) === "ADD";
+  const constraintIndex = action.index + 1;
+  const hasName =
+    wordAt(tokens, constraintIndex) === "CONSTRAINT" &&
+    isNameAt(tokens, constraintIndex + 1);
+  const index = constraintIndex + (hasName ? 2 : 0);
+  const added = {
+    tableName: action.tableName,
+    name: hasName ? (tokens[constraintIndex + 1]?.value ?? null) : null,
+    start: statement.start,
+  };
+  if (!isAdd || added.tableName === "") {
+    return null;
+  }
+  if (wordAt(tokens, index) === "CHECK") {
+    return { ...added, kind: "check", columnNames: [] };
+  }
+  const isForeignKey =
+    wordAt(tokens, index) === "FOREIGN" &&
+    wordAt(tokens, index + 1) === "KEY" &&
+    isSymbolAt(tokens, index + 2, "(");
+  return isForeignKey
+    ? {
+        ...added,
+        kind: "foreignKey",
+        columnNames: readForeignKeyColumns(tokens, index + 2),
+      }
+    : null;
+}
+
+function isSameNames(a: readonly string[], b: readonly string[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((name, index) => toNameKey(name) === toNameKey(b[index] ?? ""))
+  );
+}
+
 type NamedList<Element> = {
   readonly elements: readonly Element[];
   readonly find: (wanted: string) => Element | null;
@@ -73,23 +151,31 @@ function createNamedList<Element>(
   };
 }
 
+// What `read` gives for the statements, grouped by the name key of the table.
+function groupByTable<Element extends { readonly tableName: string }>(
+  statements: readonly SqlStatement[],
+  read: (statement: SqlStatement) => Element | null,
+): ReadonlyMap<string, readonly Element[]> {
+  const groups = new Map<string, Element[]>();
+  statements.forEach((statement) => {
+    const element = read(statement);
+    if (element !== null) {
+      const key = toNameKey(element.tableName);
+      const group = groups.get(key) ?? [];
+      group.push(element);
+      groups.set(key, group);
+    }
+  });
+  return groups;
+}
+
 // Added columns grouped by the name key of their table, each group resolved
 // by column name.
 function groupAddedColumns(
   statements: readonly SqlStatement[],
 ): ReadonlyMap<string, NamedList<AddedColumn>> {
-  const groups = new Map<string, AddedColumn[]>();
-  statements.forEach((statement) => {
-    const added = readAddedColumn(statement);
-    if (added !== null) {
-      const key = toNameKey(added.tableName);
-      const group = groups.get(key) ?? [];
-      group.push(added);
-      groups.set(key, group);
-    }
-  });
   return new Map(
-    [...groups].map(([key, columns]) => [
+    [...groupByTable(statements, readAddedColumn)].map(([key, columns]) => [
       key,
       createNamedList(columns, ({ columnName }) => columnName),
     ]),
@@ -137,11 +223,35 @@ export function locateSqlElements(input: {
       addedColumns.get(toNameKey(tableName))?.find(columnName)?.start;
     return start === undefined ? table(tableName) : at(start);
   };
+  const constraints = groupByTable(input.statements, readAddedConstraint);
+  const constraint = (
+    tableName: string,
+    isWanted: (added: AddedConstraint) => boolean,
+  ): SourceLocation | null => {
+    const added = constraints.get(toNameKey(tableName))?.find(isWanted);
+    return added === undefined ? table(tableName) : at(added.start);
+  };
   return {
     at,
     table,
     column,
     tableDefinition: tables.find,
     columnDefinition,
+    foreignKey: (tableName, columnNames) =>
+      constraint(
+        tableName,
+        (added) =>
+          added.kind === "foreignKey" &&
+          isSameNames(added.columnNames, columnNames),
+      ),
+    check: (tableName, checkName) =>
+      constraint(
+        tableName,
+        (added) =>
+          added.kind === "check" &&
+          checkName !== null &&
+          added.name !== null &&
+          toNameKey(added.name) === toNameKey(checkName),
+      ),
   };
 }

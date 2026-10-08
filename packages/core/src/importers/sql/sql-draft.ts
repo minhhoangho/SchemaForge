@@ -8,15 +8,17 @@ import type { ImportDraft } from "../shared/import-draft.js";
 import type { SourceLocation } from "../shared/import-types.js";
 import { createNameResolver } from "../shared/resolve-references.js";
 import { readCheckEnumValues } from "./check-to-enum.js";
-import type { PostgresqlAlterColumn } from "./postgresql-identity.js";
-import type { SqlAddedUniqueConstraint } from "./sql-column-definitions.js";
+import type { SqlAddedUniqueConstraint } from "./sql-table-keys.js";
 import { translateColumn } from "./sql-draft-columns.js";
 import type { SqlDraftContext, SqlDraftParts } from "./sql-draft-context.js";
 import {
   reportIndexesOfMissingTables,
   translateIndexes,
 } from "./sql-draft-indexes.js";
-import { resolveScannerStatements } from "./sql-draft-overrides.js";
+import {
+  resolveScannerStatements,
+  type ColumnChange,
+} from "./sql-draft-overrides.js";
 import { translateRefs } from "./sql-draft-relations.js";
 import { normalizeParserNames } from "./sql-parser-names.js";
 import type { SqlElementLocations } from "./sql-element-locations.js";
@@ -30,7 +32,7 @@ export type SqlDraftInput = {
   readonly locations: SqlElementLocations;
   readonly indexDefinitions: readonly SqlIndexDefinition[];
   readonly addedUniqueConstraints: readonly SqlAddedUniqueConstraint[];
-  readonly alterColumns: readonly PostgresqlAlterColumn[];
+  readonly columnChanges: readonly ColumnChange[];
   readonly descriptions: readonly SqlServerDescription[];
 };
 
@@ -113,12 +115,12 @@ function listChecks(
         location: context.locations.column(table.name, field.name),
       })),
     ),
-    ...table.checks.map(({ expression }) => {
+    ...table.checks.map(({ name, expression }) => {
       const columnName = firstNameOf(expression, context.dialect);
       return {
         expression,
         columnIndex: columnName === null ? null : resolveColumn(columnName),
-        location: context.locations.table(table.name),
+        location: context.locations.check(table.name, name),
       };
     }),
   ];
@@ -256,7 +258,7 @@ export function buildSqlDraft(input: SqlDraftInput): ImportDraft {
   const database = normalizeParserNames(input.database, dialect);
   const scanned = resolveScannerStatements({
     tables: database.tables,
-    alterColumns: input.alterColumns,
+    columnChanges: input.columnChanges,
     descriptions: input.descriptions,
     at: locations.at,
   });

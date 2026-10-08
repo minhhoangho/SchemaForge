@@ -17,8 +17,6 @@ import {
   importSqlserver,
 } from "./import-sql.js";
 
-// SQL Server has no enums: CG-01 writes them as CHECK (… IN (…)), which the
-// importer turns back into enums (spec section 5).
 // The target-limit fixture is large; @dbml/core is slower on a loaded machine.
 const PARSE_TIMEOUT = { timeout: 120_000 };
 
@@ -39,6 +37,8 @@ const generators = {
     generateSqlServer(schema, {}).file.content,
 };
 
+// SQL Server has no enums: CG-01 writes them as CHECK (… IN (…)), which the
+// importer turns back into enums (spec section 5).
 const CASES: readonly RoundTripCase[] = [
   {
     dialect: "postgresql",

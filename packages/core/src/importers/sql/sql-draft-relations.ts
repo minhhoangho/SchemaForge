@@ -122,7 +122,7 @@ export function translateRefs(input: {
         : "oneToMany",
       onDelete: toAction(ref.onDelete),
       onUpdate: toAction(ref.onUpdate),
-      location: input.locations.table(from.tableName),
+      location: input.locations.foreignKey(from.tableName, from.columnNames),
     });
   });
   return { relations, diagnostics };

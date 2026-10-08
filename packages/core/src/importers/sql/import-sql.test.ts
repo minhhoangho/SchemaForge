@@ -113,11 +113,6 @@ describe("sql importers", PARSE_TIMEOUT, () => {
         importMysql,
         "ALTER TABLE `t` ADD CONSTRAINT `u` UNIQUE (`a`);",
       ],
-      [
-        "sqlserver",
-        importSqlserver,
-        "ALTER TABLE [t] ADD CONSTRAINT [DF_t_a] DEFAULT ((0)) FOR [a]",
-      ],
     ])(
       "reports add column on postgresql and mysql and add unique on mysql as statement-not-supported in %s: %s",
       (_dialect, importer, statement) => {
@@ -245,6 +240,8 @@ describe("sql importers", PARSE_TIMEOUT, () => {
         importSqlserver,
         "EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'x', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'missing'",
       ],
+      ["sqlserver", importSqlserver, "ALTER TABLE t ADD DEFAULT 1 FOR missing"],
+      ["sqlserver", importSqlserver, "ALTER TABLE t ADD DEFAULT FOR a"],
     ])(
       "reports a statement the %s scanner cannot apply as statement-not-supported: %s",
       (_dialect, importer, statement) => {
@@ -253,6 +250,43 @@ describe("sql importers", PARSE_TIMEOUT, () => {
         );
       },
     );
+
+    it("reads sql server defaults added through alter table", () => {
+      const { document, diagnostics } = importSource(
+        importSqlserver,
+        "CREATE TABLE [t] ([a] int, [b] bit, [c] nvarchar(10), [d] datetime2)\nGO\nALTER TABLE [dbo].[t] ADD  DEFAULT ((0)) FOR [a]\nGO\nALTER TABLE [t] ADD CONSTRAINT [DF_t_b] DEFAULT ((1)) FOR [b]\nGO\nALTER TABLE [t] ADD DEFAULT (N'it''s') FOR [c]\nGO\nALTER TABLE [t] ADD DEFAULT (sysdatetime()) FOR [d]\nGO\n",
+      );
+
+      expect({
+        defaults: Object.values(document.columns).map(
+          ({ defaultValue }) => defaultValue,
+        ),
+        diagnostics,
+      }).toStrictEqual({
+        defaults: [
+          { kind: "literal", value: "0" },
+          { kind: "literal", value: "true" },
+          { kind: "literal", value: "it's" },
+          { kind: "currentTimestamp" },
+        ],
+        diagnostics: [],
+      });
+    });
+
+    it("locates the diagnostics of a sql server default at its alter table", () => {
+      expect(
+        diagnosticsOf(
+          importSqlserver,
+          `${TABLE}ALTER TABLE t ADD DEFAULT (1 + 2) FOR a\n`,
+        ),
+      ).toStrictEqual([
+        diagnostic("default-not-supported", 2, 1, [
+          "columns",
+          "col_2",
+          "defaultValue",
+        ]),
+      ]);
+    });
 
     it("reads sql server descriptions as comments", () => {
       const { document } = importSource(importSqlserver, SSMS_SCRIPT_SOURCE);
@@ -523,6 +557,87 @@ describe("sql importers", PARSE_TIMEOUT, () => {
       "reports %s with its location and path",
       (_code, importer, source, expected) => {
         expect(diagnosticsOf(importer, source)).toStrictEqual(expected);
+      },
+    );
+
+    it.each([
+      [
+        "postgresql",
+        importPostgresql,
+        "ALTER TABLE ONLY public.t\n    ADD CONSTRAINT t_a_fkey FOREIGN KEY (a) REFERENCES public.missing(id);",
+      ],
+      [
+        "sqlserver",
+        importSqlserver,
+        "ALTER TABLE [dbo].[t]  WITH CHECK ADD  CONSTRAINT [FK_t_missing] FOREIGN KEY([a])\nREFERENCES [dbo].[missing] ([id])\nGO",
+      ],
+      [
+        "mysql",
+        importMysql,
+        "ALTER TABLE `t` ADD CONSTRAINT `t_a_fkey` FOREIGN KEY (`a`) REFERENCES `missing` (`id`) ON DELETE CASCADE;",
+      ],
+      [
+        "postgresql",
+        importPostgresql,
+        "ALTER TABLE ONLY public.missing\n    ADD CONSTRAINT missing_pkey PRIMARY KEY (id);",
+      ],
+      [
+        "postgresql",
+        importPostgresql,
+        "ALTER TABLE ONLY public.missing\n    ADD CONSTRAINT missing_a_key UNIQUE (a);",
+      ],
+      [
+        "sqlserver",
+        importSqlserver,
+        "ALTER TABLE [dbo].[missing]  WITH CHECK ADD  CONSTRAINT [FK_missing_t] FOREIGN KEY([a])\nREFERENCES [dbo].[t] ([a])\nGO",
+      ],
+    ])(
+      "drops a relation or constraint on a table the %s source does not create with reference-not-found (case %#)",
+      (_dialect, importer, statement) => {
+        const { document, diagnostics } = importSource(
+          importer,
+          `${TABLE}${statement}\n`,
+        );
+
+        expect({
+          tables: Object.values(document.tables).map(({ name }) => name),
+          relations: document.relations,
+          diagnostics,
+        }).toStrictEqual({
+          tables: ["t"],
+          relations: {},
+          diagnostics: [diagnostic("reference-not-found", 2, 1)],
+        });
+      },
+    );
+
+    // Known limits (spec section 5, "Rủi ro"): a reference inside CREATE TABLE
+    // to a table the file does not create, and a foreign key of a column to
+    // itself, make @dbml/core reject the whole source.
+    it.each([
+      [
+        "postgresql",
+        importPostgresql,
+        "CREATE TABLE t (a int REFERENCES missing (id));\n",
+      ],
+      [
+        "mysql",
+        importMysql,
+        "CREATE TABLE `t` (`a` int, CONSTRAINT `fk` FOREIGN KEY (`a`) REFERENCES `missing` (`id`));\n",
+      ],
+      [
+        "postgresql",
+        importPostgresql,
+        "CREATE TABLE t (a int PRIMARY KEY REFERENCES t (a));\n",
+      ],
+    ])(
+      "fails the whole %s import with syntax-error for a known limit (case %#)",
+      (_dialect, importer, source) => {
+        expect(
+          unwrapError(importer(source, createImportTestOptions())),
+        ).toStrictEqual({
+          diagnostics: [diagnostic("syntax-error", 1, 2)],
+        });
       },
     );
 

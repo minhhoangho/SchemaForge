@@ -401,6 +401,63 @@ describe("buildSqlDraft", PARSE_TIMEOUT, () => {
       });
     });
 
+    it.each([
+      { key: "KEY `t_a_idx` (`a`(10))", code: "index-option-dropped" },
+      { key: "KEY (`a`(10))", code: "index-option-dropped" },
+      { key: "KEY `t_a_idx` (`a` DESC)", code: "index-option-dropped" },
+      { key: "FULLTEXT KEY `t_a_ft` (`a`)", code: "index-type-dropped" },
+      { key: "FULLTEXT (`a`)", code: "index-type-dropped" },
+      { key: "SPATIAL KEY `t_g_sp` (`g`)", code: "index-type-dropped" },
+      { key: "SPATIAL INDEX `t_g_sp` (`g`)", code: "index-type-dropped" },
+    ] as const)(
+      "keeps a mysql key inside create table with $code: $key",
+      ({ key, code }) => {
+        const draft = draftOf(
+          "mysql",
+          `CREATE TABLE \`t\` (\`a\` varchar(20), \`g\` point NOT NULL, ${key});`,
+        );
+
+        expect({
+          count: draft.indexes.length,
+          diagnostics: draft.diagnostics,
+        }).toStrictEqual({
+          count: 1,
+          diagnostics: [indexDiagnostic(code, 1, 1, 0)],
+        });
+      },
+    );
+
+    it.each(["KEY `t_a_idx` (`a`)", "INDEX `t_a_idx` (`a` ASC)"])(
+      "keeps a plain mysql key inside create table without a diagnostic: %s",
+      (key) => {
+        const draft = draftOf(
+          "mysql",
+          `CREATE TABLE \`t\` (\`a\` varchar(20), ${key});`,
+        );
+
+        expect({
+          names: draft.indexes.map(({ name }) => name),
+          diagnostics: draft.diagnostics,
+        }).toStrictEqual({ names: ["t_a_idx"], diagnostics: [] });
+      },
+    );
+
+    it.each([
+      "PRIMARY KEY (`id`),\n  KEY `t_id_idx` (`id`)",
+      "PRIMARY KEY (`a`),\n  UNIQUE KEY `t_id_key` (`id`),\n  KEY `t_id_idx` (`id`)",
+      "PRIMARY KEY (`a`),\n  KEY `t_id_a_idx` (`id`, `a`),\n  KEY `t_id_idx` (`id`)",
+    ])(
+      "keeps the auto-increment index when another key starts with its column: %s",
+      (keys) => {
+        const draft = draftOf(
+          "mysql",
+          `CREATE TABLE \`t\` (\n  \`a\` INT NOT NULL,\n  \`id\` BIGINT AUTO_INCREMENT NOT NULL,\n  ${keys}\n);`,
+        );
+
+        expect(draft.indexes.map(({ name }) => name)).toContain("t_id_idx");
+      },
+    );
+
     it("drops the index that mysql needs for an auto-increment column", () => {
       const draft = draftOf(
         "mysql",
@@ -445,7 +502,7 @@ describe("buildSqlDraft", PARSE_TIMEOUT, () => {
           kind: "oneToMany",
           onDelete: "cascade",
           onUpdate: "setNull",
-          location: { line: 2, column: 1 },
+          location: { line: 3, column: 1 },
         },
       ]);
     });
@@ -547,6 +604,34 @@ describe("buildSqlDraft", PARSE_TIMEOUT, () => {
         codes: [["check-constraint-not-supported", null]],
       });
     });
+
+    it.each([
+      {
+        dialect: "postgresql",
+        source:
+          "CREATE TABLE t (n int);\nALTER TABLE ONLY t ADD CONSTRAINT t_n_check CHECK (n > 0);",
+        line: 2,
+      },
+      {
+        dialect: "sqlserver",
+        source:
+          "CREATE TABLE [dbo].[t] ([n] int)\nGO\nALTER TABLE [dbo].[t]  WITH CHECK ADD  CONSTRAINT [CK_t_n] CHECK  (([n]>(0)))\nGO\n",
+        line: 3,
+      },
+    ] as const)(
+      "locates a check added through alter table at its statement in $dialect",
+      ({ dialect, source, line }) => {
+        const draft = draftOf(dialect, source);
+
+        expect(draft.diagnostics).toStrictEqual([
+          {
+            code: "check-constraint-not-supported",
+            location: { line, column: 1 },
+            target: null,
+          },
+        ]);
+      },
+    );
 
     it("maps a mysql inline enum to the enum named after the table and column before mapSqlType", () => {
       const draft = draftOf(

@@ -43,7 +43,7 @@ function addIndex(
       target,
     });
   }
-  if (hasDroppedType(source.index)) {
+  if (outcome.hasDroppedKeyKind || hasDroppedType(source.index)) {
     parts.diagnostics.push({
       code: "index-type-dropped",
       location: outcome.location,
@@ -83,13 +83,7 @@ function translateIndex(index: CoreIndex, target: TableColumns): number | null {
   const location = context.locations.table(table.name);
   const columnNames = index.columns.map(({ value }) => value);
   const definition = findDefinition(index, table, columnNames, context);
-  const source: IndexSource = {
-    index,
-    table,
-    columnNames,
-    definition,
-    context,
-  };
+  const source = { index, table, columnNames, definition, context };
   const outcome = classifyIndex(source);
   const [columnName] = columnNames;
   const columnIndex =
@@ -109,6 +103,7 @@ function translateIndex(index: CoreIndex, target: TableColumns): number | null {
       kind: "index",
       name: outcome.kind === "index" ? outcome.name : index.name,
       hasDroppedOption: outcome.hasDroppedOption,
+      hasDroppedKeyKind: outcome.kind === "index" && outcome.hasDroppedKeyKind,
       location: outcome.kind === "index" ? outcome.location : location,
     });
   }

@@ -381,16 +381,11 @@ export const PG_DUMP_EXPECTED: SchemaDocument = buildSchema({
   ],
 });
 
-// The \restrict and \unrestrict lines are psql meta-commands, which the
-// statement table has no row for; the sequence statements and the nextval
-// default of the serial column come from CREATE SEQUENCE … OWNED BY.
+// The \restrict and \unrestrict lines are psql meta-commands that are ignored
+// without a diagnostic; the sequence statements and the nextval default of the
+// serial column come from CREATE SEQUENCE … OWNED BY.
 // Ids follow createImportTestOptions(): the enum, then tables, then columns.
 export const PG_DUMP_EXPECTED_DIAGNOSTICS: readonly ImportDiagnostic[] = [
-  {
-    code: "statement-not-supported",
-    location: { line: 5, column: 1 },
-    path: null,
-  },
   {
     code: "sequence-not-supported",
     location: { line: 70, column: 1 },
@@ -405,10 +400,5 @@ export const PG_DUMP_EXPECTED_DIAGNOSTICS: readonly ImportDiagnostic[] = [
     code: "sequence-default-as-auto-increment",
     location: { line: 150, column: 1 },
     path: ["columns", "col_5", "isAutoIncrement"],
-  },
-  {
-    code: "statement-not-supported",
-    location: { line: 220, column: 1 },
-    path: null,
   },
 ];

@@ -125,11 +125,44 @@ function readAddedConstraint(statement: SqlStatement): AddedConstraint | null {
     : null;
 }
 
-function isSameNames(a: readonly string[], b: readonly string[]): boolean {
-  return (
-    a.length === b.length &&
-    a.every((name, index) => toNameKey(name) === toNameKey(b[index] ?? ""))
-  );
+// The kind, then the table and the foreign key columns or the check name
+// compared by name key.
+function toConstraintKey(
+  kind: AddedConstraint["kind"],
+  tableName: string,
+  names: readonly string[],
+): string {
+  return JSON.stringify([kind, ...[tableName, ...names].map(toNameKey)]);
+}
+
+// What a lookup can match: the foreign key columns or the check name; an
+// unnamed check is never looked up.
+function lookupNames(added: AddedConstraint): readonly string[] | null {
+  if (added.kind === "foreignKey") {
+    return added.columnNames;
+  }
+  return added.name === null ? null : [added.name];
+}
+
+// Where each foreign key and named check is added, by constraint key. The
+// first in source order wins, so a lookup is one map read instead of a scan
+// of every constraint of the table.
+function indexAddedConstraints(
+  statements: readonly SqlStatement[],
+): ReadonlyMap<string, number> {
+  const starts = new Map<string, number>();
+  statements.forEach((statement) => {
+    const added = readAddedConstraint(statement);
+    const names = added === null ? null : lookupNames(added);
+    if (added === null || names === null) {
+      return;
+    }
+    const key = toConstraintKey(added.kind, added.tableName, names);
+    if (!starts.has(key)) {
+      starts.set(key, added.start);
+    }
+  });
+  return starts;
 }
 
 type NamedList<Element> = {
@@ -223,13 +256,17 @@ export function locateSqlElements(input: {
       addedColumns.get(toNameKey(tableName))?.find(columnName)?.start;
     return start === undefined ? table(tableName) : at(start);
   };
-  const constraints = groupByTable(input.statements, readAddedConstraint);
+  const constraintStarts = indexAddedConstraints(input.statements);
   const constraint = (
+    kind: AddedConstraint["kind"],
     tableName: string,
-    isWanted: (added: AddedConstraint) => boolean,
+    names: readonly string[] | null,
   ): SourceLocation | null => {
-    const added = constraints.get(toNameKey(tableName))?.find(isWanted);
-    return added === undefined ? table(tableName) : at(added.start);
+    const start =
+      names === null
+        ? undefined
+        : constraintStarts.get(toConstraintKey(kind, tableName, names));
+    return start === undefined ? table(tableName) : at(start);
   };
   return {
     at,
@@ -238,20 +275,8 @@ export function locateSqlElements(input: {
     tableDefinition: tables.find,
     columnDefinition,
     foreignKey: (tableName, columnNames) =>
-      constraint(
-        tableName,
-        (added) =>
-          added.kind === "foreignKey" &&
-          isSameNames(added.columnNames, columnNames),
-      ),
+      constraint("foreignKey", tableName, columnNames),
     check: (tableName, checkName) =>
-      constraint(
-        tableName,
-        (added) =>
-          added.kind === "check" &&
-          checkName !== null &&
-          added.name !== null &&
-          toNameKey(added.name) === toNameKey(checkName),
-      ),
+      constraint("check", tableName, checkName === null ? null : [checkName]),
   };
 }

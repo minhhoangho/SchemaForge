@@ -377,6 +377,126 @@ describe("scanSqlStatements", () => {
     expect(statements.map(({ end }) => end)).toStrictEqual([source.length]);
   });
 
+  it("reads a psql meta-command line as one statement that ends at the end of the line", () => {
+    const source = "\\echo it's; done\r\nCREATE TABLE t (a int);";
+
+    const statements = unwrapOk(scanSqlStatements(source, "postgresql"));
+
+    expect(statementTexts(source, statements)).toStrictEqual([
+      "\\echo it's; done",
+      "CREATE TABLE t (a int);",
+    ]);
+  });
+
+  it("reads a psql meta-command line as a single symbol token", () => {
+    const source = "\\echo it's\n";
+
+    const statements = unwrapOk(scanSqlStatements(source, "postgresql"));
+
+    expect(statements[0]?.tokens).toStrictEqual([
+      {
+        kind: "symbol",
+        text: "\\echo it's",
+        value: "\\echo it's",
+        start: 0,
+        depth: 0,
+      },
+    ]);
+  });
+
+  it.each([
+    "\\restrict Qd7GzBvTk3cXh8pWm1nL",
+    "\\unrestrict Qd7GzBvTk3cXh8pWm1nL",
+    "\\connect shop",
+    "\\c shop",
+    "\\c",
+    "  \t\\connect -reuse-previous=on \"dbname='shop'\"",
+  ])(
+    "drops the psql meta-command line %j and keeps the next statement",
+    (line) => {
+      const source = `${line}\nCREATE TABLE t (a int);\n`;
+
+      const statements = unwrapOk(scanSqlStatements(source, "postgresql"));
+
+      expect(statementTexts(source, statements)).toStrictEqual([
+        "CREATE TABLE t (a int);",
+      ]);
+    },
+  );
+
+  it.each(["\\C title", "\\cd /tmp", "\\set ON_ERROR_STOP on"])(
+    "keeps the psql meta-command line %j as a statement",
+    (line) => {
+      const source = `${line}\nSELECT 1;`;
+
+      const statements = unwrapOk(scanSqlStatements(source, "postgresql"));
+
+      expect(statementTexts(source, statements)).toStrictEqual([
+        line,
+        "SELECT 1;",
+      ]);
+    },
+  );
+
+  it("ends an unterminated statement before a psql meta-command line", () => {
+    const source = "CREATE TABLE a (x int)\n\\echo x\nCREATE TABLE b (y int);";
+
+    const statements = unwrapOk(scanSqlStatements(source, "postgresql"));
+
+    expect(statementTexts(source, statements)).toStrictEqual([
+      "CREATE TABLE a (x int)",
+      "\\echo x",
+      "CREATE TABLE b (y int);",
+    ]);
+  });
+
+  it.each([
+    "CREATE TABLE t (a text DEFAULT 'x\n\\connect db\n');",
+    "CREATE TABLE t (a text DEFAULT E'x\\\n\\connect db');",
+    "CREATE FUNCTION f() RETURNS int AS $fn$\n\\connect db\n$fn$;",
+    "/* x\n\\connect db\n*/ CREATE TABLE t (a int);",
+    'CREATE TABLE "x\n\\connect db" (a int);',
+  ])(
+    "does not read a backslash line inside a string, dollar quote, comment or identifier as a psql meta-command: %j",
+    (source) => {
+      const statements = unwrapOk(scanSqlStatements(source, "postgresql"));
+
+      expect(statements).toHaveLength(1);
+      expect(statements[0]?.end).toBe(source.length);
+    },
+  );
+
+  it.each([
+    ["postgresql", "SELECT 1 \\gset\n;"],
+    ["mysql", "\\connect shop\nSELECT 1;"],
+    ["sqlserver", "\\connect shop\nSELECT 1;"],
+  ] as const)(
+    "reads a backslash that does not start a postgresql line as a symbol in %s: %j",
+    (dialect, source) => {
+      const statements = unwrapOk(scanSqlStatements(source, dialect));
+
+      expect(statements).toHaveLength(1);
+      expect(tokenTexts(statements[0])).toContain("\\");
+    },
+  );
+
+  it("counts each kept psql meta-command line as one token", () => {
+    const source = "\\echo x\n".repeat(MAX_SCANNED_TOKENS + 1);
+
+    expect(unwrapError(scanSqlStatements(source, "postgresql"))).toStrictEqual({
+      code: "source-too-large",
+    });
+  });
+
+  it("scans a 2 MiB source of psql meta-command lines and whitespace", () => {
+    const line = `${" ".repeat(64)}\\c shop\n${" ".repeat(64)}\\${"\\".repeat(64)}\n`;
+    const source = line.repeat(Math.ceil((2 * 1024 * 1024) / line.length));
+
+    const statements = unwrapOk(scanSqlStatements(source, "postgresql"));
+
+    expect(statements).toHaveLength(source.length / line.length);
+  });
+
   it("does not read data lines after a COPY from a file", () => {
     const source = "COPY t FROM '/tmp/t.csv';\nSELECT 1;";
 

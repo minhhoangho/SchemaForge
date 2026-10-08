@@ -122,6 +122,34 @@ describe("sql importers", PARSE_TIMEOUT, () => {
       },
     );
 
+    // Before the fix, `\connect` ran to the next `;` and the table was lost.
+    it("imports the table after a psql connect line without a diagnostic", () => {
+      const imported = importSource(
+        importPostgresql,
+        `\\connect shop\n${TABLE}`,
+      );
+
+      expect({
+        tables: Object.values(imported.document.tables).map(({ name }) => name),
+        diagnostics: imported.diagnostics,
+      }).toStrictEqual({ tables: ["t"], diagnostics: [] });
+    });
+
+    it("reports a psql meta-command line other than restrict, unrestrict and connect as statement-not-supported", () => {
+      const imported = importSource(
+        importPostgresql,
+        `${TABLE}  \\set x 'y;'\nCREATE TABLE u (b int);\n`,
+      );
+
+      expect({
+        tables: Object.values(imported.document.tables).map(({ name }) => name),
+        diagnostics: imported.diagnostics,
+      }).toStrictEqual({
+        tables: ["t", "u"],
+        diagnostics: [diagnostic("statement-not-supported", 2, 3)],
+      });
+    });
+
     it("reports data statements once at the first one", () => {
       const source = `${TABLE}INSERT INTO t VALUES (1);\nUPDATE t SET a = 2;\nDELETE FROM t;\n`;
 

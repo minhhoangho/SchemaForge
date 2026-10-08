@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { MAX_IMPORT_FILE_BYTES } from "./decode-import-file";
 import { createImporterClient, IMPORT_TIMEOUT_MS } from "./importer-client";
 import type { ImportRequest, ImportResponse } from "./import-protocol";
 
@@ -78,6 +79,63 @@ const crashed = (requestId: number): ImportResponse => ({
 });
 
 describe("createImporterClient", () => {
+  it("resolves crashed when the worker cannot be created", async () => {
+    const client = createImporterClient({
+      createWorker: () => {
+        throw new Error("blocked by CSP");
+      },
+      schedule: () => () => undefined,
+    });
+
+    expect(await client.run(request)).toStrictEqual({
+      requestId: 1,
+      kind: "crashed",
+    });
+  });
+
+  it("tries to create the worker again on the next run", async () => {
+    const worker = new FakeWorker();
+    let attempts = 0;
+    const client = createImporterClient({
+      createWorker: () => {
+        attempts += 1;
+        if (attempts === 1) throw new Error("blocked");
+        return worker;
+      },
+      schedule: () => () => undefined,
+    });
+    await client.run(request);
+
+    void client.run(request);
+
+    expect(worker.posted).toHaveLength(1);
+  });
+
+  it("resolves crashed for an oversized source without starting a worker", async () => {
+    const { client, workers, scheduled } = setup();
+
+    const outcome = await client.run({
+      ...request,
+      source: "a".repeat(MAX_IMPORT_FILE_BYTES + 1),
+    });
+
+    expect(outcome).toStrictEqual({ requestId: 1, kind: "crashed" });
+    expect(workers).toHaveLength(0);
+    expect(scheduled).toHaveLength(0);
+  });
+
+  it("ignores a response whose payload is malformed", async () => {
+    const { client, workers, fireTimers } = setup();
+    const promise = client.run(request);
+
+    workers[0]?.onmessage?.(
+      new MessageEvent("message", { data: { requestId: 1, kind: "success" } }),
+    );
+    fireTimers();
+
+    expect(await promise).toStrictEqual({ kind: "timeout" });
+  });
+
   it("creates the worker lazily on the first run", () => {
     const { client, workers } = setup();
     expect(workers).toHaveLength(0);

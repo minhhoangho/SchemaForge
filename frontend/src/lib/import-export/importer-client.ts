@@ -1,3 +1,4 @@
+import { MAX_IMPORT_FILE_BYTES } from "./decode-import-file";
 import {
   isImportResponse,
   type ImportRequest,
@@ -82,8 +83,15 @@ export function createImporterClient(
     request: ImportRequest,
     resolve: (outcome: ImportOutcome) => void,
   ): void {
-    const current = (worker ??= createWorker());
     const { requestId } = request;
+    let current: Worker;
+    try {
+      current = worker ??= createWorker();
+    } catch {
+      // No worker (CSP, no module worker support): report it like a crash.
+      resolve({ requestId, kind: "crashed" });
+      return;
+    }
     pending = {
       resolve,
       cancelTimer: schedule(() => {
@@ -110,6 +118,10 @@ export function createImporterClient(
     run: (request) => {
       if (pending !== null) cancel();
       lastRequestId += 1;
+      // The worker would drop this request and the run would hit the timeout.
+      if (request.source.length > MAX_IMPORT_FILE_BYTES) {
+        return Promise.resolve({ requestId: lastRequestId, kind: "crashed" });
+      }
       return new Promise<ImportOutcome>((resolve) => {
         start({ ...request, requestId: lastRequestId }, resolve);
       });

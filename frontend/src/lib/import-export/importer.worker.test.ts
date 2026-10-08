@@ -63,6 +63,20 @@ describe("importer worker", () => {
     });
   });
 
+  it("answers crashed when the result cannot be posted", async () => {
+    post.mockImplementationOnce(() => {
+      throw new DOMException("not cloneable", "DataCloneError");
+    });
+
+    await send(request);
+
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post.mock.calls[1]?.[0]).toStrictEqual({
+      requestId: 7,
+      kind: "crashed",
+    });
+  });
+
   it("ignores a message that is not an import request", async () => {
     await send({ requestId: 1 });
 

@@ -9,6 +9,8 @@ import {
   type SchemaDocument,
 } from "@schemaforge/core";
 
+import { MAX_IMPORT_FILE_BYTES } from "./decode-import-file";
+
 export type ImportRequest = {
   readonly requestId: number;
   readonly format: ImportFormat;
@@ -90,6 +92,7 @@ export function isImportRequest(value: unknown): value is ImportRequest {
     !isNumber(value.requestId) ||
     !FORMATS.includes(value.format) ||
     typeof value.source !== "string" ||
+    value.source.length > MAX_IMPORT_FILE_BYTES ||
     typeof value.fallbackSchemaName !== "string" ||
     !isLayout(value.layout) ||
     !isMode(value.mode)
@@ -102,10 +105,40 @@ export function isImportRequest(value: unknown): value is ImportRequest {
   return value.target === null || isObject(value.target);
 }
 
+const SUMMARY_KEYS: readonly string[] = [
+  "tables",
+  "columns",
+  "relations",
+  "indexes",
+  "enums",
+  "subjectAreas",
+  "notes",
+];
+
+function isSummary(value: unknown): boolean {
+  return isObject(value) && SUMMARY_KEYS.every((key) => isNumber(value[key]));
+}
+
+/**
+ * Checks the shape of each response kind, not only its tag, so the UI never
+ * reads a missing field. Items inside the arrays and the documents are not
+ * inspected; the worker is our own code.
+ */
 export function isImportResponse(value: unknown): value is ImportResponse {
+  if (
+    !isObject(value) ||
+    !isNumber(value.requestId) ||
+    !RESPONSE_KINDS.includes(value.kind)
+  ) {
+    return false;
+  }
+  if (value.kind === "crashed") return true;
+  if (!Array.isArray(value.diagnostics)) return false;
+  if (value.kind === "failure") return true;
   return (
-    isObject(value) &&
-    isNumber(value.requestId) &&
-    RESPONSE_KINDS.includes(value.kind)
+    isObject(value.operation) &&
+    isObject(value.resultDocument) &&
+    isSummary(value.summary) &&
+    Array.isArray(value.introducedIssues)
   );
 }

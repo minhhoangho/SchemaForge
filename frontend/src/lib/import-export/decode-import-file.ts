@@ -63,13 +63,14 @@ export async function readImportFile(
 export function checkPastedSource(
   text: string,
 ): DecodeResult<"too-large" | "empty"> {
-  if (text.trim() === "") {
-    return { isOk: false, error: "empty" };
-  }
   // Each UTF-16 code unit is at least one UTF-8 byte, so this text is over the
-  // byte limit without encoding the whole string.
+  // byte limit without encoding the whole string. Checked before `trim()`,
+  // which would copy a huge string.
   if (text.length > MAX_IMPORT_FILE_BYTES) {
     return { isOk: false, error: "too-large" };
+  }
+  if (text.trim() === "") {
+    return { isOk: false, error: "empty" };
   }
   if (new TextEncoder().encode(text).length > MAX_IMPORT_FILE_BYTES) {
     return { isOk: false, error: "too-large" };

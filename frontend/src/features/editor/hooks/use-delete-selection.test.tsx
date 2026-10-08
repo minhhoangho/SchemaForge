@@ -6,7 +6,7 @@ import {
   makeRelation,
   makeTable,
 } from "@schemaforge/core/testing";
-import { act, screen, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
 import type { JSX } from "react";
 import { toast } from "sonner";
@@ -25,6 +25,8 @@ import { EditorStoreProvider } from "../state/editor-store-provider";
 import { useDeleteSelection } from "./use-delete-selection";
 
 const DELETE_LABEL = "Delete selection";
+// Sonner unmounts a dismissed toast 200 ms later; this outlasts that timer.
+const SONNER_EXIT_TIMERS_MS = 300;
 
 type Harness = {
   readonly user: UserEvent;
@@ -109,9 +111,22 @@ function getToastRegion(): HTMLElement {
   return screen.getByRole("region", { name: /Notifications|Thông báo/ });
 }
 
-afterEach(() => {
+afterEach(async () => {
   // Sonner keeps its toasts in module state, which outlives each render.
   toast.dismiss();
+  // A dismissed toast leaves through Sonner's frame callback and 200 ms exit
+  // timers, and the action button schedules a second exit timer of its own.
+  // Waiting for the toast to leave the DOM and for those timers to run keeps
+  // them from firing after the last test, when jsdom is gone and React reads
+  // `window`. Timers fire in order, so one scheduled later outlasts them.
+  await waitFor(() => {
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  });
+  await act(async () => {
+    await new Promise((resolve) => {
+      setTimeout(resolve, SONNER_EXIT_TIMERS_MS);
+    });
+  });
 });
 
 const SEVERAL: Selection = {

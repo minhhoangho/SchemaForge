@@ -12,10 +12,13 @@ import { createNameResolver } from "../shared/resolve-references.js";
 import type { SqlDraftContext } from "./sql-draft-context.js";
 import {
   classifyIndex,
-  findDefinition,
   type IndexOutcome,
   type IndexSource,
 } from "./sql-draft-index-rules.js";
+import {
+  createTableIndexLookup,
+  type TableIndexLookup,
+} from "./sql-table-index-lookup.js";
 
 const DEFAULT_INDEX_TYPE = "btree";
 
@@ -58,11 +61,12 @@ type TableColumns = {
   readonly columns: readonly DraftColumn[];
   readonly resolveColumn: (name: string) => number | null;
   readonly context: SqlDraftContext;
+  readonly lookup: TableIndexLookup;
 };
 
 function reportExpressionIndex(index: CoreIndex, target: TableColumns): void {
   const { table, context } = target;
-  const definition = findDefinition(index, table, [], context);
+  const definition = target.lookup.definition(index, []);
   context.parts.diagnostics.push({
     code: "index-expression-not-supported",
     location:
@@ -75,15 +79,15 @@ function reportExpressionIndex(index: CoreIndex, target: TableColumns): void {
 
 // Adds one parsed index to the draft; returns the column it makes unique.
 function translateIndex(index: CoreIndex, target: TableColumns): number | null {
-  const { table, tableIndex, columns, context } = target;
+  const { table, tableIndex, columns, context, lookup } = target;
   if (index.columns.some(({ isExpression }) => isExpression)) {
     reportExpressionIndex(index, target);
     return null;
   }
   const location = context.locations.table(table.name);
   const columnNames = index.columns.map(({ value }) => value);
-  const definition = findDefinition(index, table, columnNames, context);
-  const source = { index, table, columnNames, definition, context };
+  const definition = lookup.definition(index, columnNames);
+  const source = { index, table, columnNames, definition, context, lookup };
   const outcome = classifyIndex(source);
   const [columnName] = columnNames;
   const columnIndex =
@@ -126,6 +130,7 @@ export function translateIndexes(
     columns,
     resolveColumn: createNameResolver(columns.map(({ name }) => name)),
     context,
+    lookup: createTableIndexLookup(table, context),
   };
   const uniqueColumnIndexes = new Set(
     table.indexes

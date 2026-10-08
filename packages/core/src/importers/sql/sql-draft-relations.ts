@@ -11,6 +11,10 @@ import type {
   DraftTable,
 } from "../shared/import-draft.js";
 import { createNameResolver } from "../shared/resolve-references.js";
+import {
+  createColumnSetLookup,
+  type ColumnSetLookup,
+} from "./sql-column-set-lookup.js";
 import type { SqlElementLocations } from "./sql-element-locations.js";
 
 const REFERENTIAL_ACTIONS: ReadonlyMap<string, ReferentialAction> = new Map([
@@ -25,34 +29,47 @@ function toAction(keyword: string | null): ReferentialAction {
   return REFERENTIAL_ACTIONS.get(keyword?.toUpperCase() ?? "") ?? "noAction";
 }
 
-function isSameSet(a: readonly string[], b: readonly string[]): boolean {
-  const keys = new Set(a.map(toNameKey));
-  return a.length === b.length && b.every((name) => keys.has(toNameKey(name)));
+// Unique as spec part 2 defines it: the primary key, a unique column, or the
+// columns of a unique index (spec section 5, "Quan hệ"). Built once per table,
+// so a foreign key is checked without a scan of the table (spec section 1).
+type TableUniqueKeys = {
+  readonly keyOf: ColumnSetLookup<readonly string[]>;
+  readonly uniqueColumnKeys: ReadonlySet<string>;
+};
+
+function createTableUniqueKeys(
+  table: DraftTable,
+  uniqueIndexes: ReadonlyMap<string, readonly DraftIndex[]>,
+): TableUniqueKeys {
+  const indexKeys = (uniqueIndexes.get(toNameKey(table.name)) ?? []).map(
+    ({ columnNames }) => columnNames,
+  );
+  return {
+    keyOf: createColumnSetLookup(
+      [table.primaryKeyColumnNames, ...indexKeys],
+      (columnNames) => columnNames,
+    ),
+    uniqueColumnKeys: new Set(
+      table.columns
+        .filter(({ isUnique }) => isUnique)
+        .map(({ name }) => toNameKey(name)),
+    ),
+  };
 }
 
-// Unique as spec part 2 defines it: the primary key, a unique column, or the
-// columns of a unique index (spec section 5, "Quan hệ").
 function isUniqueColumnSet(
-  table: DraftTable | undefined,
+  keys: TableUniqueKeys | null,
   columnNames: readonly string[],
-  uniqueIndexes: ReadonlyMap<string, readonly DraftIndex[]>,
 ): boolean {
-  if (table === undefined) {
+  if (keys === null) {
     return false;
   }
   const [single] = columnNames;
   return (
-    isSameSet(table.primaryKeyColumnNames, columnNames) ||
+    keys.keyOf(columnNames) !== null ||
     (columnNames.length === 1 &&
-      table.columns.some(
-        ({ name, isUnique }) =>
-          isUnique &&
-          single !== undefined &&
-          toNameKey(name) === toNameKey(single),
-      )) ||
-    (uniqueIndexes.get(toNameKey(table.name)) ?? []).some((index) =>
-      isSameSet(index.columnNames, columnNames),
-    )
+      single !== undefined &&
+      keys.uniqueColumnKeys.has(toNameKey(single)))
   );
 }
 
@@ -93,6 +110,13 @@ export function translateRefs(input: {
 } {
   const resolveTable = createNameResolver(input.tables.map(({ name }) => name));
   const uniqueIndexes = groupUniqueIndexes(input.indexes);
+  const uniqueKeys = new Map<DraftTable, TableUniqueKeys>();
+  const uniqueKeysOf = (table: DraftTable): TableUniqueKeys => {
+    const keys =
+      uniqueKeys.get(table) ?? createTableUniqueKeys(table, uniqueIndexes);
+    uniqueKeys.set(table, keys);
+    return keys;
+  };
   const relations: DraftRelation[] = [];
   const diagnostics: DraftDiagnostic[] = [];
   input.refs.forEach((ref) => {
@@ -117,7 +141,10 @@ export function translateRefs(input: {
         fromColumnName,
         toColumnName: to.columnNames[position] ?? "",
       })),
-      kind: isUniqueColumnSet(fromTable, from.columnNames, uniqueIndexes)
+      kind: isUniqueColumnSet(
+        fromTable === undefined ? null : uniqueKeysOf(fromTable),
+        from.columnNames,
+      )
         ? "oneToOne"
         : "oneToMany",
       onDelete: toAction(ref.onDelete),

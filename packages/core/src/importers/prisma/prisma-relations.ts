@@ -91,36 +91,43 @@ function hasForeignKey(field: PrismaField): boolean {
   return namedArgument(relation, "fields") !== undefined;
 }
 
-// The field on the other model that names the same relation without `fields`.
-function findBackField(
-  model: ModelBlock,
-  field: PrismaField,
-  target: ModelBlock,
-): PrismaField | undefined {
-  const name = relationName(field);
-  return target.fields.find(
-    (candidate) =>
-      candidate !== field &&
-      candidate.typeName === model.name &&
-      !hasForeignKey(candidate) &&
-      relationName(candidate) === name,
-  );
+// Built once per model, so a relation field is read in constant time instead
+// of scanning every field of its model (import / export spec, section 1).
+type ModelLookup = {
+  // Fields without `fields`, by the model they point to, then relation name.
+  readonly backFields: ReadonlyMap<
+    string,
+    ReadonlyMap<string | null, readonly PrismaField[]>
+  >;
+  readonly optionalFieldNames: ReadonlySet<string>;
+  // Set keys of the primary key and the unique field sets.
+  readonly uniqueSetKeys: ReadonlySet<string>;
+};
+
+type LookupOf = (model: ModelBlock) => ModelLookup;
+
+// The same key for the same set of names, whatever their order or repeats.
+function setKey(names: readonly string[]): string {
+  return JSON.stringify([...new Set(names)].toSorted());
 }
 
-function isSameSet(
-  names: readonly string[],
-  others: readonly string[],
-): boolean {
-  const set = new Set(names);
-  return set.size === new Set(others).size && others.every((n) => set.has(n));
+function groupBackFields(model: ModelBlock): ModelLookup["backFields"] {
+  const groups = new Map<string, Map<string | null, PrismaField[]>>();
+  model.fields
+    .filter((field) => !hasForeignKey(field))
+    .forEach((field) => {
+      const byName =
+        groups.get(field.typeName) ?? new Map<string | null, PrismaField[]>();
+      const name = relationName(field);
+      const group = byName.get(name) ?? [];
+      group.push(field);
+      byName.set(name, group);
+      groups.set(field.typeName, byName);
+    });
+  return groups;
 }
 
-// Prisma requires a back relation; without one the kind follows the
-// uniqueness of the foreign key fields, as for SQL (spec section 6).
-function inferKind(
-  model: ModelBlock,
-  fieldNames: readonly string[],
-): RelationKind {
+function createModelLookup(model: ModelBlock): ModelLookup {
   const fieldKey = model.fields
     .filter((field) => findAttribute(field.attributes, "id") !== undefined)
     .map((field) => field.name);
@@ -132,10 +139,41 @@ function inferKind(
       (attribute) => attribute.name === "id" || attribute.name === "unique",
     )
     .map(attributeFieldNames);
-  const isUnique = [fieldKey, ...uniqueFields, ...blockKeys].some(
-    (key) => key.length > 0 && isSameSet(fieldNames, key),
-  );
-  return isUnique ? "oneToOne" : "oneToMany";
+  return {
+    backFields: groupBackFields(model),
+    optionalFieldNames: new Set(
+      model.fields.filter((field) => field.isOptional).map(({ name }) => name),
+    ),
+    uniqueSetKeys: new Set(
+      [fieldKey, ...uniqueFields, ...blockKeys]
+        .filter((key) => key.length > 0)
+        .map(setKey),
+    ),
+  };
+}
+
+// The field on the other model that names the same relation without `fields`.
+function findBackField(
+  model: ModelBlock,
+  field: PrismaField,
+  target: ModelBlock,
+  lookupOf: LookupOf,
+): PrismaField | undefined {
+  return lookupOf(target)
+    .backFields.get(model.name)
+    ?.get(relationName(field))
+    ?.find((candidate) => candidate !== field);
+}
+
+// Prisma requires a back relation; without one the kind follows the
+// uniqueness of the foreign key fields, as for SQL (spec section 6).
+function inferKind(
+  lookup: ModelLookup,
+  fieldNames: readonly string[],
+): RelationKind {
+  return lookup.uniqueSetKeys.has(setKey(fieldNames))
+    ? "oneToOne"
+    : "oneToMany";
 }
 
 // `Model[]` on the other side is one-to-many; `Model?` is one-to-one.
@@ -177,19 +215,21 @@ function buildRelation(
   target: ModelBlock,
   relation: PrismaAttribute,
   context: PrismaRelationsContext,
+  lookupOf: LookupOf,
 ): BuiltRelation | DroppedRelation {
   const fieldNames = identifierList(namedArgument(relation, "fields"));
   const references = identifierList(namedArgument(relation, "references"));
   if (fieldNames.length === 0 || fieldNames.length !== references.length) {
     return { code: "reference-not-found", position: relation.position };
   }
-  const backField = findBackField(model, field, target);
-  const hasNullableField = model.fields.some(
-    (candidate) => candidate.isOptional && fieldNames.includes(candidate.name),
+  const backField = findBackField(model, field, target, lookupOf);
+  const lookup = lookupOf(model);
+  const hasNullableField = fieldNames.some((name) =>
+    lookup.optionalFieldNames.has(name),
   );
   const kind =
     backField === undefined
-      ? inferKind(model, fieldNames)
+      ? inferKind(lookup, fieldNames)
       : backFieldKind(backField);
   return {
     relation: {
@@ -228,13 +268,23 @@ export function buildPrismaRelations(
   const dropped: DroppedRelation[] = [];
   // Both sides of an implicit many-to-many name it; it is reported once.
   const reportedFields = new Set<PrismaField>();
+  const lookups = new Map<ModelBlock, ModelLookup>();
+  const lookupOf: LookupOf = (model) => {
+    const lookup = lookups.get(model) ?? createModelLookup(model);
+    lookups.set(model, lookup);
+    return lookup;
+  };
   for (const model of models) {
     for (const field of model.fields) {
       const target = modelsByName.get(field.typeName);
       const read =
         target === undefined || reportedFields.has(field)
           ? null
-          : readRelationField(model, field, target, context, reportedFields);
+          : readRelationField(model, field, target, {
+              context,
+              reportedFields,
+              lookupOf,
+            });
       if (read !== null && "relation" in read) relations.push(read);
       else if (read !== null) dropped.push(read);
     }
@@ -248,14 +298,18 @@ function readRelationField(
   model: ModelBlock,
   field: PrismaField,
   target: ModelBlock,
-  context: PrismaRelationsContext,
-  reportedFields: Set<PrismaField>,
+  state: {
+    readonly context: PrismaRelationsContext;
+    readonly reportedFields: Set<PrismaField>;
+    readonly lookupOf: LookupOf;
+  },
 ): BuiltRelation | DroppedRelation | null {
+  const { context, reportedFields, lookupOf } = state;
   const relation = findAttribute(field.attributes, RELATION_ATTRIBUTE);
   if (relation !== undefined && hasForeignKey(field)) {
-    return buildRelation(model, field, target, relation, context);
+    return buildRelation(model, field, target, relation, context, lookupOf);
   }
-  const backField = findBackField(model, field, target);
+  const backField = findBackField(model, field, target, lookupOf);
   if (!field.isList || backField?.isList !== true) {
     return null;
   }

@@ -30,12 +30,49 @@ function isAtOrBefore(a: SourceLocation, b: SourceLocation): boolean {
   return a.line < b.line || (a.line === b.line && a.column <= b.column);
 }
 
-function isInside(inner: CoreToken, outer: CoreToken | null): boolean {
-  return (
-    outer !== null &&
-    isAtOrBefore(outer.start, inner.start) &&
-    isAtOrBefore(inner.end, outer.end)
-  );
+function compareLocations(a: SourceLocation, b: SourceLocation): number {
+  return a.line - b.line || a.column - b.column;
+}
+
+// The table tokens by start, each with the furthest end among it and the
+// tables that start before it, so whether a ref lies inside some table is a
+// binary search instead of a scan of every table (spec section 1).
+type TableSpan = {
+  readonly start: SourceLocation;
+  readonly furthestEnd: SourceLocation;
+};
+
+function createTableSpans(tables: readonly CoreTable[]): readonly TableSpan[] {
+  const tokens = tables
+    .flatMap(({ token }) => (token === null ? [] : [token]))
+    .toSorted((a, b) => compareLocations(a.start, b.start));
+  const spans: TableSpan[] = [];
+  tokens.forEach(({ start, end }) => {
+    const previous = spans.at(-1)?.furthestEnd ?? end;
+    const furthestEnd = isAtOrBefore(previous, end) ? end : previous;
+    spans.push({ start, furthestEnd });
+  });
+  return spans;
+}
+
+function isInsideAnyTable(
+  inner: CoreToken,
+  spans: readonly TableSpan[],
+): boolean {
+  // The number of tables that start at or before the ref.
+  let low = 0;
+  let high = spans.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    const span = spans[middle];
+    if (span !== undefined && isAtOrBefore(span.start, inner.start)) {
+      low = middle + 1;
+    } else {
+      high = middle;
+    }
+  }
+  const span = spans[low - 1];
+  return span !== undefined && isAtOrBefore(inner.end, span.furthestEnd);
 }
 
 /**
@@ -58,13 +95,9 @@ function toRelation(
   ref: CoreRef,
   first: CoreEndpoint,
   second: CoreEndpoint,
-  tables: readonly CoreTable[],
+  spans: readonly TableSpan[],
 ): DraftRelation {
-  const isInline =
-    ref.token !== null &&
-    tables.some(
-      (table) => ref.token !== null && isInside(ref.token, table.token),
-    );
+  const isInline = ref.token !== null && isInsideAnyTable(ref.token, spans);
   const [from, to] = orderEndpoints(first, second, isInline);
   return {
     fromTableName: from.tableName,
@@ -86,6 +119,7 @@ export function translateRefs(
   refs: readonly CoreRef[],
   tables: readonly CoreTable[],
 ): RelationDraftParts {
+  const spans = createTableSpans(tables);
   const relations: DraftRelation[] = [];
   const diagnostics: DraftDiagnostic[] = [];
   refs.forEach((ref) => {
@@ -107,7 +141,7 @@ export function translateRefs(
       const target = { kind: "relation", index: relations.length } as const;
       diagnostics.push({ code: "color-dropped", location, target });
     }
-    relations.push(toRelation(ref, first, second, tables));
+    relations.push(toRelation(ref, first, second, spans));
   });
   return { relations, diagnostics };
 }

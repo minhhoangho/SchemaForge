@@ -5,9 +5,10 @@ import type {
   CoreTable,
 } from "../shared/dbml-core-adapter-types.js";
 import type { SourceLocation } from "../shared/import-types.js";
-import type { SqlTableKey, SqlUniqueConstraint } from "./sql-table-keys.js";
+import type { SqlUniqueConstraint } from "./sql-table-keys.js";
 import type { SqlDraftContext } from "./sql-draft-context.js";
 import type { SqlIndexDefinition } from "./sql-index-definitions.js";
+import type { TableIndexLookup } from "./sql-table-index-lookup.js";
 
 // How one parsed index enters the draft (spec section 5, "Unique", "Index").
 export type IndexOutcome =
@@ -31,80 +32,25 @@ export type IndexSource = {
   readonly columnNames: readonly string[];
   readonly definition: SqlIndexDefinition | null;
   readonly context: SqlDraftContext;
+  readonly lookup: TableIndexLookup;
 };
-
-function isSameList(
-  a: readonly string[],
-  b: readonly (string | null)[],
-): boolean {
-  return a.length === b.length && a.every((name, index) => name === b[index]);
-}
-
-function isSameSet(a: readonly string[], b: readonly string[]): boolean {
-  return a.length === b.length && isSubset(b, a);
-}
 
 function isSubset(names: readonly string[], of: readonly string[]): boolean {
   const keys = new Set(of.map(toNameKey));
   return names.every((name) => keys.has(toNameKey(name)));
 }
 
-// Whether what the scanner read is the parsed index: by name, or by its
-// columns in order when the index has no name.
-function isSameIndex(
-  index: CoreIndex,
-  columnNames: readonly string[],
-  read: {
-    readonly name: string | null;
-    readonly columnNames: readonly (string | null)[];
-  },
-): boolean {
-  return index.name === null
-    ? read.name === null && isSameList(columnNames, read.columnNames)
-    : read.name !== null && toNameKey(read.name) === toNameKey(index.name);
-}
-
-// The CREATE INDEX of the same table.
-export function findDefinition(
-  index: CoreIndex,
-  table: CoreTable,
-  columnNames: readonly string[],
-  context: SqlDraftContext,
-): SqlIndexDefinition | null {
-  const definitions = context.indexDefinitions.get(toNameKey(table.name)) ?? [];
-  return (
-    definitions.find((definition) =>
-      isSameIndex(index, columnNames, {
-        name: definition.indexName,
-        columnNames: definition.columnNames,
-      }),
-    ) ?? null
-  );
-}
-
-// The MySQL key inside the CREATE TABLE of the table.
-function findTableKey(source: IndexSource): SqlTableKey | null {
-  const { index, table, columnNames, context } = source;
-  const keys = context.locations.tableDefinition(table.name)?.keys ?? [];
-  return keys.find((key) => isSameIndex(index, columnNames, key)) ?? null;
-}
-
 function findUniqueConstraint(source: IndexSource): {
   readonly constraint: SqlUniqueConstraint;
   readonly start: number | null;
 } | null {
-  const { table, columnNames, context } = source;
-  const created = context.locations.tableDefinition(table.name);
-  const inTable = created?.uniqueConstraints.find((constraint) =>
-    isSameSet(constraint.columnNames, columnNames),
-  );
-  if (inTable !== undefined) {
+  const { columnNames, lookup } = source;
+  const inTable = lookup.uniqueConstraint(columnNames);
+  if (inTable !== null) {
     return { constraint: inTable, start: null };
   }
-  const added = context.addedUniqueConstraints
-    .get(toNameKey(table.name))
-    ?.find(({ constraint }) => isSameSet(constraint.columnNames, columnNames));
-  return added === undefined
+  const added = lookup.addedUniqueConstraint(columnNames);
+  return added === null
     ? null
     : { constraint: added.constraint, start: added.start };
 }
@@ -184,19 +130,12 @@ function hasOtherKeyStartingWith(
   source: IndexSource,
   columnName: string,
 ): boolean {
-  const { table, index } = source;
+  const { index, lookup } = source;
   const columnKey = toNameKey(columnName);
-  const isColumn = (name: string | undefined): boolean =>
-    name !== undefined && toNameKey(name) === columnKey;
-  const hasPrimaryKeyIndex = table.indexes.some((key) => key.isPrimaryKey);
   return (
-    table.indexes.some(
-      (other) => other !== index && isColumn(other.columns[0]?.value),
-    ) ||
-    table.fields.some(
-      ({ name, isUnique, isPrimaryKey }) =>
-        isColumn(name) && (isUnique || (isPrimaryKey && !hasPrimaryKeyIndex)),
-    )
+    (lookup.indexesByFirstColumn.get(columnKey) ?? []).some(
+      (other) => other !== index,
+    ) || lookup.keyColumnKeys.has(columnKey)
   );
 }
 
@@ -211,9 +150,7 @@ function isAutoIncrementIndex(source: IndexSource): boolean {
     source.context.dialect === "mysql" &&
     columnName !== undefined &&
     columnNames.length === 1 &&
-    table.fields.some(
-      ({ name, isIncrement }) => isIncrement && name === columnName,
-    ) &&
+    source.lookup.autoIncrementColumnNames.has(columnName) &&
     index.name === buildConstraintName(table.name, [columnName], "idx") &&
     !hasOtherKeyStartingWith(source, columnName)
   );
@@ -226,7 +163,7 @@ function classifyTableKey(source: IndexSource): IndexOutcome {
   if (isAutoIncrementIndex(source)) {
     return { kind: "dropped" };
   }
-  const key = findTableKey(source);
+  const key = source.lookup.tableKey(source.index, source.columnNames);
   return {
     kind: "index",
     name: source.index.name,

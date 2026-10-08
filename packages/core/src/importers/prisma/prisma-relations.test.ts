@@ -62,6 +62,63 @@ function postAndUser(
 
 const AUTHOR_RELATION = "fields: [authorId], references: [id]";
 
+const RELATION_COUNT = 2000;
+
+// Model A holds RELATION_COUNT named relations to B; `backField` writes the
+// field B gets for relation `r<n>`, or nothing.
+function manyRelationsSource(
+  foreignKeyAttributes: string,
+  backField: (relation: string) => string,
+): string {
+  const relations = Array.from(
+    { length: RELATION_COUNT },
+    (_, position) => `r${String(position)}`,
+  );
+  return [
+    "model A {",
+    "  id Int @id",
+    ...relations.flatMap((relation) => [
+      `  ${relation}Id Int${foreignKeyAttributes}`,
+      `  ${relation} B @relation("${relation}", fields: [${relation}Id], references: [id])`,
+    ]),
+    "}",
+    "model B {",
+    "  id Int @id",
+    ...relations.map(backField),
+    "}",
+  ].join("\n");
+}
+
+// Counts the reads of model fields instead of timing: a scan of every field
+// per relation field reads them relations x fields times.
+function countFieldReads(source: string): {
+  readonly result: PrismaRelationsResult;
+  readonly fieldCount: number;
+  readonly fieldReads: number;
+} {
+  const { blocks } = unwrapOk(parsePrismaSchema(source));
+  let fieldReads = 0;
+  let fieldCount = 0;
+  const countedBlocks = blocks.map((block) => {
+    if (block.kind !== "model") {
+      return block;
+    }
+    fieldCount += block.fields.length;
+    const fields = new Proxy(block.fields, {
+      get: (target, key, receiver): unknown => {
+        fieldReads += typeof key === "string" && /^\d+$/u.test(key) ? 1 : 0;
+        return Reflect.get(target, key, receiver);
+      },
+    });
+    return { ...block, fields };
+  });
+  const result = buildPrismaRelations(countedBlocks, {
+    provider: "postgresql",
+    ...SAME_NAMES,
+  });
+  return { result, fieldCount, fieldReads };
+}
+
 describe("buildPrismaRelations", () => {
   it("pairs fields with references in order", () => {
     const result = relationsOf([
@@ -290,6 +347,34 @@ describe("buildPrismaRelations", () => {
       });
     },
   );
+
+  it("reads the fields a number of times linear in their count when every relation has a back relation", () => {
+    const { result, fieldCount, fieldReads } = countFieldReads(
+      manyRelationsSource(
+        "",
+        (relation) => `  ${relation}s A[] @relation("${relation}")`,
+      ),
+    );
+
+    expect(result.relations).toHaveLength(RELATION_COUNT);
+    expect(fieldReads).toBeLessThan(fieldCount * 10);
+  });
+
+  it("reads the fields a number of times linear in their count when the kind follows uniqueness", () => {
+    const { result, fieldCount, fieldReads } = countFieldReads(
+      manyRelationsSource("? @unique", () => ""),
+    );
+
+    expect(
+      result.relations.map(({ relation }) => [
+        relation.kind,
+        relation.onDelete,
+      ]),
+    ).toStrictEqual(
+      Array.from({ length: RELATION_COUNT }, () => ["oneToOne", "setNull"]),
+    );
+    expect(fieldReads).toBeLessThan(fieldCount * 10);
+  });
 
   it("uses mapped column names", () => {
     const result = relationsOf(postAndUser(AUTHOR_RELATION), "postgresql", {

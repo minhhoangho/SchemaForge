@@ -20,20 +20,22 @@ import {
 import { classifyStatement, type StatementKind } from "./classify-statement.js";
 import { readPostgresqlAlterColumn } from "./postgresql-identity.js";
 import {
-  readAddedUniqueConstraint,
   readSqlTableDefinition,
   type SqlTableDefinition,
 } from "./sql-column-definitions.js";
 import { buildSqlDraft } from "./sql-draft.js";
+import type { ColumnChange } from "./sql-draft-overrides.js";
 import { locateSqlElements } from "./sql-element-locations.js";
-import { hideCustomTypes, hideWithCheckClauses } from "./sql-parser-source.js";
+import { findStatementsOnMissingTables } from "./sql-missing-tables.js";
+import { toParserSource } from "./sql-parser-source.js";
 import { readSqlIndexDefinition } from "./sql-index-definitions.js";
-import { readSqlServerDescription } from "./sqlserver-extended-property.js";
+import { readAddedUniqueConstraint } from "./sql-table-keys.js";
+import { readSqlServerAddDefault } from "./sqlserver-add-default.js";
 import {
-  scanSqlStatements,
-  maskStatements,
-  type SqlStatement,
-} from "./statement-scanner.js";
+  readSqlServerDescription,
+  type SqlServerDescription,
+} from "./sqlserver-extended-property.js";
+import { scanSqlStatements, type SqlStatement } from "./statement-scanner.js";
 
 type ClassifiedStatement = {
   readonly statement: SqlStatement;
@@ -113,9 +115,37 @@ type ParsedSql = {
   readonly classified: readonly ClassifiedStatement[];
   // The statements given to the parser, in source order.
   readonly kept: readonly SqlStatement[];
+  // ALTER TABLE statements on a table the source does not create, masked.
+  readonly onMissingTables: readonly SqlStatement[];
   readonly tableDefinitions: readonly SqlTableDefinition[];
   readonly database: CoreDatabase;
 };
+
+type ParserStatements = Pick<
+  ParsedSql,
+  "kept" | "onMissingTables" | "tableDefinitions"
+>;
+
+// The statements classified for the parser, less the ALTER TABLE ones on a
+// table the source does not create.
+function selectParserStatements(
+  classified: readonly ClassifiedStatement[],
+  source: string,
+): ParserStatements {
+  const forParser = statementsOf(classified, "parser");
+  const tableDefinitions = forParser.flatMap(
+    (statement) => readSqlTableDefinition(statement, source) ?? [],
+  );
+  const onMissingTables = findStatementsOnMissingTables(
+    forParser,
+    tableDefinitions,
+  );
+  return {
+    kept: forParser.filter((s) => !onMissingTables.includes(s)),
+    onMissingTables,
+    tableDefinitions,
+  };
+}
 
 // Steps 2 to 4: scans and classifies the statements, then parses the ones
 // the parser reads.
@@ -136,23 +166,37 @@ function parseSql(
     statement,
     kind: classifyStatement(statement, dialect),
   }));
-  const kept = statementsOf(classified, "parser");
-  const keptSet = new Set(kept);
-  const tableDefinitions = kept.flatMap(
-    (statement) => readSqlTableDefinition(statement, source) ?? [],
-  );
-  const masked = maskStatements(source, scanned.value, (statement) =>
-    keptSet.has(statement),
-  );
-  const parserSource = hideCustomTypes({
-    source: hideWithCheckClauses({ source: masked, statements: kept, dialect }),
-    definitions: tableDefinitions,
+  const selected = selectParserStatements(classified, source);
+  const parsed = parseSqlWithDbmlCore(
+    toParserSource({ ...selected, dialect, source, statements: scanned.value }),
     dialect,
-  });
-  const parsed = parseSqlWithDbmlCore(parserSource, dialect);
+  );
   return parsed.isOk
-    ? ok({ classified, kept, tableDefinitions, database: parsed.value })
+    ? ok({ ...selected, classified, database: parsed.value })
     : err({ diagnostics: parsed.error });
+}
+
+// The column changes and descriptions of the statements the scanner reads.
+function readScannerParts(
+  classified: readonly ClassifiedStatement[],
+  unread: DraftDiagnostic[],
+  at: Locate,
+): {
+  readonly columnChanges: readonly ColumnChange[];
+  readonly descriptions: readonly SqlServerDescription[];
+} {
+  const read = <Read>(
+    kind: StatementKind,
+    reader: (statement: SqlStatement) => Read | null,
+  ): readonly Read[] =>
+    readScannerStatements(statementsOf(classified, kind), reader, unread, at);
+  return {
+    columnChanges: [
+      ...read("postgresqlAlterColumn", readPostgresqlAlterColumn),
+      ...read("sqlserverAddDefault", readSqlServerAddDefault),
+    ],
+    descriptions: read("sqlserverExtendedProperty", readSqlServerDescription),
+  };
 }
 
 // Steps 5 to 7 on what parseSql read.
@@ -176,23 +220,20 @@ function draftParsedSql(
     addedUniqueConstraints: kept.flatMap(
       (statement) => readAddedUniqueConstraint(statement) ?? [],
     ),
-    alterColumns: readScannerStatements(
-      statementsOf(classified, "postgresqlAlterColumn"),
-      readPostgresqlAlterColumn,
-      unread,
-      at,
-    ),
-    descriptions: readScannerStatements(
-      statementsOf(classified, "sqlserverExtendedProperty"),
-      readSqlServerDescription,
-      unread,
-      at,
-    ),
+    ...readScannerParts(classified, unread, at),
   });
+  const missingReferences = parsed.onMissingTables.map(
+    ({ start }): DraftDiagnostic => ({
+      code: "reference-not-found",
+      location: at(start),
+      target: null,
+    }),
+  );
   return {
     ...draft,
     diagnostics: [
       ...reportStatements(classified, at),
+      ...missingReferences,
       ...unread,
       ...draft.diagnostics,
     ],

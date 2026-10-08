@@ -5,7 +5,7 @@ import type {
   CoreTable,
 } from "../shared/dbml-core-adapter-types.js";
 import type { SourceLocation } from "../shared/import-types.js";
-import type { SqlUniqueConstraint } from "./sql-column-definitions.js";
+import type { SqlTableKey, SqlUniqueConstraint } from "./sql-table-keys.js";
 import type { SqlDraftContext } from "./sql-draft-context.js";
 import type { SqlIndexDefinition } from "./sql-index-definitions.js";
 
@@ -19,6 +19,8 @@ export type IndexOutcome =
       readonly kind: "index";
       readonly name: string | null;
       readonly hasDroppedOption: boolean;
+      // A MySQL FULLTEXT or SPATIAL key; the parser gives it no type.
+      readonly hasDroppedKeyKind: boolean;
       readonly location: SourceLocation | null;
     }
   | { readonly kind: "dropped" };
@@ -47,8 +49,22 @@ function isSubset(names: readonly string[], of: readonly string[]): boolean {
   return names.every((name) => keys.has(toNameKey(name)));
 }
 
-// The CREATE INDEX of the same table, by name, or by its columns in order
-// when the index has no name.
+// Whether what the scanner read is the parsed index: by name, or by its
+// columns in order when the index has no name.
+function isSameIndex(
+  index: CoreIndex,
+  columnNames: readonly string[],
+  read: {
+    readonly name: string | null;
+    readonly columnNames: readonly (string | null)[];
+  },
+): boolean {
+  return index.name === null
+    ? read.name === null && isSameList(columnNames, read.columnNames)
+    : read.name !== null && toNameKey(read.name) === toNameKey(index.name);
+}
+
+// The CREATE INDEX of the same table.
 export function findDefinition(
   index: CoreIndex,
   table: CoreTable,
@@ -58,13 +74,19 @@ export function findDefinition(
   const definitions = context.indexDefinitions.get(toNameKey(table.name)) ?? [];
   return (
     definitions.find((definition) =>
-      index.name === null
-        ? definition.indexName === null &&
-          isSameList(columnNames, definition.columnNames)
-        : definition.indexName !== null &&
-          toNameKey(definition.indexName) === toNameKey(index.name),
+      isSameIndex(index, columnNames, {
+        name: definition.indexName,
+        columnNames: definition.columnNames,
+      }),
     ) ?? null
   );
+}
+
+// The MySQL key inside the CREATE TABLE of the table.
+function findTableKey(source: IndexSource): SqlTableKey | null {
+  const { index, table, columnNames, context } = source;
+  const keys = context.locations.tableDefinition(table.name)?.keys ?? [];
+  return keys.find((key) => isSameIndex(index, columnNames, key)) ?? null;
 }
 
 function findUniqueConstraint(source: IndexSource): {
@@ -120,6 +142,7 @@ function classifyFilteredUnique(source: IndexSource): IndexOutcome | null {
         kind: "index",
         name: source.index.name,
         hasDroppedOption,
+        hasDroppedKeyKind: false,
         location: source.context.locations.at(definition.start),
       };
 }
@@ -135,6 +158,7 @@ function classifyConstraint(source: IndexSource): IndexOutcome {
           kind: "index",
           name: source.index.name,
           hasDroppedOption: false,
+          hasDroppedKeyKind: false,
           location: tableLocation,
         };
   }
@@ -149,12 +173,37 @@ function classifyConstraint(source: IndexSource): IndexOutcome {
         kind: "index",
         name: constraint.name,
         hasDroppedOption,
+        hasDroppedKeyKind: false,
         location: start === null ? tableLocation : context.locations.at(start),
       };
 }
 
+// Whether the primary key, a unique column or another index of the table
+// starts with the column.
+function hasOtherKeyStartingWith(
+  source: IndexSource,
+  columnName: string,
+): boolean {
+  const { table, index } = source;
+  const columnKey = toNameKey(columnName);
+  const isColumn = (name: string | undefined): boolean =>
+    name !== undefined && toNameKey(name) === columnKey;
+  const hasPrimaryKeyIndex = table.indexes.some((key) => key.isPrimaryKey);
+  return (
+    table.indexes.some(
+      (other) => other !== index && isColumn(other.columns[0]?.value),
+    ) ||
+    table.fields.some(
+      ({ name, isUnique, isPrimaryKey }) =>
+        isColumn(name) && (isUnique || (isPrimaryKey && !hasPrimaryKeyIndex)),
+    )
+  );
+}
+
 // MySQL needs an index on an AUTO_INCREMENT column that does not lead a key;
-// CG-01 adds `KEY <table>_<column>_idx` for it and writes it again.
+// CG-01 adds `KEY <table>_<column>_idx` for it (findAutoIncrementIndexColumnIds)
+// and writes it again, so the index is dropped only when no other key starts
+// with the column.
 function isAutoIncrementIndex(source: IndexSource): boolean {
   const { table, columnNames, index } = source;
   const [columnName] = columnNames;
@@ -165,12 +214,30 @@ function isAutoIncrementIndex(source: IndexSource): boolean {
     table.fields.some(
       ({ name, isIncrement }) => isIncrement && name === columnName,
     ) &&
-    index.name === buildConstraintName(table.name, [columnName], "idx")
+    index.name === buildConstraintName(table.name, [columnName], "idx") &&
+    !hasOtherKeyStartingWith(source, columnName)
   );
 }
 
+// An index with no CREATE INDEX and no unique constraint: a MySQL key inside
+// CREATE TABLE, whose element options and FULLTEXT or SPATIAL kind the parser
+// drops without a sign (spec section 5, "Index").
+function classifyTableKey(source: IndexSource): IndexOutcome {
+  if (isAutoIncrementIndex(source)) {
+    return { kind: "dropped" };
+  }
+  const key = findTableKey(source);
+  return {
+    kind: "index",
+    name: source.index.name,
+    hasDroppedOption: key?.hasDroppedElementOption ?? false,
+    hasDroppedKeyKind: key !== null && key.kind !== "plain",
+    location: source.context.locations.table(source.table.name),
+  };
+}
+
 export function classifyIndex(source: IndexSource): IndexOutcome {
-  const { definition, index, context, table } = source;
+  const { definition, index, context } = source;
   if (index.isUnique) {
     const filtered = classifyFilteredUnique(source);
     if (filtered !== null) {
@@ -185,18 +252,9 @@ export function classifyIndex(source: IndexSource): IndexOutcome {
         definition.hasDroppedElementOption ||
         definition.hasInclude ||
         definition.hasWhere,
+      hasDroppedKeyKind: false,
       location: context.locations.at(definition.start),
     };
   }
-  if (index.isUnique) {
-    return classifyConstraint(source);
-  }
-  return isAutoIncrementIndex(source)
-    ? { kind: "dropped" }
-    : {
-        kind: "index",
-        name: index.name,
-        hasDroppedOption: false,
-        location: context.locations.table(table.name),
-      };
+  return index.isUnique ? classifyConstraint(source) : classifyTableKey(source);
 }

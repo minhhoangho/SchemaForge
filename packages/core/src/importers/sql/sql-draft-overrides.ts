@@ -6,8 +6,21 @@ import {
   type NameResolver,
 } from "../shared/resolve-references.js";
 import type { RawSqlDefault } from "../shared/sql-default-mapping.js";
-import type { PostgresqlAlterColumn } from "./postgresql-identity.js";
 import type { SqlServerDescription } from "./sqlserver-extended-property.js";
+
+/**
+ * A change to one column that the scanner reads from a statement it keeps from
+ * the parser: pg_dump `ALTER COLUMN … ADD GENERATED … AS IDENTITY` or `SET
+ * DEFAULT`, and SQL Server `ADD [CONSTRAINT n] DEFAULT … FOR c`.
+ */
+export type ColumnChange = {
+  readonly tableName: string;
+  readonly columnName: string;
+  readonly start: number;
+  readonly change:
+    | { readonly kind: "identity" }
+    | { readonly kind: "default"; readonly raw: RawSqlDefault };
+};
 
 // What the statements that the scanner reads instead of the parser change on a
 // column (import / export spec, section 5, flow step 6).
@@ -21,10 +34,7 @@ export type ColumnOverride = {
 };
 
 export type SqlOverrides = {
-  readonly column: (
-    tableIndex: number,
-    columnIndex: number,
-  ) => ColumnOverride | null;
+  readonly column: (position: ColumnPosition) => ColumnOverride | null;
   readonly tableComment: (tableIndex: number) => string | null;
 };
 
@@ -79,71 +89,102 @@ function toKey({ tableIndex, columnIndex }: ColumnPosition): string {
   return `${String(tableIndex)}:${String(columnIndex)}`;
 }
 
+type OverrideState = {
+  readonly resolve: PositionResolver;
+  readonly columns: Map<string, ColumnOverride>;
+  readonly tableComments: Map<number, string>;
+  readonly diagnostics: DraftDiagnostic[];
+  readonly at: (offset: number) => SourceLocation;
+};
+
+function updateColumn(
+  state: OverrideState,
+  position: ColumnPosition,
+  change: Partial<ColumnOverride>,
+): void {
+  const key = toKey(position);
+  state.columns.set(key, {
+    ...(state.columns.get(key) ?? NO_OVERRIDE),
+    ...change,
+  });
+}
+
+// What a statement says is lost when it matches no table or column.
+function reportUnmatched(state: OverrideState, start: number): void {
+  state.diagnostics.push({
+    code: "statement-not-supported",
+    location: state.at(start),
+    target: null,
+  });
+}
+
+function applyColumnChanges(
+  state: OverrideState,
+  changes: readonly ColumnChange[],
+): void {
+  changes.forEach(({ tableName, columnName, start, change }) => {
+    const position = state.resolve.column(tableName, columnName);
+    if (position === null) {
+      reportUnmatched(state, start);
+      return;
+    }
+    updateColumn(
+      state,
+      position,
+      change.kind === "identity"
+        ? { isIdentity: true }
+        : { defaultValue: { raw: change.raw, location: state.at(start) } },
+    );
+  });
+}
+
+function applyDescriptions(
+  state: OverrideState,
+  descriptions: readonly SqlServerDescription[],
+): void {
+  descriptions.forEach(({ tableName, columnName, description, start }) => {
+    const tableIndex =
+      columnName === null ? state.resolve.table(tableName) : null;
+    const position =
+      columnName === null ? null : state.resolve.column(tableName, columnName);
+    if (tableIndex !== null) {
+      state.tableComments.set(tableIndex, description);
+    } else if (position !== null) {
+      updateColumn(state, position, { comment: description });
+    } else {
+      reportUnmatched(state, start);
+    }
+  });
+}
+
 /**
- * Matches pg_dump `ALTER COLUMN` statements and SQL Server descriptions to the
- * parsed tables and columns; a statement that matches nothing is reported as
- * statement-not-supported, since what it says is lost.
+ * Matches the column changes and SQL Server descriptions the scanner read to
+ * the parsed tables and columns; a statement that matches nothing is reported
+ * as statement-not-supported, since what it says is lost.
  */
 export function resolveScannerStatements(input: {
   readonly tables: readonly CoreTable[];
-  readonly alterColumns: readonly PostgresqlAlterColumn[];
+  readonly columnChanges: readonly ColumnChange[];
   readonly descriptions: readonly SqlServerDescription[];
   readonly at: (offset: number) => SourceLocation;
 }): {
   readonly overrides: SqlOverrides;
   readonly diagnostics: readonly DraftDiagnostic[];
 } {
-  const resolve = createPositionResolver(input.tables);
-  const columns = new Map<string, ColumnOverride>();
-  const tableComments = new Map<number, string>();
-  const diagnostics: DraftDiagnostic[] = [];
-  const update = (
-    position: ColumnPosition,
-    change: Partial<ColumnOverride>,
-  ): void => {
-    const key = toKey(position);
-    columns.set(key, { ...(columns.get(key) ?? NO_OVERRIDE), ...change });
+  const state: OverrideState = {
+    resolve: createPositionResolver(input.tables),
+    columns: new Map(),
+    tableComments: new Map(),
+    diagnostics: [],
+    at: input.at,
   };
-  const reportUnmatched = (start: number): void => {
-    diagnostics.push({
-      code: "statement-not-supported",
-      location: input.at(start),
-      target: null,
-    });
-  };
-  input.alterColumns.forEach(({ tableName, columnName, start, change }) => {
-    const position = resolve.column(tableName, columnName);
-    if (position === null) {
-      reportUnmatched(start);
-      return;
-    }
-    update(
-      position,
-      change.kind === "identity"
-        ? { isIdentity: true }
-        : { defaultValue: { raw: change.raw, location: input.at(start) } },
-    );
-  });
-  input.descriptions.forEach(
-    ({ tableName, columnName, description, start }) => {
-      const tableIndex = columnName === null ? resolve.table(tableName) : null;
-      const position =
-        columnName === null ? null : resolve.column(tableName, columnName);
-      if (tableIndex !== null) {
-        tableComments.set(tableIndex, description);
-      } else if (position !== null) {
-        update(position, { comment: description });
-      } else {
-        reportUnmatched(start);
-      }
-    },
-  );
+  applyColumnChanges(state, input.columnChanges);
+  applyDescriptions(state, input.descriptions);
   return {
     overrides: {
-      column: (tableIndex, columnIndex) =>
-        columns.get(toKey({ tableIndex, columnIndex })) ?? null,
-      tableComment: (tableIndex) => tableComments.get(tableIndex) ?? null,
+      column: (position) => state.columns.get(toKey(position)) ?? null,
+      tableComment: (tableIndex) => state.tableComments.get(tableIndex) ?? null,
     },
-    diagnostics,
+    diagnostics: state.diagnostics,
   };
 }

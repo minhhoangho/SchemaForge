@@ -6,7 +6,7 @@ import {
 import type { SqlTableDefinition } from "./sql-column-definitions.js";
 import type { SqlToken } from "./sql-lexer.js";
 import { findAlterTableAction, wordAt } from "./sql-token-reading.js";
-import type { SqlStatement } from "./statement-scanner.js";
+import { maskStatements, type SqlStatement } from "./statement-scanner.js";
 
 // A type every parser grammar reads; no longer than any type it replaces.
 const PLACEHOLDER_TYPE = "INT";
@@ -116,4 +116,27 @@ export function hideWithCheckClauses(input: {
   }
   parts.push(input.source.slice(offset));
   return parts.join("");
+}
+
+/**
+ * The text given to the parser: the source with every statement but the kept
+ * ones masked, and the clauses and types the parser misreads hidden.
+ */
+export function toParserSource(input: {
+  readonly dialect: SqlDialect;
+  readonly source: string;
+  readonly statements: readonly SqlStatement[];
+  readonly kept: readonly SqlStatement[];
+  readonly tableDefinitions: readonly SqlTableDefinition[];
+}): string {
+  const { dialect, kept } = input;
+  const keptSet = new Set(kept);
+  const masked = maskStatements(input.source, input.statements, (statement) =>
+    keptSet.has(statement),
+  );
+  return hideCustomTypes({
+    source: hideWithCheckClauses({ source: masked, statements: kept, dialect }),
+    definitions: input.tableDefinitions,
+    dialect,
+  });
 }

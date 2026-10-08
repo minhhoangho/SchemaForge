@@ -4,13 +4,11 @@ import type { SqlDialect } from "../../generators/shared/generator-types.js";
 import { unwrapOk } from "../../testing/unwrap-result.js";
 import {
   COLUMN_CONSTRAINT_WORDS,
-  readAddedUniqueConstraint,
   readSqlTableDefinition,
-  type SqlAddedUniqueConstraint,
   type SqlColumnDefinition,
   type SqlTableDefinition,
-  type SqlUniqueConstraint,
 } from "./sql-column-definitions.js";
+import type { SqlTableKey, SqlUniqueConstraint } from "./sql-table-keys.js";
 import { scanSqlStatements } from "./statement-scanner.js";
 
 function readTables(
@@ -41,15 +39,6 @@ function readUniques(
   dialect: SqlDialect,
 ): readonly SqlUniqueConstraint[] | undefined {
   return readTables(source, dialect)[0]?.uniqueConstraints;
-}
-
-function readAdded(
-  source: string,
-  dialect: SqlDialect = "postgresql",
-): readonly (SqlAddedUniqueConstraint | null)[] {
-  return unwrapOk(scanSqlStatements(source, dialect)).map(
-    readAddedUniqueConstraint,
-  );
 }
 
 const LINEAR_TIME_LIMIT_MS = 5000;
@@ -89,6 +78,7 @@ describe("readSqlTableDefinition", () => {
           },
         ],
         uniqueConstraints: [],
+        keys: [],
       },
     ]);
   });
@@ -301,6 +291,72 @@ describe("readSqlTableDefinition", () => {
     },
   );
 
+  it.each<readonly [string, SqlTableKey]>([
+    [
+      "KEY `k` (`a`)",
+      {
+        name: "k",
+        columnNames: ["a"],
+        kind: "plain",
+        hasDroppedElementOption: false,
+      },
+    ],
+    [
+      "INDEX (a(10), b DESC) USING BTREE",
+      {
+        name: null,
+        columnNames: ["a", "b"],
+        kind: "plain",
+        hasDroppedElementOption: true,
+      },
+    ],
+    [
+      "FULLTEXT KEY `f` (`a`)",
+      {
+        name: "f",
+        columnNames: ["a"],
+        kind: "fulltext",
+        hasDroppedElementOption: false,
+      },
+    ],
+    [
+      "FULLTEXT (a)",
+      {
+        name: null,
+        columnNames: ["a"],
+        kind: "fulltext",
+        hasDroppedElementOption: false,
+      },
+    ],
+    [
+      "SPATIAL INDEX s (a)",
+      {
+        name: "s",
+        columnNames: ["a"],
+        kind: "spatial",
+        hasDroppedElementOption: false,
+      },
+    ],
+  ])("reads the mysql key %s", (definition, key) => {
+    expect(
+      readTables(`CREATE TABLE t (a int, b int, ${definition})`, "mysql")[0]
+        ?.keys,
+    ).toStrictEqual([key]);
+  });
+
+  it.each([
+    "KEY k ((lower(a)))",
+    "KEY k a",
+    "KEY",
+    "UNIQUE KEY k (a)",
+    "PRIMARY KEY (a)",
+    "FOREIGN KEY (a) REFERENCES u (id)",
+  ])("reads no mysql key from %s", (definition) => {
+    expect(
+      readTables(`CREATE TABLE t (a int, ${definition})`, "mysql")[0]?.keys,
+    ).toStrictEqual([]);
+  });
+
   it.each([
     "PRIMARY KEY (a)",
     "CONSTRAINT pk PRIMARY KEY (a)",
@@ -383,96 +439,4 @@ describe("readSqlTableDefinition", () => {
       ).toStrictEqual([columnCount]);
     },
   );
-});
-
-describe("readAddedUniqueConstraint", () => {
-  it.each<readonly [SqlDialect, string, SqlAddedUniqueConstraint]>([
-    [
-      "postgresql",
-      "\nALTER TABLE ONLY public.orders\n    ADD CONSTRAINT orders_code_region_key UNIQUE (code, region);",
-      {
-        tableName: "orders",
-        start: 1,
-        constraint: {
-          name: "orders_code_region_key",
-          columnNames: ["code", "region"],
-          isMysqlKey: false,
-          hasDroppedElementOption: false,
-        },
-      },
-    ],
-    [
-      "postgresql",
-      "ALTER TABLE IF EXISTS t ADD UNIQUE (a)",
-      {
-        tableName: "t",
-        start: 0,
-        constraint: {
-          name: null,
-          columnNames: ["a"],
-          isMysqlKey: false,
-          hasDroppedElementOption: false,
-        },
-      },
-    ],
-    [
-      "sqlserver",
-      "ALTER TABLE [dbo].[t] WITH CHECK ADD CONSTRAINT [u] UNIQUE NONCLUSTERED ([a] DESC) WITH (ONLINE = OFF) ON [PRIMARY]",
-      {
-        tableName: "t",
-        start: 0,
-        constraint: {
-          name: "u",
-          columnNames: ["a"],
-          isMysqlKey: false,
-          hasDroppedElementOption: true,
-        },
-      },
-    ],
-    [
-      "sqlserver",
-      "ALTER TABLE [t] ADD UNIQUE CLUSTERED ([a], [b])",
-      {
-        tableName: "t",
-        start: 0,
-        constraint: {
-          name: null,
-          columnNames: ["a", "b"],
-          isMysqlKey: false,
-          hasDroppedElementOption: false,
-        },
-      },
-    ],
-    [
-      "mysql",
-      "ALTER TABLE `t` ADD UNIQUE KEY `k` (`a`)",
-      {
-        tableName: "t",
-        start: 0,
-        constraint: {
-          name: "k",
-          columnNames: ["a"],
-          isMysqlKey: true,
-          hasDroppedElementOption: false,
-        },
-      },
-    ],
-  ])(
-    "reads a unique constraint added through alter table in %s: %s",
-    (dialect, source, added) => {
-      expect(readAdded(source, dialect)).toStrictEqual([added]);
-    },
-  );
-
-  it.each([
-    "ALTER TABLE t ADD CONSTRAINT pk PRIMARY KEY (a)",
-    "ALTER TABLE t ADD COLUMN a int UNIQUE",
-    "ALTER TABLE t ADD CONSTRAINT u UNIQUE (lower(a))",
-    "ALTER TABLE t ADD CONSTRAINT u UNIQUE",
-    "ALTER TABLE t DROP CONSTRAINT u",
-    "ALTER TABLE ADD UNIQUE (a)",
-    "CREATE TABLE t (a int UNIQUE)",
-  ])("returns null for another alter table form: %s", (source) => {
-    expect(readAdded(source)).toStrictEqual([null]);
-  });
 });

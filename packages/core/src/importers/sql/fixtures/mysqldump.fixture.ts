@@ -11,7 +11,9 @@ import type { ImportDiagnostic } from "../../shared/import-types.js";
 
 // Written in the shape `mysqldump --no-data` of MySQL 8.4 gives: versioned
 // /*!…*/ settings, DROP TABLE IF EXISTS before each table, keys and foreign
-// keys inside CREATE TABLE, table options after it, and tables in name order.
+// keys inside CREATE TABLE (with a prefix length, DESC, FULLTEXT and SPATIAL,
+// which the model has no place for), table options after it, and tables in
+// name order.
 // The LOCK TABLES pair is what a dump with data writes around each table.
 
 export const MYSQLDUMP_SOURCE = `-- MySQL dump 10.13  Distrib 8.4.3, for Linux (x86_64)
@@ -46,7 +48,8 @@ CREATE TABLE \`customers\` (
   \`updated_at\` datetime(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
   \`note\` text COMMENT 'Free text, it''s optional',
   PRIMARY KEY (\`id\`),
-  UNIQUE KEY \`customers_email_key\` (\`email\`)
+  UNIQUE KEY \`customers_email_key\` (\`email\`),
+  FULLTEXT KEY \`customers_note_ft\` (\`note\`)
 ) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Store customers';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -88,9 +91,13 @@ CREATE TABLE \`orders\` (
   \`customer_id\` int unsigned NOT NULL,
   \`status\` enum('pending','paid','shipped') NOT NULL DEFAULT 'pending',
   \`total\` decimal(12,2) NOT NULL DEFAULT '0.00',
+  \`ship_to\` point NOT NULL,
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uq_orders_number\` (\`number\`),
   KEY \`orders_customer_id_idx\` (\`customer_id\`),
+  KEY \`orders_number_prefix_idx\` (\`number\`(8)),
+  KEY \`orders_total_desc_idx\` (\`total\` DESC),
+  SPATIAL KEY \`orders_ship_to_sp\` (\`ship_to\`),
   CONSTRAINT \`orders_customer_id_fkey\` FOREIGN KEY (\`customer_id\`) REFERENCES \`customers\` (\`id\`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1001 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -223,8 +230,38 @@ export const MYSQLDUMP_EXPECTED: SchemaDocument = buildSchema({
       type: { kind: "decimal", precision: 12, scale: 2 },
       defaultValue: { kind: "literal", value: "0.00" },
     }),
+    makeColumn({
+      id: "col_orders_ship_to",
+      tableId: "tbl_orders",
+      name: "ship_to",
+      type: { kind: "custom", name: "point" },
+    }),
   ],
   indexes: [
+    makeIndex({
+      id: "idx_customers_note",
+      tableId: "tbl_customers",
+      name: "customers_note_ft",
+      columnIds: ["col_customers_note"],
+    }),
+    makeIndex({
+      id: "idx_orders_number_prefix",
+      tableId: "tbl_orders",
+      name: "orders_number_prefix_idx",
+      columnIds: ["col_orders_number"],
+    }),
+    makeIndex({
+      id: "idx_orders_total",
+      tableId: "tbl_orders",
+      name: "orders_total_desc_idx",
+      columnIds: ["col_orders_total"],
+    }),
+    makeIndex({
+      id: "idx_orders_ship_to",
+      tableId: "tbl_orders",
+      name: "orders_ship_to_sp",
+      columnIds: ["col_orders_ship_to"],
+    }),
     makeIndex({
       id: "idx_orders_customer",
       tableId: "tbl_orders",
@@ -260,8 +297,14 @@ export const MYSQLDUMP_EXPECTED: SchemaDocument = buildSchema({
   ],
 });
 
-// Ids follow createImportTestOptions(): the enum, then tables, then columns.
+// Ids follow createImportTestOptions(): the enum, then tables, then columns,
+// then indexes. Keys inside CREATE TABLE are located at their table.
 export const MYSQLDUMP_EXPECTED_DIAGNOSTICS: readonly ImportDiagnostic[] = [
+  {
+    code: "index-type-dropped",
+    location: { line: 25, column: 1 },
+    path: ["indexes", "idx_20"],
+  },
   {
     code: "type-approximated",
     location: { line: 26, column: 3 },
@@ -284,17 +327,32 @@ export const MYSQLDUMP_EXPECTED_DIAGNOSTICS: readonly ImportDiagnostic[] = [
   },
   {
     code: "data-statements-ignored",
-    location: { line: 41, column: 1 },
+    location: { line: 42, column: 1 },
     path: null,
   },
   {
     code: "type-approximated",
-    location: { line: 55, column: 3 },
+    location: { line: 56, column: 3 },
     path: ["columns", "col_12", "type"],
   },
   {
+    code: "index-option-dropped",
+    location: { line: 70, column: 1 },
+    path: ["indexes", "idx_23"],
+  },
+  {
+    code: "index-option-dropped",
+    location: { line: 70, column: 1 },
+    path: ["indexes", "idx_24"],
+  },
+  {
+    code: "index-type-dropped",
+    location: { line: 70, column: 1 },
+    path: ["indexes", "idx_25"],
+  },
+  {
     code: "type-approximated",
-    location: { line: 72, column: 3 },
+    location: { line: 73, column: 3 },
     path: ["columns", "col_16", "type"],
   },
 ];

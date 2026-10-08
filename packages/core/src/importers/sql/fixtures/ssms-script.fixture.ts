@@ -11,8 +11,9 @@ import type { ImportDiagnostic } from "../../shared/import-types.js";
 // Written in the shape SQL Server Management Studio "Generate Scripts" gives
 // for a database with its schema: USE and GO batches, ALTER DATABASE settings,
 // bracketed [dbo] names, SET options before each table, constraints with
-// WITH (…) ON [PRIMARY] storage options, foreign keys added WITH CHECK and
-// then checked, and descriptions through sp_addextendedproperty.
+// WITH (…) ON [PRIMARY] storage options, defaults added through ALTER TABLE …
+// DEFAULT … FOR, foreign keys added WITH CHECK and then checked, and
+// descriptions through sp_addextendedproperty.
 
 export const SSMS_SCRIPT_SOURCE = `USE [master]
 GO
@@ -72,6 +73,8 @@ INCLUDE([Total]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TE
 GO
 ALTER TABLE [dbo].[Customers] ADD  CONSTRAINT [DF_Customers_CreatedAt]  DEFAULT (sysdatetime()) FOR [CreatedAt]
 GO
+ALTER TABLE [dbo].[Orders] ADD  DEFAULT ((0)) FOR [Total]
+GO
 ALTER TABLE [dbo].[Orders]  WITH CHECK ADD  CONSTRAINT [FK_Orders_Customers] FOREIGN KEY([CustomerId])
 REFERENCES [dbo].[Customers] ([Id])
 ON DELETE CASCADE
@@ -92,8 +95,6 @@ ALTER DATABASE [Shop] SET  READ_WRITE
 GO
 `;
 
-// The default written as ALTER TABLE … ADD CONSTRAINT … DEFAULT … FOR is not
-// read (statement-not-supported), so CreatedAt has no default.
 export const SSMS_SCRIPT_EXPECTED: SchemaDocument = buildSchema({
   name: "Imported",
   tables: [
@@ -136,6 +137,7 @@ export const SSMS_SCRIPT_EXPECTED: SchemaDocument = buildSchema({
       tableId: "tbl_customers",
       name: "CreatedAt",
       type: { kind: "timestamp" },
+      defaultValue: { kind: "currentTimestamp" },
     }),
     makeColumn({
       id: "col_orders_id",
@@ -154,6 +156,7 @@ export const SSMS_SCRIPT_EXPECTED: SchemaDocument = buildSchema({
       tableId: "tbl_orders",
       name: "Total",
       type: { kind: "decimal", precision: 12, scale: 2 },
+      defaultValue: { kind: "literal", value: "0" },
     }),
     makeColumn({
       id: "col_orders_notes",
@@ -185,13 +188,8 @@ export const SSMS_SCRIPT_EXPECTED: SchemaDocument = buildSchema({
 });
 
 // With createImportTestOptions(): tables first, then columns, then indexes.
-// The CHECK is located at its table.
+// The CHECK is located at the ALTER TABLE that adds it.
 export const SSMS_SCRIPT_EXPECTED_DIAGNOSTICS: readonly ImportDiagnostic[] = [
-  {
-    code: "check-constraint-not-supported",
-    location: { line: 37, column: 1 },
-    path: null,
-  },
   {
     code: "identity-options-dropped",
     location: { line: 38, column: 2 },
@@ -203,8 +201,8 @@ export const SSMS_SCRIPT_EXPECTED_DIAGNOSTICS: readonly ImportDiagnostic[] = [
     path: ["indexes", "idx_11"],
   },
   {
-    code: "statement-not-supported",
-    location: { line: 57, column: 1 },
+    code: "check-constraint-not-supported",
+    location: { line: 67, column: 1 },
     path: null,
   },
 ];

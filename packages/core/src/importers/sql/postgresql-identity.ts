@@ -1,23 +1,16 @@
 import type { RawSqlDefault } from "../shared/sql-default-mapping.js";
+import type { ColumnChange } from "./sql-draft-overrides.js";
 import type { SqlStatement } from "./statement-scanner.js";
 import {
   findAlterTableAction,
   isNameAt,
   isSymbolAt,
+  tokensText,
   wordAt,
   type Tokens,
 } from "./sql-token-reading.js";
 
-export type PostgresqlAlterColumn = {
-  readonly tableName: string;
-  readonly columnName: string;
-  readonly start: number;
-  readonly change:
-    | { readonly kind: "identity" }
-    | { readonly kind: "default"; readonly raw: RawSqlDefault };
-};
-
-type Change = PostgresqlAlterColumn["change"];
+type Change = ColumnChange["change"];
 
 const BOOLEAN_WORDS: ReadonlySet<string> = new Set(["TRUE", "FALSE"]);
 
@@ -47,17 +40,6 @@ function readIdentity(tokens: Tokens, index: number): Change | null {
       rest.findIndex((token, index) => index > 0 && token.depth === 0) ===
         rest.length - 1);
   return isIdentity && hasOnlyOptions ? { kind: "identity" } : null;
-}
-
-// Rebuilds the source text of the tokens, with a space for each character
-// between them (comments and line breaks become spaces).
-function tokensText(tokens: Tokens): string {
-  const first = tokens[0]?.start ?? 0;
-  let text = "";
-  for (const token of tokens) {
-    text += " ".repeat(token.start - first - text.length) + token.text;
-  }
-  return text;
 }
 
 function toRawDefault(tokens: Tokens): RawSqlDefault {
@@ -98,7 +80,7 @@ function readDefault(tokens: Tokens, index: number): Change | null {
  */
 export function readPostgresqlAlterColumn(
   statement: SqlStatement,
-): PostgresqlAlterColumn | null {
+): ColumnChange | null {
   const { tokens } = statement;
   if (wordAt(tokens, 0) !== "ALTER" || wordAt(tokens, 1) !== "TABLE") {
     return null;

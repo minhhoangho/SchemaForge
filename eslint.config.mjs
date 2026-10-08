@@ -446,27 +446,6 @@ export default defineConfig([
     },
   },
   {
-    // Options of this block replace those of the previous block, so it repeats
-    // them minus the URL.createObjectURL entry.
-    files: [
-      "frontend/src/lib/download/download-blob.ts",
-      // Temporary: part 5 code that predates downloadBlob; migrate it to
-      // downloadBlob and remove this entry.
-      "frontend/src/features/editor/components/ai-panel/ai-sample-data-card.tsx",
-    ],
-    rules: {
-      "no-restricted-properties": [
-        "error",
-        PROCESS_ENV_RESTRICTION,
-        ...NETWORK_PROPERTIES.map(([object, property]) => ({
-          object,
-          property,
-          message: NO_NETWORK,
-        })),
-      ],
-    },
-  },
-  {
     files: ["frontend/src/lib/api/**/*.ts"],
     ignores: FRONTEND_TEST_FILES,
     rules: {

@@ -1,6 +1,7 @@
 import { createEmptySchema } from "@schemaforge/core";
 import { describe, expect, it } from "vitest";
 
+import { MAX_IMPORT_FILE_BYTES } from "./decode-import-file";
 import { isImportRequest, isImportResponse } from "./import-protocol";
 
 const layout = {
@@ -25,6 +26,15 @@ describe("isImportRequest", () => {
     expect(isImportRequest(request)).toBe(true);
   });
 
+  it("accepts a source exactly at the size limit", () => {
+    expect(
+      isImportRequest({
+        ...request,
+        source: "a".repeat(MAX_IMPORT_FILE_BYTES),
+      }),
+    ).toBe(true);
+  });
+
   it("accepts a merge request with a target and an origin", () => {
     expect(
       isImportRequest({
@@ -47,6 +57,10 @@ describe("isImportRequest", () => {
     ],
     ["a merge without an origin", { ...request, mode: { mode: "merge" } }],
     ["a target that is not an object", { ...request, target: "x" }],
+    [
+      "a source over the size limit",
+      { ...request, source: "a".repeat(MAX_IMPORT_FILE_BYTES + 1) },
+    ],
     ["null", null],
     ["a string", "request"],
   ])("rejects a request with %s", (_name, value) => {
@@ -54,10 +68,39 @@ describe("isImportRequest", () => {
   });
 });
 
+const summary = {
+  tables: 1,
+  columns: 2,
+  relations: 0,
+  indexes: 0,
+  enums: 0,
+  subjectAreas: 0,
+  notes: 0,
+};
+
+const success = {
+  requestId: 1,
+  kind: "success",
+  operation: { type: "batch", operations: [] },
+  resultDocument: createEmptySchema("Shop"),
+  summary,
+  diagnostics: [],
+  introducedIssues: [],
+};
+
 describe("isImportResponse", () => {
   it.each([
     [{ requestId: 1, kind: "crashed" }, true],
     [{ requestId: 1, kind: "failure", diagnostics: [] }, true],
+    [success, true],
+    [{ requestId: 1, kind: "failure" }, false],
+    [{ requestId: 1, kind: "failure", diagnostics: "x" }, false],
+    [{ ...success, operation: undefined }, false],
+    [{ ...success, resultDocument: null }, false],
+    [{ ...success, summary: { ...summary, tables: "1" } }, false],
+    [{ ...success, summary: { tables: 1 } }, false],
+    [{ ...success, diagnostics: undefined }, false],
+    [{ ...success, introducedIssues: {} }, false],
     [{ requestId: 1, kind: "other" }, false],
     [{ kind: "crashed" }, false],
     [null, false],

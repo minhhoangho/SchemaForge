@@ -7,15 +7,20 @@ import { isImportRequest, type ImportResponse } from "./import-protocol";
 self.onmessage = async (event: MessageEvent<unknown>): Promise<void> => {
   const request = event.data;
   if (!isImportRequest(request)) return;
-  let response: ImportResponse;
+  const crashed: ImportResponse = {
+    requestId: request.requestId,
+    kind: "crashed",
+  };
   try {
-    response = await handleImportRequest(request, {
-      loadImporter,
-      generateId: () => crypto.randomUUID(),
-    });
+    self.postMessage(
+      await handleImportRequest(request, {
+        loadImporter,
+        generateId: () => crypto.randomUUID(),
+      }),
+    );
   } catch {
-    // Not logged: the error may quote the user's source.
-    response = { requestId: request.requestId, kind: "crashed" };
+    // Not logged: the error may quote the user's source. Also reached when
+    // the result cannot be cloned; the plain `crashed` message always can.
+    self.postMessage(crashed);
   }
-  self.postMessage(response);
 };

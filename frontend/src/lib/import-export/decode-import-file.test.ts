@@ -117,6 +117,16 @@ describe("checkPastedSource", () => {
     expect(encode).not.toHaveBeenCalled();
     encode.mockRestore();
   });
+
+  it("checks the length before trimming a huge text", () => {
+    const trim = vi.spyOn(String.prototype, "trim");
+
+    const result = checkPastedSource(" ".repeat(MAX_IMPORT_FILE_BYTES + 1));
+
+    expect(result).toStrictEqual({ isOk: false, error: "too-large" });
+    expect(trim).not.toHaveBeenCalled();
+    trim.mockRestore();
+  });
 });
 
 describe("guessImportFormat", () => {

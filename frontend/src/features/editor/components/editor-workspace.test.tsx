@@ -616,9 +616,7 @@ describe("EditorWorkspace", () => {
 
     await user.click(screen.getByRole("button", { name: "Delete table" }));
     const toastRegion = screen.getByRole("region", { name: /Notifications/ });
-    await within(toastRegion).findByText(
-      "Deleted table users",
-    );
+    await within(toastRegion).findByText("Deleted table users");
     const isRowGone = queryOutlineRow("users") === null;
     const isCanvasFocused = document.activeElement === getCanvasRegion();
     await user.click(within(toastRegion).getByRole("button", { name: "Undo" }));

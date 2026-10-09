@@ -16,6 +16,7 @@ import { useThemePreference } from "@/lib/theme/use-theme-preference";
 
 import { AppProviders } from "./app-providers";
 import { useAuth } from "./auth-provider";
+import { usePendingImport } from "./pending-import-provider";
 
 // The hosts need a signed-in session and IndexedDB to do anything visible, and
 // their own tests cover that; here they only have to be mounted.
@@ -51,6 +52,12 @@ function StorageStateLabel(): JSX.Element {
   const { kind } = useStorage();
 
   return <span>{`storage-${kind}`}</span>;
+}
+
+function PendingImportLabel(): JSX.Element {
+  const { lastSqlDialect } = usePendingImport();
+
+  return <span>{`dialect-${lastSqlDialect ?? "none"}`}</span>;
 }
 
 describe("AppProviders", () => {
@@ -129,6 +136,16 @@ describe("AppProviders", () => {
     );
 
     expect(html).toContain("storage-pending");
+  });
+
+  it("provides the pending import context to children", () => {
+    render(
+      <AppProviders locale="en" themePreference="light" hasAuthHint={false}>
+        <PendingImportLabel />
+      </AppProviders>,
+    );
+
+    expect(screen.getByText("dialect-none")).toBeDefined();
   });
 
   it("mounts the upload prompt and background sync hosts", () => {

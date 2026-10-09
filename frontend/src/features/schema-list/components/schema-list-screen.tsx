@@ -5,7 +5,7 @@
 // records), so the configuration must load first or the CSP blocks Zod's eval.
 import "@/lib/zod-config";
 
-import { DatabaseIcon, PlusIcon } from "lucide-react";
+import { DatabaseIcon, PlusIcon, UploadIcon } from "lucide-react";
 import type { JSX, ReactNode, RefObject } from "react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -38,6 +38,7 @@ import type { MergedSchemaList } from "@/lib/sync/merge-schema-list";
 import { syncPendingSchemas } from "@/lib/sync/sync-pending-schemas";
 
 import { CloudListBanner } from "./cloud-list-banner";
+import { ImportSchemaButton } from "./import-schema-button";
 import { SchemaListDialogs } from "./schema-list-dialogs";
 import { SchemaListRow } from "./schema-list-row";
 import { SchemaListSection } from "./schema-list-section";
@@ -369,15 +370,17 @@ function ReadySchemaList({
 
   return (
     <>
-      <Button
-        className={ACTION_CLASS_NAME}
-        onClick={(event) => {
-          dialogs.open({ kind: "create" }, event.currentTarget);
-        }}
-      >
-        <PlusIcon aria-hidden="true" />
-        {t("create.trigger")}
-      </Button>
+      <div className={`${ACTION_CLASS_NAME} flex flex-wrap justify-end gap-2`}>
+        <ImportSchemaButton />
+        <Button
+          onClick={(event) => {
+            dialogs.open({ kind: "create" }, event.currentTarget);
+          }}
+        >
+          <PlusIcon aria-hidden="true" />
+          {t("create.trigger")}
+        </Button>
+      </div>
       {result === undefined ? (
         <SchemaListSkeleton />
       ) : (
@@ -404,6 +407,7 @@ type ScreenContentProps = {
 
 function ScreenContent({ headingRef }: ScreenContentProps): JSX.Element {
   const { t } = useTranslation("schemaList");
+  const { t: tImport } = useTranslation("importExport");
   const storage = useStorage();
 
   switch (storage.kind) {
@@ -414,10 +418,18 @@ function ScreenContent({ headingRef }: ScreenContentProps): JSX.Element {
     case "pending":
       return (
         <>
-          <Button className={ACTION_CLASS_NAME} disabled>
-            <PlusIcon aria-hidden="true" />
-            {t("create.trigger")}
-          </Button>
+          <div
+            className={`${ACTION_CLASS_NAME} flex flex-wrap justify-end gap-2`}
+          >
+            <Button variant="outline" disabled>
+              <UploadIcon aria-hidden="true" />
+              {tImport("import.open")}
+            </Button>
+            <Button disabled>
+              <PlusIcon aria-hidden="true" />
+              {t("create.trigger")}
+            </Button>
+          </div>
           <SchemaListSkeleton />
         </>
       );

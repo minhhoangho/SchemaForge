@@ -245,6 +245,14 @@ describe("SchemaListScreen", () => {
     expect(entries).toHaveLength(1);
   });
 
+  it("offers an import button beside the create button", async () => {
+    const { storage } = setUp();
+    renderScreen(storage);
+    await screen.findByText("No schemas yet");
+
+    expect(screen.getByRole("button", { name: "Import" })).toBeDefined();
+  });
+
   it("refuses to create a schema with a blank name", async () => {
     const { storage } = setUp();
     const { user } = renderScreen(storage);
@@ -348,8 +356,9 @@ describe("SchemaListScreen", () => {
     const trigger = await screen.findByRole("button", {
       name: "Actions for shop",
     });
-    // Sign in, theme, language, "Create schema", the sign-in invitation, the
-    // schema link, then the row menu.
+    // Sign in, theme, language, "Import", "Create schema", the sign-in
+    // invitation, the schema link, then the row menu.
+    await user.tab();
     await user.tab();
     await user.tab();
     await user.tab();

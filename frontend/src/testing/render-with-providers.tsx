@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { AuthProvider } from "@/components/auth-provider";
 import type { AuthProviderDependencies } from "@/components/auth-provider";
 import { I18nProvider } from "@/components/i18n-provider";
+import { PendingImportProvider } from "@/components/pending-import-provider";
 import { SignInPromptProvider } from "@/components/sign-in-prompt";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -95,7 +96,9 @@ function TestAuthProviders({
         hasAuthHint={auth.hasAuthHint ?? false}
         dependencies={dependencies}
       >
-        <SignInPromptProvider>{children}</SignInPromptProvider>
+        <SignInPromptProvider>
+          <PendingImportProvider>{children}</PendingImportProvider>
+        </SignInPromptProvider>
       </AuthProvider>
     </StorageProvider>
   );

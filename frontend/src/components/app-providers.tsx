@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { AuthProvider } from "@/components/auth-provider";
 import { BackgroundSyncHost } from "@/components/background-sync-host";
 import { I18nProvider } from "@/components/i18n-provider";
+import { PendingImportProvider } from "@/components/pending-import-provider";
 import { SignInPromptProvider } from "@/components/sign-in-prompt";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -47,7 +48,7 @@ export function AppProviders({
           <StorageProvider>
             <AuthProvider hasAuthHint={hasAuthHint}>
               <SignInPromptProvider>
-                {children}
+                <PendingImportProvider>{children}</PendingImportProvider>
                 <UploadPromptHost />
                 <BackgroundSyncHost />
                 <AppToaster />

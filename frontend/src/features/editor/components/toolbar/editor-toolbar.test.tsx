@@ -182,13 +182,30 @@ function renderToolbar(options: HarnessOptions = {}): Harness {
 }
 
 describe("EditorToolbar", () => {
-  it("shows the export menu after the add buttons", () => {
+  it("shows the import button next to the export menu", () => {
     renderToolbar();
 
     const names = screen
       .getAllByRole("button")
       .map((button) => button.textContent);
-    expect(names.indexOf("Export")).toBe(names.indexOf("Add enum") + 1);
+    expect(names.slice(names.indexOf("Add enum") + 1).slice(0, 2)).toEqual([
+      "Import",
+      "Export",
+    ]);
+  });
+
+  it("disables the import button during an AI proposal preview", () => {
+    const { store } = renderToolbar();
+
+    act(() => {
+      store.getState().startProposalPreview("message-1", ADD_EMAIL);
+    });
+
+    expect(
+      screen
+        .getByRole("button", { name: "Import" })
+        .getAttribute("aria-disabled"),
+    ).toBe("true");
   });
 
   it.each([

@@ -79,6 +79,29 @@ const crashed = (requestId: number): ImportResponse => ({
 });
 
 describe("createImporterClient", () => {
+  it("creates the worker on prepare and reuses it for the first run", () => {
+    const { workers, client } = setup();
+
+    client.prepare();
+    client.prepare();
+    void client.run(request);
+
+    expect(workers).toHaveLength(1);
+    expect(workers[0]?.posted).toHaveLength(1);
+  });
+
+  it("ignores a worker that cannot be created on prepare", () => {
+    const client = createImporterClient({
+      createWorker: () => {
+        throw new Error("blocked by CSP");
+      },
+    });
+
+    expect(() => {
+      client.prepare();
+    }).not.toThrow();
+  });
+
   it("resolves crashed when the worker cannot be created", async () => {
     const client = createImporterClient({
       createWorker: () => {
@@ -262,6 +285,17 @@ describe("createImporterClient", () => {
 
     expect(workers[0]?.isTerminated).toBe(true);
     expect(await promise).toStrictEqual({ kind: "cancelled" });
+  });
+
+  it("creates no worker after it was disposed", async () => {
+    const { client, workers } = setup();
+    client.dispose();
+
+    client.prepare();
+    const outcome = await client.run(request);
+
+    expect(workers).toHaveLength(0);
+    expect(outcome).toStrictEqual({ kind: "cancelled" });
   });
 
   it("uses real timers by default", async () => {

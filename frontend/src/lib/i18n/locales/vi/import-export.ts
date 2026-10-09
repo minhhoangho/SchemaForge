@@ -9,6 +9,10 @@ export const viImportExport = {
       "Đọc schema từ nguồn SQL, Prisma, DBML hoặc JSON. Không có gì thay đổi cho tới khi bạn xác nhận.",
     defaultSchemaName: "Schema được import",
     analyzing: "Đang phân tích…",
+    loadingParser:
+      "SQL và DBML cần một bộ phân tích khoảng 3 MB, tải ở lần đầu nên có thể hơi lâu.",
+    licenses: "Giấy phép của các bộ phân tích đi kèm",
+    opensInNewTab: "(mở trong tab mới)",
     cancel: "Hủy",
     // Vietnamese has one plural form, so i18next only reads `_other`; `_one`
     // keeps the key set equal to the English one.
@@ -35,6 +39,7 @@ export const viImportExport = {
       timeout: "Việc phân tích quá lâu nên đã bị dừng.",
       workerFailed: "Không phân tích được nguồn. Hãy thử lại.",
       emptySource: "Hãy chọn file hoặc dán văn bản trước.",
+      dialectRequired: "Hãy chọn phương ngữ SQL trước.",
       notApplied:
         "Schema đã thay đổi khi hộp thoại đang mở nên chưa import gì. Hãy phân tích lại nguồn.",
       previewing:
@@ -72,7 +77,7 @@ export const viImportExport = {
       back: "Quay lại",
       confirm: "Import",
       announceSuccess:
-        "Tìm thấy {{tables}} bảng, {{differences}} khác biệt, {{issues}} vấn đề.",
+        "Đã phân tích xong: {{tables}}, {{differences}}, {{issues}}.",
       announceFailure_one: "Không đọc được nguồn: {{count}} lỗi.",
       announceFailure_other: "Không đọc được nguồn: {{count}} lỗi.",
     },

@@ -21,6 +21,7 @@ import { getStorageErrorName } from "@/lib/storage/storage-error";
 import { uploadLocalSchemas } from "@/lib/sync/upload-local-schemas";
 import { useNotify } from "@/lib/use-notify";
 
+import { useApplyPendingImport } from "../hooks/use-apply-pending-import";
 import { useAutosave } from "../hooks/use-autosave";
 import { useIsNarrowViewport } from "../hooks/use-is-narrow-viewport";
 import { useCloudPusher } from "../hooks/use-cloud-pusher";
@@ -488,6 +489,7 @@ export function EditorWorkspace({
     schemaId,
     ownerId,
   });
+  useApplyPendingImport(store);
   const saveToCloud = useSaveToCloud({
     repository,
     apiClient,

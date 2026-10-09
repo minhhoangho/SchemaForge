@@ -666,3 +666,206 @@ describe("buildPrismaDraft relations", () => {
     ]);
   });
 });
+
+describe("buildPrismaDraft implicit mysql foreign key indexes", () => {
+  function childDraft(
+    provider: string,
+    members: readonly string[],
+  ): ImportDraft {
+    return draftOf([
+      "datasource db {",
+      `  provider = "${provider}"`,
+      "}",
+      "model p {",
+      "  id    Int @id",
+      "  code  Int",
+      "  child c[]",
+      "  @@unique([id, code])",
+      "}",
+      "model c {",
+      "  id     Int @id",
+      "  p_id   Int",
+      "  p_code Int",
+      "  title  String",
+      ...members,
+      "}",
+    ]);
+  }
+
+  // The indexes of the child table; @@unique of p is the first index.
+  function indexNames(draft: ImportDraft): readonly (string | null)[] {
+    return draft.indexes
+      .filter(({ tableName }) => tableName !== "p")
+      .map(({ name }) => name);
+  }
+
+  const RELATION = "  p p @relation(fields: [p_id], references: [id])";
+
+  it.each([
+    {
+      case: "the default foreign key name",
+      members: [RELATION, '  @@index([p_id], map: "c_p_id_fkey")'],
+    },
+    {
+      case: "the map of @relation",
+      members: [
+        '  p p @relation(fields: [p_id], references: [id], map: "c_parent_fk")',
+        '  @@index([p_id], map: "c_parent_fk")',
+      ],
+    },
+    {
+      case: "two columns",
+      members: [
+        "  p p @relation(fields: [p_id, p_code], references: [id, code])",
+        '  @@index([p_id, p_code], map: "c_p_id_p_code_fkey")',
+      ],
+    },
+  ])(
+    "drops the index mysql creates for a foreign key: $case",
+    ({ members }) => {
+      const draft = childDraft("mysql", members);
+
+      expect({
+        names: indexNames(draft),
+        relations: draft.relations.length,
+        diagnostics: draft.diagnostics,
+      }).toStrictEqual({ names: [], relations: 1, diagnostics: [] });
+    },
+  );
+
+  it("names the default foreign key after @@map and @map", () => {
+    const draft = childDraft("mysql", [
+      '  parentId Int @map("parent_id")',
+      "  p p @relation(fields: [parentId], references: [id])",
+      '  @@index([parentId], map: "children_parent_id_fkey")',
+      '  @@map("children")',
+    ]);
+
+    expect(indexNames(draft)).toStrictEqual([]);
+  });
+
+  it.each([
+    {
+      case: "no map",
+      members: [RELATION, "  @@index([p_id])"],
+      names: [null],
+    },
+    {
+      case: "another name",
+      members: [RELATION, '  @@index([p_id], map: "c_p_id_idx")'],
+      names: ["c_p_id_idx"],
+    },
+    {
+      case: "the default name when @relation has a map",
+      members: [
+        '  p p @relation(fields: [p_id], references: [id], map: "c_parent_fk")',
+        '  @@index([p_id], map: "c_p_id_fkey")',
+      ],
+      names: ["c_p_id_fkey"],
+    },
+    {
+      case: "another index starting with the columns",
+      members: [
+        RELATION,
+        '  @@index([p_id], map: "c_p_id_fkey")',
+        '  @@index([p_id, title], map: "c_p_id_title_idx")',
+      ],
+      names: ["c_p_id_fkey", "c_p_id_title_idx"],
+    },
+    {
+      case: "a unique key starting with the columns",
+      members: [
+        RELATION,
+        '  @@index([p_id], map: "c_p_id_fkey")',
+        "  @@unique([p_id, p_code])",
+      ],
+      names: ["c_p_id_fkey", null],
+    },
+    {
+      case: "a unique index of the same kind",
+      members: [RELATION, '  @@unique([p_id], map: "c_p_id_fkey")'],
+      names: ["c_p_id_fkey"],
+    },
+    {
+      case: "a sort option on its field",
+      members: [RELATION, '  @@index([p_id(sort: Desc)], map: "c_p_id_fkey")'],
+      names: ["c_p_id_fkey"],
+    },
+    {
+      case: "an index type",
+      members: [RELATION, '  @@index([p_id], map: "c_p_id_fkey", type: Hash)'],
+      names: ["c_p_id_fkey"],
+    },
+  ])("keeps an index with $case", ({ members, names }) => {
+    expect(indexNames(childDraft("mysql", members))).toStrictEqual(names);
+  });
+
+  it("reads no foreign key from a back relation field without fields", () => {
+    const draft = draftOf([
+      "datasource db {",
+      '  provider = "mysql"',
+      "}",
+      "model c {",
+      "  id       Int  @id",
+      "  p_id     Int",
+      '  children c[]  @relation("tree", map: "c_p_id_fkey")',
+      '  parent   c    @relation("tree", fields: [p_id], references: [id])',
+      '  @@index([p_id], map: "c_p_id_fkey")',
+      "}",
+    ]);
+
+    expect(indexNames(draft)).toStrictEqual([]);
+  });
+
+  it("keeps the index when the primary key starts with the columns", () => {
+    const draft = draftOf([
+      "datasource db {",
+      '  provider = "mysql"',
+      "}",
+      "model p {",
+      "  id    Int @id",
+      "  child c[]",
+      "}",
+      "model c {",
+      "  p_id Int",
+      "  n    Int",
+      "  p    p @relation(fields: [p_id], references: [id])",
+      "  @@id([p_id, n])",
+      '  @@index([p_id], map: "c_p_id_fkey")',
+      "}",
+    ]);
+
+    expect(indexNames(draft)).toStrictEqual(["c_p_id_fkey"]);
+  });
+
+  it("keeps an index named like a foreign key in postgresql", () => {
+    const draft = childDraft("postgresql", [
+      RELATION,
+      '  @@index([p_id], map: "c_p_id_fkey")',
+    ]);
+
+    expect(indexNames(draft)).toStrictEqual(["c_p_id_fkey"]);
+  });
+
+  it("targets the indexes kept after a dropped one", () => {
+    const draft = childDraft("mysql", [
+      RELATION,
+      '  @@index([p_id], map: "c_p_id_fkey")',
+      "  @@fulltext([title])",
+    ]);
+
+    expect({
+      names: indexNames(draft),
+      diagnostics: draft.diagnostics,
+    }).toStrictEqual({
+      names: [null],
+      diagnostics: [
+        {
+          code: "index-type-dropped",
+          location: { line: 17, column: 3 },
+          target: { kind: "index", index: 1 },
+        },
+      ],
+    });
+  });
+});

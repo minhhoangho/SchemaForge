@@ -1,4 +1,4 @@
-export { PRISMA_IMPORT_FIXTURES } from "../importers/prisma/fixtures/index.js";
+export { PRISMA_IMPORT_FIXTURES } from "./prisma-import-fixtures.js";
 export type { SchemaParts } from "./factories.js";
 export {
   buildSchema,

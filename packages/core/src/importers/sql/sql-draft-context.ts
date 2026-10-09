@@ -1,4 +1,5 @@
 import type { SqlDialect } from "../../generators/shared/generator-types.js";
+import type { ForeignKeyColumns } from "../shared/implicit-foreign-key-index.js";
 import type {
   DraftDiagnostic,
   DraftEnum,
@@ -32,5 +33,8 @@ export type SqlDraftContext = {
     string,
     readonly SqlAddedUniqueConstraint[]
   >;
+  // The named foreign keys of MySQL tables, whose implicit indexes are
+  // dropped; empty for the other dialects.
+  readonly foreignKeys: ReadonlyMap<string, readonly ForeignKeyColumns[]>;
   readonly parts: SqlDraftParts;
 };

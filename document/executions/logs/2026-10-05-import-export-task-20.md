@@ -1,0 +1,166 @@
+# Task 20: Conformance import
+
+Plan: [Task 20](../../plans/2026-10-03-import-export-plan.md#task-20-conformance-import). Spec: [2026-09-15-import-export-design.md](../../specs/2026-09-15-import-export-design.md) mục 15 "Conformance", mục "Rủi ro"; plan Vấn đề 2, 12, 15.
+
+## 2026-10-05 22:00 — core-engineer — Bị chặn
+
+- **Đã làm**
+  - Viết đủ năm file của task. `database-dump.ts` có `startDumpServer(dialect)` (một container PostgreSQL hoặc MySQL cho cả file test; `createDatabase(name, ddl)` tạo database, chạy DDL trong container bằng `psql -v ON_ERROR_STOP=1 -f` hoặc `mysql < file`, trả `{ url, dump }`; `dump()` chạy `pg_dump --schema-only --no-owner` hoặc `mysqldump --no-data` bằng `container.exec`), `pullPrismaSchema(url, provider)` (ghi `datasource db { provider = "…" }` vào thư mục tạm của `withTempDirectory`, chạy `prisma db pull --print --schema <file> --url <url>`, lỗi thì throw kèm output) và `createImportOptions(schemaName)`.
+  - `import-postgresql.test.ts`, `import-mysql.test.ts`: `describe.each(listConformanceFixtures())`, DDL CG-01 (sau `withDialectCustomTypes` như test CG-01) → dump thật → `importPostgresql`/`importMysql` qua bản build `@schemaforge/core/importers/sql` → sinh lại, `toBe` DDL ban đầu.
+  - `import-prisma.test.ts`: `describe.each(["postgresql", "mysql"])` với một container mỗi dialect, `it.each` trên fixture trừ `empty`: DDL CG-01 → `pullPrismaSchema` → `importPrisma` → sinh DDL cùng dialect, so sau `normalizeIntrospectionDifferences`; và `it.each(PRISMA_IMPORT_FIXTURES)` chạy `runPrismaValidate`, mong đợi mã thoát 0.
+  - Core: `src/testing/prisma-import-fixtures.ts` re-export `PRISMA_IMPORT_FIXTURES`; `src/testing/index.ts` export qua file này (trước đó Task 15 export thẳng từ `importers/prisma/fixtures/index.js`).
+  - **Bị chặn bởi môi trường:** Docker Desktop không chạy được, nên chưa chạy được phần dump và `prisma db pull`. Lỗi nguyên văn:
+    - `docker info`: `ERROR: request returned 500 Internal Server Error for API route and version http://%2FUsers%2Fhominhhoang%2F.docker%2Frun%2Fdocker.sock/v1.55/info, check if the server supports the requested API version`
+    - log `~/Library/Containers/com.docker.docker/Data/log/host/com.docker.backend.log`: `[com.docker.backend.apiproxy] still dialing 192.168.65.7:2376 after 19.506385917s: connect tcp 192.168.65.7:2376: no route to host` (VM của Docker Desktop không phản hồi)
+    - Testcontainers: `Error: Could not find a working container runtime strategy` tại `startPostgresqlDumpServer src/support/database-dump.ts:64`.
+- **File thay đổi**
+  - Tạo `packages/codegen-conformance/src/support/database-dump.ts`, `src/import-postgresql.test.ts`, `src/import-mysql.test.ts`, `src/import-prisma.test.ts`, `packages/core/src/testing/prisma-import-fixtures.ts`.
+  - Sửa `packages/core/src/testing/index.ts`.
+- **Kiểm tra**
+  - `docker info >/dev/null && echo docker-ok`: không in `docker-ok` (lỗi ở trên).
+  - `pnpm --filter @schemaforge/core build`: thoát 0.
+  - `pnpm exec vitest run src/import-prisma.test.ts -t "prisma import fixtures"` (conformance): 7 pass, 6 skip (phần cần Docker), 14,2 s. Cả 7 fixture `.prisma` của core qua `prisma validate` (Prisma 7.10.0).
+  - `pnpm exec vitest run src/import-postgresql.test.ts`: suite lỗi `Could not find a working container runtime strategy`, 4 test bị bỏ qua.
+  - `pnpm --filter @schemaforge/codegen-conformance typecheck`, `lint`: thoát 0.
+  - `.claude/scripts/verify.sh core --build --format`: PASS (typecheck, lint, test 4518 pass, coverage dòng 97,94%, build, prettier).
+  - `pnpm exec prettier --check` trên 7 file sở hữu: sạch.
+  - `.claude/scripts/secret-scan.sh`: `SECRET-SCAN: CLEAN`.
+  - Phiên bản: `prisma` 7.10.0, `testcontainers` 12.2.0, Node 24.21.0. Phiên bản `pg_dump`, `mysqldump` chưa đo được (cần container).
+- **Quyết định**
+  - Một container cho mỗi file test (mỗi dialect), mỗi fixture một database `f_<n>`/`p_<n>`, thay vì `withPostgresqlDump(ddl)` khởi động container mỗi lần gọi như chữ ký trong plan: máy tải nặng, MySQL khởi động chậm, và test Prisma cần URL của database đã chạy DDL nên helper phải trả cả URL lẫn dump.
+  - Chạy DDL bằng `psql`/`mysql` trong container (DDL chép vào `/tmp/ddl.sql` bằng `copyContentToContainer`) thay vì `pg`/`mysql2`: DDL lớn có thể vượt giới hạn một tham số dòng lệnh; không cần quản lý kết nối.
+  - Database MySQL tạo với `utf8mb4` / `utf8mb4_0900_as_ci` như `containers.ts` của CG-01; mật khẩu root truyền qua biến `MYSQL_PWD` của `exec`, không qua tham số.
+  - Thông báo lỗi của `prisma` CLI không in tham số (chứa URL có mật khẩu container).
+  - Dùng `withDialectCustomTypes` trước khi sinh DDL: kiểu custom của fixture (`geometry`, `tsvector`…) không chạy trên database thật, giống test CG-01.
+  - `fallbackSchemaName` là tên fixture; layout cố định trong `createImportOptions` (vị trí không ảnh hưởng DDL).
+  - Bỏ fixture `empty` khỏi `prisma db pull`: Prisma báo lỗi khi database không có bảng.
+  - `normalizeIntrospectionDifferences` hiện là hàm đồng nhất: chưa chạy được introspection thật nên chưa có khác biệt nào được quan sát; không đoán trước chuẩn hóa.
+  - `prisma-import-fixtures.ts` theo đúng mẫu `sql-import-fixtures.ts`; `testing/index.test.ts` không cần sửa vì Task 15 đã ghim `PRISMA_IMPORT_FIXTURES` và đã có test tên duy nhất.
+- **Việc còn lại**
+  - [ ] Khởi động lại Docker Desktop (người dùng), rồi `docker info >/dev/null && echo docker-ok` phải in `docker-ok`.
+  - [ ] Trong worktree của task: dùng Node 24 (`export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:$PATH"`; `source ~/.nvm/nvm.sh` bị hook chặn trong worktree), `pnpm --filter @schemaforge/core build`, rồi ở `packages/codegen-conformance` chạy `pnpm exec vitest run src/import-postgresql.test.ts src/import-mysql.test.ts src/import-prisma.test.ts`.
+  - [ ] Nếu DDL sinh lại từ dump khác DDL ban đầu ở điểm importer phải sửa: dừng `Bị chặn`, báo dialect, fixture, đoạn DDL, đoạn dump và diff (không nới test, không sửa importer).
+  - [ ] Với `prisma db pull`: mỗi khác biệt thật của introspection (ví dụ comment của database không vào schema Prisma) thêm một bước vào `normalizeIntrospectionDifferences` trong `packages/codegen-conformance/src/import-prisma.test.ts`, một comment nêu khác biệt; hàm áp lên cả hai phía. Khác biệt importer phải sửa thì dừng `Bị chặn`.
+  - [ ] Ghi vào log này số test, thời gian chạy, phiên bản `pg_dump --version` và `mysqldump --version` (chạy bằng `docker exec` hoặc thêm tạm vào test rồi xóa), chạy lại `pnpm --filter @schemaforge/codegen-conformance typecheck`, `lint`, `prettier --check` file sở hữu, `.claude/scripts/secret-scan.sh`.
+- **Ghi chú cho người tiếp theo**
+  - Phần `prisma validate` đã xanh, không cần Docker: `pnpm exec vitest run src/import-prisma.test.ts -t "prisma import fixtures"`.
+  - `pg_dump` 18 ghi dòng `\restrict`/`\unrestrict`; importer báo `statement-not-supported` cho chúng (log Task 12). Test chỉ so DDL, không so diagnostic, nên không ảnh hưởng.
+  - Trong worktree, lệnh shell chứa đường dẫn scratchpad (có chữ `Github`) hoặc `source` bị hook git chặn; ghi output dài bằng `| tail` thay vì chuyển hướng ra file.
+
+## 2026-10-08 20:40 — core-engineer — Bị chặn
+
+- **Đã làm**
+  - Docker chạy được; chạy thật ba file conformance. Tool: `pg_dump` 18.6 (`postgres:18-alpine`), `mysqldump` 10.13 Distrib 8.4.11 (`mysql:8.4`), `prisma` 7.10.0, Node 24.21.0.
+  - Sửa harness: `mysql` nạp DDL thêm `--binary-mode`. DDL CG-01 của `naming-edge` chứa ký tự `\0` trong literal; không có cờ này `mysql` CLI từ chối: `ERROR at line 14: ASCII '\0' appeared in the statement, but this is not allowed unless option --binary-mode is enabled`.
+  - Thêm `normalizeDatabaseForms(schema, dialect)` vào `database-dump.ts`, dùng cho cả ba file (áp lên hai phía của phép so). Mỗi bước có comment nêu khác biệt, đều đã quan sát trên dump thật:
+    - literal mặc định của cột `real`/`double` qua `String(Number(…))`: database lưu số thực nhị phân và in không có số mũ (`1.5e10` → `15000000000`, PostgreSQL và MySQL);
+    - literal của cột `json` qua `JSON.stringify(JSON.parse(…))`: jsonb của PostgreSQL in lại tài liệu với khoảng trắng riêng (`{"note":"it's"}` → `{"note": "it's"}`);
+    - literal của cột `time` về đúng 6 chữ số phân số giây: PostgreSQL làm tròn (`.123456789` → `.123457`), generator MySQL đã cắt trước khi chạy DDL, MySQL `TIME(6)` thêm số 0 (`.789` → `.789000`);
+    - tên kiểu custom về chữ thường: MySQL trả tên kiểu chữ thường (`YEAR` → `year`).
+  - Test dump (`import-postgresql.test.ts`, `import-mysql.test.ts`) so `generate(normalizeDatabaseForms(imported))` với `generate(normalizeDatabaseForms(S))` thay vì đúng DDL ban đầu (xem Quyết định).
+  - `normalizeIntrospectionDifferences(schema, dialect)` trong `import-prisma.test.ts`: `normalizeDatabaseForms`, rồi (1) xóa comment của bảng và cột: `prisma db pull` không đọc comment của database và ghi cảnh báo của chính nó thành `///` ("The underlying table does not contain a valid unique identifier…", "This model or at least one of its fields has comments in the database…"); (2) index unique một cột thành `column.isUnique` và bỏ index: introspection ghi nó thành `@unique(map: "…")`, importer đọc thành cột unique theo spec mục 6 (`binary_keys_hash_ux`, `nullable_unique_alt_code_ux`).
+  - Bỏ fixture `naming-edge` khỏi `prisma db pull` (cùng chỗ với `empty`): Prisma in ra schema mà chính Prisma không chấp nhận (model không tên `model  {` cho bảng `用户`, hai model cùng tên `public_order_items` cho `order items` và `order_items`); importer báo `syntax-error` (dòng 64 cột 8 trên PostgreSQL, dòng 65 cột 8 trên MySQL) là đúng.
+  - Phân loại mọi khác biệt còn lại (script tạm so từng dòng `-`/`+` của 7 test đỏ, không còn dòng nào ngoài ba nhóm dưới). Cả ba nhóm là việc phía importer/spec, **không sửa importer**:
+    - **A. Literal `timestamp`/`timestamptz` dạng chuẩn của database bị mất.** `pg_dump` ghi `DEFAULT '2026-01-02 03:04:05'::timestamp without time zone` và `'2026-01-01 20:04:05.123+00'::timestamp with time zone`; `mysqldump` ghi `DEFAULT '2026-01-02 03:04:05.000000'`; `prisma db pull` ghi các chuỗi này trong `dbgenerated("…")`. Importer giữ nguyên văn bản (đúng spec mục 5), nhưng model chỉ nhận dạng ISO có `T` và offset `+hh:mm` (`validation/rules/default-literals.ts`), nên literal thành issue `column-default-invalid` và generator bỏ giá trị mặc định: DDL sinh lại mất `DEFAULT` của `timestamp_value`, `timestamptz_value`, `created_at` (fixture `target-limit`; cả PostgreSQL, MySQL, dump lẫn Prisma). Không có diagnostic import nào cho việc mất này. Cần quyết định spec: importer đổi `YYYY-MM-DD HH:MM:SS[.f]` thành `YYYY-MM-DDTHH:MM:SS[.f]` và `+00` thành `+00:00`. Sau khi sửa vẫn còn khác biệt hợp lệ cần chuẩn hóa thêm: PostgreSQL đổi `timestamptz` sang UTC (`+07:00` → `+00`), MySQL `TIMESTAMP(6)` mất hẳn offset, phân số giây bị làm tròn hoặc thêm số 0.
+    - **B. Giá trị mặc định dạng biểu thức của MySQL có introducer bộ ký tự.** CG-01 ghi `DEFAULT ('a\\b')` cho `LONGTEXT` và `DEFAULT ('{"note":"it''s"}')` cho `JSON`; `mysqldump` trả `DEFAULT (_utf8mb4'a\\b')`, `DEFAULT (_utf8mb4'{"note":"it\'s"}')`, Prisma trả `dbgenerated("(_utf8mb4\\'…\\')")`. Importer báo `default-not-supported` và bỏ (có diagnostic, `mysql-target-limit` dòng 36, 44). Spec mục 5 không bỏ introducer `_charset`, nên dump MySQL không đạt điểm bất động.
+    - **C. Index ngầm của khóa ngoại MySQL.** MySQL tự tạo index tên bằng tên ràng buộc khóa ngoại trên cột khóa ngoại chưa có index; `mysqldump` ghi `KEY \`orders_user_id_fkey\` (\`user_id\`)`, Prisma ghi `@@index([user_id], map: "orders_user_id_fkey")`. Importer nhập thành index của người dùng; DDL sinh lại có thêm `CREATE INDEX \`orders_user_id_fkey\`…` và khóa ngoại đổi tên thành `orders_user_id_fkey_2` (fixture `sample`, `naming-edge`, `target-limit`; dump và Prisma). Spec mục 5 không có quy tắc bỏ index này.
+- **File thay đổi**
+  - Sửa `packages/codegen-conformance/src/support/database-dump.ts` (`--binary-mode`, `normalizeDatabaseForms`), `src/import-postgresql.test.ts`, `src/import-mysql.test.ts`, `src/import-prisma.test.ts`. Core không đổi so với lần chạy trước.
+  - File tạm để xem dump (`src/zz-inspect.test.ts`, `zz-probe.mjs`) đã xóa; output ở scratchpad.
+- **Kiểm tra**
+  - `docker info`: chạy được.
+  - `pnpm --filter @schemaforge/core build`: thoát 0.
+  - `pnpm exec vitest run src/import-postgresql.test.ts src/import-mysql.test.ts src/import-prisma.test.ts` (conformance): thoát 1, 3 file đỏ, **7 fail, 12 pass (19)**, 34,65 s. Đỏ: PostgreSQL dump `target-limit` (A); MySQL dump `sample` (C), `naming-edge` (C), `target-limit` (A, B, C); Prisma PostgreSQL `target-limit` (A); Prisma MySQL `sample` (C), `target-limit` (A, B, C). Xanh: PostgreSQL dump `sample`, `naming-edge`, `empty`; MySQL dump `empty`; Prisma PostgreSQL `sample`; 7 fixture `prisma validate`.
+  - Trước khi chuẩn hóa: dump 4 fail/4 pass (PostgreSQL), 3 fail/1 pass (MySQL), Prisma 5 fail/8 pass.
+  - `pnpm --filter @schemaforge/codegen-conformance typecheck`: thoát 0. `pnpm exec eslint .` (conformance): thoát 0.
+  - `pnpm exec prettier --check` trên 6 file sở hữu: sạch.
+  - `.claude/scripts/verify.sh core --build --format`: `RESULT: PASS` (test 4518 pass, coverage dòng 97,94%).
+  - `.claude/scripts/secret-scan.sh`: `SECRET-SCAN: CLEAN`.
+  - `docker ps`: chỉ còn container của người dùng (`local_rabbitmq`, `local_mongo`, `local_redis`, `local_elasticsearch`); không còn container Testcontainers.
+- **Quyết định**
+  - Test dump so sau `normalizeDatabaseForms` thay vì đúng từng byte DDL ban đầu (plan ghi "bằng đúng DDL ban đầu"): fixture `target-limit` có giá trị mà database lưu ở dạng chuẩn của nó (số thực, jsonb, phân số giây, chữ hoa của kiểu), importer không thể lấy lại văn bản gốc. Chuẩn hóa chỉ đổi đúng những giá trị đó, áp lên cả hai phía, nên phần còn lại vẫn so từng byte. Hàm dùng chung cho dump và Prisma nên đặt trong `database-dump.ts`.
+  - Không chuẩn hóa nhóm A, B, C: cả ba là chỗ importer (hoặc spec của importer) phải đổi; chuẩn hóa sẽ che lỗi (spec mục "Rủi ro": không nới test).
+  - Làm tròn phân số giây kiểu half-up, không nhớ sang giây (`ponytail:` trong code); fixture không có giá trị cần nhớ.
+  - Bỏ `naming-edge` khỏi `prisma db pull` thay vì sửa schema đầu vào: output của Prisma không hợp lệ với chính Prisma, không phải khác biệt importer có thể xử lý.
+  - `--binary-mode` là sửa harness, không đổi DDL; CG-01 qua `mysql2` không gặp vì driver gửi byte `\0` trực tiếp.
+- **Việc còn lại**
+  - [ ] Orchestrator/spec-writer quyết định nhóm A (đổi literal `timestamp`/`timestamptz` dạng `YYYY-MM-DD HH:MM:SS[.f][+hh]` của PostgreSQL, MySQL thành dạng ISO của model) trong spec `document/specs/2026-09-15-import-export-design.md` mục 5 "Giá trị mặc định" và mục 6 (`dbgenerated`), rồi core-engineer sửa `packages/core/src/importers/shared/sql-default-mapping.ts` kèm test.
+  - [ ] Quyết định nhóm B (bỏ introducer `_utf8mb4`/`_charset` trước chuỗi trong giá trị mặc định dạng biểu thức của MySQL) ở cùng mục 5, rồi sửa `sql-default-mapping.ts` kèm test.
+  - [ ] Quyết định nhóm C (MySQL: index không unique có tên và tập cột đúng bằng một ràng buộc khóa ngoại của cùng bảng là index ngầm, importer bỏ; áp cho cả importer SQL lẫn `@@index(map:)` của importer Prisma) ở spec mục 5, 6, rồi sửa `packages/core/src/importers/sql/sql-draft-index-rules.ts` (hoặc nơi ghép index) và importer Prisma kèm test.
+  - [ ] Sau khi sửa A: chạy lại ba file; thêm vào `normalizeDatabaseForms` bước cho `timestamp`/`timestamptz` (phân số giây 6 chữ số, PostgreSQL đổi sang UTC, MySQL `TIMESTAMP(6)` bỏ offset) chỉ với khác biệt quan sát được, mỗi bước một comment.
+  - [ ] Khi ba file xanh: chạy lại toàn bộ lệnh kiểm tra của plan Task 20 và commit `test: add import conformance against real dumps and prisma`.
+- **Ghi chú cho người tiếp theo**
+  - Muốn xem dump thật: tạm thêm một file test trong `packages/codegen-conformance/src` gọi `startDumpServer`, `createDatabase`, `dump()`, `pullPrismaSchema` rồi ghi ra scratchpad; nhớ xóa.
+  - `pnpm exec vitest run src/import-postgresql.test.ts src/import-mysql.test.ts src/import-prisma.test.ts` mất khoảng 35 s trên máy này (ba container).
+  - Có tiến trình `vitest run --coverage` của repo chính (không phải worktree này) đang chạy lúc kiểm tra; không đụng tới.
+
+## 2026-10-08 21:12 — core-engineer — Xong
+
+- **Đã làm**
+  - Đưa worktree lên master: commit phần việc chưa commit thành `wip: task 20 conformance` (2738b36), rồi `git merge master` (958edad, không xung đột; master gồm bản sửa importer SQL, SF1, sửa bậc hai và spec sửa lần 3). Chạy `.claude/scripts/worktree-setup.sh` (cài lại và build core sau merge).
+  - Quy tắc A (spec mục 5, `importers/shared/sql-default-mapping.ts`): literal chuỗi `YYYY-MM-DD HH:MM:SS[.f]` kèm độ lệch `±hh` hoặc `±hh:mm` tùy chọn trên cột `timestamp`, `timestamptz` được viết lại thành dạng ISO của model (`T`, `±hh:mm`, giữ số chữ số giây lẻ), không diagnostic. Chỉ áp cho ba dialect SQL (và `dbgenerated` của Prisma qua cùng hàm), không áp cho DBML (`"any"`), vì spec mục 7 giữ văn bản gốc của literal DBML. Chuỗi không đúng dạng (`T` sẵn, hai dấu cách, thiếu giây, `.` không có số, `+0`, `Z`) giữ nguyên như trước.
+  - Quy tắc B (`sql-default-mapping.ts`): với MySQL, đúng hai token `_<charset>` + một chuỗi (sau khi bỏ ngoặc bao ngoài) là literal chuỗi đã giải escape MySQL, không diagnostic. Kèm `COLLATE`, nối chuỗi, hàm, `_` trơn, từ không có `_`, và dialect khác vẫn `default-not-supported`.
+  - Quy tắc B phía Prisma (`importers/prisma/prisma-default-mapping.ts`): với `provider = "mysql"`, nội dung `dbgenerated` bắt đầu bằng `(_<charset>\'` thì bỏ một lớp escape `\'` → `'`, `\\` → `\` rồi mới qua `mapSqlDefault`.
+  - Quy tắc C: helper mới `importers/shared/implicit-foreign-key-index.ts` (`createImplicitForeignKeyIndexCheck`): `Map` tên khóa ngoại → cột (so tên chính xác), so cột đúng thứ tự theo name key, và đếm số khóa bắt đầu bằng các cột đó bằng một trie dựng một lần mỗi bảng (tuyến tính theo tổng số cột của các khóa; không dựng khi bảng không có khóa ngoại).
+    - SQL: `sql-draft.ts` đọc khóa ngoại có tên của MySQL từ `database.refs` (phía `*`, dùng `orderEndpoints` nay được export từ `sql-draft-relations.ts`), nhóm theo bảng vào `SqlDraftContext.foreignKeys`; `sql-table-index-lookup.ts` dựng check với các khóa của bảng (mọi index của parser kể cả index khóa chính, cột khóa chính khi không có index khóa chính, cột unique); `sql-draft-index-rules.ts` bỏ index (`dropped`) khi dialect `mysql`, không unique, không `FULLTEXT`/`SPATIAL`, và check đúng — cho cả `KEY` trong `CREATE TABLE` lẫn `CREATE INDEX`.
+    - Prisma: `prisma-draft-model.ts` đọc khóa ngoại của model khi `provider = "mysql"` (`map` của `@relation`, không có thì `<bảng>_<cột nối _>_fkey` theo tên sau `@@map`/`@map`), khóa của bảng là khóa chính, cột `@unique`, và danh sách của mọi `@@unique`/`@@index`/`@@fulltext`; chỉ `@@index` bị bỏ. `buildIndexes` đọc trước danh sách thuộc tính index rồi mới báo diagnostic theo đúng thứ tự cũ, nên target của index giữ lại sau một index bị bỏ vẫn đúng.
+    - Fixture core `db-pull.fixture.ts` (MySQL): bỏ hai index `orders_user_id_fkey`, `users_manager_id_fkey` khỏi kết quả mong đợi — đúng là index ngầm của InnoDB mà spec mục 6 nay bỏ; comment fixture ghi lý do.
+  - Conformance (`packages/codegen-conformance/src/support/database-dump.ts`, `normalizeDatabaseForms`):
+    - literal `timestamp`, `timestamptz` về đúng 6 chữ số giây lẻ (dùng lại `toMicroseconds` của `time`): MySQL `DATETIME(6)` in `.000000`, PostgreSQL làm tròn `.12345678` → `.123457` và bỏ số 0 cuối;
+    - PostgreSQL `timestamptz` về UTC `+00:00` (quyết định của orchestrator): `+07:00` quay về thành `2026-01-01T20:04:05.123+00:00`;
+    - hạn chế đã biết (7) — xem Quyết định: với MySQL, giá trị mặc định literal của cột `timestamptz` (chỉ `target-limit.timestamptz_value` trong fixture) bị bỏ ở cả hai phía trước khi so; cột vẫn được so.
+- **File thay đổi**
+  - Tạo `packages/core/src/importers/shared/implicit-foreign-key-index.ts`.
+  - Sửa `packages/core/src/importers/shared/sql-default-mapping.ts` (+ `.test.ts`), `importers/prisma/prisma-default-mapping.ts`, `prisma-draft-model.ts`, `prisma-type-mapping.test.ts`, `prisma-draft.test.ts`, `prisma/fixtures/db-pull.fixture.ts`, `importers/sql/sql-draft.ts`, `sql-draft-context.ts`, `sql-draft-relations.ts`, `sql-draft-index-rules.ts`, `sql-table-index-lookup.ts`, `sql-draft.test.ts`, `sql-draft-indexes.test.ts`.
+  - Sửa `packages/codegen-conformance/src/support/database-dump.ts`.
+- **Kiểm tra**
+  - RED trước khi sửa: `sql-default-mapping.test.ts` 9 fail (5 viết lại thời điểm, 4 introducer); `prisma-type-mapping.test.ts` 2 fail (hai dạng escape `information_schema`; 5 fail lần đầu do test tự escape sai, đã sửa test); `sql-draft.test.ts` 4 fail (bốn trường hợp bỏ index ngầm; các trường hợp giữ index xanh ngay); `prisma-draft.test.ts` 5 fail (ba trường hợp bỏ, `@@map`/`@map`, target sau index bị bỏ). GREEN sau khi sửa. `vitest run src/importers/prisma` sau sửa C: 1 fail `imports the MySQL db pull fixture` (index ngầm trong kết quả mong đợi của fixture) → sửa fixture theo spec.
+  - Test chi phí tuyến tính mới trong `sql-draft-indexes.test.ts`: 1000 index đều bắt đầu bằng cùng cột, 1000 khóa ngoại cùng tên, đọc dưới ngưỡng `30 × số index`; cả 1000 index bị bỏ.
+  - `.claude/scripts/verify.sh core --build --format`: `RESULT: PASS` (exit 0): typecheck, lint, test **4723 pass**, coverage dòng **98 %**, build, prettier.
+  - `pnpm exec vitest run src/import-postgresql.test.ts src/import-mysql.test.ts src/import-prisma.test.ts` (conformance, Docker): lần đầu sau A, B, C: 4 fail / 15 pass, chỉ còn khác biệt thời điểm (giây lẻ, UTC của PostgreSQL, `timestamptz_value` MySQL mất mặc định); sau chuẩn hóa: exit 0, **3 file, 19 pass**, 37,4 s.
+  - `pnpm --filter @schemaforge/codegen-conformance typecheck`: exit 0. `pnpm exec eslint .` (conformance): exit 0. `pnpm exec prettier --check packages/codegen-conformance/src <log này>`: sạch.
+  - `.claude/scripts/secret-scan.sh`: `SECRET-SCAN: CLEAN`.
+  - `docker ps`: chỉ còn container của người dùng (`local_rabbitmq`, `local_mongo`, `local_redis`, `local_elasticsearch`), không còn container Testcontainers.
+- **Quyết định**
+  - A không áp cho DBML: spec mục 7 ghi literal DBML giữ văn bản gốc; quy tắc A thuộc mục 5 (SQL) và mục 6 (`dbgenerated`).
+  - A viết lại cả khi cột `timestamptz` không có độ lệch hoặc cột `timestamp` có độ lệch (spec: "có thể kèm"); kết quả không hợp lệ với kiểu thì thành issue `column-default-invalid` như literal sai dạng khác.
+  - B nhận introducer có khoảng trắng trước chuỗi (`_latin1 'x'`, MySQL cho phép) và cả khi không có ngoặc bao; tên introducer chỉ cần bắt đầu bằng `_` và dài hơn một ký tự (không giữ danh sách bộ ký tự).
+  - C, điều kiện (3) dùng danh sách khóa có thứ tự: khóa chính `(p_id, id)` phục vụ khóa ngoại `p_id` (giữ index), còn khóa chính `(id, p_id)` thì không. Cột khóa chính khai báo từng cột (parser không có index khóa chính) được coi là một khóa theo thứ tự cột. Index `FULLTEXT`/`SPATIAL` và index unique không bao giờ bị bỏ. Trùng tên ràng buộc thì khóa ngoại đầu tiên theo thứ tự nguồn thắng (như các lookup khác).
+  - C phía Prisma: tên mặc định không tính rút gọn tên dài của Prisma, nên tên bị Prisma rút gọn không khớp và index được giữ (đúng spec mục 6).
+  - Hạn chế đã biết (7), theo quyết định (b) của orchestrator: MySQL `TIMESTAMP(6)` lưu giá trị `timestamptz` theo UTC và không giữ độ lệch; `mysqldump` (session `TIME_ZONE='+00:00'`) và `prisma db pull` in nó không có độ lệch, nên importer viết lại thành `2026-01-01T20:04:05.123000`, model coi là sai dạng (`column-default-invalid`) và generator bỏ giá trị mặc định. Không đoán múi giờ. Conformance bỏ giá trị mặc định literal của cột `timestamptz` ở cả hai phía cho MySQL (theo kiểu cột, không theo tên, vì đó đúng là phạm vi của hạn chế; trong fixture hiện tại chỉ có `target-limit.timestamptz_value`), comment trong `database-dump.ts`.
+  - Chuẩn hóa UTC dùng `Date.UTC` của harness (không phải core); `ponytail:` ghi giới hạn năm 0–99.
+  - Public API không đổi: `orderEndpoints` chỉ được export nội bộ giữa hai module của importer SQL; `implicit-foreign-key-index.ts` không có trong entry point nào.
+- **Việc còn lại**: không trong phạm vi Task 20. Đề xuất ngoài phạm vi:
+  - [ ] Orchestrator: spec mục "Rủi ro" (literal `timestamptz` MySQL không có độ lệch) có thể chuyển thành "hạn chế đã biết" theo quyết định (b) — cần spec-writer cập nhật `document/specs/2026-09-15-import-export-design.md`.
+  - [ ] `packages/core/src/importers/prisma/prisma-draft-model.ts` nay 343 dòng (quy ước tách file khoảng 300 dòng); có thể tách `readForeignKeys`/`buildIndexes` sang file riêng trong một task refactor.
+- **Ghi chú cho người tiếp theo**
+  - Worktree có hai commit trên nhánh: `wip: task 20 conformance` và merge master; phần việc lần này để chưa commit cho orchestrator. Commit đề xuất của plan: `test: add import conformance against real dumps and prisma` (kèm các sửa `feat(core)`/`fix(core)` của A, B, C nếu tách).
+  - Conformance import cần Docker; ba file chạy khoảng 37 s.
+
+## 2026-10-09 10:59 — core-engineer — Xong
+
+- **Đã làm** (sửa theo review của project-reviewer, vẫn để chưa commit)
+  - Kích thước file/hàm:
+    - Prisma: tạo `importers/prisma/prisma-draft-indexes.ts` chứa `readForeignKeys`, `buildIndexes` (nay ~37 dòng), phần đọc trước thuộc tính tách thành `readIndexAttributes`, danh sách khóa thành `createIndexCheck`, một thuộc tính thành `readIndex`. Module nhận `IndexContext` hẹp (`fields`, `blockAttributes`, `isMysql`, `firstIndex`, `columnNameOf`, `diagnostics`) nên không import ngược `prisma-draft-model.ts`. `hasDroppedOptions` (`hasItemOptions` hoặc tham số có tên ngoài `fields`/`name`/`map`) được export và `readPrimaryKey` dùng lại; `BLOCK_KEY_ARGUMENTS`, `INDEX_KINDS` chuyển theo. `prisma-draft-model.ts` 343 → 236 dòng.
+    - SQL: `readForeignKeys` chuyển sang `sql-draft-relations.ts` cạnh `orderEndpoints`; `orderEndpoints` thôi export. `sql-draft.ts` 311 → 291 dòng.
+    - Conformance: toàn bộ chuẩn hóa dạng của database (`toMicroseconds`, thời điểm, `normalizeDatabaseForms`…) chuyển sang `packages/codegen-conformance/src/support/database-forms.ts` (160 dòng); `database-dump.ts` 396 → 234 dòng; ba file test import conformance đổi import.
+  - Quy tắc C giữ index có tùy chọn: SQL thêm `!(key?.hasDroppedElementOption ?? false)` và `!(definition?.hasDroppedElementOption ?? false)` trong `isImplicitForeignKeyIndex` (`sql-draft-index-rules.ts`); Prisma chỉ bỏ `@@index` khi `!hasDroppedOptions(attribute, list)`.
+  - `readForeignKeys` (Prisma) bỏ qua trường `@relation` không có `fields` (trường quan hệ ngược).
+- **File thay đổi**
+  - Tạo `packages/core/src/importers/prisma/prisma-draft-indexes.ts`, `packages/codegen-conformance/src/support/database-forms.ts`.
+  - Sửa `packages/core/src/importers/prisma/prisma-draft-model.ts`, `prisma-draft.test.ts`, `importers/sql/sql-draft.ts`, `sql-draft-relations.ts`, `sql-draft-index-rules.ts`, `sql-draft.test.ts`; `packages/codegen-conformance/src/support/database-dump.ts`, `import-postgresql.test.ts`, `import-mysql.test.ts`, `import-prisma.test.ts`.
+- **Kiểm tra**
+  - RED: `pnpm exec vitest run src/importers/sql/sql-draft.test.ts src/importers/prisma/prisma-draft.test.ts` → `Tests 6 failed | 154 passed (160)`: SQL `KEY … (p_id DESC)`, `KEY … (p_id(4))`, `CREATE INDEX … (p_id DESC)` bị bỏ; Prisma `p_id(sort: Desc)`, `type: Hash` bị bỏ; quan hệ ngược có `map` trùng tên che khóa ngoại thật. Test `FULLTEXT KEY` đặt tên như khóa ngoại xanh ngay (test hồi quy). GREEN: `vitest run src/importers` 1628 pass.
+  - `.claude/scripts/verify.sh core --build --format`: exit 0, `RESULT: PASS`, test **4730 pass**, coverage dòng **97,99 %**.
+  - `pnpm --filter @schemaforge/codegen-conformance exec vitest run src/import-postgresql.test.ts src/import-mysql.test.ts src/import-prisma.test.ts`: exit 0, 3 file, **19 pass**, 31,5 s. Sau đó không còn container Testcontainers (`docker ps` chỉ còn container của người dùng).
+  - Conformance: `pnpm typecheck` exit 0, `pnpm exec eslint .` exit 0, `pnpm exec prettier --check src` sạch.
+  - `.claude/scripts/secret-scan.sh`: `SECRET-SCAN: CLEAN`.
+- **Quyết định**
+  - Chuyển cả `normalizeDatabaseForms` (không chỉ phần thời điểm) sang `database-forms.ts`: tách riêng phần chạy công cụ dump và phần chuẩn hóa dạng, và tránh import vòng (`DumpDialect` ở `database-dump.ts`, file mới chỉ `import type` một chiều). Cái giá là đổi một dòng import ở ba file test.
+  - `buildIndexes` nhận context hẹp với callback `columnNameOf` thay vì `ModelContext`, để không có import vòng giữa hai module Prisma.
+  - Test quan hệ ngược dùng self-relation có `map` trùng tên trên trường ngược (đặt trước trường có `fields`): trước khi sửa, mục rỗng cột thắng theo quy tắc "khóa ngoại đầu tiên" nên index ngầm bị giữ; sau khi sửa index bị bỏ. Đây là cách duy nhất thấy được qua draft.
+  - Test prefix length dùng cột `int` (`p_id(4)`): MySQL sẽ từ chối, nhưng importer chỉ đọc cú pháp; mục đích là cờ `hasDroppedElementOption`.
+  - Public API không đổi.
+- **Việc còn lại**: không. Đề xuất ngoài phạm vi ở mục trước (spec "Rủi ro" → "hạn chế đã biết") vẫn còn cho orchestrator.
+- **Ghi chú cho người tiếp theo**
+  - Phần việc vẫn chưa commit trên nhánh có `wip: task 20 conformance` và merge master; commit đề xuất như mục trước.

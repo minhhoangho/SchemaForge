@@ -329,4 +329,100 @@ describe("mapSqlDefault", () => {
       ).toStrictEqual(literal(value));
     },
   );
+
+  it.each<DefaultCase>([
+    [
+      "postgresql",
+      expression("'2026-01-02 03:04:05'::timestamp without time zone"),
+      TIMESTAMP,
+      literal("2026-01-02T03:04:05"),
+    ],
+    [
+      "postgresql",
+      expression("'2026-01-01 20:04:05.123+00'::timestamp with time zone"),
+      TIMESTAMPTZ,
+      literal("2026-01-01T20:04:05.123+00:00"),
+    ],
+    [
+      "postgresql",
+      expression("'2026-01-01 20:04:05-05:30'::timestamp with time zone"),
+      TIMESTAMPTZ,
+      literal("2026-01-01T20:04:05-05:30"),
+    ],
+    [
+      "mysql",
+      { kind: "string", text: "2026-01-02 03:04:05.000000" },
+      TIMESTAMP,
+      literal("2026-01-02T03:04:05.000000"),
+    ],
+    [
+      "mysql",
+      { kind: "string", text: "2026-01-01 20:04:05.123000" },
+      TIMESTAMPTZ,
+      literal("2026-01-01T20:04:05.123000"),
+    ],
+  ])(
+    "rewrites a dump timestamp literal to the model's iso form: %s %o",
+    (dialect, raw, columnType, expected) => {
+      expect(mapSqlDefault({ raw, columnType, dialect })).toStrictEqual(
+        expected,
+      );
+    },
+  );
+
+  it.each<
+    readonly [
+      dialect: SqlDialect | "any",
+      text: string,
+      columnType: DraftColumnType,
+    ]
+  >([
+    ["postgresql", "2026-01-02T03:04:05", TIMESTAMP],
+    ["postgresql", "2026-01-02  03:04:05", TIMESTAMP],
+    ["postgresql", "2026-01-02 03:04", TIMESTAMP],
+    ["postgresql", "2026-01-02 03:04:05.", TIMESTAMP],
+    ["mysql", "2026-01-02 03:04:05+0", TIMESTAMPTZ],
+    ["mysql", "2026-01-02 03:04:05Z", TIMESTAMPTZ],
+    ["mysql", "2026-01-02 03:04:05", TEXT],
+    ["any", "2026-01-02 03:04:05", TIMESTAMP],
+  ])(
+    "keeps a string that is not a dump timestamp literal as is: %s %s",
+    (dialect, text, columnType) => {
+      expect(
+        mapSqlDefault({ raw: { kind: "string", text }, columnType, dialect }),
+      ).toStrictEqual(literal(text));
+    },
+  );
+
+  it.each<readonly [text: string, value: string]>([
+    ["(_utf8mb4'a\\\\b')", "a\\b"],
+    ["_utf8mb4'it\\'s'", "it's"],
+    ["(_latin1 'x')", "x"],
+    ['(_utf8mb4\'{"note":"it\\\'s"}\')', '{"note":"it\'s"}'],
+  ])("strips a mysql charset introducer before a string: %s", (text, value) => {
+    expect(
+      mapSqlDefault({
+        raw: expression(text),
+        columnType: TEXT,
+        dialect: "mysql",
+      }),
+    ).toStrictEqual(literal(value));
+  });
+
+  it.each<readonly [dialect: SqlDialect | "any", text: string]>([
+    ["mysql", "(_utf8mb4'a' COLLATE utf8mb4_bin)"],
+    ["mysql", "(concat(_utf8mb4'a', _utf8mb4'b'))"],
+    ["mysql", "(_utf8mb4'a' _utf8mb4'b')"],
+    ["mysql", "(_ 'a')"],
+    ["mysql", "(utf8mb4'a')"],
+    ["postgresql", "_utf8mb4'a'"],
+    ["any", "_utf8mb4'a'"],
+  ])(
+    "drops an introducer that is not before exactly one mysql string: %s %s",
+    (dialect, text) => {
+      expect(
+        mapSqlDefault({ raw: expression(text), columnType: TEXT, dialect }),
+      ).toStrictEqual(NOT_SUPPORTED);
+    },
+  );
 });

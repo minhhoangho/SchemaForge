@@ -468,6 +468,156 @@ describe("buildSqlDraft", PARSE_TIMEOUT, () => {
     });
   });
 
+  describe("implicit mysql foreign key indexes", () => {
+    const PARENT =
+      "CREATE TABLE `p` (`id` int NOT NULL, `code` int NOT NULL, PRIMARY KEY (`id`, `code`));\n";
+
+    function childTable(elements: string): string {
+      return `${PARENT}CREATE TABLE \`c\` (\n  \`id\` int NOT NULL,\n  \`p_id\` int,\n  \`p_code\` int,\n  ${elements}\n);\n`;
+    }
+
+    function indexNamesOf(dialect: SqlDialect, source: string): unknown {
+      const draft = draftOf(dialect, source);
+      return {
+        names: draft.indexes.map(({ name }) => name),
+        relations: draft.relations.length,
+        diagnostics: draft.diagnostics,
+      };
+    }
+
+    it.each([
+      {
+        case: "a key and a foreign key inside create table",
+        source: childTable(
+          "PRIMARY KEY (`id`),\n  KEY `c_p_id_fkey` (`p_id`),\n  CONSTRAINT `c_p_id_fkey` FOREIGN KEY (`p_id`) REFERENCES `p` (`id`)",
+        ),
+      },
+      {
+        case: "a foreign key added by alter table",
+        source: `${childTable("PRIMARY KEY (`id`),\n  KEY `c_p_id_fkey` (`p_id`)")}ALTER TABLE \`c\` ADD CONSTRAINT \`c_p_id_fkey\` FOREIGN KEY (\`p_id\`) REFERENCES \`p\` (\`id\`);\n`,
+      },
+      {
+        case: "a create index",
+        source: `${childTable("PRIMARY KEY (`id`)")}CREATE INDEX \`c_p_id_fkey\` ON \`c\` (\`p_id\`);\nALTER TABLE \`c\` ADD CONSTRAINT \`c_p_id_fkey\` FOREIGN KEY (\`p_id\`) REFERENCES \`p\` (\`id\`);\n`,
+      },
+      {
+        case: "a foreign key of two columns",
+        source: childTable(
+          "PRIMARY KEY (`id`),\n  KEY `c_p_fkey` (`p_id`, `p_code`),\n  CONSTRAINT `c_p_fkey` FOREIGN KEY (`p_id`, `p_code`) REFERENCES `p` (`id`, `code`)",
+        ),
+      },
+    ])(
+      "drops the index mysql creates for a foreign key: $case",
+      ({ source }) => {
+        expect(indexNamesOf("mysql", source)).toStrictEqual({
+          names: [],
+          relations: 1,
+          diagnostics: [],
+        });
+      },
+    );
+
+    it.each([
+      {
+        case: "another name",
+        keys: "PRIMARY KEY (`id`),\n  KEY `c_p_id_idx` (`p_id`)",
+        name: "c_p_id_idx",
+      },
+      {
+        case: "the name in another case",
+        keys: "PRIMARY KEY (`id`),\n  KEY `C_P_ID_FKEY` (`p_id`)",
+        name: "C_P_ID_FKEY",
+      },
+      {
+        case: "other columns",
+        keys: "PRIMARY KEY (`id`),\n  KEY `c_p_id_fkey` (`p_code`)",
+        name: "c_p_id_fkey",
+      },
+      {
+        case: "the primary key starting with the column",
+        keys: "PRIMARY KEY (`p_id`, `id`),\n  KEY `c_p_id_fkey` (`p_id`)",
+        name: "c_p_id_fkey",
+      },
+    ])("keeps a key named like a foreign key with $case", ({ keys, name }) => {
+      const source = childTable(
+        `${keys},\n  CONSTRAINT \`c_p_id_fkey\` FOREIGN KEY (\`p_id\`) REFERENCES \`p\` (\`id\`)`,
+      );
+
+      expect(indexNamesOf("mysql", source)).toStrictEqual({
+        names: [name],
+        relations: 1,
+        diagnostics: [],
+      });
+    });
+
+    it.each([
+      {
+        case: "a fulltext key",
+        source: childTable(
+          "PRIMARY KEY (`id`),\n  FULLTEXT KEY `c_p_id_fkey` (`p_id`),\n  CONSTRAINT `c_p_id_fkey` FOREIGN KEY (`p_id`) REFERENCES `p` (`id`)",
+        ),
+      },
+      {
+        case: "a descending key",
+        source: childTable(
+          "PRIMARY KEY (`id`),\n  KEY `c_p_id_fkey` (`p_id` DESC),\n  CONSTRAINT `c_p_id_fkey` FOREIGN KEY (`p_id`) REFERENCES `p` (`id`)",
+        ),
+      },
+      {
+        case: "a key with a prefix length",
+        source: childTable(
+          "PRIMARY KEY (`id`),\n  KEY `c_p_id_fkey` (`p_id`(4)),\n  CONSTRAINT `c_p_id_fkey` FOREIGN KEY (`p_id`) REFERENCES `p` (`id`)",
+        ),
+      },
+      {
+        case: "a descending create index",
+        source: `${childTable("PRIMARY KEY (`id`)")}CREATE INDEX \`c_p_id_fkey\` ON \`c\` (\`p_id\` DESC);\nALTER TABLE \`c\` ADD CONSTRAINT \`c_p_id_fkey\` FOREIGN KEY (\`p_id\`) REFERENCES \`p\` (\`id\`);\n`,
+      },
+    ])("keeps an index named like a foreign key with $case", ({ source }) => {
+      const draft = draftOf("mysql", source);
+
+      expect(draft.indexes.map(({ name }) => name)).toStrictEqual([
+        "c_p_id_fkey",
+      ]);
+    });
+
+    it("keeps the foreign key index when another index serves the foreign key", () => {
+      const source = childTable(
+        "PRIMARY KEY (`id`),\n  KEY `c_p_id_fkey` (`p_id`),\n  KEY `c_p_id_code_idx` (`p_id`, `p_code`),\n  CONSTRAINT `c_p_id_fkey` FOREIGN KEY (`p_id`) REFERENCES `p` (`id`)",
+      );
+
+      expect(indexNamesOf("mysql", source)).toStrictEqual({
+        names: ["c_p_id_fkey", "c_p_id_code_idx"],
+        relations: 1,
+        diagnostics: [],
+      });
+    });
+
+    it("keeps the foreign key index when a unique column serves the foreign key", () => {
+      const draft = draftOf(
+        "mysql",
+        childTable(
+          "PRIMARY KEY (`id`),\n  UNIQUE KEY `c_p_id_key` (`p_id`),\n  KEY `c_p_id_fkey` (`p_id`),\n  CONSTRAINT `c_p_id_fkey` FOREIGN KEY (`p_id`) REFERENCES `p` (`id`)",
+        ),
+      );
+
+      expect(draft.indexes.map(({ name }) => name)).toStrictEqual([
+        "c_p_id_fkey",
+      ]);
+    });
+
+    it("keeps an index named like a foreign key in postgresql", () => {
+      const source =
+        "CREATE TABLE p (id int PRIMARY KEY);\nCREATE TABLE c (id int PRIMARY KEY, p_id int);\nCREATE INDEX c_p_id_fkey ON c (p_id);\nALTER TABLE c ADD CONSTRAINT c_p_id_fkey FOREIGN KEY (p_id) REFERENCES p (id);\n";
+
+      expect(indexNamesOf("postgresql", source)).toStrictEqual({
+        names: ["c_p_id_fkey"],
+        relations: 1,
+        diagnostics: [],
+      });
+    });
+  });
+
   describe("relations", () => {
     const TABLES =
       "CREATE TABLE p (id int PRIMARY KEY, code int UNIQUE, a int, b int);\nCREATE UNIQUE INDEX p_ab_ux ON p (a, b);\nCREATE TABLE c (id int PRIMARY KEY, code int UNIQUE, a int, b int);\nCREATE UNIQUE INDEX c_ab_ux ON c (a, b);\n";

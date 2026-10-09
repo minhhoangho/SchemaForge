@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { SqlDialect } from "../../generators/shared/generator-types.js";
+import type { ForeignKeyColumns } from "../shared/implicit-foreign-key-index.js";
 import type {
   CoreField,
   CoreIndex,
@@ -79,6 +80,7 @@ type Scenario = {
   readonly keys: readonly SqlTableKey[];
   readonly uniqueConstraints: readonly SqlUniqueConstraint[];
   readonly added: readonly SqlAddedUniqueConstraint[];
+  readonly foreignKeys: readonly ForeignKeyColumns[];
 };
 
 const NO_READS: Omit<Scenario, "dialect" | "isIncrement" | "indexes"> = {
@@ -86,6 +88,7 @@ const NO_READS: Omit<Scenario, "dialect" | "isIncrement" | "indexes"> = {
   keys: [],
   uniqueConstraints: [],
   added: [],
+  foreignKeys: [],
 };
 
 // The reads are listed in reverse, so a scan per index would walk past most.
@@ -130,6 +133,24 @@ const SCENARIOS: readonly (readonly [string, Scenario, readonly number[]])[] = [
       })),
     },
     [INDEX_COUNT, INDEX_COUNT],
+  ],
+  [
+    // Every index starts with the same column, so a scan of the keys that
+    // start like the index would read them all for each index.
+    "MySQL implicit indexes of foreign keys",
+    {
+      ...NO_READS,
+      dialect: "mysql",
+      isIncrement: false,
+      indexes: POSITIONS.map((p) =>
+        index(`f${String(p)}`, [columnName(0), columnName(p + 1)], false),
+      ),
+      foreignKeys: POSITIONS.toReversed().map((p) => ({
+        name: `f${String(p)}`,
+        columnNames: [columnName(0), columnName(p + 1)],
+      })),
+    },
+    [0, 0],
   ],
   [
     "MySQL indexes of auto-increment columns",
@@ -211,6 +232,9 @@ function contextOf(
     ]),
     addedUniqueConstraints: new Map([
       ["t", scenario.added.map((added) => counted(added, count))],
+    ]),
+    foreignKeys: new Map([
+      ["t", scenario.foreignKeys.map((key) => counted(key, count))],
     ]),
     parts: { tables: [], indexes: [], enums: [], diagnostics: [] },
   };

@@ -57,6 +57,10 @@ const TIMESTAMP_KINDS: ReadonlySet<DraftColumnType["kind"]> = new Set([
   "timestamp",
   "timestamptz",
 ]);
+// How pg_dump, mysqldump and prisma db pull write a point in time: a space
+// before the time, and an offset of hours only (`+00`) or hours and minutes.
+const DUMP_TIMESTAMP_PATTERN =
+  /^([0-9]{4}-[0-9]{2}-[0-9]{2}) ([0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?)(?:([+-][0-9]{2})(:[0-9]{2})?)?$/;
 
 // Counts the parenthesis pairs that wrap the whole expression in one pass:
 // a pair wraps only if no token between it sits at or above its depth.
@@ -120,11 +124,31 @@ function classifyWord(text: string): DefaultValue {
   return key === NULL_WORD ? { kind: "null" } : UNSUPPORTED;
 }
 
+// A MySQL charset introducer, `_utf8mb4'…'`, names the charset of exactly one
+// string; the model has no charset, so only the string is kept (spec section 5).
+function isCharsetIntroducer(
+  tokens: readonly SqlToken[],
+  dialect: SqlDialect | "any",
+): boolean {
+  const [first, second, third] = tokens;
+  return (
+    dialect === "mysql" &&
+    first?.kind === "word" &&
+    first.text.length > 1 &&
+    first.text.startsWith("_") &&
+    second?.kind === "string" &&
+    third === undefined
+  );
+}
+
 function classifyTokens(
   tokens: readonly SqlToken[],
   dialect: SqlDialect | "any",
 ): DefaultValue {
   const [first, second, ...rest] = tokens;
+  if (isCharsetIntroducer(tokens, dialect)) {
+    return { kind: "literal", text: second?.value ?? "", isNumber: false };
+  }
   if (first?.kind === "string" && second === undefined) {
     return { kind: "literal", text: first.value, isNumber: false };
   }
@@ -208,6 +232,19 @@ function mapFunction(
   }
 }
 
+// `2026-01-01 20:04:05.123+00` → `2026-01-01T20:04:05.123+00:00`, the form
+// the model reads (validation/rules/default-literals.ts); anything else as is.
+function rewriteDumpTimestamp(text: string): string {
+  const match = DUMP_TIMESTAMP_PATTERN.exec(text);
+  if (match === null) {
+    return text;
+  }
+  const [, date, time, offsetHours, offsetMinutes] = match;
+  const offset =
+    offsetHours === undefined ? "" : `${offsetHours}${offsetMinutes ?? ":00"}`;
+  return `${date ?? ""}T${time ?? ""}${offset}`;
+}
+
 /** Maps a SQL column default to the model (import / export spec, section 5). */
 export function mapSqlDefault(input: {
   readonly raw: RawSqlDefault;
@@ -224,7 +261,14 @@ export function mapSqlDefault(input: {
         input.columnType.kind === "boolean"
           ? BOOLEAN_NUMBERS.get(value.text)
           : undefined;
-      return result({ kind: "literal", value: booleanText ?? value.text });
+      // DBML keeps the source text of a literal (spec section 7).
+      const timestampText =
+        !value.isNumber &&
+        input.dialect !== "any" &&
+        TIMESTAMP_KINDS.has(input.columnType.kind)
+          ? rewriteDumpTimestamp(value.text)
+          : value.text;
+      return result({ kind: "literal", value: booleanText ?? timestampText });
     }
     case "null":
       return result(null);

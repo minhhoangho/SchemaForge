@@ -8,11 +8,11 @@ import type {
 } from "../shared/import-draft.js";
 import type { PrismaBlock, PrismaField, PrismaPosition } from "./prisma-ast.js";
 import {
-  constraintName,
   findAttribute,
   hasNamedOption,
   readFieldList,
 } from "./prisma-attribute-args.js";
+import { buildIndexes, hasDroppedOptions } from "./prisma-draft-indexes.js";
 import {
   mapPrismaScalarField,
   type PrismaFieldContext,
@@ -46,25 +46,9 @@ type ModelContext = ModelPlacement & {
   readonly diagnostics: DraftDiagnostic[];
 };
 
-// `map:` names a constraint and `name:` the Prisma Client accessor; neither
-// has a place in the model, and dropping them loses no structure.
+// `map:` names a constraint; it has no place in the model, and dropping it
+// loses no structure.
 const KEY_ARGUMENTS: ReadonlySet<string> = new Set(["map"]);
-const BLOCK_KEY_ARGUMENTS: ReadonlySet<string> = new Set([
-  "fields",
-  "name",
-  "map",
-]);
-const INDEX_KINDS: ReadonlyMap<
-  string,
-  {
-    readonly isUnique: boolean;
-    readonly codes: readonly ImportDiagnosticCode[];
-  }
-> = new Map([
-  ["unique", { isUnique: true, codes: [] }],
-  ["index", { isUnique: false, codes: [] }],
-  ["fulltext", { isUnique: false, codes: ["index-type-dropped"] }],
-]);
 const PRIMARY_KEY_FIELD = "primaryKeyColumnIds";
 
 function report(
@@ -188,7 +172,7 @@ function readPrimaryKey(
     report(context, "reference-not-found", id.position, null);
     return [];
   }
-  if (list.hasItemOptions || hasNamedOption(id, BLOCK_KEY_ARGUMENTS)) {
+  if (hasDroppedOptions(id, list)) {
     report(context, "index-option-dropped", id.position, {
       kind: "table",
       tableIndex: context.tableIndex,
@@ -196,43 +180,6 @@ function readPrimaryKey(
     });
   }
   return list.fieldNames.map((name) => columnNameOf(context, name));
-}
-
-function buildIndexes(
-  context: ModelContext,
-  tableName: string,
-): readonly DraftIndex[] {
-  const indexes: DraftIndex[] = [];
-  for (const attribute of context.model.blockAttributes) {
-    const kind = INDEX_KINDS.get(attribute.name);
-    if (kind === undefined) {
-      continue;
-    }
-    const list = readFieldList(attribute);
-    if (list === null) {
-      report(context, "reference-not-found", attribute.position, null);
-      continue;
-    }
-    const target: DraftTarget = {
-      kind: "index",
-      index: context.firstIndex + indexes.length,
-    };
-    const optionCodes: readonly ImportDiagnosticCode[] =
-      list.hasItemOptions || hasNamedOption(attribute, BLOCK_KEY_ARGUMENTS)
-        ? ["index-option-dropped"]
-        : [];
-    for (const code of [...kind.codes, ...optionCodes]) {
-      report(context, code, attribute.position, target);
-    }
-    indexes.push({
-      tableName,
-      name: constraintName(attribute),
-      columnNames: list.fieldNames.map((name) => columnNameOf(context, name)),
-      isUnique: kind.isUnique,
-      location: attribute.position,
-    });
-  }
-  return indexes;
 }
 
 function reportNamespace(context: ModelContext): void {
@@ -263,7 +210,17 @@ export function buildModelDraft(
   );
   const primaryKeyColumnNames = readPrimaryKey(context, fields);
   reportNamespace(context);
-  const indexes = buildIndexes(context, tableName);
+  const indexes = buildIndexes(
+    {
+      fields: model.fields,
+      blockAttributes: model.blockAttributes,
+      isMysql: names.provider === "mysql",
+      firstIndex: placement.firstIndex,
+      columnNameOf: (fieldName) => columnNameOf(context, fieldName),
+      diagnostics: context.diagnostics,
+    },
+    { name: tableName, columns, primaryKeyColumnNames },
+  );
   return {
     table: {
       name: tableName,

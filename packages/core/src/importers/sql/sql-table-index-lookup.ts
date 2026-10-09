@@ -4,6 +4,10 @@ import type {
   CoreTable,
 } from "../shared/dbml-core-adapter-types.js";
 import {
+  createImplicitForeignKeyIndexCheck,
+  type ImplicitForeignKeyIndexCheck,
+} from "../shared/implicit-foreign-key-index.js";
+import {
   createColumnSetLookup,
   type ColumnSetLookup,
 } from "./sql-column-set-lookup.js";
@@ -39,6 +43,7 @@ export type TableIndexLookup = {
   // Name keys of the unique columns, and of the primary key columns when no
   // primary key index lists them.
   readonly keyColumnKeys: ReadonlySet<string>;
+  readonly isImplicitForeignKeyIndex: ImplicitForeignKeyIndexCheck;
 };
 
 type IndexRead = {
@@ -86,6 +91,21 @@ function groupByFirstColumn(
   return groups;
 }
 
+// Every key of the table: its indexes (the primary key index among them),
+// else the primary key columns, and its unique columns.
+function listKeys(table: CoreTable): readonly (readonly string[])[] {
+  const primaryKeyFields = table.indexes.some((key) => key.isPrimaryKey)
+    ? []
+    : table.fields.filter(({ isPrimaryKey }) => isPrimaryKey);
+  return [
+    ...table.indexes.map(({ columns }) => columns.map(({ value }) => value)),
+    primaryKeyFields.map(({ name }) => name),
+    ...table.fields
+      .filter(({ isUnique }) => isUnique)
+      .map(({ name }) => [name]),
+  ];
+}
+
 export function createTableIndexLookup(
   table: CoreTable,
   context: SqlDraftContext,
@@ -120,6 +140,10 @@ export function createTableIndexLookup(
             isUnique || (isPrimaryKey && !hasPrimaryKeyIndex),
         )
         .map(({ name }) => toNameKey(name)),
+    ),
+    isImplicitForeignKeyIndex: createImplicitForeignKeyIndexCheck(
+      context.foreignKeys.get(tableKey) ?? [],
+      () => listKeys(table),
     ),
   };
 }

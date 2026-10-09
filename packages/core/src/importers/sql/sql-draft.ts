@@ -19,7 +19,7 @@ import {
   resolveScannerStatements,
   type ColumnChange,
 } from "./sql-draft-overrides.js";
-import { translateRefs } from "./sql-draft-relations.js";
+import { readForeignKeys, translateRefs } from "./sql-draft-relations.js";
 import { normalizeParserNames } from "./sql-parser-names.js";
 import type { SqlElementLocations } from "./sql-element-locations.js";
 import type { SqlIndexDefinition } from "./sql-index-definitions.js";
@@ -245,6 +245,7 @@ function createDraftContext(
     overrides: scanned.overrides,
     indexDefinitions: groupByTable(input.indexDefinitions),
     addedUniqueConstraints: groupByTable(input.addedUniqueConstraints),
+    foreignKeys: groupByTable(readForeignKeys(database.refs, dialect)),
     parts,
   };
 }

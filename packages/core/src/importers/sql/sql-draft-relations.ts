@@ -1,9 +1,11 @@
+import type { SqlDialect } from "../../generators/shared/generator-types.js";
 import { toNameKey } from "../../model/name-limits.js";
 import type { ReferentialAction } from "../../model/relation.js";
 import type {
   CoreEndpoint,
   CoreRef,
 } from "../shared/dbml-core-adapter-types.js";
+import type { ForeignKeyColumns } from "../shared/implicit-foreign-key-index.js";
 import type {
   DraftDiagnostic,
   DraftIndex,
@@ -96,6 +98,24 @@ function orderEndpoints(
   return second.relation === "*" && first.relation !== "*"
     ? [second, first]
     : [first, second];
+}
+
+// MySQL creates an index for a foreign key no key serves, named after the
+// constraint (spec section 5); the other dialects create none.
+export function readForeignKeys(
+  refs: readonly CoreRef[],
+  dialect: SqlDialect,
+): readonly (ForeignKeyColumns & { readonly tableName: string })[] {
+  if (dialect !== "mysql") {
+    return [];
+  }
+  return refs.flatMap(({ name, endpoints: [first, second] }) => {
+    if (name === null || first === undefined || second === undefined) {
+      return [];
+    }
+    const [from] = orderEndpoints(first, second);
+    return [{ name, tableName: from.tableName, columnNames: from.columnNames }];
+  });
 }
 
 /** Foreign keys of the parsed tables; references are resolved later. */

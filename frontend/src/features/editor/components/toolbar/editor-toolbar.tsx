@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import { useSchemaCommands } from "../../hooks/use-schema-commands";
+import { EditorImportButton } from "../../import-export/editor-import-button";
 import { ExportMenu } from "../../import-export/export-menu";
 import { useViewportControls } from "../../lib/viewport-controls";
 import { selectIsPreviewing } from "../../state/create-editor-store";
@@ -232,6 +233,7 @@ export function EditorToolbar({
       <SchemaNameButton />
       <ToolbarSeparator />
       <AddButtons />
+      <EditorImportButton />
       <ExportMenu />
       <ToolbarSeparator />
       <HistoryButtons />

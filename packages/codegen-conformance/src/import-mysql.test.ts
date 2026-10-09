@@ -1,0 +1,64 @@
+import { generateMysql } from "@schemaforge/core/generators/mysql";
+import { importMysql } from "@schemaforge/core/importers/sql";
+import { unwrapOk } from "@schemaforge/core/testing";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import {
+  createImportOptions,
+  startDumpServer,
+} from "./support/database-dump.js";
+import type { DumpServer } from "./support/database-dump.js";
+import { normalizeDatabaseForms } from "./support/database-forms.js";
+import {
+  listConformanceFixtures,
+  withDialectCustomTypes,
+} from "./support/fixtures.js";
+
+const DIALECT = "mysql";
+
+let server: DumpServer | undefined;
+let databaseCount = 0;
+
+beforeAll(async () => {
+  server = await startDumpServer(DIALECT);
+});
+
+afterAll(async () => {
+  await server?.stop();
+});
+
+async function dumpDdl(ddl: string): Promise<string> {
+  if (server === undefined) {
+    throw new Error("The MySQL server did not start");
+  }
+  databaseCount += 1;
+  const database = await server.createDatabase(
+    `f_${String(databaseCount)}`,
+    ddl,
+  );
+  return database.dump();
+}
+
+describe.each(listConformanceFixtures())(
+  "mysql dump import for $name",
+  ({ schema: fixtureSchema }) => {
+    const schema = withDialectCustomTypes(fixtureSchema, DIALECT);
+
+    it("regenerates the original ddl from the import of the mysqldump output", async () => {
+      const ddl = generateMysql(schema, {}).file.content;
+      const dump = await dumpDdl(ddl);
+
+      const imported = unwrapOk(
+        importMysql(dump, createImportOptions(schema.name)),
+      );
+
+      // Only values the database keeps in its own canonical form may differ.
+      expect(
+        generateMysql(normalizeDatabaseForms(imported.document, DIALECT), {})
+          .file.content,
+      ).toBe(
+        generateMysql(normalizeDatabaseForms(schema, DIALECT), {}).file.content,
+      );
+    });
+  },
+);

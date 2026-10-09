@@ -64,6 +64,22 @@ function mapUuid(args: readonly PrismaArgument[]): SqlDefaultMapping {
     : NOT_SUPPORTED;
 }
 
+// `prisma db pull` copies a MySQL default from information_schema, which adds
+// a layer of `\` escapes to `'` and `\` inside an expression with a charset
+// introducer: `(_utf8mb4\'a\\\\b\')` for mysqldump's `(_utf8mb4'a\\b')`.
+const INFORMATION_SCHEMA_INTRODUCER_PATTERN = /^\(_[A-Za-z0-9_]+\\'/;
+const INFORMATION_SCHEMA_ESCAPE_PATTERN = /\\(['\\])/g;
+
+function removeInformationSchemaEscapes(
+  text: string,
+  provider: SqlDialect,
+): string {
+  return provider === "mysql" &&
+    INFORMATION_SCHEMA_INTRODUCER_PATTERN.test(text)
+    ? text.replace(INFORMATION_SCHEMA_ESCAPE_PATTERN, "$1")
+    : text;
+}
+
 function mapDbGenerated(
   args: readonly PrismaArgument[],
   input: PrismaDefaultInput,
@@ -73,7 +89,10 @@ function mapDbGenerated(
     return NOT_SUPPORTED;
   }
   return mapSqlDefault({
-    raw: { kind: "expression", text: expression.value },
+    raw: {
+      kind: "expression",
+      text: removeInformationSchemaEscapes(expression.value, input.provider),
+    },
     columnType: input.columnType,
     dialect: input.provider,
   });

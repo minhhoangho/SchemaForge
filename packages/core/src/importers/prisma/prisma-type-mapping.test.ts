@@ -423,6 +423,41 @@ describe("mapPrismaScalarField", () => {
       defaulted({ kind: "currentTimestamp" }),
     ],
     ["postgresql", `a Int @default(dbgenerated("random()"))`, NOT_SUPPORTED],
+    [
+      "postgresql",
+      `a DateTime @db.Timestamptz(6) @default(dbgenerated("'2026-01-01 20:04:05.123+00'::timestamp with time zone"))`,
+      literal("2026-01-01T20:04:05.123+00:00"),
+    ],
+    [
+      "mysql",
+      `a DateTime @db.DateTime(6) @default(dbgenerated("'2026-01-02 03:04:05.000000'"))`,
+      literal("2026-01-02T03:04:05.000000"),
+    ],
+    [
+      "mysql",
+      String.raw`a String @db.LongText @default(dbgenerated("(_utf8mb4\\'a\\\\\\\\b\\')"))`,
+      literal(String.raw`a\b`),
+    ],
+    [
+      "mysql",
+      String.raw`a String @db.LongText @default(dbgenerated("(_utf8mb4\\'it\\\\\\'s\\')"))`,
+      literal("it's"),
+    ],
+    [
+      "mysql",
+      String.raw`a String @db.LongText @default(dbgenerated("(_utf8mb4'a\\\\b')"))`,
+      literal(String.raw`a\b`),
+    ],
+    [
+      "mysql",
+      String.raw`a String @db.LongText @default(dbgenerated("(\\'a\\')"))`,
+      NOT_SUPPORTED,
+    ],
+    [
+      "postgresql",
+      String.raw`a String @default(dbgenerated("(_utf8mb4\\'a\\')"))`,
+      NOT_SUPPORTED,
+    ],
   ])(
     "reads dbgenerated defaults through the sql default mapping: %s %s",
     (provider, line, expected) => {

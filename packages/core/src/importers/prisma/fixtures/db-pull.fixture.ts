@@ -97,7 +97,8 @@ enum order_status {
 `;
 
 // The tenants, users and orders tables of the sample schema on MySQL. InnoDB
-// adds an index for each foreign key that no other index leads with.
+// adds an index for each foreign key that no other index leads with; the
+// importer drops these implicit indexes (spec section 6, `@@index(map:)`).
 export const DB_PULL_MYSQL = `generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -278,23 +279,11 @@ function createMysqlExpected(): SchemaDocument {
     ],
     indexes: [
       makeIndex({
-        id: "idx_orders_user",
-        tableId: "tbl_orders",
-        name: "orders_user_id_fkey",
-        columnIds: ["col_orders_user"],
-      }),
-      makeIndex({
         id: "idx_users_tenant_email",
         tableId: "tbl_users",
         name: "users_tenant_id_email_key",
         columnIds: ["col_users_tenant", "col_users_email"],
         isUnique: true,
-      }),
-      makeIndex({
-        id: "idx_users_manager",
-        tableId: "tbl_users",
-        name: "users_manager_id_fkey",
-        columnIds: ["col_users_manager"],
       }),
     ],
     relations: [

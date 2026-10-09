@@ -173,8 +173,28 @@ function classifyTableKey(source: IndexSource): IndexOutcome {
   };
 }
 
+// MySQL creates an index named after a foreign key that no key serves; CG-01
+// does not write it and the database creates it again from the DDL (spec
+// section 5, "Index ngầm của khóa ngoại MySQL"). The database creates it with
+// no element option, so a key with DESC or a prefix length is the user's.
+function isImplicitForeignKeyIndex(source: IndexSource): boolean {
+  const { index, columnNames, lookup, definition } = source;
+  const key = lookup.tableKey(index, columnNames);
+  return (
+    source.context.dialect === "mysql" &&
+    !index.isUnique &&
+    (key?.kind ?? "plain") === "plain" &&
+    !(key?.hasDroppedElementOption ?? false) &&
+    !(definition?.hasDroppedElementOption ?? false) &&
+    lookup.isImplicitForeignKeyIndex(index.name, columnNames)
+  );
+}
+
 export function classifyIndex(source: IndexSource): IndexOutcome {
   const { definition, index, context } = source;
+  if (isImplicitForeignKeyIndex(source)) {
+    return { kind: "dropped" };
+  }
   if (index.isUnique) {
     const filtered = classifyFilteredUnique(source);
     if (filtered !== null) {

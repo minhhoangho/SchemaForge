@@ -17,7 +17,10 @@ export type ImporterClient = {
     request: Omit<ImportRequest, "requestId">,
   ) => Promise<ImportOutcome>;
   readonly cancel: () => void;
-  // Ends the worker; called when the dialog closes.
+  // Creates the worker ahead of the first run (the dialog calls it on open).
+  readonly prepare: () => void;
+  // Ends the worker for good: later `prepare` and `run` calls create none
+  // (the dialog calls it when it closes, and builds a new client on reopen).
   readonly dispose: () => void;
 };
 
@@ -47,9 +50,9 @@ function scheduleTimeout(callback: () => void, delayMs: number): () => void {
 }
 
 /**
- * One cancellable import at a time. The worker is created on the first run
- * and replaced after a cancel, a timeout or an error, so a dead worker is
- * never reused.
+ * One cancellable import at a time. The worker is created by `prepare` or the
+ * first run and replaced after a cancel, a timeout or an error, so a dead
+ * worker is never reused. After `dispose` no worker is created again.
  */
 export function createImporterClient(
   options?: ImporterClientOptions,
@@ -60,6 +63,7 @@ export function createImporterClient(
   let worker: Worker | null = null;
   let pending: PendingRun | null = null;
   let lastRequestId = 0;
+  let isDisposed = false;
 
   function dropWorker(): void {
     worker?.terminate();
@@ -115,7 +119,16 @@ export function createImporterClient(
   }
 
   return {
+    prepare: () => {
+      if (isDisposed) return;
+      try {
+        worker ??= createWorker();
+      } catch {
+        // `run` tries again and reports the failure then.
+      }
+    },
     run: (request) => {
+      if (isDisposed) return Promise.resolve({ kind: "cancelled" });
       if (pending !== null) cancel();
       lastRequestId += 1;
       // The worker would drop this request and the run would hit the timeout.
@@ -127,6 +140,9 @@ export function createImporterClient(
       });
     },
     cancel,
-    dispose: cancel,
+    dispose: () => {
+      isDisposed = true;
+      cancel();
+    },
   };
 }

@@ -6,6 +6,10 @@ export const enImportExport = {
       "Read a schema from a SQL, Prisma, DBML or JSON source. Nothing changes until you confirm.",
     defaultSchemaName: "Imported schema",
     analyzing: "Analyzing…",
+    loadingParser:
+      "SQL and DBML need a parser of about 3 MB, downloaded the first time, so this can take a moment.",
+    licenses: "Licenses of the bundled parsers",
+    opensInNewTab: "(opens in a new tab)",
     cancel: "Cancel",
     done_one: "Imported {{count}} table",
     done_other: "Imported {{count}} tables",
@@ -30,6 +34,7 @@ export const enImportExport = {
       timeout: "Analyzing took too long and was stopped.",
       workerFailed: "Could not analyze the source. Try again.",
       emptySource: "Choose a file or paste some text first.",
+      dialectRequired: "Choose a SQL dialect first.",
       notApplied:
         "The schema changed while this dialog was open, so nothing was imported. Analyze the source again.",
       previewing:
@@ -67,7 +72,7 @@ export const enImportExport = {
       back: "Back",
       confirm: "Import",
       announceSuccess:
-        "Found {{tables}} tables, {{differences}} differences, {{issues}} issues.",
+        "Analysis finished: {{tables}}, {{differences}}, {{issues}}.",
       announceFailure_one: "The source could not be read: {{count}} error.",
       announceFailure_other: "The source could not be read: {{count}} errors.",
     },
